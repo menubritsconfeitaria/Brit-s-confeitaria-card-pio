@@ -577,6 +577,87 @@ function salvarOrdemCategorias() {
         .catch(err => alert('Erro ao salvar ordem: ' + err.message));
 }
 
+// ---------- RESUMO DO DIA ----------
+
+// Preço final do pedido, com um fallback seguro caso o frete ainda não tenha sido confirmado
+function totalDoPedido(p) {
+    if (p.total != null) return p.total;
+    return Math.max(0, (p.subtotal || 0) - (p.desconto || 0) + (p.frete || 0));
+}
+
+function carregarResumoDia() {
+    const dataInput = document.getElementById('resumoDiaData').value; // formato yyyy-mm-dd
+    if (!dataInput) { alert('Escolha uma data.'); return; }
+    const [ano, mes, dia] = dataInput.split('-').map(Number);
+    const inicio = new Date(ano, mes - 1, dia, 0, 0, 0, 0).getTime();
+    const fim = new Date(ano, mes - 1, dia, 23, 59, 59, 999).getTime();
+
+    db.ref('pedidos').orderByChild('timestamp').startAt(inicio).endAt(fim).once('value').then(snap => {
+        const pedidosDoDia = [];
+        snap.forEach(child => pedidosDoDia.push(child.val()));
+        renderResumoDia(pedidosDoDia, dataInput);
+    }).catch(err => alert('Não foi possível carregar o resumo: ' + err.message));
+}
+
+function renderResumoDia(pedidos, dataInput) {
+    const entregues = pedidos.filter(p => p.status === 'entregue');
+    const div = document.getElementById('resumoDiaConteudo');
+    const btnCopiar = document.getElementById('btnCopiarResumo');
+    const dataFormatada = dataInput.split('-').reverse().join('/');
+
+    if (entregues.length === 0) {
+        div.innerHTML = '<p class="vazio">Nenhum pedido entregue nesse dia.</p>';
+        btnCopiar.style.display = 'none';
+        window._resumoDiaTexto = '';
+        return;
+    }
+
+    const faturamento = entregues.reduce((s, p) => s + totalDoPedido(p), 0);
+
+    // Agrupa por produto, somando quantidade e valor total vendido de cada um
+    const produtosAgregados = {};
+    entregues.forEach(p => (p.itens || []).forEach(item => {
+        const chave = item.nome + (item.observacao ? ' — ' + item.observacao : '');
+        if (!produtosAgregados[chave]) produtosAgregados[chave] = { quantidade: 0, subtotal: 0 };
+        produtosAgregados[chave].quantidade += item.quantidade;
+        produtosAgregados[chave].subtotal += (item.preco || 0) * item.quantidade;
+    }));
+    const listaOrdenada = Object.entries(produtosAgregados).sort((a, b) => b[1].quantidade - a[1].quantidade);
+
+    const linhasProdutosHtml = listaOrdenada
+        .map(([nome, dados]) => `<div class="pedido-total-linha"><span>${dados.quantidade}x ${nome}</span><span>${formatarPreco(dados.subtotal)}</span></div>`)
+        .join('');
+
+    div.innerHTML = `
+        <div class="pedido-total-linha"><span><strong>Pedidos entregues</strong></span><span><strong>${entregues.length}</strong></span></div>
+        <div class="pedido-total-linha total-final"><span><strong>Faturamento do dia</strong></span><span><strong>${formatarPreco(faturamento)}</strong></span></div>
+        <h3 style="margin-top:14px;">Produtos vendidos</h3>
+        ${linhasProdutosHtml}
+    `;
+
+    // Monta a versão em texto simples, pronta pra copiar/colar
+    let texto = `📊 Resumo Brit's Confeitaria — ${dataFormatada}\n\n`;
+    texto += `Pedidos entregues: ${entregues.length}\n`;
+    texto += `Faturamento: ${formatarPreco(faturamento)}\n\n`;
+    texto += `Produtos vendidos:\n`;
+    listaOrdenada.forEach(([nome, dados]) => {
+        texto += `- ${dados.quantidade}x ${nome} — ${formatarPreco(dados.subtotal)}\n`;
+    });
+    window._resumoDiaTexto = texto;
+    btnCopiar.style.display = 'block';
+}
+
+function copiarResumoDia() {
+    if (!window._resumoDiaTexto) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(window._resumoDiaTexto)
+            .then(() => alert('Resumo copiado! Já pode colar onde precisar.'))
+            .catch(() => alert('Não foi possível copiar automaticamente. Copie o texto manualmente da tela.'));
+    } else {
+        alert('Seu navegador não permite copiar automaticamente. Copie o texto manualmente da tela.');
+    }
+}
+
 // ---------- CLUBE DE FIDELIDADE ----------
 
 let configFidelidadeAtual = {};
@@ -752,6 +833,11 @@ function iniciarEscutaPedidos() {
     escutarCupons();
     escutarOrdemCategorias();
     escutarConfigFidelidade();
+
+    // Já deixa o campo de data do Resumo do Dia preenchido com hoje
+    const hoje = new Date();
+    const hojeFormatado = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0');
+    document.getElementById('resumoDiaData').value = hojeFormatado;
     escutarRecompensas();
 
     const refPedidos = db.ref('pedidos');

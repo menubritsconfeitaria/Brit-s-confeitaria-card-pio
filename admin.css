@@ -630,3 +630,19 @@ body {
     border-color: #c0392b;
     opacity: 0.35;
 }
+
+.btn-secondary {
+    background: #fff;
+    color: var(--primary);
+    border: 1px solid var(--border);
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+}
+.btn-secondary:hover { background: var(--bg); }
+
+#resumoDiaData {
+    max-width: 200px;
+}

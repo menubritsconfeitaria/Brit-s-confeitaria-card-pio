@@ -104,6 +104,19 @@
             </section>
 
             <section>
+                <h2>📊 Resumo do Dia</h2>
+                <div class="loja-status-card">
+                    <p class="dica-secao">Veja tudo que foi vendido num dia — útil pra conferir o que lançar no seu Sistema de Gestão, sem esquecer nada.</p>
+                    <label class="campo-label">Data</label>
+                    <input type="date" id="resumoDiaData">
+                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="carregarResumoDia()">Ver resumo</button>
+
+                    <div id="resumoDiaConteudo" style="margin-top:16px;"></div>
+                    <button id="btnCopiarResumo" class="btn-secondary" style="display:none; margin-top:12px;" onclick="copiarResumoDia()">📋 Copiar resumo</button>
+                </div>
+            </section>
+
+            <section>
                 <h2>⭐ Clube Brit's (Fidelidade)</h2>
                 <div class="loja-status-card">
                     <label class="dia-checkbox" style="font-size:0.95em; margin-bottom:10px;">
