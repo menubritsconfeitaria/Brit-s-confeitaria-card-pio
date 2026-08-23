@@ -622,6 +622,31 @@ function copiarFotosEmUso() {
     }
 }
 
+// ---------- VISITANTES ----------
+
+function escutarVisitantesOnline() {
+    db.ref('presenca').on('value', snap => {
+        const el = document.getElementById('visitantesOnlineCount');
+        if (el) el.textContent = snap.numChildren();
+    });
+}
+
+function carregarVisitasPeriodo() {
+    const dataIni = document.getElementById('visitasDataInicio').value;
+    const dataFim = document.getElementById('visitasDataFim').value;
+    if (!dataIni || !dataFim) { alert('Escolha as duas datas.'); return; }
+    if (dataIni > dataFim) { alert('A data "De" precisa ser antes (ou igual) da data "Até".'); return; }
+
+    db.ref('visitasPorDia').once('value').then(snap => {
+        const dados = snap.val() || {};
+        let total = 0;
+        Object.entries(dados).forEach(([data, contador]) => {
+            if (data >= dataIni && data <= dataFim) total += (contador || 0);
+        });
+        document.getElementById('visitasPeriodoResultado').textContent = `${total} visita(s) no período selecionado`;
+    }).catch(err => alert('Não foi possível carregar as visitas: ' + err.message));
+}
+
 // ---------- RESUMO DO DIA ----------
 
 // Preço final do pedido, com um fallback seguro caso o frete ainda não tenha sido confirmado
@@ -910,11 +935,18 @@ function iniciarEscutaPedidos() {
     escutarCupons();
     escutarOrdemCategorias();
     escutarConfigFidelidade();
+    escutarVisitantesOnline();
 
     // Já deixa o campo de data do Resumo do Dia preenchido com hoje
     const hoje = new Date();
     const hojeFormatado = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0');
     document.getElementById('resumoDiaData').value = hojeFormatado;
+
+    // E o período de visitas já vem com os últimos 7 dias
+    const seteDiasAtras = new Date(); seteDiasAtras.setDate(seteDiasAtras.getDate() - 6);
+    const seteDiasAtrasFormatado = seteDiasAtras.getFullYear() + '-' + String(seteDiasAtras.getMonth() + 1).padStart(2, '0') + '-' + String(seteDiasAtras.getDate()).padStart(2, '0');
+    document.getElementById('visitasDataInicio').value = seteDiasAtrasFormatado;
+    document.getElementById('visitasDataFim').value = hojeFormatado;
     escutarRecompensas();
 
     const refPedidos = db.ref('pedidos');
@@ -923,7 +955,7 @@ function iniciarEscutaPedidos() {
     const ehStatusFinal = pedido => statusFinais.includes(pedido.status);
 
     // Carrega os pedidos ainda ativos (pendente/aceito/em rota) já existentes, sem tocar som
-    refPedidos.orderByChild('timestamp').limitToLast(60).once('value').then(snapshot => {
+    refPedidos.limitToLast(60).once('value').then(snapshot => {
         listaPendentesEl.innerHTML = '';
         const itens = [];
         snapshot.forEach(child => itens.push({ id: child.key, pedido: child.val() }));
@@ -982,8 +1014,10 @@ function iniciarEscutaPedidos() {
         });
     });
 
-    // Histórico: últimos 15 pedidos (qualquer status), só pra consulta
-    db.ref('pedidos').orderByChild('timestamp').limitToLast(15).on('value', snapshot => {
+    // Histórico: últimos 15 pedidos (qualquer status), só pra consulta.
+    // Usa a ordenação padrão por chave (o Firebase já cria as chaves em ordem cronológica sozinho),
+    // em vez de orderByChild('timestamp'), que exigiria um índice configurado na regra pra ser confiável.
+    db.ref('pedidos').limitToLast(15).on('value', snapshot => {
         const listaHistoricoEl = document.getElementById('listaHistorico');
         const itens = [];
         snapshot.forEach(child => itens.push({ id: child.key, pedido: child.val() }));

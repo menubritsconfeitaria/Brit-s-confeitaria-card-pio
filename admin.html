@@ -110,6 +110,22 @@
             </section>
 
             <section>
+                <h2>👀 Visitantes</h2>
+                <div class="loja-status-card">
+                    <p class="dica-secao">Pessoas com o cardápio aberto agora mesmo:</p>
+                    <p class="visitantes-online-numero"><span id="visitantesOnlineCount">0</span> online</p>
+
+                    <p class="dica-secao" style="margin-top:16px;">Ver quantas visitas o cardápio teve num período:</p>
+                    <div class="produto-admin-linha">
+                        <div class="campo-com-label"><label class="campo-label">De</label><input type="date" id="visitasDataInicio"></div>
+                        <div class="campo-com-label"><label class="campo-label">Até</label><input type="date" id="visitasDataFim"></div>
+                    </div>
+                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="carregarVisitasPeriodo()">Ver visitas do período</button>
+                    <p id="visitasPeriodoResultado" class="ordem-categorias-msg"></p>
+                </div>
+            </section>
+
+            <section>
                 <h2>📊 Resumo do Dia</h2>
                 <div class="loja-status-card">
                     <p class="dica-secao">Veja tudo que foi vendido num dia — útil pra conferir o que lançar no seu Sistema de Gestão, sem esquecer nada.</p>

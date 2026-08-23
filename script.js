@@ -1267,6 +1267,41 @@ try {
     }
 } catch (e) { /* localStorage vazio ou inválido, ignora */ }
 escutarConfigClube();
+
+/* ===================================================================
+   VISITANTES (contador online em tempo real + histórico de visitas por dia)
+   =================================================================== */
+function iniciarRastreioVisitantes() {
+    if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
+
+    // Cada aba/sessão do navegador tem um ID único, criado uma vez e reaproveitado
+    let sessionId = sessionStorage.getItem('sessaoVisitanteBritS');
+    if (!sessionId) {
+        sessionId = 'v_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+        sessionStorage.setItem('sessaoVisitanteBritS', sessionId);
+    }
+
+    const presencaRef = firebase.database().ref('presenca/' + sessionId);
+    const conectadoRef = firebase.database().ref('.info/connected');
+
+    // Toda vez que a conexão com o Firebase (re)conecta, registra presença e programa
+    // a remoção automática pro momento em que o visitante sair/fechar a aba
+    conectadoRef.on('value', snap => {
+        if (snap.val() === true) {
+            presencaRef.onDisconnect().remove();
+            presencaRef.set(firebase.database.ServerValue.TIMESTAMP);
+        }
+    });
+
+    // Conta essa visita no histórico do dia, só uma vez por sessão (não infla recarregando a página)
+    if (!sessionStorage.getItem('visitaContadaBritS')) {
+        sessionStorage.setItem('visitaContadaBritS', '1');
+        const hoje = new Date();
+        const hojeFormatado = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0');
+        firebase.database().ref('visitasPorDia/' + hojeFormatado).transaction(atual => (atual || 0) + 1);
+    }
+}
+iniciarRastreioVisitantes();
 escutarCupons(); // Carrega os cupons de desconto cadastrados no painel
 atualizarCarrinhoHTML();
 carregarDadosClienteSalvos(); // Preenche nome/telefone/endereço da última compra
