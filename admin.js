@@ -630,6 +630,12 @@ function totalDoPedido(p) {
     return Math.max(0, (p.subtotal || 0) - (p.desconto || 0) + (p.frete || 0));
 }
 
+function formatarEnderecoResumo(e) {
+    if (!e) return '(sem endereço)';
+    const partes = [e.rua, e.numero, e.complemento, e.bairro, e.cidade, e.estado, e.cep].filter(Boolean);
+    return partes.length ? partes.join(', ') : '(sem endereço)';
+}
+
 function carregarResumoDia() {
     const dataInput = document.getElementById('resumoDiaData').value; // formato yyyy-mm-dd
     if (!dataInput) { alert('Escolha uma data.'); return; }
@@ -637,9 +643,15 @@ function carregarResumoDia() {
     const inicio = new Date(ano, mes - 1, dia, 0, 0, 0, 0).getTime();
     const fim = new Date(ano, mes - 1, dia, 23, 59, 59, 999).getTime();
 
-    db.ref('pedidos').orderByChild('timestamp').startAt(inicio).endAt(fim).once('value').then(snap => {
+    // Busca todos os pedidos e filtra a data aqui mesmo (mais confiável do que depender
+    // de um índice do Firebase, que exigiria configuração extra na regra de segurança)
+    db.ref('pedidos').once('value').then(snap => {
         const pedidosDoDia = [];
-        snap.forEach(child => pedidosDoDia.push(child.val()));
+        snap.forEach(child => {
+            const p = child.val();
+            const ts = typeof p.timestamp === 'number' ? p.timestamp : 0;
+            if (ts >= inicio && ts <= fim) pedidosDoDia.push({ id: child.key, ...p });
+        });
         renderResumoDia(pedidosDoDia, dataInput);
     }).catch(err => alert('Não foi possível carregar o resumo: ' + err.message));
 }
@@ -673,11 +685,25 @@ function renderResumoDia(pedidos, dataInput) {
         .map(([nome, dados]) => `<div class="pedido-total-linha"><span>${dados.quantidade}x ${nome}</span><span>${formatarPreco(dados.subtotal)}</span></div>`)
         .join('');
 
+    // Detalhe de cada pedido/cliente do dia — útil pra cadastrar o cliente no Sistema de Gestão
+    const clientesHtml = entregues.map(p => {
+        const enderecoTexto = p.tipoEntrega === 'entrega' ? formatarEnderecoResumo(p.endereco) : 'Retirada no local';
+        const itensTexto = (p.itens || []).map(i => `${i.quantidade}x ${i.nome}`).join(', ');
+        return `<div class="pedido-cliente-resumo">
+            <strong>${p.nome || '(sem nome)'}</strong> — ${p.telefone || '(sem telefone)'}<br>
+            <span class="dica-secao">${enderecoTexto}</span><br>
+            <span class="dica-secao">Itens: ${itensTexto || '-'}</span><br>
+            <strong>${formatarPreco(totalDoPedido(p))}</strong>
+        </div>`;
+    }).join('');
+
     div.innerHTML = `
         <div class="pedido-total-linha"><span><strong>Pedidos entregues</strong></span><span><strong>${entregues.length}</strong></span></div>
         <div class="pedido-total-linha total-final"><span><strong>Faturamento do dia</strong></span><span><strong>${formatarPreco(faturamento)}</strong></span></div>
         <h3 style="margin-top:14px;">Produtos vendidos</h3>
         ${linhasProdutosHtml}
+        <h3 style="margin-top:14px;">Clientes do dia</h3>
+        ${clientesHtml}
     `;
 
     // Monta a versão em texto simples, pronta pra copiar/colar
@@ -687,6 +713,12 @@ function renderResumoDia(pedidos, dataInput) {
     texto += `Produtos vendidos:\n`;
     listaOrdenada.forEach(([nome, dados]) => {
         texto += `- ${dados.quantidade}x ${nome} — ${formatarPreco(dados.subtotal)}\n`;
+    });
+    texto += `\nClientes do dia:\n`;
+    entregues.forEach(p => {
+        const enderecoTexto = p.tipoEntrega === 'entrega' ? formatarEnderecoResumo(p.endereco) : 'Retirada no local';
+        const itensTexto = (p.itens || []).map(i => `${i.quantidade}x ${i.nome}`).join(', ');
+        texto += `- ${p.nome || '(sem nome)'} | ${p.telefone || '(sem telefone)'} | ${enderecoTexto} | ${itensTexto} | ${formatarPreco(totalDoPedido(p))}\n`;
     });
     window._resumoDiaTexto = texto;
     btnCopiar.style.display = 'block';
