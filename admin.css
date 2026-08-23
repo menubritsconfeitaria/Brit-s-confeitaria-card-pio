@@ -115,13 +115,22 @@ body {
 .painel-header-direita { display: flex; align-items: center; gap: 14px; }
 .visitantes-online-topo {
     margin: 0;
-    font-size: 0.9em;
-    font-weight: 700;
-    color: #157347;
-    background: #e0f5e9;
-    padding: 7px 14px;
-    border-radius: 20px;
+    font-size: 1.05em;
+    font-weight: 800;
+    color: #1a9c4a;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     white-space: nowrap;
+}
+.visitantes-online-topo::before {
+    content: "";
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: #2ecc71;
+    box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.25);
+    flex-shrink: 0;
 }
 
 .btn-sair {
