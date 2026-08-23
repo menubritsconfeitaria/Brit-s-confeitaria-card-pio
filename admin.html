@@ -77,6 +77,12 @@
                 </button>
                 <div id="produtosAdminList" class="produtos-admin-list"></div>
                 <button class="btn-novo-produto" onclick="adicionarNovoProduto()">+ Adicionar produto</button>
+
+                <div class="loja-status-card" style="margin-top:16px;">
+                    <button class="btn-secondary" onclick="verFotosEmUso()">🖼️ Ver fotos em uso (pra comparar com o GitHub)</button>
+                    <div id="fotosEmUsoConteudo" style="margin-top:12px;"></div>
+                    <button id="btnCopiarFotos" class="btn-secondary" style="display:none; margin-top:10px;" onclick="copiarFotosEmUso()">📋 Copiar lista</button>
+                </div>
             </section>
 
             <section>
