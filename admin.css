@@ -112,6 +112,18 @@ body {
 .painel-header h1 { margin: 0; font-size: 1.15em; color: var(--primary); }
 #statusConexao { margin: 2px 0 0; font-size: 0.8em; color: var(--muted); }
 
+.painel-header-direita { display: flex; align-items: center; gap: 14px; }
+.visitantes-online-topo {
+    margin: 0;
+    font-size: 0.9em;
+    font-weight: 700;
+    color: #157347;
+    background: #e0f5e9;
+    padding: 7px 14px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
 .btn-sair {
     background: var(--bg);
     border: 1px solid var(--border);

@@ -626,8 +626,11 @@ function copiarFotosEmUso() {
 
 function escutarVisitantesOnline() {
     db.ref('presenca').on('value', snap => {
+        const total = snap.numChildren();
         const el = document.getElementById('visitantesOnlineCount');
-        if (el) el.textContent = snap.numChildren();
+        const elTopo = document.getElementById('visitantesOnlineCountTopo');
+        if (el) el.textContent = total;
+        if (elTopo) elTopo.textContent = total;
     });
 }
 
