@@ -364,11 +364,28 @@ function salvarPedidoNoPainel(dadosPedido) {
             return null;
         }
         const novoPedidoRef = firebase.database().ref('pedidos').push();
-        novoPedidoRef.set({
-            ...dadosPedido,
-            status: 'pendente',
-            timestamp: firebase.database.ServerValue.TIMESTAMP
-        }).catch(err => console.log('Não foi possível salvar o pedido no painel:', err));
+
+        // Gera um número sequencial pro pedido (nunca reinicia, nem no dia seguinte) usando uma
+        // transação atômica — garante que dois pedidos nunca recebam o mesmo número por coincidência
+        firebase.database().ref('contadores/proximoPedido').transaction(atual => (atual || 0) + 1)
+            .then(resultado => {
+                const numeroAtribuido = resultado.committed ? resultado.snapshot.val() : null;
+                novoPedidoRef.set({
+                    ...dadosPedido,
+                    numero: numeroAtribuido,
+                    status: 'pendente',
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                }).catch(err => console.log('Não foi possível salvar o pedido no painel:', err));
+            })
+            .catch(err => {
+                console.log('Não foi possível gerar o número do pedido, salvando sem numeração:', err);
+                novoPedidoRef.set({
+                    ...dadosPedido,
+                    status: 'pendente',
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                }).catch(err2 => console.log('Não foi possível salvar o pedido no painel:', err2));
+            });
+
         return novoPedidoRef.key;
     } catch (err) {
         console.log('Não foi possível salvar o pedido no painel:', err);
