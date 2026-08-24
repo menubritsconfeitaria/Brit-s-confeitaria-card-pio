@@ -111,6 +111,11 @@ main {
     grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
     gap: 18px;
     margin-bottom: 28px;
+    justify-content: center;
+}
+
+@media (min-width: 1000px) {
+    .categoria-grid { grid-template-columns: repeat(5, 1fr); }
 }
 
 .categoria-titulo {
@@ -339,8 +344,14 @@ footer {
 @media (max-width: 480px) {
     header h1 { font-size: 1.5em; }
     header p { font-size: 0.85em; }
-    .categoria-grid { grid-template-columns: 1fr; }
-    .produto-item img { height: 150px; }
+    .categoria-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .produto-item img { height: 100px; }
+    .produto-item h3 { font-size: 0.95em; margin: 0 8px 3px; }
+    .produto-item .descricao { font-size: 0.75em; margin: 0 8px 6px; }
+    .produto-item .preco { font-size: 1em; margin: 0 8px 8px; }
+    .produto-quantidade-stepper { margin: 6px 0; gap: 10px; }
+    .qtd-btn { width: 24px; height: 24px; font-size: 1em; }
+    .produto-item .adicionar-carrinho { padding: 8px 10px; font-size: 0.8em; margin: 0 8px 12px; }
     .carrinho-item { flex-direction: column; align-items: flex-start; }
     .carrinho-item span:last-child { margin-top: 5px; }
 }
