@@ -1030,3 +1030,30 @@ footer {
     font-weight: 700;
     font-size: 1.05em;
 }
+
+/* Ícones de redes sociais no cabeçalho */
+.redes-sociais-header {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 12px;
+}
+.rede-social-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    text-decoration: none;
+    transition: transform 0.15s ease;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+}
+.rede-social-btn:hover { transform: scale(1.08); }
+.rede-instagram {
+    background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%);
+}
+.rede-whatsapp {
+    background: #25D366;
+}
