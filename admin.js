@@ -10,9 +10,20 @@ let primeiraCargaConcluida = false;
 if ('scrollRestoration' in history) {
     history.scrollRestoration = 'manual'; // desliga a tentativa automática (e imprecisa) do navegador
 }
+
+// Salva a posição continuamente enquanto você rola (não só ao sair da página — o evento de
+// "saindo" nem sempre dispara a tempo em todos os navegadores/celulares)
+let _scrollSaveTimer = null;
+window.addEventListener('scroll', () => {
+    clearTimeout(_scrollSaveTimer);
+    _scrollSaveTimer = setTimeout(() => {
+        sessionStorage.setItem('painelScrollY', window.scrollY);
+    }, 200);
+});
 window.addEventListener('beforeunload', () => {
     sessionStorage.setItem('painelScrollY', window.scrollY);
 });
+
 function restaurarPosicaoRolagem() {
     const salvo = sessionStorage.getItem('painelScrollY');
     if (salvo === null) return;
@@ -20,32 +31,46 @@ function restaurarPosicaoRolagem() {
 
     let cancelado = false;
     let ultimoScrollAplicado = null;
-    let tentativas = 0;
-    let intervalo = null;
+    let debounceTimer = null;
+    let observer = null;
 
-    function pararRestauracao() {
-        cancelado = true;
-        window.removeEventListener('scroll', detectarScrollManual);
-        clearInterval(intervalo);
+    function aplicar() {
+        if (cancelado) return;
+        window.scrollTo(0, alvo);
+        ultimoScrollAplicado = alvo;
     }
+
     // Se o usuário rolar a tela por conta própria durante esse período, respeita e para de "puxar" de volta
     function detectarScrollManual() {
         if (ultimoScrollAplicado !== null && Math.abs(window.scrollY - ultimoScrollAplicado) > 50) {
             pararRestauracao();
         }
     }
+
+    function pararRestauracao() {
+        cancelado = true;
+        window.removeEventListener('scroll', detectarScrollManual);
+        if (observer) observer.disconnect();
+    }
+
     window.addEventListener('scroll', detectarScrollManual);
 
-    // Tenta de novo por alguns segundos, porque partes diferentes do painel (pedidos, produtos,
-    // histórico, configurações) terminam de carregar em momentos diferentes e vão mudando o
-    // tamanho da página — uma tentativa só, cedo demais, podia "perder" a posição certa depois.
-    intervalo = setInterval(() => {
-        if (cancelado) return;
-        window.scrollTo(0, alvo);
-        ultimoScrollAplicado = alvo;
-        tentativas++;
-        if (tentativas >= 20) pararRestauracao(); // ~3 segundos de tentativas (20 x 150ms)
-    }, 150);
+    // Observa QUALQUER mudança na página (não importa de qual parte do painel ela venha:
+    // pedidos, produtos, histórico, configurações...) e corrige a posição de novo cada vez
+    // que algo mudar — assim não depende de adivinhar quando cada coisa termina de carregar.
+    if (typeof MutationObserver !== 'undefined') {
+        observer = new MutationObserver(() => {
+            if (cancelado) return;
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(aplicar, 60);
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+    aplicar(); // já tenta na hora também
+
+    // Desliga tudo depois de alguns segundos, pra não ficar rodando pra sempre à toa
+    setTimeout(pararRestauracao, 4000);
 }
 
 // ---------- LOGIN / LOGOUT ----------
