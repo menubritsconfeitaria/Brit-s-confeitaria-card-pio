@@ -4,6 +4,34 @@ const db = firebase.database();
 let idsRenderizados = new Set();
 let primeiraCargaConcluida = false;
 
+// ---------- ABAS DO PAINEL ----------
+
+function inicializarAbasPainel() {
+    const botoes = document.querySelectorAll('.painel-tab-btn');
+    const secoes = document.querySelectorAll('[data-tab]');
+
+    function mostrarAba(nomeAba, resetScroll) {
+        secoes.forEach(sec => {
+            sec.style.display = (sec.dataset.tab === nomeAba) ? 'block' : 'none';
+        });
+        botoes.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === nomeAba);
+        });
+        localStorage.setItem('painelAbaAtiva', nomeAba);
+        // Só volta pro topo quando é uma troca de aba de verdade (clique do usuário) —
+        // na carga inicial da página, deixa a restauração de posição de rolagem decidir
+        if (resetScroll) window.scrollTo(0, 0);
+    }
+
+    botoes.forEach(btn => {
+        btn.addEventListener('click', () => mostrarAba(btn.dataset.tab, true));
+    });
+
+    // Abre na mesma aba que estava da última vez (ou "pedidos" se for a primeira vez)
+    const abaSalva = localStorage.getItem('painelAbaAtiva') || 'pedidos';
+    mostrarAba(abaSalva, false);
+}
+
 // ---------- MANTER A ROLAGEM AO ATUALIZAR A PÁGINA ----------
 // Sem isso, o navegador tenta "adivinhar" a posição antes do conteúdo carregar e erra,
 // fazendo parecer que a página "pula" pro início ou pro fim sozinha.
@@ -1188,6 +1216,7 @@ function iniciarEscutaPedidos() {
     escutarConfigFidelidade();
     escutarVisitantesOnline();
     escutarConfigSomAlerta();
+    inicializarAbasPainel();
 
     // Já deixa o campo de data do Resumo do Dia preenchido com hoje
     const hoje = new Date();

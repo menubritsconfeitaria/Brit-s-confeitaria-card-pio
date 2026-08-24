@@ -39,8 +39,18 @@
             </div>
         </header>
 
+        <nav class="painel-tabs" id="painelTabsNav">
+            <button class="painel-tab-btn" data-tab="pedidos">🔔 Pedidos</button>
+            <button class="painel-tab-btn" data-tab="fechamento">📋 Fechamento</button>
+            <button class="painel-tab-btn" data-tab="produtos">📦 Produtos</button>
+            <button class="painel-tab-btn" data-tab="cupons">🎟️ Cupons</button>
+            <button class="painel-tab-btn" data-tab="fidelidade">⭐ Fidelidade</button>
+            <button class="painel-tab-btn" data-tab="loja">🏪 Loja</button>
+            <button class="painel-tab-btn" data-tab="visitantes">👀 Visitantes</button>
+        </nav>
+
         <main class="painel-main">
-            <section>
+            <section data-tab="pedidos">
                 <h2>🔔 Pedidos novos <span id="contadorPendentes" class="badge-contador">0</span></h2>
                 <div class="produto-admin-linha" style="margin-bottom:10px;">
                     <select id="selectSomAlerta">
@@ -57,14 +67,14 @@
                 </div>
             </section>
 
-            <section>
+            <section data-tab="pedidos">
                 <h2>🕒 Últimos pedidos (histórico)</h2>
                 <div id="listaHistorico" class="lista-pedidos historico">
                     <p class="vazio">Ainda não há pedidos no histórico.</p>
                 </div>
             </section>
 
-            <section>
+            <section data-tab="loja">
                 <h2>🏪 Status da loja</h2>
                 <div class="loja-status-card">
                     <p class="loja-status-atual">Status agora: <strong id="lojaStatusAtual">Carregando...</strong></p>
@@ -83,7 +93,7 @@
                 </div>
             </section>
 
-            <section>
+            <section data-tab="produtos">
                 <h2>📦 Produtos</h2>
                 <button id="btnImportarDados" class="btn-importar-dados" onclick="importarDadosIniciais()" style="display:none;">
                     ⬆️ Importar produtos e cupons que já existiam no cardápio
@@ -98,7 +108,7 @@
                 </div>
             </section>
 
-            <section>
+            <section data-tab="produtos">
                 <h2>🗂️ Ordem das categorias no cardápio</h2>
                 <p class="dica-secao">Digite as categorias na ordem que quer que apareçam, separadas por vírgula. As que você não listar aqui aparecem depois, na ordem que forem cadastradas.</p>
                 <input type="text" id="ordemCategoriasInput" placeholder="Ex: Bolo, Sobremesa, Brigadeiro, Salgados, Bebidas" oninput="atualizarPreviaOrdemCategorias()">
@@ -107,7 +117,7 @@
                 <p id="ordemCategoriasMsg" class="ordem-categorias-msg"></p>
             </section>
 
-            <section>
+            <section data-tab="cupons">
                 <h2>🎟️ Cupons de desconto</h2>
                 <div id="cuponsAdminList" class="cupons-admin-list"></div>
                 <div class="cupom-novo-form">
@@ -122,7 +132,7 @@
                 </div>
             </section>
 
-            <section>
+            <section data-tab="visitantes">
                 <h2>👀 Visitantes</h2>
                 <div class="loja-status-card">
                     <p class="dica-secao">Pessoas com o cardápio aberto agora mesmo:</p>
@@ -138,7 +148,7 @@
                 </div>
             </section>
 
-            <section>
+            <section data-tab="fechamento">
                 <h2>📋 Fechamento Diário de Pedidos</h2>
                 <div class="loja-status-card">
                     <p class="dica-secao">Confira os pedidos do dia (ou de um período), copie pra lançar no seu Sistema de Gestão, e marque o que já foi lançado.</p>
@@ -167,7 +177,7 @@
                 <div id="fechamentoConteudo" style="margin-top:16px;"></div>
             </section>
 
-            <section>
+            <section data-tab="fidelidade">
                 <h2>⭐ Clube Brit's (Fidelidade)</h2>
                 <div class="loja-status-card">
                     <label class="dia-checkbox" style="font-size:0.95em; margin-bottom:10px;">

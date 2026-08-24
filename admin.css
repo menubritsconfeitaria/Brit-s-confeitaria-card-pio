@@ -748,3 +748,36 @@ body {
     .fechamento-print-cabecalho { display: block !important; }
     .fechamento-pedido-acoes, .fechamento-acoes { display: none !important; }
 }
+
+/* Abas de navegação do painel */
+.painel-tabs {
+    position: sticky;
+    top: 73px;
+    z-index: 90;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 10px 20px;
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    -webkit-overflow-scrolling: touch;
+}
+.painel-tab-btn {
+    background: var(--bg);
+    color: var(--primary);
+    border: 1px solid var(--border);
+    padding: 9px 16px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-family: inherit;
+    font-size: 0.9em;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.painel-tab-btn:hover { background: #f0e4d0; }
+.painel-tab-btn.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
