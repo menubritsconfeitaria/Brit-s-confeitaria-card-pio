@@ -76,6 +76,19 @@ header p {
 .destaque-item .emoji { font-size: 26px; }
 .destaque-item .txt { font-size: 12px; color: var(--muted); margin-top: 6px; font-weight: 600; }
 
+@media (max-width: 600px) {
+    .destaques {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+    }
+    .destaque-item {
+        padding: 8px 4px;
+        border-radius: 10px;
+    }
+    .destaque-item .emoji { font-size: 19px; }
+    .destaque-item .txt { font-size: 8.5px; margin-top: 4px; line-height: 1.25; }
+}
+
 /* Estilos da Seção Principal (Main) */
 main {
     padding: 10px 0 20px;
