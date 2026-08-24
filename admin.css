@@ -747,6 +747,9 @@ body {
     #fechamentoConteudo { position: absolute; left: 0; top: 0; width: 100%; }
     .fechamento-print-cabecalho { display: block !important; }
     .fechamento-pedido-acoes, .fechamento-acoes { display: none !important; }
+
+    #areaImpressaoPedido, #areaImpressaoPedido * { visibility: visible; }
+    #areaImpressaoPedido { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
 }
 
 /* Abas de navegação do painel */
@@ -781,3 +784,29 @@ body {
     color: #fff;
     border-color: var(--primary);
 }
+
+.pedido-imprimir-linha { margin-top: 10px; }
+.btn-imprimir-pedido {
+    background: #fff;
+    color: var(--primary);
+    border: 1px solid var(--border);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-family: inherit;
+    font-size: 0.85em;
+    cursor: pointer;
+}
+.btn-imprimir-pedido:hover { background: var(--bg); }
+
+/* Ticket de impressão de pedido individual — fica escondido na tela normal */
+#areaImpressaoPedido { display: none; }
+#areaImpressaoPedido .ticket-cabecalho { text-align: center; margin-bottom: 10px; }
+#areaImpressaoPedido .ticket-cabecalho h2 { margin: 0 0 4px; }
+#areaImpressaoPedido .ticket-cabecalho p { margin: 0; color: #555; }
+#areaImpressaoPedido hr { border: none; border-top: 1px dashed #999; margin: 12px 0; }
+#areaImpressaoPedido p { margin: 6px 0; font-size: 1em; }
+#areaImpressaoPedido h3 { margin: 0 0 8px; }
+#areaImpressaoPedido .ticket-item { margin-bottom: 8px; font-size: 1.05em; }
+#areaImpressaoPedido .ticket-obs { color: #555; font-size: 0.9em; margin-left: 12px; }
+#areaImpressaoPedido .ticket-total { font-size: 1.2em; text-align: right; }

@@ -221,9 +221,57 @@ function formatarHora(timestamp) {
     return new Date(timestamp).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
+// Monta um "ticket" simples e limpo de um pedido, pronto pra imprimir (ex: pra levar pra cozinha)
+function montarHtmlTicketImpressao(pedido) {
+    const tipoLabel = pedido.tipoEntrega === 'entrega' ? '🛵 Delivery' : '🏠 Retirada no local';
+    const enderecoLinha = pedido.tipoEntrega === 'entrega'
+        ? `<p><strong>Endereço:</strong> ${formatarEnderecoResumo(pedido.endereco)}</p>`
+        : '';
+    const itensHtml = (pedido.itens || []).map(item => `
+        <div class="ticket-item">
+            <strong>${item.quantidade}x ${item.nome}</strong>
+            ${item.observacao ? `<div class="ticket-obs">↳ ${item.observacao}</div>` : ''}
+        </div>
+    `).join('');
+
+    return `
+        <div class="ticket-cabecalho">
+            <h2>Brit's Confeitaria</h2>
+            <p>${formatarHora(pedido.timestamp) || 'Não informado'}</p>
+        </div>
+        <hr>
+        <p><strong>Cliente:</strong> ${pedido.nome || 'Não informado'}</p>
+        <p><strong>Telefone:</strong> ${pedido.telefone || 'Não informado'}</p>
+        <p><strong>${tipoLabel}</strong></p>
+        ${enderecoLinha}
+        <hr>
+        <h3>Itens do pedido</h3>
+        ${itensHtml}
+        <hr>
+        <p><strong>Forma de pagamento:</strong> ${pedido.formaPagamento || 'Não informado'}</p>
+        ${pedido.troco ? `<p><strong>Troco para:</strong> R$ ${pedido.troco}</p>` : ''}
+        ${pedido.observacoes ? `<p><strong>Observações:</strong> ${pedido.observacoes}</p>` : ''}
+        <hr>
+        <p class="ticket-total"><strong>Total: ${formatarPreco(totalDoPedido(pedido))}</strong></p>
+    `;
+}
+
+function imprimirPedidoIndividual(id) {
+    const pedido = pedidosParaImpressao[id];
+    if (!pedido) { alert('Não foi possível encontrar os dados desse pedido pra imprimir.'); return; }
+    const areaImpressao = document.getElementById('areaImpressaoPedido');
+    areaImpressao.innerHTML = montarHtmlTicketImpressao(pedido);
+    window.print();
+}
+
 // ---------- MONTAGEM DO CARD DE PEDIDO ----------
 
+// Guarda os dados de cada pedido renderizado, pra poder imprimir sem precisar buscar de novo
+let pedidosParaImpressao = {};
+
 function montarCardPedido(id, pedido, comAcoes) {
+    pedidosParaImpressao[id] = pedido;
+
     const div = document.createElement('div');
     div.classList.add('pedido-card');
     if (comAcoes) {
@@ -276,6 +324,9 @@ function montarCardPedido(id, pedido, comAcoes) {
         <div class="pedido-total-linha total-final"><span>Total</span><span>${pedido.total != null ? formatarPreco(pedido.total) : 'A confirmar'}</span></div>
         ${enderecoHtml}
         ${obsHtml}
+        <div class="pedido-imprimir-linha">
+            <button class="btn-imprimir-pedido" onclick="imprimirPedidoIndividual('${id}')">🖨️ Imprimir</button>
+        </div>
         ${comAcoes ? montarBotoesAcaoPedido(id, pedido) : ''}
     `;
     return div;
