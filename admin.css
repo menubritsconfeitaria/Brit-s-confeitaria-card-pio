@@ -191,6 +191,7 @@ body {
 }
 
 .pedido-cliente { font-weight: 700; color: var(--text); font-size: 1.05em; }
+.pedido-numero { color: var(--primary); font-weight: 800; }
 .pedido-hora { font-size: 0.78em; color: var(--muted); white-space: nowrap; }
 
 .pedido-tag {

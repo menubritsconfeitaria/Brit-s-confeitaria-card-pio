@@ -260,38 +260,12 @@ function montarHtmlTicketImpressao(pedido, numeroPedido) {
     `;
 }
 
-// Descobre qual a posição desse pedido dentro do dia dele (1º pedido do dia, 2º, 3º...),
-// buscando todos os pedidos do mesmo dia e ordenando por horário — dá o mesmo número que
-// esse pedido tem lá no Fechamento Diário, pra ficar consistente em toda a cozinha
 function imprimirPedidoIndividual(id) {
     const pedido = pedidosParaImpressao[id];
     if (!pedido) { alert('Não foi possível encontrar os dados desse pedido pra imprimir.'); return; }
-
     const areaImpressao = document.getElementById('areaImpressaoPedido');
-
-    const ts = typeof pedido.timestamp === 'number' ? pedido.timestamp : Date.now();
-    const dataObj = new Date(ts);
-    const inicio = new Date(dataObj.getFullYear(), dataObj.getMonth(), dataObj.getDate(), 0, 0, 0, 0).getTime();
-    const fim = new Date(dataObj.getFullYear(), dataObj.getMonth(), dataObj.getDate(), 23, 59, 59, 999).getTime();
-
-    db.ref('pedidos').once('value').then(snap => {
-        const doDia = [];
-        snap.forEach(child => {
-            const p = child.val();
-            const t = typeof p.timestamp === 'number' ? p.timestamp : 0;
-            if (t >= inicio && t <= fim) doDia.push({ id: child.key, timestamp: t });
-        });
-        doDia.sort((a, b) => a.timestamp - b.timestamp);
-        const posicao = doDia.findIndex(p => p.id === id) + 1; // findIndex devolve -1 se não achar, +1 ajusta pra começar em 1
-        const numeroPedido = posicao > 0 ? posicao : null;
-
-        areaImpressao.innerHTML = montarHtmlTicketImpressao(pedido, numeroPedido);
-        window.print();
-    }).catch(err => {
-        console.log('Não foi possível calcular o número do pedido, imprimindo sem numeração:', err);
-        areaImpressao.innerHTML = montarHtmlTicketImpressao(pedido, null);
-        window.print();
-    });
+    areaImpressao.innerHTML = montarHtmlTicketImpressao(pedido, pedido.numero || null);
+    window.print();
 }
 
 // ---------- MONTAGEM DO CARD DE PEDIDO ----------
@@ -338,7 +312,7 @@ function montarCardPedido(id, pedido, comAcoes) {
     div.innerHTML = `
         <div class="pedido-topo">
             <div>
-                <div class="pedido-cliente">${pedido.nome || 'Cliente'}</div>
+                <div class="pedido-cliente">${pedido.numero ? `<span class="pedido-numero">Pedido #${String(pedido.numero).padStart(3, '0')}</span> ` : ''}${pedido.nome || 'Cliente'}</div>
                 <div>
                     <span class="pedido-tag ${pedido.tipoEntrega === 'entrega' ? 'tag-entrega' : 'tag-retirada'}">${pedido.tipoEntrega === 'entrega' ? '🛵 Entrega' : '🏠 Retirada'}</span>
                     <span class="pedido-tag tag-pagamento">💰 ${pedido.formaPagamento || ''}${pedido.troco ? ' (troco p/ ' + pedido.troco + ')' : ''}</span>
@@ -925,10 +899,6 @@ function carregarFechamentoDiario() {
         });
         pedidosDoDia.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
-        // Numera os pedidos na ordem cronológica do período, antes de aplicar os filtros de exibição
-        // (assim o número do pedido não muda dependendo do filtro escolhido)
-        pedidosDoDia.forEach((p, i) => { p._numero = i + 1; });
-
         let pedidosFiltrados = pedidosDoDia;
         if (filtroStatus !== 'todos') pedidosFiltrados = pedidosFiltrados.filter(p => p.status === filtroStatus);
         if (filtroTipo !== 'todos') pedidosFiltrados = pedidosFiltrados.filter(p => p.tipoEntrega === filtroTipo);
@@ -1027,7 +997,7 @@ function montarCardPedidoFechamento(p) {
     return `
     <div class="fechamento-pedido-card">
         <div class="fechamento-pedido-topo">
-            <strong>🛒 Pedido #${String(p._numero).padStart(3, '0')}</strong>
+            <strong>🛒 Pedido #${p.numero ? String(p.numero).padStart(3, '0') : '—'}</strong>
             <span class="fechamento-status-badge tag-status-${p.status.replace('_', '-')}">${statusLabel}</span>
         </div>
         <p class="dica-secao">
@@ -1055,7 +1025,7 @@ function montarCardPedidoFechamento(p) {
 function montarTextoPedido(p) {
     const statusLabel = STATUS_LABELS_FECHAMENTO[p.status] || p.status;
     const tipoLabel = p.tipoEntrega === 'entrega' ? 'Delivery' : (p.tipoEntrega === 'retirada' ? 'Retirada no local' : 'Não informado');
-    let texto = `PEDIDO #${String(p._numero).padStart(3, '0')}\n\n`;
+    let texto = `PEDIDO #${p.numero ? String(p.numero).padStart(3, '0') : '—'}\n\n`;
     texto += `Cliente: ${p.nome || 'Não informado'}\n`;
     texto += `Horário: ${formatarHorario(p.timestamp)}\n`;
     texto += `Status: ${statusLabel}\n`;
@@ -1112,7 +1082,7 @@ function copiarPedidoParaSistemaGestao(id) {
 }
 
 function copiarTodosPedidos(dataFormatada) {
-    const todos = Object.values(fechamentoPedidosAtuais).sort((a, b) => a._numero - b._numero);
+    const todos = Object.values(fechamentoPedidosAtuais).sort((a, b) => (a.numero || a.timestamp || 0) - (b.numero || b.timestamp || 0));
     if (todos.length === 0) return;
 
     const validos = todos.filter(p => p.status !== 'recusado');
