@@ -804,6 +804,7 @@ body {
 #areaImpressaoPedido .ticket-cabecalho { text-align: center; margin-bottom: 10px; }
 #areaImpressaoPedido .ticket-cabecalho h2 { margin: 0 0 4px; }
 #areaImpressaoPedido .ticket-cabecalho p { margin: 0; color: #555; }
+#areaImpressaoPedido .ticket-numero { font-size: 1.15em; font-weight: 800; color: #000 !important; margin: 4px 0 !important; }
 #areaImpressaoPedido hr { border: none; border-top: 1px dashed #999; margin: 12px 0; }
 #areaImpressaoPedido p { margin: 6px 0; font-size: 1em; }
 #areaImpressaoPedido h3 { margin: 0 0 8px; }
