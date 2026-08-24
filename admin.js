@@ -4,6 +4,22 @@ const db = firebase.database();
 let idsRenderizados = new Set();
 let primeiraCargaConcluida = false;
 
+// ---------- MANTER A ROLAGEM AO ATUALIZAR A PÁGINA ----------
+// Sem isso, o navegador tenta "adivinhar" a posição antes do conteúdo carregar e erra,
+// fazendo parecer que a página "pula" pro início ou pro fim sozinha.
+if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual'; // desliga a tentativa automática (e imprecisa) do navegador
+}
+window.addEventListener('beforeunload', () => {
+    sessionStorage.setItem('painelScrollY', window.scrollY);
+});
+function restaurarPosicaoRolagem() {
+    const salvo = sessionStorage.getItem('painelScrollY');
+    if (salvo === null) return;
+    // Espera o layout assentar depois dos pedidos carregarem, antes de rolar pro lugar certo
+    setTimeout(() => window.scrollTo(0, parseInt(salvo, 10)), 150);
+}
+
 // ---------- LOGIN / LOGOUT ----------
 
 function fazerLogin() {
@@ -1154,6 +1170,7 @@ function iniciarEscutaPedidos() {
         }
         atualizarContador();
         primeiraCargaConcluida = true;
+        restaurarPosicaoRolagem();
 
         // A partir daqui, qualquer pedido novo dispara som + aparece na hora
         refPedidos.on('child_added', snap => {
