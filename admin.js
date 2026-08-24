@@ -16,8 +16,36 @@ window.addEventListener('beforeunload', () => {
 function restaurarPosicaoRolagem() {
     const salvo = sessionStorage.getItem('painelScrollY');
     if (salvo === null) return;
-    // Espera o layout assentar depois dos pedidos carregarem, antes de rolar pro lugar certo
-    setTimeout(() => window.scrollTo(0, parseInt(salvo, 10)), 150);
+    const alvo = parseInt(salvo, 10);
+
+    let cancelado = false;
+    let ultimoScrollAplicado = null;
+    let tentativas = 0;
+    let intervalo = null;
+
+    function pararRestauracao() {
+        cancelado = true;
+        window.removeEventListener('scroll', detectarScrollManual);
+        clearInterval(intervalo);
+    }
+    // Se o usuário rolar a tela por conta própria durante esse período, respeita e para de "puxar" de volta
+    function detectarScrollManual() {
+        if (ultimoScrollAplicado !== null && Math.abs(window.scrollY - ultimoScrollAplicado) > 50) {
+            pararRestauracao();
+        }
+    }
+    window.addEventListener('scroll', detectarScrollManual);
+
+    // Tenta de novo por alguns segundos, porque partes diferentes do painel (pedidos, produtos,
+    // histórico, configurações) terminam de carregar em momentos diferentes e vão mudando o
+    // tamanho da página — uma tentativa só, cedo demais, podia "perder" a posição certa depois.
+    intervalo = setInterval(() => {
+        if (cancelado) return;
+        window.scrollTo(0, alvo);
+        ultimoScrollAplicado = alvo;
+        tentativas++;
+        if (tentativas >= 20) pararRestauracao(); // ~3 segundos de tentativas (20 x 150ms)
+    }, 150);
 }
 
 // ---------- LOGIN / LOGOUT ----------
