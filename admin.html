@@ -131,9 +131,11 @@
             <section>
                 <h2>📋 Fechamento Diário de Pedidos</h2>
                 <div class="loja-status-card">
-                    <p class="dica-secao">Confira os pedidos do dia, copie pra lançar no seu Sistema de Gestão, e marque o que já foi lançado.</p>
-                    <label class="campo-label">Data</label>
-                    <input type="date" id="fechamentoData">
+                    <p class="dica-secao">Confira os pedidos do dia (ou de um período), copie pra lançar no seu Sistema de Gestão, e marque o que já foi lançado.</p>
+                    <div class="produto-admin-linha">
+                        <div class="campo-com-label"><label class="campo-label">De</label><input type="date" id="fechamentoDataInicio"></div>
+                        <div class="campo-com-label"><label class="campo-label">Até</label><input type="date" id="fechamentoDataFim"></div>
+                    </div>
                     <div class="produto-admin-linha" style="margin-top:10px;">
                         <select id="fechamentoFiltroStatus">
                             <option value="todos">Todos os status</option>
@@ -149,7 +151,7 @@
                             <option value="retirada">Só Retirada</option>
                         </select>
                     </div>
-                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="carregarFechamentoDiario()">🔎 Ver pedidos do dia</button>
+                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="carregarFechamentoDiario()">🔎 Ver pedidos do período</button>
                 </div>
 
                 <div id="fechamentoConteudo" style="margin-top:16px;"></div>

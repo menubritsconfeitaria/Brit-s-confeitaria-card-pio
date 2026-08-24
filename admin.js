@@ -683,16 +683,19 @@ function formatarHorario(timestamp) {
 let fechamentoPedidosAtuais = {};
 
 function carregarFechamentoDiario() {
-    const dataInput = document.getElementById('fechamentoData').value; // formato yyyy-mm-dd
-    if (!dataInput) { alert('Escolha uma data.'); return; }
+    const dataInicioInput = document.getElementById('fechamentoDataInicio').value; // formato yyyy-mm-dd
+    const dataFimInput = document.getElementById('fechamentoDataFim').value;
+    if (!dataInicioInput || !dataFimInput) { alert('Escolha as datas "De" e "Até".'); return; }
+    if (dataInicioInput > dataFimInput) { alert('A data "De" precisa ser antes (ou igual) da data "Até".'); return; }
     const filtroStatus = document.getElementById('fechamentoFiltroStatus').value;
     const filtroTipo = document.getElementById('fechamentoFiltroTipo').value;
 
-    const [ano, mes, dia] = dataInput.split('-').map(Number);
-    const inicio = new Date(ano, mes - 1, dia, 0, 0, 0, 0).getTime();
-    const fim = new Date(ano, mes - 1, dia, 23, 59, 59, 999).getTime();
+    const [anoI, mesI, diaI] = dataInicioInput.split('-').map(Number);
+    const [anoF, mesF, diaF] = dataFimInput.split('-').map(Number);
+    const inicio = new Date(anoI, mesI - 1, diaI, 0, 0, 0, 0).getTime();
+    const fim = new Date(anoF, mesF - 1, diaF, 23, 59, 59, 999).getTime();
 
-    // Busca todos os pedidos e filtra a data aqui mesmo (mais confiável do que depender
+    // Busca todos os pedidos e filtra o período aqui mesmo (mais confiável do que depender
     // de um índice do Firebase, que exigiria configuração extra na regra de segurança)
     db.ref('pedidos').once('value').then(snap => {
         let pedidosDoDia = [];
@@ -703,7 +706,7 @@ function carregarFechamentoDiario() {
         });
         pedidosDoDia.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
-        // Numera os pedidos na ordem cronológica do dia, antes de aplicar os filtros de exibição
+        // Numera os pedidos na ordem cronológica do período, antes de aplicar os filtros de exibição
         // (assim o número do pedido não muda dependendo do filtro escolhido)
         pedidosDoDia.forEach((p, i) => { p._numero = i + 1; });
 
@@ -714,16 +717,20 @@ function carregarFechamentoDiario() {
         fechamentoPedidosAtuais = {};
         pedidosFiltrados.forEach(p => { fechamentoPedidosAtuais[p.id] = p; });
 
-        renderFechamentoDiario(pedidosFiltrados, dataInput);
+        renderFechamentoDiario(pedidosFiltrados, dataInicioInput, dataFimInput);
     }).catch(err => alert('Não foi possível carregar o fechamento: ' + err.message));
 }
 
-function renderFechamentoDiario(pedidos, dataInput) {
+function renderFechamentoDiario(pedidos, dataInicioInput, dataFimInput) {
     const div = document.getElementById('fechamentoConteudo');
-    const dataFormatada = dataInput.split('-').reverse().join('/');
+    const dataInicioFormatada = dataInicioInput.split('-').reverse().join('/');
+    const dataFimFormatada = dataFimInput.split('-').reverse().join('/');
+    const mesmodia = dataInicioInput === dataFimInput;
+    const dataFormatada = mesmodia ? dataInicioFormatada : `${dataInicioFormatada} a ${dataFimFormatada}`;
+    const rotuloData = mesmodia ? 'Data' : 'Período';
 
     if (pedidos.length === 0) {
-        div.innerHTML = '<p class="vazio">Nenhum pedido encontrado com esse filtro, nesse dia.</p>';
+        div.innerHTML = '<p class="vazio">Nenhum pedido encontrado com esse filtro, nesse período.</p>';
         return;
     }
 
@@ -774,17 +781,17 @@ function renderFechamentoDiario(pedidos, dataInput) {
     div.innerHTML = `
         <div class="fechamento-print-cabecalho">
             <h2>Brit's Confeitaria — Fechamento Diário de Pedidos</h2>
-            <p>Data: ${dataFormatada}</p>
+            <p>${rotuloData}: ${dataFormatada}</p>
         </div>
-        <h3>📊 Resumo do Dia</h3>
+        <h3>📊 Resumo do ${mesmodia ? 'Dia' : 'Período'}</h3>
         ${resumoHtml}
-        <h3 style="margin-top:20px;">📋 Pedidos do dia</h3>
+        <h3 style="margin-top:20px;">📋 Pedidos do ${mesmodia ? 'dia' : 'período'}</h3>
         ${listaValidosHtml}
         ${listaCanceladosHtml}
         ${produtosHtml}
         ${pagamentosHtml}
         <div class="fechamento-acoes">
-            <button class="btn-secondary" onclick="copiarTodosPedidos('${dataInput}')">📋 Copiar todos os pedidos</button>
+            <button class="btn-secondary" onclick="copiarTodosPedidos('${dataFormatada}')">📋 Copiar todos os pedidos</button>
             <button class="btn-secondary" onclick="window.print()">🖨️ Imprimir relatório</button>
         </div>
     `;
@@ -851,8 +858,7 @@ function copiarPedidoIndividual(id) {
     copiarTexto(montarTextoPedido(p));
 }
 
-function copiarTodosPedidos(dataInput) {
-    const dataFormatada = dataInput.split('-').reverse().join('/');
+function copiarTodosPedidos(dataFormatada) {
     const todos = Object.values(fechamentoPedidosAtuais).sort((a, b) => a._numero - b._numero);
     if (todos.length === 0) return;
 
@@ -1075,7 +1081,8 @@ function iniciarEscutaPedidos() {
     // Já deixa o campo de data do Resumo do Dia preenchido com hoje
     const hoje = new Date();
     const hojeFormatado = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0');
-    document.getElementById('fechamentoData').value = hojeFormatado;
+    document.getElementById('fechamentoDataInicio').value = hojeFormatado;
+    document.getElementById('fechamentoDataFim').value = hojeFormatado;
 
     // E o período de visitas já vem com os últimos 7 dias
     const seteDiasAtras = new Date(); seteDiasAtras.setDate(seteDiasAtras.getDate() - 6);
