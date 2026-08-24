@@ -312,7 +312,7 @@ function montarCardPedido(id, pedido, comAcoes) {
     div.innerHTML = `
         <div class="pedido-topo">
             <div>
-                <div class="pedido-cliente">${pedido.numero ? `<span class="pedido-numero">Pedido #${String(pedido.numero).padStart(3, '0')}</span> ` : ''}${pedido.nome || 'Cliente'}</div>
+                <div class="pedido-cliente">${pedido.numero ? `<span class="pedido-numero">🛒Pedido #${String(pedido.numero).padStart(3, '0')}</span> - ` : ''}${pedido.nome || 'Cliente'}</div>
                 <div>
                     <span class="pedido-tag ${pedido.tipoEntrega === 'entrega' ? 'tag-entrega' : 'tag-retirada'}">${pedido.tipoEntrega === 'entrega' ? '🛵 Entrega' : '🏠 Retirada'}</span>
                     <span class="pedido-tag tag-pagamento">💰 ${pedido.formaPagamento || ''}${pedido.troco ? ' (troco p/ ' + pedido.troco + ')' : ''}</span>
