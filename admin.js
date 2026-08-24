@@ -1297,17 +1297,22 @@ function iniciarEscutaPedidos() {
         });
     });
 
-    // Histórico: últimos 15 pedidos (qualquer status), só pra consulta.
+    // Histórico: pedidos das últimas 24 horas (qualquer status), só pra consulta.
     // Usa a ordenação padrão por chave (o Firebase já cria as chaves em ordem cronológica sozinho),
     // em vez de orderByChild('timestamp'), que exigiria um índice configurado na regra pra ser confiável.
-    db.ref('pedidos').limitToLast(15).on('value', snapshot => {
+    db.ref('pedidos').limitToLast(60).on('value', snapshot => {
         const listaHistoricoEl = document.getElementById('listaHistorico');
+        const limite24h = Date.now() - (24 * 60 * 60 * 1000);
         const itens = [];
-        snapshot.forEach(child => itens.push({ id: child.key, pedido: child.val() }));
+        snapshot.forEach(child => {
+            const p = child.val();
+            const ts = typeof p.timestamp === 'number' ? p.timestamp : 0;
+            if (ts >= limite24h) itens.push({ id: child.key, pedido: p });
+        });
         itens.reverse();
         listaHistoricoEl.innerHTML = '';
         if (itens.length === 0) {
-            listaHistoricoEl.innerHTML = '<p class="vazio">Ainda não há pedidos no histórico.</p>';
+            listaHistoricoEl.innerHTML = '<p class="vazio">Nenhum pedido nas últimas 24 horas.</p>';
             return;
         }
         itens.forEach(({ id, pedido }) => {
