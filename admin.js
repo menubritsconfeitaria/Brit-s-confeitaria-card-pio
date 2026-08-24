@@ -47,22 +47,39 @@ auth.onAuthStateChanged(user => {
 
 // ---------- SOM DE ALERTA ----------
 
-function tocarAlerta() {
+// O navegador só libera som depois de uma interação real do usuário com a página
+// (é uma regra de segurança de todos os navegadores modernos, não um bug). Por isso,
+// criamos o "contexto de áudio" uma vez só, e destravamos ele no primeiro clique.
+let audioCtxGlobal = null;
+
+function inicializarAudioContext() {
+    if (audioCtxGlobal) return;
     try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        audioCtxGlobal = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) {
+        console.log('AudioContext indisponível:', e);
+    }
+}
+document.addEventListener('click', inicializarAudioContext, { once: true });
+
+function tocarAlerta() {
+    if (!audioCtxGlobal) inicializarAudioContext();
+    if (!audioCtxGlobal) return;
+    if (audioCtxGlobal.state === 'suspended') audioCtxGlobal.resume();
+    try {
         const bip = (freq, atraso) => {
             setTimeout(() => {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
+                const osc = audioCtxGlobal.createOscillator();
+                const gain = audioCtxGlobal.createGain();
                 osc.type = 'sine';
                 osc.frequency.value = freq;
-                gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.3, audioCtx.currentTime + 0.02);
-                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.45);
+                gain.gain.setValueAtTime(0.001, audioCtxGlobal.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.3, audioCtxGlobal.currentTime + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtxGlobal.currentTime + 0.45);
                 osc.connect(gain);
-                gain.connect(audioCtx.destination);
+                gain.connect(audioCtxGlobal.destination);
                 osc.start();
-                osc.stop(audioCtx.currentTime + 0.45);
+                osc.stop(audioCtxGlobal.currentTime + 0.45);
             }, atraso);
         };
         bip(880, 0);
