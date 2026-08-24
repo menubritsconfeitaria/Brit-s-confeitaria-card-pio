@@ -1016,6 +1016,7 @@ function montarCardPedidoFechamento(p) {
 
         <div class="fechamento-pedido-acoes">
             <button class="btn-secondary" onclick="copiarPedidoIndividual('${p.id}')">📋 Copiar pedido</button>
+            <button class="btn-secondary" onclick="copiarPedidoParaSistemaGestao('${p.id}')">📥 Copiar p/ Sistema de Gestão</button>
             <button class="btn-lancado ${lancado ? 'lancado' : ''}" id="btn-lancado-${p.id}" onclick="alternarLancado('${p.id}')">${lancado ? '🟢 Lançado' : '🟠 Pendente de lançamento'}</button>
         </div>
     </div>`;
@@ -1045,6 +1046,39 @@ function copiarPedidoIndividual(id) {
     const p = fechamentoPedidosAtuais[id];
     if (!p) return;
     copiarTexto(montarTextoPedido(p));
+}
+
+// Gera um "código" com os dados do pedido organizados, pra colar no Sistema de Gestão
+// e ele preencher o formulário de pedido sozinho (sem precisar digitar tudo de novo)
+function copiarPedidoParaSistemaGestao(id) {
+    const p = fechamentoPedidosAtuais[id];
+    if (!p) return;
+
+    const subtotal = p.subtotal || 0;
+    // O cardápio guarda o desconto em R$, mas o Sistema de Gestão usa %, então convertemos aqui
+    const descontoPercentual = subtotal > 0 ? Math.round(((p.desconto || 0) / subtotal) * 10000) / 100 : 0;
+
+    // "Cartão" no cardápio não distingue crédito/débito — mapeamos pra crédito por padrão
+    const mapaFormaPagamento = { 'Pix': 'pix', 'Dinheiro': 'dinheiro', 'Cartão': 'cartao_credito' };
+    const formaPagamentoConvertida = mapaFormaPagamento[p.formaPagamento] || 'outros';
+
+    const dataObj = typeof p.timestamp === 'number' ? new Date(p.timestamp) : new Date();
+    const dataFormatada = dataObj.getFullYear() + '-' + String(dataObj.getMonth() + 1).padStart(2, '0') + '-' + String(dataObj.getDate()).padStart(2, '0');
+
+    const dados = {
+        origem: 'brits-cardapio',
+        versao: 1,
+        cliente: { nome: p.nome || '', telefone: p.telefone || '' },
+        data: dataFormatada,
+        itens: (p.itens || []).map(item => ({ nome: item.nome, quantidade: item.quantidade })),
+        descontoPercentual,
+        frete: p.frete || 0,
+        formaPagamento: formaPagamentoConvertida,
+        observacoes: p.observacoes || ''
+    };
+
+    const texto = '###PEDIDO_BRITS###\n' + JSON.stringify(dados) + '\n###FIM_PEDIDO_BRITS###';
+    copiarTexto(texto);
 }
 
 function copiarTodosPedidos(dataFormatada) {
