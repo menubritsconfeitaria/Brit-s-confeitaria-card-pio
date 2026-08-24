@@ -688,3 +688,63 @@ body {
     content: "🟢 ";
     font-size: 0.6em;
 }
+
+/* Fechamento Diário de Pedidos */
+.fechamento-print-cabecalho { display: none; }
+.fechamento-print-cabecalho h2 { margin: 0 0 4px; }
+.fechamento-print-cabecalho p { margin: 0 0 14px; color: var(--muted); }
+
+.fechamento-pedido-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+}
+.fechamento-pedido-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.fechamento-status-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.78em;
+    font-weight: 700;
+}
+.fechamento-pedido-acoes {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+}
+.btn-lancado {
+    background: #fff3cd;
+    color: #8a6300;
+    border: 1px solid #f0dca0;
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+}
+.btn-lancado.lancado {
+    background: #d4edda;
+    color: #1e6b34;
+    border-color: #a9d9b8;
+}
+.fechamento-acoes {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+@media print {
+    body * { visibility: hidden; }
+    #fechamentoConteudo, #fechamentoConteudo * { visibility: visible; }
+    #fechamentoConteudo { position: absolute; left: 0; top: 0; width: 100%; }
+    .fechamento-print-cabecalho { display: block !important; }
+    .fechamento-pedido-acoes, .fechamento-acoes { display: none !important; }
+}

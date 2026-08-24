@@ -650,7 +650,16 @@ function carregarVisitasPeriodo() {
     }).catch(err => alert('Não foi possível carregar as visitas: ' + err.message));
 }
 
-// ---------- RESUMO DO DIA ----------
+// ---------- FECHAMENTO DIÁRIO DE PEDIDOS ----------
+
+// Usa só os status que já existem no sistema — não inventa nenhum novo
+const STATUS_LABELS_FECHAMENTO = {
+    pendente: 'Recebido',
+    aceito: 'Em preparo',
+    em_rota: 'Saiu para entrega',
+    entregue: 'Entregue',
+    recusado: 'Cancelado'
+};
 
 // Preço final do pedido, com um fallback seguro caso o frete ainda não tenha sido confirmado
 function totalDoPedido(p) {
@@ -659,14 +668,26 @@ function totalDoPedido(p) {
 }
 
 function formatarEnderecoResumo(e) {
-    if (!e) return '(sem endereço)';
+    if (!e) return 'Não informado';
     const partes = [e.rua, e.numero, e.complemento, e.bairro, e.cidade, e.estado, e.cep].filter(Boolean);
-    return partes.length ? partes.join(', ') : '(sem endereço)';
+    return partes.length ? partes.join(', ') : 'Não informado';
 }
 
-function carregarResumoDia() {
-    const dataInput = document.getElementById('resumoDiaData').value; // formato yyyy-mm-dd
+function formatarHorario(timestamp) {
+    if (typeof timestamp !== 'number') return 'Não informado';
+    const d = new Date(timestamp);
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+// Guarda os pedidos do fechamento em memória, pra usar nos botões de copiar/marcar sem buscar de novo
+let fechamentoPedidosAtuais = {};
+
+function carregarFechamentoDiario() {
+    const dataInput = document.getElementById('fechamentoData').value; // formato yyyy-mm-dd
     if (!dataInput) { alert('Escolha uma data.'); return; }
+    const filtroStatus = document.getElementById('fechamentoFiltroStatus').value;
+    const filtroTipo = document.getElementById('fechamentoFiltroTipo').value;
+
     const [ano, mes, dia] = dataInput.split('-').map(Number);
     const inicio = new Date(ano, mes - 1, dia, 0, 0, 0, 0).getTime();
     const fim = new Date(ano, mes - 1, dia, 23, 59, 59, 999).getTime();
@@ -674,93 +695,204 @@ function carregarResumoDia() {
     // Busca todos os pedidos e filtra a data aqui mesmo (mais confiável do que depender
     // de um índice do Firebase, que exigiria configuração extra na regra de segurança)
     db.ref('pedidos').once('value').then(snap => {
-        const pedidosDoDia = [];
+        let pedidosDoDia = [];
         snap.forEach(child => {
             const p = child.val();
             const ts = typeof p.timestamp === 'number' ? p.timestamp : 0;
             if (ts >= inicio && ts <= fim) pedidosDoDia.push({ id: child.key, ...p });
         });
-        renderResumoDia(pedidosDoDia, dataInput);
-    }).catch(err => alert('Não foi possível carregar o resumo: ' + err.message));
+        pedidosDoDia.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+        // Numera os pedidos na ordem cronológica do dia, antes de aplicar os filtros de exibição
+        // (assim o número do pedido não muda dependendo do filtro escolhido)
+        pedidosDoDia.forEach((p, i) => { p._numero = i + 1; });
+
+        let pedidosFiltrados = pedidosDoDia;
+        if (filtroStatus !== 'todos') pedidosFiltrados = pedidosFiltrados.filter(p => p.status === filtroStatus);
+        if (filtroTipo !== 'todos') pedidosFiltrados = pedidosFiltrados.filter(p => p.tipoEntrega === filtroTipo);
+
+        fechamentoPedidosAtuais = {};
+        pedidosFiltrados.forEach(p => { fechamentoPedidosAtuais[p.id] = p; });
+
+        renderFechamentoDiario(pedidosFiltrados, dataInput);
+    }).catch(err => alert('Não foi possível carregar o fechamento: ' + err.message));
 }
 
-function renderResumoDia(pedidos, dataInput) {
-    const entregues = pedidos.filter(p => p.status === 'entregue');
-    const div = document.getElementById('resumoDiaConteudo');
-    const btnCopiar = document.getElementById('btnCopiarResumo');
+function renderFechamentoDiario(pedidos, dataInput) {
+    const div = document.getElementById('fechamentoConteudo');
     const dataFormatada = dataInput.split('-').reverse().join('/');
 
-    if (entregues.length === 0) {
-        div.innerHTML = '<p class="vazio">Nenhum pedido entregue nesse dia.</p>';
-        btnCopiar.style.display = 'none';
-        window._resumoDiaTexto = '';
+    if (pedidos.length === 0) {
+        div.innerHTML = '<p class="vazio">Nenhum pedido encontrado com esse filtro, nesse dia.</p>';
         return;
     }
 
-    const faturamento = entregues.reduce((s, p) => s + totalDoPedido(p), 0);
+    const cancelados = pedidos.filter(p => p.status === 'recusado');
+    const validos = pedidos.filter(p => p.status !== 'recusado');
+    const concluidos = pedidos.filter(p => p.status === 'entregue');
+    const emAndamento = pedidos.filter(p => ['pendente', 'aceito', 'em_rota'].includes(p.status));
+    const totalValidos = validos.reduce((s, p) => s + totalDoPedido(p), 0);
 
-    // Agrupa por produto, somando quantidade e valor total vendido de cada um
-    const produtosAgregados = {};
-    entregues.forEach(p => (p.itens || []).forEach(item => {
-        const chave = item.nome + (item.observacao ? ' — ' + item.observacao : '');
-        if (!produtosAgregados[chave]) produtosAgregados[chave] = { quantidade: 0, subtotal: 0 };
-        produtosAgregados[chave].quantidade += item.quantidade;
-        produtosAgregados[chave].subtotal += (item.preco || 0) * item.quantidade;
-    }));
-    const listaOrdenada = Object.entries(produtosAgregados).sort((a, b) => b[1].quantidade - a[1].quantidade);
-
-    const linhasProdutosHtml = listaOrdenada
-        .map(([nome, dados]) => `<div class="pedido-total-linha"><span>${dados.quantidade}x ${nome}</span><span>${formatarPreco(dados.subtotal)}</span></div>`)
-        .join('');
-
-    // Detalhe de cada pedido/cliente do dia — útil pra cadastrar o cliente no Sistema de Gestão
-    const clientesHtml = entregues.map(p => {
-        const enderecoTexto = p.tipoEntrega === 'entrega' ? formatarEnderecoResumo(p.endereco) : 'Retirada no local';
-        const itensTexto = (p.itens || []).map(i => `${i.quantidade}x ${i.nome}`).join(', ');
-        return `<div class="pedido-cliente-resumo">
-            <strong>${p.nome || '(sem nome)'}</strong> — ${p.telefone || '(sem telefone)'}<br>
-            <span class="dica-secao">${enderecoTexto}</span><br>
-            <span class="dica-secao">Itens: ${itensTexto || '-'}</span><br>
-            <strong>${formatarPreco(totalDoPedido(p))}</strong>
-        </div>`;
-    }).join('');
-
-    div.innerHTML = `
-        <div class="pedido-total-linha"><span><strong>Pedidos entregues</strong></span><span><strong>${entregues.length}</strong></span></div>
-        <div class="pedido-total-linha total-final"><span><strong>Faturamento do dia</strong></span><span><strong>${formatarPreco(faturamento)}</strong></span></div>
-        <h3 style="margin-top:14px;">Produtos vendidos</h3>
-        ${linhasProdutosHtml}
-        <h3 style="margin-top:14px;">Clientes do dia</h3>
-        ${clientesHtml}
+    const resumoHtml = `
+        <div class="pedido-total-linha"><span>📦 Pedidos recebidos</span><span><strong>${pedidos.length}</strong></span></div>
+        <div class="pedido-total-linha"><span>✅ Pedidos concluídos</span><span><strong>${concluidos.length}</strong></span></div>
+        <div class="pedido-total-linha"><span>⏳ Em andamento</span><span><strong>${emAndamento.length}</strong></span></div>
+        <div class="pedido-total-linha"><span>❌ Cancelados</span><span><strong>${cancelados.length}</strong></span></div>
+        <div class="pedido-total-linha total-final"><span>💰 Total dos pedidos válidos</span><span><strong>${formatarPreco(totalValidos)}</strong></span></div>
     `;
 
-    // Monta a versão em texto simples, pronta pra copiar/colar
-    let texto = `📊 Resumo Brit's Confeitaria — ${dataFormatada}\n\n`;
-    texto += `Pedidos entregues: ${entregues.length}\n`;
-    texto += `Faturamento: ${formatarPreco(faturamento)}\n\n`;
-    texto += `Produtos vendidos:\n`;
-    listaOrdenada.forEach(([nome, dados]) => {
-        texto += `- ${dados.quantidade}x ${nome} — ${formatarPreco(dados.subtotal)}\n`;
+    const listaValidosHtml = validos.map(p => montarCardPedidoFechamento(p)).join('');
+    const listaCanceladosHtml = cancelados.length > 0 ? `
+        <h3 style="margin-top:20px; color:#a53238;">❌ Pedidos cancelados</h3>
+        ${cancelados.map(p => montarCardPedidoFechamento(p)).join('')}
+    ` : '';
+
+    // Produtos vendidos (só conta pedidos válidos, não cancelados)
+    const produtosAgregados = {};
+    validos.forEach(p => (p.itens || []).forEach(item => {
+        if (!produtosAgregados[item.nome]) produtosAgregados[item.nome] = { quantidade: 0, subtotal: 0 };
+        produtosAgregados[item.nome].quantidade += item.quantidade;
+        produtosAgregados[item.nome].subtotal += (item.preco || 0) * item.quantidade;
+    }));
+    const produtosOrdenados = Object.entries(produtosAgregados).sort((a, b) => b[1].quantidade - a[1].quantidade);
+    const produtosHtml = produtosOrdenados.length > 0 ? `
+        <h3 style="margin-top:20px;">🛍️ Produtos vendidos no dia</h3>
+        ${produtosOrdenados.map(([nome, dados]) => `<div class="pedido-total-linha"><span>${nome} — ${dados.quantidade} un.</span><span>${formatarPreco(dados.subtotal)}</span></div>`).join('')}
+    ` : '';
+
+    // Formas de pagamento (só pedidos válidos, e só as formas que realmente aparecem)
+    const pagamentosAgregados = {};
+    validos.forEach(p => {
+        const forma = p.formaPagamento || 'Não informado';
+        pagamentosAgregados[forma] = (pagamentosAgregados[forma] || 0) + totalDoPedido(p);
     });
-    texto += `\nClientes do dia:\n`;
-    entregues.forEach(p => {
-        const enderecoTexto = p.tipoEntrega === 'entrega' ? formatarEnderecoResumo(p.endereco) : 'Retirada no local';
-        const itensTexto = (p.itens || []).map(i => `${i.quantidade}x ${i.nome}`).join(', ');
-        texto += `- ${p.nome || '(sem nome)'} | ${p.telefone || '(sem telefone)'} | ${enderecoTexto} | ${itensTexto} | ${formatarPreco(totalDoPedido(p))}\n`;
-    });
-    window._resumoDiaTexto = texto;
-    btnCopiar.style.display = 'block';
+    const pagamentosHtml = Object.keys(pagamentosAgregados).length > 0 ? `
+        <h3 style="margin-top:20px;">💳 Formas de pagamento</h3>
+        ${Object.entries(pagamentosAgregados).map(([forma, valor]) => `<div class="pedido-total-linha"><span>${forma}</span><span>${formatarPreco(valor)}</span></div>`).join('')}
+    ` : '';
+
+    div.innerHTML = `
+        <div class="fechamento-print-cabecalho">
+            <h2>Brit's Confeitaria — Fechamento Diário de Pedidos</h2>
+            <p>Data: ${dataFormatada}</p>
+        </div>
+        <h3>📊 Resumo do Dia</h3>
+        ${resumoHtml}
+        <h3 style="margin-top:20px;">📋 Pedidos do dia</h3>
+        ${listaValidosHtml}
+        ${listaCanceladosHtml}
+        ${produtosHtml}
+        ${pagamentosHtml}
+        <div class="fechamento-acoes">
+            <button class="btn-secondary" onclick="copiarTodosPedidos('${dataInput}')">📋 Copiar todos os pedidos</button>
+            <button class="btn-secondary" onclick="window.print()">🖨️ Imprimir relatório</button>
+        </div>
+    `;
 }
 
-function copiarResumoDia() {
-    if (!window._resumoDiaTexto) return;
+function montarCardPedidoFechamento(p) {
+    const statusLabel = STATUS_LABELS_FECHAMENTO[p.status] || p.status;
+    const tipoLabel = p.tipoEntrega === 'entrega' ? '🛵 Delivery' : (p.tipoEntrega === 'retirada' ? '🏪 Retirada no local' : 'Não informado');
+    const itensHtml = (p.itens || []).map(item =>
+        `<div class="pedido-total-linha"><span>${item.quantidade}x ${item.nome}</span><span>${formatarPreco((item.preco || 0) * item.quantidade)}</span></div>`
+    ).join('');
+    const lancado = !!p.lancado;
+
+    return `
+    <div class="fechamento-pedido-card">
+        <div class="fechamento-pedido-topo">
+            <strong>🛒 Pedido #${String(p._numero).padStart(3, '0')}</strong>
+            <span class="fechamento-status-badge tag-status-${p.status.replace('_', '-')}">${statusLabel}</span>
+        </div>
+        <p class="dica-secao">
+            <strong>Cliente:</strong> ${p.nome || 'Não informado'} &nbsp;|&nbsp;
+            <strong>Horário:</strong> ${formatarHorario(p.timestamp)} &nbsp;|&nbsp;
+            <strong>${tipoLabel}</strong>
+        </p>
+        ${itensHtml}
+        <div class="pedido-total-linha"><span>Subtotal</span><span>${formatarPreco(p.subtotal || 0)}</span></div>
+        <div class="pedido-total-linha"><span>Desconto</span><span>${formatarPreco(p.desconto || 0)}</span></div>
+        <div class="pedido-total-linha"><span>Frete</span><span>${formatarPreco(p.frete || 0)}</span></div>
+        <div class="pedido-total-linha total-final"><span>Total</span><span>${formatarPreco(totalDoPedido(p))}</span></div>
+        <p class="dica-secao"><strong>Pagamento:</strong> ${p.formaPagamento || 'Não informado'}</p>
+        ${p.observacoes ? `<p class="dica-secao"><strong>Observações:</strong> ${p.observacoes}</p>` : ''}
+        ${p.tipoEntrega === 'entrega' ? `<p class="dica-secao"><strong>Endereço:</strong> ${formatarEnderecoResumo(p.endereco)}</p>` : ''}
+
+        <div class="fechamento-pedido-acoes">
+            <button class="btn-secondary" onclick="copiarPedidoIndividual('${p.id}')">📋 Copiar pedido</button>
+            <button class="btn-lancado ${lancado ? 'lancado' : ''}" id="btn-lancado-${p.id}" onclick="alternarLancado('${p.id}')">${lancado ? '🟢 Lançado' : '🟠 Pendente de lançamento'}</button>
+        </div>
+    </div>`;
+}
+
+function montarTextoPedido(p) {
+    const statusLabel = STATUS_LABELS_FECHAMENTO[p.status] || p.status;
+    const tipoLabel = p.tipoEntrega === 'entrega' ? 'Delivery' : (p.tipoEntrega === 'retirada' ? 'Retirada no local' : 'Não informado');
+    let texto = `PEDIDO #${String(p._numero).padStart(3, '0')}\n\n`;
+    texto += `Cliente: ${p.nome || 'Não informado'}\n`;
+    texto += `Horário: ${formatarHorario(p.timestamp)}\n`;
+    texto += `Status: ${statusLabel}\n`;
+    texto += `Tipo: ${tipoLabel}\n\n`;
+    texto += `Itens:\n`;
+    (p.itens || []).forEach(item => { texto += `${item.quantidade}x ${item.nome}\n`; });
+    texto += `\nSubtotal: ${formatarPreco(p.subtotal || 0)}\n`;
+    texto += `Desconto: ${formatarPreco(p.desconto || 0)}\n`;
+    texto += `Frete: ${formatarPreco(p.frete || 0)}\n`;
+    texto += `Total: ${formatarPreco(totalDoPedido(p))}\n\n`;
+    texto += `Forma de pagamento: ${p.formaPagamento || 'Não informado'}\n`;
+    if (p.observacoes) texto += `\nObservação: ${p.observacoes}\n`;
+    if (p.tipoEntrega === 'entrega') texto += `\nEndereço: ${formatarEnderecoResumo(p.endereco)}\n`;
+    return texto;
+}
+
+function copiarPedidoIndividual(id) {
+    const p = fechamentoPedidosAtuais[id];
+    if (!p) return;
+    copiarTexto(montarTextoPedido(p));
+}
+
+function copiarTodosPedidos(dataInput) {
+    const dataFormatada = dataInput.split('-').reverse().join('/');
+    const todos = Object.values(fechamentoPedidosAtuais).sort((a, b) => a._numero - b._numero);
+    if (todos.length === 0) return;
+
+    const validos = todos.filter(p => p.status !== 'recusado');
+    const totalDia = validos.reduce((s, p) => s + totalDoPedido(p), 0);
+
+    let texto = `📋 FECHAMENTO DE PEDIDOS\nBRIT'S CONFEITARIA\nData: ${dataFormatada}\n\n--------------------------------\n\n`;
+    todos.forEach(p => {
+        texto += montarTextoPedido(p);
+        texto += `\n--------------------------------\n\n`;
+    });
+    texto += `TOTAL DO DIA: ${formatarPreco(totalDia)}\nPEDIDOS: ${todos.length}\n`;
+
+    copiarTexto(texto);
+}
+
+function copiarTexto(texto) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(window._resumoDiaTexto)
-            .then(() => alert('Resumo copiado! Já pode colar onde precisar.'))
-            .catch(() => alert('Não foi possível copiar automaticamente. Copie o texto manualmente da tela.'));
+        navigator.clipboard.writeText(texto)
+            .then(() => alert('Copiado! Já pode colar onde precisar.'))
+            .catch(() => alert('Não foi possível copiar automaticamente. Copie o texto manualmente.'));
     } else {
-        alert('Seu navegador não permite copiar automaticamente. Copie o texto manualmente da tela.');
+        alert('Seu navegador não permite copiar automaticamente. Copie o texto manualmente.');
     }
+}
+
+// Marca/desmarca um pedido como já lançado no Sistema de Gestão — fica salvo no Firebase,
+// então continua valendo mesmo trocando de aparelho ou recarregando a página
+function alternarLancado(id) {
+    const p = fechamentoPedidosAtuais[id];
+    if (!p) return;
+    const novoValor = !p.lancado;
+    db.ref('pedidos/' + id).update({ lancado: novoValor }).then(() => {
+        p.lancado = novoValor;
+        const btn = document.getElementById('btn-lancado-' + id);
+        if (btn) {
+            btn.textContent = novoValor ? '🟢 Lançado' : '🟠 Pendente de lançamento';
+            btn.classList.toggle('lancado', novoValor);
+        }
+    }).catch(err => alert('Não foi possível salvar: ' + err.message));
 }
 
 // ---------- CLUBE DE FIDELIDADE ----------
@@ -943,7 +1075,7 @@ function iniciarEscutaPedidos() {
     // Já deixa o campo de data do Resumo do Dia preenchido com hoje
     const hoje = new Date();
     const hojeFormatado = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0');
-    document.getElementById('resumoDiaData').value = hojeFormatado;
+    document.getElementById('fechamentoData').value = hojeFormatado;
 
     // E o período de visitas já vem com os últimos 7 dias
     const seteDiasAtras = new Date(); seteDiasAtras.setDate(seteDiasAtras.getDate() - 6);

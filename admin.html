@@ -129,16 +129,30 @@
             </section>
 
             <section>
-                <h2>📊 Resumo do Dia</h2>
+                <h2>📋 Fechamento Diário de Pedidos</h2>
                 <div class="loja-status-card">
-                    <p class="dica-secao">Veja tudo que foi vendido num dia — útil pra conferir o que lançar no seu Sistema de Gestão, sem esquecer nada.</p>
+                    <p class="dica-secao">Confira os pedidos do dia, copie pra lançar no seu Sistema de Gestão, e marque o que já foi lançado.</p>
                     <label class="campo-label">Data</label>
-                    <input type="date" id="resumoDiaData">
-                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="carregarResumoDia()">Ver resumo</button>
-
-                    <div id="resumoDiaConteudo" style="margin-top:16px;"></div>
-                    <button id="btnCopiarResumo" class="btn-secondary" style="display:none; margin-top:12px;" onclick="copiarResumoDia()">📋 Copiar resumo</button>
+                    <input type="date" id="fechamentoData">
+                    <div class="produto-admin-linha" style="margin-top:10px;">
+                        <select id="fechamentoFiltroStatus">
+                            <option value="todos">Todos os status</option>
+                            <option value="pendente">Recebidos</option>
+                            <option value="aceito">Em preparo</option>
+                            <option value="em_rota">Saiu para entrega</option>
+                            <option value="entregue">Entregues</option>
+                            <option value="recusado">Cancelados</option>
+                        </select>
+                        <select id="fechamentoFiltroTipo">
+                            <option value="todos">Delivery e Retirada</option>
+                            <option value="entrega">Só Delivery</option>
+                            <option value="retirada">Só Retirada</option>
+                        </select>
+                    </div>
+                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="carregarFechamentoDiario()">🔎 Ver pedidos do dia</button>
                 </div>
+
+                <div id="fechamentoConteudo" style="margin-top:16px;"></div>
             </section>
 
             <section>
