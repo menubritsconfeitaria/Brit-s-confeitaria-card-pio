@@ -8,7 +8,7 @@ let primeiraCargaConcluida = false;
 
 function inicializarAbasPainel() {
     const botoes = document.querySelectorAll('.painel-tab-btn');
-    const secoes = document.querySelectorAll('[data-tab]');
+    const secoes = document.querySelectorAll('section[data-tab]');
 
     function mostrarAba(nomeAba, resetScroll) {
         secoes.forEach(sec => {
