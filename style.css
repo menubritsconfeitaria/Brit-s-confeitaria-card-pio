@@ -1032,6 +1032,21 @@ footer {
 }
 
 /* Ícones de redes sociais no cabeçalho */
+.contato-redes-sociais {
+    text-align: center;
+    margin-top: 20px;
+    padding: 18px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+.contato-mensagem {
+    margin: 0;
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 0.95em;
+}
+
 .redes-sociais-header {
     display: flex;
     justify-content: center;
