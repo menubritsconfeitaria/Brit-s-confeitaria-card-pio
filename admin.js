@@ -51,6 +51,7 @@ auth.onAuthStateChanged(user => {
 // (é uma regra de segurança de todos os navegadores modernos, não um bug). Por isso,
 // criamos o "contexto de áudio" uma vez só, e destravamos ele no primeiro clique.
 let audioCtxGlobal = null;
+let configAlertaSonoro = 'classico';
 
 function inicializarAudioContext() {
     if (audioCtxGlobal) return;
@@ -62,31 +63,54 @@ function inicializarAudioContext() {
 }
 document.addEventListener('click', inicializarAudioContext, { once: true });
 
-function tocarAlerta() {
+// Cada som é uma sequência de notas (frequência, atraso em ms, e duração em segundos)
+const PRESETS_SOM_ALERTA = {
+    classico: [{ freq: 880, atraso: 0, duracao: 0.45 }, { freq: 1046, atraso: 260, duracao: 0.45 }],
+    suave: [{ freq: 523, atraso: 0, duracao: 0.6 }, { freq: 659, atraso: 350, duracao: 0.6 }],
+    urgente: [{ freq: 988, atraso: 0, duracao: 0.18 }, { freq: 988, atraso: 200, duracao: 0.18 }, { freq: 988, atraso: 400, duracao: 0.18 }],
+    sino: [{ freq: 1318, atraso: 0, duracao: 0.9 }]
+};
+
+function tocarAlerta(presetForcado) {
     if (!audioCtxGlobal) inicializarAudioContext();
     if (!audioCtxGlobal) return;
     if (audioCtxGlobal.state === 'suspended') audioCtxGlobal.resume();
+
+    const notas = PRESETS_SOM_ALERTA[presetForcado || configAlertaSonoro] || PRESETS_SOM_ALERTA.classico;
     try {
-        const bip = (freq, atraso) => {
+        notas.forEach(nota => {
             setTimeout(() => {
                 const osc = audioCtxGlobal.createOscillator();
                 const gain = audioCtxGlobal.createGain();
                 osc.type = 'sine';
-                osc.frequency.value = freq;
+                osc.frequency.value = nota.freq;
                 gain.gain.setValueAtTime(0.001, audioCtxGlobal.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.3, audioCtxGlobal.currentTime + 0.02);
-                gain.gain.exponentialRampToValueAtTime(0.001, audioCtxGlobal.currentTime + 0.45);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtxGlobal.currentTime + nota.duracao);
                 osc.connect(gain);
                 gain.connect(audioCtxGlobal.destination);
                 osc.start();
-                osc.stop(audioCtxGlobal.currentTime + 0.45);
-            }, atraso);
-        };
-        bip(880, 0);
-        bip(1046, 260);
+                osc.stop(audioCtxGlobal.currentTime + nota.duracao);
+            }, nota.atraso);
+        });
     } catch (e) {
         console.log('Não foi possível tocar o alerta sonoro:', e);
     }
+}
+
+function escutarConfigSomAlerta() {
+    db.ref('configuracao/alertaSonoro').on('value', snap => {
+        configAlertaSonoro = snap.val() || 'classico';
+        const sel = document.getElementById('selectSomAlerta');
+        if (sel && document.activeElement !== sel) sel.value = configAlertaSonoro;
+    });
+}
+
+function salvarSomAlerta() {
+    const valor = document.getElementById('selectSomAlerta').value;
+    db.ref('configuracao/alertaSonoro').set(valor)
+        .then(() => alert('Som de alerta salvo! Esse vai ser o som usado a partir de agora.'))
+        .catch(err => alert('Não foi possível salvar: ' + err.message));
 }
 
 // ---------- HELPERS ----------
@@ -1094,6 +1118,7 @@ function iniciarEscutaPedidos() {
     escutarOrdemCategorias();
     escutarConfigFidelidade();
     escutarVisitantesOnline();
+    escutarConfigSomAlerta();
 
     // Já deixa o campo de data do Resumo do Dia preenchido com hoje
     const hoje = new Date();

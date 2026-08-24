@@ -42,7 +42,16 @@
         <main class="painel-main">
             <section>
                 <h2>🔔 Pedidos novos <span id="contadorPendentes" class="badge-contador">0</span></h2>
-                <button class="btn-secondary" style="margin-bottom:12px;" onclick="inicializarAudioContext(); tocarAlerta();">🔊 Testar som de alerta</button>
+                <div class="produto-admin-linha" style="margin-bottom:10px;">
+                    <select id="selectSomAlerta">
+                        <option value="classico">🔔 Clássico (2 bips)</option>
+                        <option value="suave">🎵 Suave</option>
+                        <option value="urgente">⚠️ Urgente (3 bips)</option>
+                        <option value="sino">🔊 Sino</option>
+                    </select>
+                    <button class="btn-secondary" onclick="inicializarAudioContext(); tocarAlerta(document.getElementById('selectSomAlerta').value);">▶️ Testar</button>
+                    <button class="btn-secondary" onclick="salvarSomAlerta()">💾 Salvar som</button>
+                </div>
                 <div id="listaPendentes" class="lista-pedidos">
                     <p class="vazio">Nenhum pedido novo no momento.</p>
                 </div>

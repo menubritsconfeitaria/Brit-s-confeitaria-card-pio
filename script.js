@@ -608,6 +608,13 @@ function renderizarProdutos() {
                 ? `<div class="variantes-lista">${produto.variantes.map(v => `<button type="button" class="variante-pill" data-variante="${v}">${v}</button>`).join('')}</div>`
                 : ''
             }
+            ${produto.disponivel ? `
+                <div class="produto-quantidade-stepper">
+                    <button type="button" class="qtd-btn qtd-menos">−</button>
+                    <span class="qtd-valor">1</span>
+                    <button type="button" class="qtd-btn qtd-mais">+</button>
+                </div>` : ''
+            }
             ${produto.disponivel
                 ? `<button class="adicionar-carrinho" data-nome="${produto.nome}" data-preco="${produto.preco}">Adicionar ao Carrinho</button>`
                 : `<button class="adicionar-carrinho indisponivel-btn" disabled>Indisponível</button>`
@@ -694,6 +701,19 @@ function renderizarProdutos() {
     });
 
     // Adiciona event listeners apenas para botões de produtos disponíveis
+    // Clique nos botões +/− do seletor de quantidade de cada produto
+    document.querySelectorAll('.produto-quantidade-stepper').forEach(stepper => {
+        const valorEl = stepper.querySelector('.qtd-valor');
+        stepper.querySelector('.qtd-menos').addEventListener('click', () => {
+            const v = parseInt(valorEl.textContent, 10) || 1;
+            if (v > 1) valorEl.textContent = v - 1;
+        });
+        stepper.querySelector('.qtd-mais').addEventListener('click', () => {
+            const v = parseInt(valorEl.textContent, 10) || 1;
+            valorEl.textContent = v + 1;
+        });
+    });
+
     document.querySelectorAll('.adicionar-carrinho:not(.indisponivel-btn)').forEach(botao => {
         botao.addEventListener('click', (evento) => {
             const nomeProduto = evento.target.dataset.nome;
@@ -712,25 +732,29 @@ function renderizarProdutos() {
 
             const observacaoValor = varianteSelecionada ? varianteSelecionada.dataset.variante : (inputObs ? inputObs.value.trim() : '');
 
+            const stepperValor = cardProduto.querySelector('.qtd-valor');
+            const quantidadeEscolhida = stepperValor ? (parseInt(stepperValor.textContent, 10) || 1) : 1;
+
             const produtoExistente = carrinho.find(item => item.nome === nomeProduto && (item.observacao || '') === observacaoValor);
 
             if (produtoExistente) {
-                produtoExistente.quantidade++;
+                produtoExistente.quantidade += quantidadeEscolhida;
                 produtoExistente.preco = precoProduto; // Garante que o preço fica sempre atualizado (ex: entrou em oferta)
             } else {
                 const produtoAdicionar = {
                     nome: nomeProduto,
                     preco: precoProduto,
-                    quantidade: 1,
+                    quantidade: quantidadeEscolhida,
                     observacao: observacaoValor || null
                 };
                 carrinho.push(produtoAdicionar);
             }
 
             if (inputObs) inputObs.value = '';
+            if (stepperValor) stepperValor.textContent = '1'; // reseta o seletor de quantidade pro próximo uso
             cardProduto.querySelectorAll('.variante-pill').forEach(p => p.classList.remove('selecionada'));
 
-            alert(`${nomeProduto} adicionado ao carrinho!`);
+            alert(`${quantidadeEscolhida}x ${nomeProduto} adicionado ao carrinho!`);
             console.log('Carrinho atual:', carrinho);
             salvarCarrinho();
             atualizarCarrinhoHTML();

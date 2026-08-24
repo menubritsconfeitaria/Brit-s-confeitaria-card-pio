@@ -999,3 +999,34 @@ footer {
     padding: 4px !important;
     margin-top: 6px;
 }
+
+/* Seletor de quantidade no card do produto */
+.produto-quantidade-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin: 8px 0;
+}
+.qtd-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--primary);
+    font-size: 1.2em;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.qtd-btn:hover { background: var(--bg); }
+.qtd-valor {
+    min-width: 22px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.05em;
+}
