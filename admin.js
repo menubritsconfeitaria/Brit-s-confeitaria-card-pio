@@ -536,7 +536,7 @@ function montarLinhaProduto(id, produto) {
         <input type="text" id="prodImagens_${id}" value="${(Array.isArray(produto.imagens) && produto.imagens.length ? produto.imagens : (produto.imagem ? [produto.imagem] : [])).join(', ')}" placeholder="Ex: bolo1.jpg, bolo2.jpg, bolo3.jpg" oninput="atualizarPreviaImagens('${id}')">
         <div id="previaImagens_${id}" class="previa-imagens"></div>
 
-        <input type="text" id="prodCategoria_${id}" value="${produto.categoria || ''}" placeholder="Categoria">
+        <input type="text" id="prodCategoria_${id}" value="${produto.categoria || ''}" placeholder="Categoria" list="categoriasDatalist">
 
         <label class="campo-label">Sabores/opções (digite cada um separado por VÍRGULA — deixe em branco se não tiver)</label>
         <input type="text" id="prodVariantes_${id}" value="${(produto.variantes || []).join(', ')}" placeholder="Ex: Chocolate, Morango, Baunilha" oninput="atualizarPreviaVariantes('${id}')">
@@ -579,6 +579,18 @@ function atualizarPreviaVariantes(id) {
 let categoriasConhecidas = [];
 let produtosConhecidos = [];
 
+// Preenche a lista suspensa (datalist) do campo de categoria com as categorias que já existem,
+// pra facilitar escolher uma existente em vez de digitar (e evitar duplicar por causa de erro de digitação)
+function atualizarDatalistCategorias() {
+    const datalist = document.getElementById('categoriasDatalist');
+    if (!datalist) return;
+    datalist.innerHTML = categoriasConhecidas
+        .slice()
+        .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+        .map(cat => `<option value="${cat}"></option>`)
+        .join('');
+}
+
 function escutarProdutos() {
     db.ref('produtos').on('value', snap => {
         const lista = document.getElementById('produtosAdminList');
@@ -590,6 +602,7 @@ function escutarProdutos() {
 
         categoriasConhecidas = [...new Set(itens.map(i => i.produto.categoria).filter(Boolean))];
         produtosConhecidos = itens.map(i => i.produto.nome).filter(Boolean);
+        atualizarDatalistCategorias();
         atualizarPreviaOrdemCategorias();
         atualizarSelectProdutoRecompensa();
 
