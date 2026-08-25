@@ -15,7 +15,6 @@
 
 html {
     overflow-x: hidden;
-    overflow-y: visible;
     width: 100%;
 }
 
@@ -25,8 +24,6 @@ body {
     padding: 0;
     background-color: var(--bg);
     color: var(--text);
-    overflow-x: hidden;
-    overflow-y: visible;
     width: 100%;
 }
 
