@@ -196,15 +196,19 @@
                         <label for="pcInstagram">Seu Instagram (opcional)</label>
                         <input type="text" id="pcInstagram" placeholder="Ex: @doces.damaria">
 
+                        <label for="pcCorPrincipal">Cor principal da sua marca</label>
+                        <input type="color" id="pcCorPrincipal" value="#a0522d">
+
                         <button type="button" onclick="enviarInteressePersonalizado()">📲 Quero o meu cardápio assim!</button>
                     </div>
 
                     <div class="personalizar-preview">
                         <p class="preview-legenda">👆 Prévia em tempo real</p>
-                        <div class="preview-mini-cardapio">
+                        <div class="preview-mini-cardapio" id="pcPreviewCaixa">
                             <img id="pcPreviewLogo" src="logopng.png" alt="Prévia da sua logo">
                             <h3 id="pcPreviewNome">Bem-vindo à Sua Loja!</h3>
                             <p>Seu cardápio diário de delícias frescas.</p>
+                            <div class="preview-botao-exemplo" id="pcPreviewBotao">Fazer pedido</div>
                         </div>
                     </div>
                 </div>

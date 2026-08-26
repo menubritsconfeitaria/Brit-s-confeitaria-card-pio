@@ -1462,8 +1462,10 @@ atualizarBotaoNotificacao();
 function inicializarPersonalizacaoPreview() {
     const nomeInput = document.getElementById('pcNomeLoja');
     const logoInput = document.getElementById('pcLogoInput');
+    const corInput = document.getElementById('pcCorPrincipal');
     const previewNome = document.getElementById('pcPreviewNome');
     const previewLogo = document.getElementById('pcPreviewLogo');
+    const previewCaixa = document.getElementById('pcPreviewCaixa');
     if (!nomeInput || !previewNome) return; // protege caso a seção não exista nessa página
 
     nomeInput.addEventListener('input', () => {
@@ -1480,6 +1482,12 @@ function inicializarPersonalizacaoPreview() {
             leitor.readAsDataURL(arquivo);
         });
     }
+
+    if (corInput && previewCaixa) {
+        corInput.addEventListener('input', () => {
+            previewCaixa.style.setProperty('--cor-preview', corInput.value);
+        });
+    }
 }
 inicializarPersonalizacaoPreview();
 
@@ -1491,6 +1499,7 @@ function enviarInteressePersonalizado() {
     const nome = document.getElementById('pcNomeLoja').value.trim();
     const whatsapp = document.getElementById('pcWhatsapp').value.trim();
     const instagram = document.getElementById('pcInstagram').value.trim();
+    const cor = document.getElementById('pcCorPrincipal').value;
     const temLogoPropria = document.getElementById('pcLogoInput').files.length > 0;
 
     if (!nome) {
@@ -1502,6 +1511,7 @@ function enviarInteressePersonalizado() {
     mensagem += `Nome da loja: ${nome}\n`;
     if (whatsapp) mensagem += `WhatsApp: ${whatsapp}\n`;
     if (instagram) mensagem += `Instagram: ${instagram}\n`;
+    mensagem += `Cor principal escolhida: ${cor}\n`;
     if (temLogoPropria) mensagem += `(já tenho uma logo pronta pra usar)\n`;
 
     const link = `https://api.whatsapp.com/send?phone=${numeroWhatsAppServicoCardapio}&text=${encodeURIComponent(mensagem)}`;

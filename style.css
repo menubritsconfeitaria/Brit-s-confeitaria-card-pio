@@ -1171,6 +1171,11 @@ footer {
     font-family: inherit;
     font-size: 0.95em;
 }
+.personalizar-form input[type="color"] {
+    padding: 4px;
+    height: 42px;
+    cursor: pointer;
+}
 .personalizar-form button {
     margin-top: 16px;
     background: var(--primary);
@@ -1199,12 +1204,14 @@ footer {
     font-weight: 600;
 }
 .preview-mini-cardapio {
+    --cor-preview: #a0522d;
     background: #fff;
     border-radius: 12px;
     padding: 20px 16px;
     text-align: center;
     width: 100%;
     box-shadow: var(--shadow);
+    border-top: 4px solid var(--cor-preview);
 }
 .preview-mini-cardapio img {
     max-width: 70px;
@@ -1213,7 +1220,7 @@ footer {
     margin-bottom: 8px;
 }
 .preview-mini-cardapio h3 {
-    color: var(--primary);
+    color: var(--cor-preview);
     font-size: 1.1em;
     margin: 0 0 4px;
 }
@@ -1221,6 +1228,15 @@ footer {
     color: var(--muted);
     font-size: 0.8em;
     margin: 0;
+}
+.preview-botao-exemplo {
+    margin-top: 14px;
+    background: var(--cor-preview);
+    color: #fff;
+    padding: 9px;
+    border-radius: 8px;
+    font-size: 0.85em;
+    font-weight: 700;
 }
 .personalizar-beneficios {
     list-style: none;
