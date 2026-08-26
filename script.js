@@ -1245,7 +1245,12 @@ botaoFinalizarCompra.addEventListener('click', () => {
         recompensaResgatada: recompensaSelecionada ? {
             pontos: recompensaSelecionada.pontos,
             descricao: recompensaSelecionada.descricao
-        } : null
+        } : null,
+        // Se o cliente já ativou notificações nesse aparelho, guarda o token junto do pedido,
+        // pra poder avisar ele (só ele, não todo mundo) quando o status do pedido mudar
+        notificacaoToken: (localStorage.getItem('notificacoesAtivasBritS') === '1')
+            ? localStorage.getItem('notificacaoTokenBritS')
+            : null
     });
 
     // Guarda esse pedido pra mostrar o status (pendente/aceito/em rota/entregue/recusado) pro cliente
@@ -1426,6 +1431,7 @@ async function ativarNotificacoes() {
                 criadoEm: firebase.database.ServerValue.TIMESTAMP
             });
             localStorage.setItem('notificacoesAtivasBritS', '1');
+            localStorage.setItem('notificacaoTokenBritS', token); // guarda o token pra anexar aos pedidos depois
             atualizarBotaoNotificacao();
         }
     } catch (err) {
