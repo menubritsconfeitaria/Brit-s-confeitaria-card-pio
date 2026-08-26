@@ -395,6 +395,7 @@ function escutarProdutos() {
         renderizarProdutos();
         atualizarCarrinhoHTML();
         atualizarAvisoOferta();
+        rolarParaVendaSePendente(); // só rola pra seção de venda depois que a página já "assentou"
     });
 }
 
@@ -1451,18 +1452,25 @@ function fecharBoasVindas() {
 // pula a tela de boas-vindas e já abre a seção de personalização sozinha, expandida.
 // Ex: https://menubritsconfeitaria.github.io/Brit-s-confeitaria-card-pio/?venda=1
 const veioPeloLinkDeVenda = new URLSearchParams(window.location.search).get('venda') === '1';
+let scrollParaVendaPendente = veioPeloLinkDeVenda; // vira false depois de rolar uma vez
 
 if (veioPeloLinkDeVenda) {
     try { sessionStorage.setItem('boasVindasBritS', '1'); } catch (e) { /* ignora */ } // pula a tela de boas-vindas
-    setTimeout(() => {
-        const conteudo = document.getElementById('personalizarConteudo');
-        if (conteudo) {
-            conteudo.style.display = 'block';
-            conteudo.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    }, 300);
 } else {
     mostrarBoasVindas();
+}
+
+// Chamada assim que os produtos terminam de carregar/renderizar de verdade — só então a altura
+// da página fica estável, então é o momento certo de rolar (rolar antes disso rola pro lugar
+// errado, porque o carregamento dos produtos "empurra" a seção de venda pra baixo depois)
+function rolarParaVendaSePendente() {
+    if (!scrollParaVendaPendente) return;
+    scrollParaVendaPendente = false;
+    const conteudo = document.getElementById('personalizarConteudo');
+    if (conteudo) {
+        conteudo.style.display = 'block';
+        setTimeout(() => conteudo.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    }
 }
 
 /* ===================================================================
