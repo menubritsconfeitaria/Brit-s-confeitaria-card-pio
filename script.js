@@ -1403,7 +1403,9 @@ function atualizarBotaoNotificacao() {
     if (!btn) return;
     const ativado = localStorage.getItem('notificacoesAtivasBritS') === '1';
     if (ativado) {
-        btn.textContent = '🔔 Notificações ativadas';
+        btn.classList.add('ativado');
+        btn.title = 'Notificações ativadas';
+        btn.setAttribute('aria-label', 'Notificações já ativadas');
         btn.disabled = true;
     }
 }
