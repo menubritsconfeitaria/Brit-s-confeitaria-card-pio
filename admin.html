@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel de Pedidos - Brit's Confeitaria</title>
+    <title id="tituloAba">Painel de Pedidos - Brit's Confeitaria</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin.css">
@@ -13,7 +13,7 @@
     <!-- TELA DE LOGIN -->
     <div id="telaLogin" class="tela-login">
         <div class="login-card">
-            <img src="logopng.png" alt="Brit's Confeitaria" class="login-logo">
+            <img id="loginLogo" src="logopng.png" alt="Logo da loja" class="login-logo">
             <h1>Painel de Pedidos</h1>
             <p class="login-sub">Entre com o e-mail e senha cadastrados no Firebase</p>
             <input type="email" id="loginEmail" placeholder="E-mail">
@@ -27,7 +27,7 @@
     <div id="painel" class="painel" style="display:none;">
         <header class="painel-header">
             <div class="painel-header-info">
-                <img src="logopng.png" alt="Brit's Confeitaria" class="painel-logo">
+                <img id="painelLogo" src="logopng.png" alt="Logo da loja" class="painel-logo">
                 <div>
                     <h1>Painel de Pedidos</h1>
                     <p id="statusConexao">Conectando...</p>
@@ -178,7 +178,7 @@
             </section>
 
             <section data-tab="fidelidade">
-                <h2>⭐ Clube Brit's (Fidelidade)</h2>
+                <h2 id="clubeTituloAdmin">⭐ Clube Brit's (Fidelidade)</h2>
                 <div class="loja-status-card">
                     <label class="dia-checkbox" style="font-size:0.95em; margin-bottom:10px;">
                         <input type="checkbox" id="fidelidadeAtiva" onchange="salvarConfigFidelidade()"> Clube de fidelidade ativado
@@ -229,6 +229,7 @@
     <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-database-compat.js"></script>
+    <script src="loja-config.js"></script>
     <script src="firebase-config.js"></script>
     <script src="admin.js"></script>
 </body>

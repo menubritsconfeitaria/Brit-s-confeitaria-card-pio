@@ -1,6 +1,22 @@
 const auth = firebase.auth();
 const db = firebase.database();
 
+// Aplica os dados da loja (nome, logo) no painel — mesma configuração usada no cardápio,
+// vinda de loja-config.js. É só trocar aquele arquivo pra usar o painel com outra loja.
+function aplicarConfigDaLojaNoAdmin() {
+    document.title = `Painel de Pedidos - ${LOJA_CONFIG.nome}`;
+
+    const loginLogo = document.getElementById('loginLogo');
+    if (loginLogo) { loginLogo.src = LOJA_CONFIG.logo; loginLogo.alt = `Logo ${LOJA_CONFIG.nome}`; }
+
+    const painelLogo = document.getElementById('painelLogo');
+    if (painelLogo) { painelLogo.src = LOJA_CONFIG.logo; painelLogo.alt = `Logo ${LOJA_CONFIG.nome}`; }
+
+    const clubeTituloAdmin = document.getElementById('clubeTituloAdmin');
+    if (clubeTituloAdmin) clubeTituloAdmin.textContent = `⭐ Clube ${LOJA_CONFIG.nomeCurto} (Fidelidade)`;
+}
+aplicarConfigDaLojaNoAdmin();
+
 let idsRenderizados = new Set();
 let primeiraCargaConcluida = false;
 
@@ -239,7 +255,7 @@ function montarHtmlTicketImpressao(pedido, numeroPedido) {
 
     return `
         <div class="ticket-cabecalho">
-            <h2>Brit's Confeitaria</h2>
+            <h2>${LOJA_CONFIG.nome}</h2>
             ${numeroHtml}
             <p>${formatarHora(pedido.timestamp) || 'Não informado'}</p>
         </div>
@@ -982,7 +998,7 @@ function renderFechamentoDiario(pedidos, dataInicioInput, dataFimInput) {
 
     div.innerHTML = `
         <div class="fechamento-print-cabecalho">
-            <h2>Brit's Confeitaria — Fechamento Diário de Pedidos</h2>
+            <h2>${LOJA_CONFIG.nome} — Fechamento Diário de Pedidos</h2>
             <p>${rotuloData}: ${dataFormatada}</p>
         </div>
         <h3>📊 Resumo do ${mesmodia ? 'Dia' : 'Período'}</h3>
@@ -1101,7 +1117,7 @@ function copiarTodosPedidos(dataFormatada) {
     const validos = todos.filter(p => p.status !== 'recusado');
     const totalDia = validos.reduce((s, p) => s + totalDoPedido(p), 0);
 
-    let texto = `📋 FECHAMENTO DE PEDIDOS\nBRIT'S CONFEITARIA\nData: ${dataFormatada}\n\n--------------------------------\n\n`;
+    let texto = `📋 FECHAMENTO DE PEDIDOS\n${LOJA_CONFIG.nome.toUpperCase()}\nData: ${dataFormatada}\n\n--------------------------------\n\n`;
     todos.forEach(p => {
         texto += montarTextoPedido(p);
         texto += `\n--------------------------------\n\n`;

@@ -231,6 +231,54 @@ const horariosPadrao = [
     { aberto: true, abre: '09:00', fecha: '16:00' }  // Sábado
 ];
 
+/**
+ * Aplica os dados de uma configuração de loja (nome, logo, cores, contatos) no site
+ * inteiro de uma vez. Usada tanto no carregamento normal da página (com os dados reais,
+ * vindos de loja-config.js) quanto na prévia personalizada (com os dados que a pessoa
+ * digitou) — assim as duas situações usam exatamente a mesma lógica, sem duplicar código.
+ */
+function aplicarConfigDaLoja(config) {
+    document.documentElement.style.setProperty('--primary', config.corPrimaria);
+    document.documentElement.style.setProperty('--accent', config.corAccent);
+
+    document.title = `${config.nome} - Cardápio Online`;
+
+    const headerH1 = document.querySelector('header h1');
+    if (headerH1) headerH1.textContent = `Bem-vindo à ${config.nome}!`;
+
+    const headerP = document.querySelector('header p');
+    if (headerP) headerP.textContent = config.subtitulo;
+
+    const headerLogo = document.querySelector('header .logo');
+    if (headerLogo) { headerLogo.src = config.logo; headerLogo.alt = `Logo ${config.nome}`; }
+
+    const boasVindasLogo = document.getElementById('boasVindasLogo');
+    if (boasVindasLogo) { boasVindasLogo.src = config.logo; boasVindasLogo.alt = `Logo ${config.nome}`; }
+
+    const boasVindasTitulo = document.getElementById('boasVindasTitulo');
+    if (boasVindasTitulo) boasVindasTitulo.textContent = `Bem-vindo à ${config.nome}! 🎂`;
+
+    const clubeTitulo = document.getElementById('clubeTitulo');
+    if (clubeTitulo) clubeTitulo.textContent = `⭐ Clube ${config.nomeCurto}`;
+
+    const footerTexto = document.getElementById('footerCopyright');
+    if (footerTexto) footerTexto.textContent = `© ${config.anoCopyright} ${config.nome}. Todos os direitos reservados.`;
+
+    const linkInstagram = document.getElementById('linkInstagramLoja');
+    if (linkInstagram) {
+        if (config.instagramUrl) {
+            linkInstagram.href = config.instagramUrl;
+            linkInstagram.style.display = '';
+        } else {
+            linkInstagram.style.display = 'none'; // esconde o ícone se a loja não tiver Instagram
+        }
+    }
+
+    const linkWhatsapp = document.getElementById('linkWhatsappLoja');
+    if (linkWhatsapp) linkWhatsapp.href = `https://wa.me/${config.whatsappPedidos}`;
+}
+aplicarConfigDaLoja(LOJA_CONFIG); // aplica a configuração real assim que a página carrega
+
 let lojaAbertaAtual = true;
 let modoDemoAtivo = false; // true enquanto a prévia personalizada está ativa
 let ultimaConfigLojaReal = null; // guarda a última config de verdade, pra restaurar depois do modo demo
@@ -441,7 +489,7 @@ function mostrarStatusPedido(pedidoId) {
             texto.textContent = '🛵 Seu pedido saiu para entrega!';
         } else if (status === 'entregue') {
             banner.classList.add('status-entregue');
-            texto.textContent = '🎉 Pedido entregue! Seus pontos do Clube Brit\'s já foram creditados. Bom apetite!';
+            texto.textContent = `🎉 Pedido entregue! Seus pontos do Clube ${LOJA_CONFIG.nomeCurto} já foram creditados. Bom apetite!`;
         } else if (status === 'recusado') {
             banner.classList.add('status-recusado');
             texto.textContent = '❌ Seu pedido foi recusado. Fale com a gente pelo WhatsApp para mais detalhes.';
@@ -1140,7 +1188,7 @@ function resgatarRecompensa(index) {
             nome: r.produtoNome,
             preco: 0,
             quantidade: 1,
-            observacao: "🎁 Recompensa do Clube Brit's"
+            observacao: `🎁 Recompensa do Clube ${LOJA_CONFIG.nomeCurto}`
         });
         salvarCarrinho();
     }
@@ -1222,7 +1270,7 @@ botaoFinalizarCompra.addEventListener('click', () => {
         : `${subtotalTexto} + entrega (a confirmar)`;
 
     // Monta a mensagem final
-    let mensagemPedido = `🍰 *Novo Pedido - Brit's Confeitaria* 🍰\n\n`;
+    let mensagemPedido = `🍰 *Novo Pedido - ${LOJA_CONFIG.nome}* 🍰\n\n`;
     mensagemPedido += `*Cliente:* ${nome}\n`;
     mensagemPedido += `*Telefone:* ${telefone}\n`;
     mensagemPedido += `*Tipo:* ${tipoEntregaAtual === 'entrega' ? 'Entrega' : 'Retirada no local'}\n`;
@@ -1287,7 +1335,7 @@ botaoFinalizarCompra.addEventListener('click', () => {
     }));
 
     // Configuração e abertura do WhatsApp
-    const numeroWhatsApp = '5527997633871'; // Seu número de WhatsApp configurado
+    const numeroWhatsApp = LOJA_CONFIG.whatsappPedidos;
     const linkWhatsApp = `https://api.whatsapp.com/send?phone=${numeroWhatsApp}&text=${encodeURIComponent(mensagemPedido)}`;
 
     // Abre o WhatsApp em uma nova aba
@@ -1512,9 +1560,6 @@ inicializarPersonalizacaoPreview();
 // (diferente do WhatsApp da própria Brit's, que é só pra pedidos de doces)
 const numeroWhatsAppServicoCardapio = '5527997726901';
 
-// Guarda o estado original do site (nome, logo), pra poder restaurar depois de mostrar a prévia
-let estadoOriginalSite = null;
-
 // Abre/fecha o formulário de personalização, que começa escondido — só a chamada fica visível
 function alternarPersonalizarConteudo() {
     const conteudo = document.getElementById('personalizarConteudo');
@@ -1536,39 +1581,23 @@ function ativarModoDemoCompleto() {
         return;
     }
 
-    const headerH1 = document.querySelector('header h1');
-    const headerLogo = document.querySelector('header .logo');
-    const clubeTitulo = document.getElementById('clubeTitulo');
-
-    // Guarda o estado original só na primeira vez que ativar (senão, ativar de novo com um nome
-    // diferente ia "salvar" o nome anterior como se fosse o original, e a restauração ficaria errada)
-    if (!estadoOriginalSite) {
-        estadoOriginalSite = {
-            nomeHeader: headerH1 ? headerH1.textContent : '',
-            logoSrc: headerLogo ? headerLogo.src : '',
-            tituloPagina: document.title,
-            nomeClube: clubeTitulo ? clubeTitulo.textContent : ''
-        };
-    }
-
-    // Muda a cor principal do site inteiro de uma vez só — todo botão, preço e destaque
-    // já usa essa mesma variável, então recolorir tudo é só isso
-    document.documentElement.style.setProperty('--primary', cor);
-
-    if (headerH1) headerH1.textContent = `Bem-vindo à ${nome}!`;
-    document.title = `${nome} — Cardápio Digital`;
-    if (clubeTitulo) clubeTitulo.textContent = `⭐ Clube ${nome}`;
-
-    // Força a loja aparecer "aberta" durante a prévia, não importa o horário real da Brit's
-    modoDemoAtivo = true;
-    atualizarStatusLoja(null);
+    const configDemo = { ...LOJA_CONFIG, nome, nomeCurto: nome, corPrimaria: cor };
 
     const arquivo = logoInput ? logoInput.files[0] : null;
-    if (arquivo && headerLogo) {
+    if (arquivo) {
         const leitor = new FileReader();
-        leitor.onload = (e) => { headerLogo.src = e.target.result; };
+        leitor.onload = (e) => {
+            configDemo.logo = e.target.result;
+            aplicarConfigDaLoja(configDemo);
+        };
         leitor.readAsDataURL(arquivo);
+    } else {
+        aplicarConfigDaLoja(configDemo);
     }
+
+    // Força a loja aparecer "aberta" durante a prévia, não importa o horário real
+    modoDemoAtivo = true;
+    atualizarStatusLoja(null);
 
     const banner = document.getElementById('bannerModoDemo');
     if (banner) banner.style.display = 'flex';
@@ -1577,17 +1606,7 @@ function ativarModoDemoCompleto() {
 }
 
 function restaurarCardapioOriginal() {
-    if (!estadoOriginalSite) return;
-
-    document.documentElement.style.removeProperty('--primary');
-
-    const headerH1 = document.querySelector('header h1');
-    const headerLogo = document.querySelector('header .logo');
-    const clubeTitulo = document.getElementById('clubeTitulo');
-    if (headerH1) headerH1.textContent = estadoOriginalSite.nomeHeader;
-    if (headerLogo) headerLogo.src = estadoOriginalSite.logoSrc;
-    document.title = estadoOriginalSite.tituloPagina;
-    if (clubeTitulo) clubeTitulo.textContent = estadoOriginalSite.nomeClube;
+    aplicarConfigDaLoja(LOJA_CONFIG);
 
     // Volta a mostrar o status real da loja (aberta/fechada de verdade)
     modoDemoAtivo = false;
@@ -1625,7 +1644,7 @@ function enviarInteressePersonalizado() {
 if (podeReceberNotificacoes() && VAPID_KEY !== 'COLE_AQUI_A_SUA_CHAVE_VAPID') {
     try {
         firebase.messaging().onMessage((payload) => {
-            const titulo = (payload.notification && payload.notification.title) || "Brit's Confeitaria";
+            const titulo = (payload.notification && payload.notification.title) || LOJA_CONFIG.nome;
             const corpo = (payload.notification && payload.notification.body) || '';
             mostrarToastNotificacao(titulo, corpo);
         });

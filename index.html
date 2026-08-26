@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- ⚠️ TROQUE AQUI PRA UM CLIENTE NOVO — essas linhas não conseguem ser preenchidas
+         automaticamente pelo loja-config.js, porque o navegador as lê ANTES do JavaScript
+         carregar. Troque manualmente pelo nome, descrição e endereço do site do cliente. -->
     <title>Brit's Confeitaria - Cardápio Online</title>
 
     <!-- Compartilhamento bonito (WhatsApp, Instagram, etc.) -->
@@ -13,10 +16,11 @@
     <meta property="og:url" content="https://menubritsconfeitaria.github.io/Brit-s-confeitaria-card-pio/">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="description" content="Bolos, doces e salgados fresquinhos, feitos com carinho. Peça direto pelo nosso cardápio online!">
+    <meta name="theme-color" content="#a0522d">
+    <!-- fim do trecho pra trocar manualmente -->
 
     <!-- PWA (app instalável) -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#a0522d">
     <link rel="apple-touch-icon" href="logopng.png">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,8 +30,8 @@
 <body>
     <div id="telaBoasVindas" class="tela-boas-vindas" style="display:none;">
         <div class="boas-vindas-conteudo">
-            <img src="logopng.png" alt="Brit's Confeitaria" class="boas-vindas-logo">
-            <h2>Bem-vindo à Brit's Confeitaria! 🎂</h2>
+            <img id="boasVindasLogo" src="logopng.png" alt="Logo da loja" class="boas-vindas-logo">
+            <h2 id="boasVindasTitulo">Bem-vindo à Brit's Confeitaria! 🎂</h2>
             <p>Bolos, doces e salgados fresquinhos, feitos com carinho.</p>
             <button onclick="fecharBoasVindas()">Ver Cardápio</button>
         </div>
@@ -35,7 +39,7 @@
 
     <div id="bannerModoDemo" class="banner-modo-demo" style="display:none;">
         <span>🎨 Você está vendo uma prévia personalizada!</span>
-        <button onclick="restaurarCardapioOriginal()">🔄 Voltar pro cardápio da Brit's</button>
+        <button id="btnVoltarBannerDemo" onclick="restaurarCardapioOriginal()">🔄 Voltar pro cardápio da Brit's</button>
     </div>
 
     <header>
@@ -174,10 +178,10 @@
             <div class="contato-redes-sociais">
                 <p class="contato-mensagem">💛 Nos siga nas redes sociais e no WhatsApp!</p>
                 <div class="redes-sociais-header">
-                    <a href="https://www.instagram.com/brites.doces/" target="_blank" rel="noopener noreferrer" class="rede-social-btn rede-instagram" aria-label="Instagram da Brit's Confeitaria">
+                    <a id="linkInstagramLoja" href="https://www.instagram.com/brites.doces/" target="_blank" rel="noopener noreferrer" class="rede-social-btn rede-instagram" aria-label="Instagram da loja">
                         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 2.2c3.2 0 3.6 0 4.9.07 1.2.06 2.2.27 2.7.46a5.4 5.4 0 0 1 2 1.3 5.4 5.4 0 0 1 1.3 2c.2.5.4 1.5.5 2.7.1 1.3.1 1.7.1 4.9s0 3.6-.1 4.9c-.1 1.2-.3 2.2-.5 2.7a5.4 5.4 0 0 1-1.3 2 5.4 5.4 0 0 1-2 1.3c-.5.2-1.5.4-2.7.5-1.3.1-1.7.1-4.9.1s-3.6 0-4.9-.1c-1.2-.1-2.2-.3-2.7-.5a5.4 5.4 0 0 1-2-1.3 5.4 5.4 0 0 1-1.3-2c-.2-.5-.4-1.5-.5-2.7C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.9c.1-1.2.3-2.2.5-2.7a5.4 5.4 0 0 1 1.3-2 5.4 5.4 0 0 1 2-1.3c.5-.2 1.5-.4 2.7-.5C8.4 2.2 8.8 2.2 12 2.2Zm0 1.8c-3.1 0-3.5 0-4.8.07-1 .05-1.6.2-2 .35a3.6 3.6 0 0 0-1.3.86 3.6 3.6 0 0 0-.86 1.3c-.15.4-.3 1-.35 2C2.6 8.5 2.6 8.9 2.6 12s0 3.5.07 4.8c.05 1 .2 1.6.35 2 .16.5.4.9.86 1.3.4.4.8.7 1.3.86.4.15 1 .3 2 .35 1.3.06 1.7.07 4.8.07s3.5 0 4.8-.07c1-.05 1.6-.2 2-.35a3.6 3.6 0 0 0 1.3-.86 3.6 3.6 0 0 0 .86-1.3c.15-.4.3-1 .35-2 .06-1.3.07-1.7.07-4.8s0-3.5-.07-4.8c-.05-1-.2-1.6-.35-2a3.6 3.6 0 0 0-.86-1.3 3.6 3.6 0 0 0-1.3-.86c-.4-.15-1-.3-2-.35C15.5 4 15.1 4 12 4Zm0 3.4a4.6 4.6 0 1 1 0 9.2 4.6 4.6 0 0 1 0-9.2Zm0 1.8a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6Zm4.8-2a1.08 1.08 0 1 1 0 2.16 1.08 1.08 0 0 1 0-2.16Z"/></svg>
                     </a>
-                    <a href="https://wa.me/5527997633871" target="_blank" rel="noopener noreferrer" class="rede-social-btn rede-whatsapp" aria-label="WhatsApp da Brit's Confeitaria">
+                    <a id="linkWhatsappLoja" href="https://wa.me/5527997633871" target="_blank" rel="noopener noreferrer" class="rede-social-btn rede-whatsapp" aria-label="WhatsApp da loja">
                         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.7.44 3.35 1.29 4.8L2 22l5.42-1.4a9.9 9.9 0 0 0 4.62 1.17h.01c5.46 0 9.9-4.45 9.9-9.91C21.96 6.4 17.5 2 12.04 2Zm5.8 14a2.7 2.7 0 0 1-1.87 1.35c-.5.1-1.14.19-3.32-.7-2.78-1.15-4.58-3.98-4.72-4.16-.14-.19-1.13-1.5-1.13-2.87s.7-2.03.95-2.31c.24-.28.53-.35.71-.35h.5c.16 0 .38-.06.6.45.24.57.8 1.97.87 2.11.07.14.12.31.02.5-.1.19-.15.31-.29.48-.14.17-.3.38-.43.51-.14.14-.29.29-.13.57.17.28.75 1.24 1.61 2 1.11.99 2.04 1.3 2.32 1.44.28.14.44.12.6-.07.17-.19.72-.84.91-1.13.19-.28.38-.24.64-.14.26.09 1.65.78 1.93.92.28.14.47.21.54.33.07.12.07.68-.16 1.34Z"/></svg>
                     </a>
                 </div>
@@ -236,7 +240,7 @@
 
     <footer>
         <div class="container">
-            <p>&copy; 2026 Brit's Confeitaria. Todos os direitos reservados.</p>
+            <p id="footerCopyright">&copy; 2026 Brit's Confeitaria. Todos os direitos reservados.</p>
         </div>
     </footer>
 
@@ -257,6 +261,7 @@
     <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-messaging-compat.js"></script>
+    <script src="loja-config.js"></script>
     <script src="firebase-config.js"></script>
     <script src="script.js"></script>
 </body>

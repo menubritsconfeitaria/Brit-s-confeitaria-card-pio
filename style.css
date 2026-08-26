@@ -716,7 +716,7 @@ footer {
     font-weight: 700;
     text-align: center;
     background: #fff0e0;
-    color: #a0522d;
+    color: var(--primary);
     border-bottom: 1px solid #f0c896;
 }
 .oferta-banner span {
