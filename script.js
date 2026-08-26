@@ -1399,14 +1399,12 @@ function podeReceberNotificacoes() {
 }
 
 function atualizarBotaoNotificacao() {
-    const btn = document.getElementById('btnAtivarNotificacoes');
-    if (!btn) return;
     const ativado = localStorage.getItem('notificacoesAtivasBritS') === '1';
+    const btnGrande = document.getElementById('btnAtivarNotificacoesGrande');
+    const sino = document.getElementById('btnAtivarNotificacoesSino');
     if (ativado) {
-        btn.classList.add('ativado');
-        btn.title = 'Notificações ativadas';
-        btn.setAttribute('aria-label', 'Notificações já ativadas');
-        btn.disabled = true;
+        if (btnGrande) btnGrande.style.display = 'none';
+        if (sino) sino.style.display = 'flex';
     }
 }
 
