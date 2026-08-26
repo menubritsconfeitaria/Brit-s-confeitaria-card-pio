@@ -1454,6 +1454,60 @@ function mostrarToastNotificacao(titulo, corpo) {
 
 atualizarBotaoNotificacao();
 
+/* ===================================================================
+   PERSONALIZAR CARDÁPIO — prévia ao vivo pra quem quer contratar um
+   cardápio digital com a própria marca (não salva nada, só mostra e
+   direciona o interesse pro WhatsApp de quem vende esse serviço)
+   =================================================================== */
+function inicializarPersonalizacaoPreview() {
+    const nomeInput = document.getElementById('pcNomeLoja');
+    const logoInput = document.getElementById('pcLogoInput');
+    const previewNome = document.getElementById('pcPreviewNome');
+    const previewLogo = document.getElementById('pcPreviewLogo');
+    if (!nomeInput || !previewNome) return; // protege caso a seção não exista nessa página
+
+    nomeInput.addEventListener('input', () => {
+        const nome = nomeInput.value.trim();
+        previewNome.textContent = nome ? `Bem-vindo à ${nome}!` : 'Bem-vindo à Sua Loja!';
+    });
+
+    if (logoInput) {
+        logoInput.addEventListener('change', () => {
+            const arquivo = logoInput.files[0];
+            if (!arquivo) return;
+            const leitor = new FileReader();
+            leitor.onload = (e) => { previewLogo.src = e.target.result; };
+            leitor.readAsDataURL(arquivo);
+        });
+    }
+}
+inicializarPersonalizacaoPreview();
+
+// Número de WhatsApp de quem vende o serviço de cardápio digital personalizado
+// (diferente do WhatsApp da própria Brit's, que é só pra pedidos de doces)
+const numeroWhatsAppServicoCardapio = '5527997726901';
+
+function enviarInteressePersonalizado() {
+    const nome = document.getElementById('pcNomeLoja').value.trim();
+    const whatsapp = document.getElementById('pcWhatsapp').value.trim();
+    const instagram = document.getElementById('pcInstagram').value.trim();
+    const temLogoPropria = document.getElementById('pcLogoInput').files.length > 0;
+
+    if (!nome) {
+        alert('Digita o nome da sua loja pra gente continuar :)');
+        return;
+    }
+
+    let mensagem = `Olá! Vi o cardápio da Brit's Confeitaria e quero um cardápio digital assim pro meu negócio!\n\n`;
+    mensagem += `Nome da loja: ${nome}\n`;
+    if (whatsapp) mensagem += `WhatsApp: ${whatsapp}\n`;
+    if (instagram) mensagem += `Instagram: ${instagram}\n`;
+    if (temLogoPropria) mensagem += `(já tenho uma logo pronta pra usar)\n`;
+
+    const link = `https://api.whatsapp.com/send?phone=${numeroWhatsAppServicoCardapio}&text=${encodeURIComponent(mensagem)}`;
+    window.open(link, '_blank');
+}
+
 if (podeReceberNotificacoes() && VAPID_KEY !== 'COLE_AQUI_A_SUA_CHAVE_VAPID') {
     try {
         firebase.messaging().onMessage((payload) => {
