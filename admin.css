@@ -812,3 +812,21 @@ body {
 #areaImpressaoPedido .ticket-item { margin-bottom: 8px; font-size: 1.05em; }
 #areaImpressaoPedido .ticket-obs { color: #555; font-size: 0.9em; margin-left: 12px; }
 #areaImpressaoPedido .ticket-total { font-size: 1.2em; text-align: right; }
+
+/* Aviso remoto de status da assinatura (controlado pelo Firebase, sem precisar de deploy) */
+.banner-assinatura {
+    text-align: center;
+    padding: 12px 20px;
+    font-weight: 700;
+    font-size: 0.9em;
+}
+.banner-assinatura-atencao {
+    background: #fff3cd;
+    color: #8a6300;
+    border-bottom: 1px solid #f0dca0;
+}
+.banner-assinatura-bloqueado {
+    background: #f8d7da;
+    color: #a53238;
+    border-bottom: 1px solid #f0b8bd;
+}

@@ -22,6 +22,44 @@ let primeiraCargaConcluida = false;
 
 // ---------- ABAS DO PAINEL ----------
 
+/**
+ * Aviso remoto de status da assinatura, controlado só pelo Firebase — sem precisar
+ * mexer em código nem publicar nada de novo. Pra usar: no Firebase Console desse
+ * cliente, criar/editar o nó "configuracao/assinatura":
+ *
+ *   { "status": "atencao", "mensagem": "texto opcional, personalizado" }
+ *   { "status": "bloqueado", "mensagem": "texto opcional, personalizado" }
+ *
+ * Se o nó não existir, ou "status" for "ativo"/vazio, nada aparece (comportamento
+ * normal — é o caso da Brit's e de qualquer cliente em dia).
+ */
+function escutarStatusAssinatura() {
+    const banner = document.getElementById('bannerAssinatura');
+    if (!banner) return;
+
+    db.ref('configuracao/assinatura').on('value', snap => {
+        const dados = snap.val();
+        const status = (dados && dados.status) || 'ativo';
+        const mensagemCustom = dados && dados.mensagem;
+
+        if (status === 'ativo') {
+            banner.style.display = 'none';
+            return;
+        }
+
+        banner.className = 'banner-assinatura banner-assinatura-' + status;
+        banner.style.display = 'block';
+
+        if (status === 'atencao') {
+            banner.textContent = mensagemCustom || '🔔 Existe uma pendência no seu sistema. Qualquer dúvida, é só entrar em contato com o suporte.';
+        } else if (status === 'bloqueado') {
+            banner.textContent = mensagemCustom || '⚠️ Seu acesso está temporariamente limitado. Entre em contato com o suporte pra regularizar e voltar ao normal.';
+        } else {
+            banner.style.display = 'none'; // valor desconhecido — não mostra nada, por segurança
+        }
+    });
+}
+
 function inicializarAbasPainel() {
     const botoes = document.querySelectorAll('.painel-tab-btn');
     const secoes = document.querySelectorAll('section[data-tab]');
@@ -1329,6 +1367,7 @@ function iniciarEscutaPedidos() {
     escutarOrdemCategorias();
     escutarConfigFidelidade();
     escutarVisitantesOnline();
+    escutarStatusAssinatura();
     escutarConfigSomAlerta();
     inicializarAbasPainel();
 
