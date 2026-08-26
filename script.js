@@ -1384,7 +1384,7 @@ mostrarBoasVindas();
    Depois de gerar a chave VAPID no Firebase (Configurações do projeto >
    Cloud Messaging > Certificados push da Web), cole ela aqui embaixo.
    =================================================================== */
-const VAPID_KEY = 'COLE_AQUI_A_SUA_CHAVE_VAPID';
+const VAPID_KEY = 'BLzgcYQb9-2BFMX9J9W8wKW0VaTssEA28cqKzh1diBk2_BCXcC0ekeqcWFyFkdtn2UowufLCOK6G82-vP_oMAdE';
 
 function podeReceberNotificacoes() {
     return typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length &&
