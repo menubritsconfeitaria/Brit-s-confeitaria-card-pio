@@ -1447,7 +1447,23 @@ function fecharBoasVindas() {
     setTimeout(() => { tela.style.display = 'none'; }, 300);
 }
 
-mostrarBoasVindas();
+// Link direto pra divulgação: acessando o cardápio com "?venda=1" no final da URL,
+// pula a tela de boas-vindas e já abre a seção de personalização sozinha, expandida.
+// Ex: https://menubritsconfeitaria.github.io/Brit-s-confeitaria-card-pio/?venda=1
+const veioPeloLinkDeVenda = new URLSearchParams(window.location.search).get('venda') === '1';
+
+if (veioPeloLinkDeVenda) {
+    try { sessionStorage.setItem('boasVindasBritS', '1'); } catch (e) { /* ignora */ } // pula a tela de boas-vindas
+    setTimeout(() => {
+        const conteudo = document.getElementById('personalizarConteudo');
+        if (conteudo) {
+            conteudo.style.display = 'block';
+            conteudo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, 300);
+} else {
+    mostrarBoasVindas();
+}
 
 /* ===================================================================
    NOTIFICAÇÕES PUSH
@@ -1555,23 +1571,6 @@ function inicializarPersonalizacaoPreview() {
     }
 }
 inicializarPersonalizacaoPreview();
-
-// Link direto pra divulgação: acessando o cardápio com "?venda=1" no final da URL,
-// a seção de personalização já abre sozinha, expandida — sem precisar rolar nem clicar.
-// Ex: https://menubritsconfeitaria.github.io/Brit-s-confeitaria-card-pio/?venda=1
-(function abrirDireitoNaVendaSeVierPeloLink() {
-    const parametros = new URLSearchParams(window.location.search);
-    if (parametros.get('venda') === '1') {
-        // Espera um pouco a página assentar antes de rolar, pra ficar suave
-        setTimeout(() => {
-            const conteudo = document.getElementById('personalizarConteudo');
-            if (conteudo) {
-                conteudo.style.display = 'block';
-                conteudo.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        }, 400);
-    }
-})();
 
 // Número de WhatsApp de quem vende o serviço de cardápio digital personalizado
 // (diferente do WhatsApp da própria Brit's, que é só pra pedidos de doces)
