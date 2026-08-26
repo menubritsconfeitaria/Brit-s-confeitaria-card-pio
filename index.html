@@ -150,7 +150,7 @@
         <div class="container">
             <div id="clubeBritsCard" class="clube-brits-card" style="display:none;">
                 <div id="clubeNaoIdentificado">
-                    <h3>⭐ Clube Brit's</h3>
+                    <h3 id="clubeTitulo">⭐ Clube Brit's</h3>
                     <p>Compre, acumule pontos e ganhe benefícios!</p>
                     <button type="button" onclick="abrirFormClube()">Entrar no Clube</button>
                 </div>
@@ -184,47 +184,52 @@
             </div>
 
             <section class="personalizar-secao">
-                <h2>➡️ Tenha o seu cardápio digital personalizado com a sua marca</h2>
-                <p class="personalizar-subtitulo">Veja como ficaria o SEU cardápio, com a SUA marca — é só preencher aqui embaixo:</p>
+                <button type="button" class="personalizar-chamada" onclick="alternarPersonalizarConteudo()">
+                    ➡️ Tenha o seu cardápio digital personalizado com a sua marca
+                </button>
 
-                <div class="personalizar-grid">
-                    <div class="personalizar-form">
-                        <label for="pcNomeLoja">Nome da sua loja</label>
-                        <input type="text" id="pcNomeLoja" placeholder="Ex: Doces da Maria" maxlength="40">
+                <div id="personalizarConteudo" class="personalizar-conteudo" style="display:none;">
+                    <p class="personalizar-subtitulo">Veja como ficaria o SEU cardápio, com a SUA marca — é só preencher aqui embaixo:</p>
 
-                        <label for="pcLogoInput">Sua logo (opcional, imagem quadrada fica melhor)</label>
-                        <input type="file" id="pcLogoInput" accept="image/*">
+                    <div class="personalizar-grid">
+                        <div class="personalizar-form">
+                            <label for="pcNomeLoja">Nome da sua loja</label>
+                            <input type="text" id="pcNomeLoja" placeholder="Ex: Doces da Maria" maxlength="40">
 
-                        <label for="pcWhatsapp">Seu WhatsApp</label>
-                        <input type="text" id="pcWhatsapp" placeholder="Ex: 27 99999-8888">
+                            <label for="pcLogoInput">Sua logo (opcional, imagem quadrada fica melhor)</label>
+                            <input type="file" id="pcLogoInput" accept="image/*">
 
-                        <label for="pcInstagram">Seu Instagram (opcional)</label>
-                        <input type="text" id="pcInstagram" placeholder="Ex: @doces.damaria">
+                            <label for="pcWhatsapp">Seu WhatsApp</label>
+                            <input type="text" id="pcWhatsapp" placeholder="Ex: 27 99999-8888">
 
-                        <label for="pcCorPrincipal">Cor principal da sua marca</label>
-                        <input type="color" id="pcCorPrincipal" value="#a0522d">
+                            <label for="pcInstagram">Seu Instagram (opcional)</label>
+                            <input type="text" id="pcInstagram" placeholder="Ex: @doces.damaria">
 
-                        <button type="button" class="btn-ver-previa" onclick="ativarModoDemoCompleto()">👀 Ver meu cardápio assim, no site inteiro!</button>
-                        <button type="button" onclick="enviarInteressePersonalizado()">📲 Quero o meu cardápio assim!</button>
-                    </div>
+                            <label for="pcCorPrincipal">Cor principal da sua marca</label>
+                            <input type="color" id="pcCorPrincipal" value="#a0522d">
 
-                    <div class="personalizar-preview">
-                        <p class="preview-legenda">👆 Prévia em tempo real</p>
-                        <div class="preview-mini-cardapio" id="pcPreviewCaixa">
-                            <img id="pcPreviewLogo" src="logopng.png" alt="Prévia da sua logo">
-                            <h3 id="pcPreviewNome">Bem-vindo à Sua Loja!</h3>
-                            <p>Seu cardápio diário de delícias frescas.</p>
+                            <button type="button" class="btn-ver-previa" onclick="ativarModoDemoCompleto()">👀 Ver meu cardápio assim, no site inteiro!</button>
+                            <button type="button" onclick="enviarInteressePersonalizado()">📲 Quero o meu cardápio assim!</button>
+                        </div>
+
+                        <div class="personalizar-preview">
+                            <p class="preview-legenda">👆 Prévia em tempo real</p>
+                            <div class="preview-mini-cardapio" id="pcPreviewCaixa">
+                                <img id="pcPreviewLogo" src="logopng.png" alt="Prévia da sua logo">
+                                <h3 id="pcPreviewNome">Bem-vindo à Sua Loja!</h3>
+                                <p>Seu cardápio diário de delícias frescas.</p>
                             <div class="preview-botao-exemplo" id="pcPreviewBotao">Fazer pedido</div>
                         </div>
                     </div>
-                </div>
+                    </div>
 
-                <ul class="personalizar-beneficios">
-                    <li>✅ Cardápio sempre atualizado, sem precisar reimprimir nada</li>
-                    <li>✅ Pedidos organizados automaticamente, sem bagunça no WhatsApp</li>
-                    <li>✅ Fácil de usar, sem precisar saber nada de tecnologia</li>
-                    <li>✅ Clube de fidelidade, cupons, notificações de oferta e muito mais</li>
-                </ul>
+                    <ul class="personalizar-beneficios">
+                        <li>✅ Cardápio sempre atualizado, sem precisar reimprimir nada</li>
+                        <li>✅ Pedidos organizados automaticamente, sem bagunça no WhatsApp</li>
+                        <li>✅ Fácil de usar, sem precisar saber nada de tecnologia</li>
+                        <li>✅ Clube de fidelidade, cupons, notificações de oferta e muito mais</li>
+                    </ul>
+                </div>
             </section>
         </div>
     </main>

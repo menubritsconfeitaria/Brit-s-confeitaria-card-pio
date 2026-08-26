@@ -1138,12 +1138,23 @@ footer {
     border: 1px solid var(--border);
     border-radius: 16px;
 }
-.personalizar-secao h2 {
+.personalizar-chamada {
+    display: block;
+    width: 100%;
+    background: none;
+    border: none;
     text-align: center;
     color: var(--primary);
     font-size: 1.3em;
-    margin: 0 0 6px;
+    font-weight: 700;
+    font-family: inherit;
+    margin: 0;
+    padding: 8px;
+    cursor: pointer;
+    line-height: 1.4;
 }
+.personalizar-chamada:hover { opacity: 0.85; }
+.personalizar-conteudo { margin-top: 12px; }
 .personalizar-subtitulo {
     text-align: center;
     color: var(--muted);

@@ -232,6 +232,8 @@ const horariosPadrao = [
 ];
 
 let lojaAbertaAtual = true;
+let modoDemoAtivo = false; // true enquanto a prévia personalizada está ativa
+let ultimaConfigLojaReal = null; // guarda a última config de verdade, pra restaurar depois do modo demo
 
 function horarioParaMinutos(hhmm) {
     const [h, m] = (hhmm || '00:00').split(':').map(Number);
@@ -257,6 +259,20 @@ function atualizarStatusLoja(config) {
     const banner = document.getElementById('statusLojaBanner');
     const texto = document.getElementById('statusLojaTexto');
     if (!banner || !texto) return;
+
+    // Durante a prévia personalizada, sempre mostra "aberta" — não importa o horário
+    // real da Brit's, a pessoa vendo a prévia precisa ver o site "no seu melhor momento"
+    if (modoDemoAtivo) {
+        lojaAbertaAtual = true;
+        banner.classList.remove('loja-fechada');
+        banner.classList.add('loja-aberta');
+        texto.textContent = '🟢 Estamos abertos! Pode fazer seu pedido.';
+        if (botaoFinalizarCompra) {
+            botaoFinalizarCompra.disabled = false;
+            botaoFinalizarCompra.textContent = 'Finalizar Compra';
+        }
+        return;
+    }
 
     const horarios = config && config.horarios;
     const modoManual = config && config.modoManual;
@@ -307,6 +323,7 @@ function escutarStatusLoja() {
         return;
     }
     firebase.database().ref('configuracao/loja').on('value', snap => {
+        ultimaConfigLojaReal = snap.val();
         atualizarStatusLoja(snap.val());
     });
     setInterval(() => {
@@ -1498,6 +1515,17 @@ const numeroWhatsAppServicoCardapio = '5527997726901';
 // Guarda o estado original do site (nome, logo), pra poder restaurar depois de mostrar a prévia
 let estadoOriginalSite = null;
 
+// Abre/fecha o formulário de personalização, que começa escondido — só a chamada fica visível
+function alternarPersonalizarConteudo() {
+    const conteudo = document.getElementById('personalizarConteudo');
+    if (!conteudo) return;
+    const estaAberto = conteudo.style.display !== 'none';
+    conteudo.style.display = estaAberto ? 'none' : 'block';
+    if (!estaAberto) {
+        conteudo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
 function ativarModoDemoCompleto() {
     const nome = document.getElementById('pcNomeLoja').value.trim();
     const cor = document.getElementById('pcCorPrincipal').value;
@@ -1510,6 +1538,7 @@ function ativarModoDemoCompleto() {
 
     const headerH1 = document.querySelector('header h1');
     const headerLogo = document.querySelector('header .logo');
+    const clubeTitulo = document.getElementById('clubeTitulo');
 
     // Guarda o estado original só na primeira vez que ativar (senão, ativar de novo com um nome
     // diferente ia "salvar" o nome anterior como se fosse o original, e a restauração ficaria errada)
@@ -1517,7 +1546,8 @@ function ativarModoDemoCompleto() {
         estadoOriginalSite = {
             nomeHeader: headerH1 ? headerH1.textContent : '',
             logoSrc: headerLogo ? headerLogo.src : '',
-            tituloPagina: document.title
+            tituloPagina: document.title,
+            nomeClube: clubeTitulo ? clubeTitulo.textContent : ''
         };
     }
 
@@ -1527,6 +1557,11 @@ function ativarModoDemoCompleto() {
 
     if (headerH1) headerH1.textContent = `Bem-vindo à ${nome}!`;
     document.title = `${nome} — Cardápio Digital`;
+    if (clubeTitulo) clubeTitulo.textContent = `⭐ Clube ${nome}`;
+
+    // Força a loja aparecer "aberta" durante a prévia, não importa o horário real da Brit's
+    modoDemoAtivo = true;
+    atualizarStatusLoja(null);
 
     const arquivo = logoInput ? logoInput.files[0] : null;
     if (arquivo && headerLogo) {
@@ -1548,9 +1583,15 @@ function restaurarCardapioOriginal() {
 
     const headerH1 = document.querySelector('header h1');
     const headerLogo = document.querySelector('header .logo');
+    const clubeTitulo = document.getElementById('clubeTitulo');
     if (headerH1) headerH1.textContent = estadoOriginalSite.nomeHeader;
     if (headerLogo) headerLogo.src = estadoOriginalSite.logoSrc;
     document.title = estadoOriginalSite.tituloPagina;
+    if (clubeTitulo) clubeTitulo.textContent = estadoOriginalSite.nomeClube;
+
+    // Volta a mostrar o status real da loja (aberta/fechada de verdade)
+    modoDemoAtivo = false;
+    atualizarStatusLoja(ultimaConfigLojaReal);
 
     const banner = document.getElementById('bannerModoDemo');
     if (banner) banner.style.display = 'none';
