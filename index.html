@@ -33,6 +33,11 @@
         </div>
     </div>
 
+    <div id="bannerModoDemo" class="banner-modo-demo" style="display:none;">
+        <span>🎨 Você está vendo uma prévia personalizada!</span>
+        <button onclick="restaurarCardapioOriginal()">🔄 Voltar pro cardápio da Brit's</button>
+    </div>
+
     <header>
         <button id="btnAtivarNotificacoesSino" class="sino-notificacoes" style="display:none;" title="Notificações ativadas" aria-label="Notificações já ativadas" disabled>🔔</button>
         <div class="container">
@@ -199,6 +204,7 @@
                         <label for="pcCorPrincipal">Cor principal da sua marca</label>
                         <input type="color" id="pcCorPrincipal" value="#a0522d">
 
+                        <button type="button" class="btn-ver-previa" onclick="ativarModoDemoCompleto()">👀 Ver meu cardápio assim, no site inteiro!</button>
                         <button type="button" onclick="enviarInteressePersonalizado()">📲 Quero o meu cardápio assim!</button>
                     </div>
 

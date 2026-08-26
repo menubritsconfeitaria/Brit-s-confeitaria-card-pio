@@ -1495,6 +1495,69 @@ inicializarPersonalizacaoPreview();
 // (diferente do WhatsApp da própria Brit's, que é só pra pedidos de doces)
 const numeroWhatsAppServicoCardapio = '5527997726901';
 
+// Guarda o estado original do site (nome, logo), pra poder restaurar depois de mostrar a prévia
+let estadoOriginalSite = null;
+
+function ativarModoDemoCompleto() {
+    const nome = document.getElementById('pcNomeLoja').value.trim();
+    const cor = document.getElementById('pcCorPrincipal').value;
+    const logoInput = document.getElementById('pcLogoInput');
+
+    if (!nome) {
+        alert('Digita o nome da sua loja pra ver a prévia :)');
+        return;
+    }
+
+    const headerH1 = document.querySelector('header h1');
+    const headerLogo = document.querySelector('header .logo');
+
+    // Guarda o estado original só na primeira vez que ativar (senão, ativar de novo com um nome
+    // diferente ia "salvar" o nome anterior como se fosse o original, e a restauração ficaria errada)
+    if (!estadoOriginalSite) {
+        estadoOriginalSite = {
+            nomeHeader: headerH1 ? headerH1.textContent : '',
+            logoSrc: headerLogo ? headerLogo.src : '',
+            tituloPagina: document.title
+        };
+    }
+
+    // Muda a cor principal do site inteiro de uma vez só — todo botão, preço e destaque
+    // já usa essa mesma variável, então recolorir tudo é só isso
+    document.documentElement.style.setProperty('--primary', cor);
+
+    if (headerH1) headerH1.textContent = `Bem-vindo à ${nome}!`;
+    document.title = `${nome} — Cardápio Digital`;
+
+    const arquivo = logoInput ? logoInput.files[0] : null;
+    if (arquivo && headerLogo) {
+        const leitor = new FileReader();
+        leitor.onload = (e) => { headerLogo.src = e.target.result; };
+        leitor.readAsDataURL(arquivo);
+    }
+
+    const banner = document.getElementById('bannerModoDemo');
+    if (banner) banner.style.display = 'flex';
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function restaurarCardapioOriginal() {
+    if (!estadoOriginalSite) return;
+
+    document.documentElement.style.removeProperty('--primary');
+
+    const headerH1 = document.querySelector('header h1');
+    const headerLogo = document.querySelector('header .logo');
+    if (headerH1) headerH1.textContent = estadoOriginalSite.nomeHeader;
+    if (headerLogo) headerLogo.src = estadoOriginalSite.logoSrc;
+    document.title = estadoOriginalSite.tituloPagina;
+
+    const banner = document.getElementById('bannerModoDemo');
+    if (banner) banner.style.display = 'none';
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 function enviarInteressePersonalizado() {
     const nome = document.getElementById('pcNomeLoja').value.trim();
     const whatsapp = document.getElementById('pcWhatsapp').value.trim();
