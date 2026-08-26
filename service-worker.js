@@ -39,6 +39,26 @@ self.addEventListener('install', (event) => {
     self.skipWaiting();
 });
 
+// Quando o cliente clica na notificação: se já tem uma aba do cardápio aberta, foca nela
+// em vez de abrir outra; senão, abre uma aba nova direto no cardápio
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    const urlDoCardapio = 'https://menubritsconfeitaria.github.io/Brit-s-confeitaria-card-pio/';
+
+    event.waitUntil(
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(listaClientes => {
+            for (const cliente of listaClientes) {
+                if (cliente.url.includes('menubritsconfeitaria.github.io') && 'focus' in cliente) {
+                    return cliente.focus();
+                }
+            }
+            if (self.clients.openWindow) {
+                return self.clients.openWindow(urlDoCardapio);
+            }
+        })
+    );
+});
+
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then(nomes =>
