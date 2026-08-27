@@ -1365,7 +1365,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
             limparFormularioEndereco();
             window.location.href = resultado.data.checkoutUrl;
         } catch (err) {
-            console.log('Não foi possível criar o checkout de pagamento:', err.message);
+            console.log('Não foi possível criar o checkout de pagamento:', err.message, '| Detalhes:', JSON.stringify(err.details));
             alert('Não foi possível iniciar o pagamento. Tente novamente.');
             botaoFinalizarCompra.disabled = false;
             botaoFinalizarCompra.textContent = '🌐 Pagar Agora';

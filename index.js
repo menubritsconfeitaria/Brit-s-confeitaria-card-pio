@@ -319,7 +319,7 @@ exports.criarCheckoutInfinitePay = functions.https.onCall(async (data, context) 
         resposta = await resultadoFetch.json();
         if (!resultadoFetch.ok || !resposta.url) {
             console.log('InfinitePay recusou o pedido. Payload enviado:', JSON.stringify(payload), '| Resposta:', JSON.stringify(resposta));
-            throw new functions.https.HttpsError('internal', 'Não foi possível criar o link de pagamento.');
+            throw new functions.https.HttpsError('internal', 'Não foi possível criar o link de pagamento.', resposta);
         }
     } catch (err) {
         if (err instanceof functions.https.HttpsError) throw err; // não mascara o erro específico de cima
