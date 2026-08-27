@@ -1,5 +1,6 @@
 const functions = require('firebase-functions/v1');
 const admin = require('firebase-admin');
+const https = require('https');
 const LOJA = require('./loja-config');
 admin.initializeApp();
 
@@ -236,6 +237,38 @@ function paraCentavos(valorReais) {
     return Math.round((valorReais || 0) * 100);
 }
 
+// Faz um POST em JSON usando o módulo nativo "https" do Node — mais garantido de
+// funcionar em qualquer ambiente do que depender do fetch() global
+function postJson(url, corpoObjeto) {
+    return new Promise((resolve, reject) => {
+        const corpoTexto = JSON.stringify(corpoObjeto);
+        const urlObj = new URL(url);
+        const req = https.request({
+            hostname: urlObj.hostname,
+            path: urlObj.pathname + urlObj.search,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(corpoTexto)
+            },
+            timeout: 15000
+        }, (res) => {
+            let dados = '';
+            res.on('data', (pedaco) => { dados += pedaco; });
+            res.on('end', () => {
+                let corpoResposta;
+                try { corpoResposta = dados ? JSON.parse(dados) : {}; }
+                catch (e) { corpoResposta = { erroDeParse: dados.slice(0, 500) }; }
+                resolve({ status: res.statusCode, corpo: corpoResposta });
+            });
+        });
+        req.on('timeout', () => { req.destroy(new Error('Tempo esgotado ao conectar com a InfinitePay')); });
+        req.on('error', reject);
+        req.write(corpoTexto);
+        req.end();
+    });
+}
+
 /**
  * Chamada pelo cardápio quando o cliente escolhe "pagar agora online". Recebe só o
  * ID de um pedido que já existe no Firebase, busca os dados reais desse pedido (nunca
@@ -311,20 +344,16 @@ exports.criarCheckoutInfinitePay = functions.https.onCall(async (data, context) 
 
     let resposta;
     try {
-        const resultadoFetch = await fetch('https://api.checkout.infinitepay.io/links', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        resposta = await resultadoFetch.json();
-        if (!resultadoFetch.ok || !resposta.url) {
-            console.log('InfinitePay recusou o pedido. Payload enviado:', JSON.stringify(payload), '| Resposta:', JSON.stringify(resposta));
+        const resultado = await postJson('https://api.checkout.infinitepay.io/links', payload);
+        resposta = resultado.corpo;
+        if (resultado.status < 200 || resultado.status >= 300 || !resposta.url) {
+            console.log('InfinitePay recusou o pedido. Status:', resultado.status, '| Payload enviado:', JSON.stringify(payload), '| Resposta:', JSON.stringify(resposta));
             throw new functions.https.HttpsError('internal', 'Não foi possível criar o link de pagamento.', resposta);
         }
     } catch (err) {
         if (err instanceof functions.https.HttpsError) throw err; // não mascara o erro específico de cima
         console.log('Erro ao chamar a InfinitePay:', err.message);
-        throw new functions.https.HttpsError('internal', 'Não foi possível conectar com o InfinitePay agora.');
+        throw new functions.https.HttpsError('internal', 'Não foi possível conectar com o InfinitePay agora.', { erroOriginal: err.message });
     }
 
     // Marca o pedido como "aguardando pagamento", separado do status normal do pedido
@@ -378,7 +407,10 @@ exports.webhookInfinitePay = functions.https.onRequest(async (req, res) => {
 
         const valorEsperadoCentavos = paraCentavos(totalDoPedidoFn(pedido));
         const valorPagoCentavos = (corpo.paid_amount != null) ? corpo.paid_amount : corpo.amount;
-        const bateComOEsperado = valorPagoCentavos != null && valorPagoCentavos === valorEsperadoCentavos;
+        // Só é "divergente" de verdade se o cliente pagou MENOS do que devia — pagar um
+        // pouco a mais é normal no cartão (taxa da maquininha repassada pro cliente),
+        // e isso nunca prejudica a loja, então não precisa de alerta manual por causa disso
+        const bateComOEsperado = valorPagoCentavos != null && valorPagoCentavos >= valorEsperadoCentavos;
 
         const metodoLegivel = corpo.capture_method === 'pix' ? 'Pix'
             : corpo.capture_method === 'credit_card' ? 'Cartão de Crédito'
