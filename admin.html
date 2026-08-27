@@ -255,6 +255,17 @@
                     <select id="novaRecompensaProduto" style="display:none;"></select>
                     <button onclick="adicionarRecompensa()">+ Adicionar recompensa</button>
                 </div>
+
+                <h3 style="margin-top:22px;">💌 Clientes que sumiram</h3>
+                <p class="dica-secao">Clientes com cadastro no Clube que não compram há um tempo — manda uma mensagem com um clique, direto do seu WhatsApp (nada é enviado automaticamente).</p>
+                <div class="produto-admin-linha" style="margin-bottom:10px;">
+                    <div class="campo-com-label">
+                        <label class="campo-label">Considerar "sumido" a partir de quantos dias sem comprar?</label>
+                        <input type="text" inputmode="numeric" id="diasInatividade" value="30">
+                    </div>
+                    <button class="btn-salvar-ordem" onclick="carregarClientesInativos()" style="align-self:flex-end;">🔎 Buscar</button>
+                </div>
+                <div id="listaClientesInativos"></div>
             </section>
         </main>
     </div>

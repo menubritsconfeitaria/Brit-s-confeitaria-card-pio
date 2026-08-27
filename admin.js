@@ -602,6 +602,65 @@ function calcularAbertoPorHorarioAdmin(horarios) {
     return minutosAgora >= (ha * 60 + ma) && minutosAgora < (hf * 60 + mf);
 }
 
+// Busca clientes do Clube de Fidelidade que não compram há um tempo, cruzando com o
+// histórico real de pedidos (não confia só na data de cadastro do clube). Não envia nada
+// sozinho — só monta a lista, com um botão que abre o WhatsApp já com a mensagem pronta.
+function carregarClientesInativos() {
+    const diasLimite = parseInt(document.getElementById('diasInatividade').value, 10) || 30;
+    const container = document.getElementById('listaClientesInativos');
+    container.innerHTML = '<p class="dica-secao">Buscando...</p>';
+
+    Promise.all([
+        db.ref('fidelidade').once('value'),
+        db.ref('pedidos').once('value')
+    ]).then(([snapFidelidade, snapPedidos]) => {
+        const clientes = snapFidelidade.val() || {};
+        const pedidos = snapPedidos.val() || {};
+
+        // Acha a data do pedido MAIS RECENTE de cada telefone
+        const ultimaCompraPorTelefone = {};
+        Object.values(pedidos).forEach(pedido => {
+            if (!pedido.telefone || !pedido.timestamp) return;
+            if (!ultimaCompraPorTelefone[pedido.telefone] || pedido.timestamp > ultimaCompraPorTelefone[pedido.telefone]) {
+                ultimaCompraPorTelefone[pedido.telefone] = pedido.timestamp;
+            }
+        });
+
+        const agora = Date.now();
+        const inativos = Object.entries(clientes).map(([telefone, dados]) => {
+            // Se o cliente nunca fez pedido registrado, usa a data de entrada no clube como referência
+            const referencia = ultimaCompraPorTelefone[telefone] || dados.criadoEm || agora;
+            const diasSemComprar = Math.floor((agora - referencia) / (1000 * 60 * 60 * 24));
+            return { telefone, nome: dados.nome || 'Sem nome', diasSemComprar, nuncaComprou: !ultimaCompraPorTelefone[telefone] };
+        })
+        .filter(c => c.diasSemComprar >= diasLimite)
+        .sort((a, b) => b.diasSemComprar - a.diasSemComprar);
+
+        if (inativos.length === 0) {
+            container.innerHTML = '<p class="dica-secao">Ninguém sumido por enquanto — todos os clientes do clube compraram recentemente. 🎉</p>';
+            return;
+        }
+
+        container.innerHTML = inativos.map(c => {
+            const mensagem = encodeURIComponent(`Oi ${c.nome}! Sentimos sua falta por aqui na ${LOJA_CONFIG.nome} 🥹 Que tal dar uma olhada nas novidades? ${LOJA_CONFIG.urlCardapio}`);
+            const linkWhats = `https://api.whatsapp.com/send?phone=55${c.telefone.replace(/\D/g, '')}&text=${mensagem}`;
+            const textoTempo = c.nuncaComprou ? 'nunca fez um pedido registrado' : `última compra há ${c.diasSemComprar} dias`;
+            return `
+                <div class="loja-status-card" style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div>
+                        <strong>${c.nome}</strong>
+                        <div class="dica-secao" style="margin:2px 0 0;">${textoTempo}</div>
+                    </div>
+                    <a href="${linkWhats}" target="_blank" rel="noopener noreferrer" class="btn-salvar-ordem" style="text-decoration:none;">💬 Mandar mensagem</a>
+                </div>
+            `;
+        }).join('');
+    }).catch(err => {
+        container.innerHTML = '<p class="dica-secao">Não foi possível carregar a lista agora.</p>';
+        console.log('Erro ao carregar clientes inativos:', err);
+    });
+}
+
 function escutarConfigLoja() {
     db.ref('configuracao/loja').on('value', snap => {
         const config = snap.val() || {};
