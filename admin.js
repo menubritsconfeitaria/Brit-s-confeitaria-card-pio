@@ -620,6 +620,36 @@ function calcularNivelAdmin(pontos, cfg) {
 // histórico real de pedidos (não confia só na data de cadastro do clube). Não envia nada
 // sozinho — só monta a lista, com um botão que abre o WhatsApp já com a mensagem pronta.
 // Cada card abre (ao clicar) mostrando nível, pontos e as recompensas já resgatadas.
+// Chama a Cloud Function que manda a notificação personalizada pra todo mundo que já
+// ativou notificações no cardápio — o envio de verdade acontece no servidor, aqui só
+// dispara e mostra o resultado
+function enviarNotificacaoPersonalizadaDoPainel() {
+    const titulo = document.getElementById('notifPersonalizadaTitulo').value.trim();
+    const corpo = document.getElementById('notifPersonalizadaCorpo').value.trim();
+    const msgEl = document.getElementById('notifPersonalizadaMsg');
+
+    if (!titulo || !corpo) {
+        msgEl.textContent = 'Preenche o título e a mensagem antes de enviar.';
+        return;
+    }
+
+    msgEl.textContent = 'Enviando...';
+    firebase.functions().httpsCallable('enviarNotificacaoPersonalizada')({ titulo, corpo })
+        .then(resultado => {
+            const enviados = resultado.data.enviados;
+            msgEl.textContent = enviados > 0
+                ? `Enviado pra ${enviados} pessoa(s)! ✅`
+                : 'Ninguém ativou notificação ainda — ninguém pra receber.';
+            if (enviados > 0) {
+                document.getElementById('notifPersonalizadaTitulo').value = '';
+                document.getElementById('notifPersonalizadaCorpo').value = '';
+            }
+        })
+        .catch(err => {
+            msgEl.textContent = 'Erro ao enviar: ' + err.message;
+        });
+}
+
 function carregarClientesInativos() {
     const diasLimite = parseInt(document.getElementById('diasInatividade').value, 10) || 0;
     const container = document.getElementById('listaClientesInativos');

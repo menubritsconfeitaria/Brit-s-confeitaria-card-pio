@@ -131,6 +131,17 @@
                         <div class="opcao-btn" id="btnFormato58mm" onclick="salvarFormatoImpressao('58mm')">58mm (portátil)</div>
                     </div>
                 </div>
+
+                <div class="loja-status-card" style="margin-top:16px;">
+                    <h3>📢 Enviar notificação personalizada</h3>
+                    <p class="dica-secao">Manda um aviso pra todo mundo que já ativou notificação no cardápio (título e mensagem livres — use pra novidades, avisos de horário, o que quiser).</p>
+                    <label class="campo-label">Título</label>
+                    <input type="text" id="notifPersonalizadaTitulo" placeholder="Ex: 📢 Horário especial hoje!">
+                    <label class="campo-label">Mensagem</label>
+                    <input type="text" id="notifPersonalizadaCorpo" placeholder="Ex: Hoje funcionamos até às 23h!">
+                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="enviarNotificacaoPersonalizadaDoPainel()">📢 Enviar agora</button>
+                    <p id="notifPersonalizadaMsg" class="ordem-categorias-msg"></p>
+                </div>
             </section>
 
             <section data-tab="produtos">
@@ -282,6 +293,7 @@
     <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-functions-compat.js"></script>
     <script src="loja-config.js"></script>
     <script src="firebase-config.js"></script>
     <script src="admin.js"></script>
