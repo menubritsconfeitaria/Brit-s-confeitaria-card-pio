@@ -630,52 +630,65 @@ function carregarClientesInativos() {
         db.ref('pedidos').once('value'),
         db.ref('configuracao/fidelidade').once('value')
     ]).then(([snapFidelidade, snapPedidos, snapConfigFidelidade]) => {
-        const clientes = snapFidelidade.val() || {};
+        const clubeFidelidade = snapFidelidade.val() || {};
         const pedidos = snapPedidos.val() || {};
         const cfgNiveis = snapConfigFidelidade.val() || {};
 
-        // Acha a data do pedido MAIS RECENTE de cada telefone, e também junta a lista de
-        // recompensas já resgatadas E entregues (só conta de verdade quando o pedido foi
-        // marcado como entregue — é o mesmo momento em que os pontos são creditados/descontados)
-        const ultimaCompraPorTelefone = {};
-        const recompensasPorTelefone = {};
+        // Monta um resumo por telefone, olhando TODOS os pedidos — assim aparece qualquer
+        // cliente que já comprou, esteja ele cadastrado no Clube ou não (o Clube é opcional,
+        // pedido não é). Também junta as recompensas resgatadas E entregues.
+        const resumoPorTelefone = {};
         Object.values(pedidos).forEach(pedido => {
             if (!pedido.telefone) return;
-            if (pedido.timestamp && (!ultimaCompraPorTelefone[pedido.telefone] || pedido.timestamp > ultimaCompraPorTelefone[pedido.telefone])) {
-                ultimaCompraPorTelefone[pedido.telefone] = pedido.timestamp;
+            if (!resumoPorTelefone[pedido.telefone]) {
+                resumoPorTelefone[pedido.telefone] = { nome: pedido.nome, ultimaCompra: 0, totalGasto: 0, recompensas: [] };
+            }
+            const resumo = resumoPorTelefone[pedido.telefone];
+            if (pedido.timestamp && pedido.timestamp > resumo.ultimaCompra) {
+                resumo.ultimaCompra = pedido.timestamp;
+                resumo.nome = pedido.nome || resumo.nome; // usa o nome do pedido mais recente
+            }
+            if (pedido.status === 'entregue') {
+                resumo.totalGasto += totalDoPedido(pedido) || 0;
             }
             if (pedido.recompensaResgatada && pedido.status === 'entregue') {
-                if (!recompensasPorTelefone[pedido.telefone]) recompensasPorTelefone[pedido.telefone] = [];
-                recompensasPorTelefone[pedido.telefone].push({
-                    descricao: pedido.recompensaResgatada.descricao,
-                    data: pedido.timestamp
-                });
+                resumo.recompensas.push({ descricao: pedido.recompensaResgatada.descricao, data: pedido.timestamp });
+            }
+        });
+
+        // Garante que quem está no Clube mas ainda não tem nenhum pedido também apareça
+        Object.entries(clubeFidelidade).forEach(([telefone, dados]) => {
+            if (!resumoPorTelefone[telefone]) {
+                resumoPorTelefone[telefone] = { nome: dados.nome, ultimaCompra: 0, totalGasto: 0, recompensas: [] };
             }
         });
 
         const agora = Date.now();
-        const listaClientes = Object.entries(clientes).map(([telefone, dados]) => {
-            // Se o cliente nunca fez pedido registrado, usa a data de entrada no clube como referência
-            const referencia = ultimaCompraPorTelefone[telefone] || dados.criadoEm || agora;
+        const listaClientes = Object.entries(resumoPorTelefone).map(([telefone, resumo]) => {
+            const dadosClube = clubeFidelidade[telefone] || null; // null = não é do Clube
+            const referencia = resumo.ultimaCompra || (dadosClube && dadosClube.criadoEm) || agora;
             const diasSemComprar = Math.floor((agora - referencia) / (1000 * 60 * 60 * 24));
             return {
-                telefone, nome: dados.nome || 'Sem nome', diasSemComprar,
-                nuncaComprou: !ultimaCompraPorTelefone[telefone],
-                pontos: dados.pontos || 0,
-                totalGasto: dados.totalGasto || 0,
-                recompensas: (recompensasPorTelefone[telefone] || []).sort((a, b) => b.data - a.data)
+                telefone,
+                nome: resumo.nome || (dadosClube && dadosClube.nome) || 'Sem nome',
+                diasSemComprar,
+                nuncaComprou: !resumo.ultimaCompra,
+                ehDoClube: !!dadosClube,
+                pontos: dadosClube ? (dadosClube.pontos || 0) : 0,
+                totalGasto: dadosClube ? (dadosClube.totalGasto || resumo.totalGasto) : resumo.totalGasto,
+                recompensas: resumo.recompensas.sort((a, b) => b.data - a.data)
             };
         })
         .filter(c => c.diasSemComprar >= diasLimite)
         .sort((a, b) => b.diasSemComprar - a.diasSemComprar);
 
         if (listaClientes.length === 0) {
-            container.innerHTML = '<p class="dica-secao">Nenhum cliente encontrado com esse filtro.</p>';
+            container.innerHTML = '<p class="dica-secao">Nenhum cliente encontrado com esse filtro — ainda não tem pedido registrado com telefone.</p>';
             return;
         }
 
         container.innerHTML = listaClientes.map((c, i) => {
-            const nivel = calcularNivelAdmin(c.pontos, cfgNiveis);
+            const nivel = c.ehDoClube ? calcularNivelAdmin(c.pontos, cfgNiveis) : { nome: 'Não é do Clube', emoji: '👤' };
             const modeloMensagem = document.getElementById('mensagemClientes').value.trim()
                 || 'Oi {nome}! Sentimos sua falta por aqui na {loja} 🥹';
             const mensagem = encodeURIComponent(
@@ -686,6 +699,7 @@ function carregarClientesInativos() {
             );
             const linkWhats = `https://api.whatsapp.com/send?phone=55${c.telefone.replace(/\D/g, '')}&text=${mensagem}`;
             const textoTempo = c.nuncaComprou ? 'nunca fez um pedido registrado' : `última compra há ${c.diasSemComprar} dias`;
+            const textoNivel = c.ehDoClube ? ` · ${c.pontos} pontos (${nivel.nome})` : ' · não é do Clube';
 
             const recompensasHtml = c.recompensas.length > 0
                 ? c.recompensas.map(r => `<li>🎁 ${r.descricao} — ${new Date(r.data).toLocaleDateString('pt-BR')}</li>`).join('')
@@ -696,7 +710,7 @@ function carregarClientesInativos() {
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; cursor:pointer;" onclick="document.getElementById('detalheCliente_${i}').style.display = document.getElementById('detalheCliente_${i}').style.display === 'none' ? 'block' : 'none';">
                         <div>
                             <strong>${nivel.emoji} ${c.nome}</strong>
-                            <div class="dica-secao" style="margin:2px 0 0;">${textoTempo} · ${c.pontos} pontos (${nivel.nome})</div>
+                            <div class="dica-secao" style="margin:2px 0 0;">${textoTempo}${textoNivel}</div>
                         </div>
                         <a href="${linkWhats}" target="_blank" rel="noopener noreferrer" class="btn-salvar-ordem" style="text-decoration:none;" onclick="event.stopPropagation();">💬 Mandar mensagem</a>
                     </div>
