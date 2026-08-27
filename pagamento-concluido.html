@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pedido recebido</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --bg:#f7f1e8; --card:#ffffff; --muted:#8a7562;
+        --primary:#a0522d; --border:#e6d9c6;
+    }
+    * { box-sizing: border-box; }
+    body {
+        margin: 0; font-family: 'Poppins', sans-serif; background: var(--bg);
+        color: #3a2c22; display: flex; align-items: center; justify-content: center;
+        min-height: 100vh; padding: 24px;
+    }
+    .cartao {
+        background: var(--card); border: 1px solid var(--border); border-radius: 20px;
+        padding: 36px 28px; max-width: 420px; width: 100%; text-align: center;
+        box-shadow: 0 10px 30px rgba(160, 82, 45, 0.1);
+    }
+    .emoji { font-size: 3em; margin-bottom: 8px; }
+    h1 { font-size: 1.3em; color: var(--primary); margin: 0 0 8px; }
+    p { color: var(--muted); font-size: 0.95em; line-height: 1.5; margin: 0 0 6px; }
+    .numero-pedido { font-weight: 700; color: #3a2c22; }
+    .status-badge {
+        display: inline-block; margin-top: 16px; padding: 8px 18px; border-radius: 20px;
+        font-weight: 700; font-size: 0.9em;
+    }
+    .status-aguardando { background: #fff3cd; color: #8a6300; }
+    .status-pago { background: #d4edda; color: #1e6b34; }
+    .status-divergente { background: #f8d7da; color: #a53238; }
+    a.btn-voltar {
+        display: inline-block; margin-top: 22px; background: var(--primary); color: #fff;
+        text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: 700;
+    }
+</style>
+</head>
+<body>
+    <div class="cartao">
+        <div class="emoji">🎉</div>
+        <h1>Pedido recebido!</h1>
+        <p>Seu pedido foi enviado com sucesso.</p>
+        <p class="numero-pedido" id="numeroPedidoTexto">Confirmando os dados do seu pedido...</p>
+        <p id="statusTexto">Estamos confirmando seu pagamento — isso costuma ser rápido.</p>
+        <div id="statusBadge" class="status-badge status-aguardando">🟡 Aguardando confirmação</div>
+        <br>
+        <a href="index.html" class="btn-voltar">Voltar ao cardápio</a>
+    </div>
+
+    <script src="loja-config.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-database-compat.js"></script>
+    <script>
+        // Nunca confia só no fato do cliente ter voltado pra essa página — sempre escuta
+        // o status real do pedido no Firebase (que só o Webhook da InfinitePay atualiza de verdade)
+        const parametros = new URLSearchParams(window.location.search);
+        const pedidoId = parametros.get('pedido');
+        const numeroTexto = document.getElementById('numeroPedidoTexto');
+        const statusTexto = document.getElementById('statusTexto');
+        const statusBadge = document.getElementById('statusBadge');
+
+        if (!pedidoId) {
+            numeroTexto.textContent = '';
+        } else if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) {
+            firebase.database().ref('pedidos/' + pedidoId).on('value', snap => {
+                const pedido = snap.val();
+                if (!pedido) return;
+
+                numeroTexto.textContent = pedido.numero ? `Pedido #${String(pedido.numero).padStart(3, '0')}` : '';
+
+                const status = pedido.pagamento && pedido.pagamento.status;
+                if (status === 'pago') {
+                    statusBadge.className = 'status-badge status-pago';
+                    statusBadge.textContent = '🟢 Pagamento confirmado!';
+                    statusTexto.textContent = `${LOJA_CONFIG ? LOJA_CONFIG.nome : 'A loja'} já recebeu seu pagamento e vai preparar seu pedido.`;
+                } else if (status === 'divergente') {
+                    statusBadge.className = 'status-badge status-divergente';
+                    statusBadge.textContent = '⚠️ Precisa de atenção';
+                    statusTexto.textContent = 'Encontramos uma diferença no valor do pagamento. A loja vai entrar em contato com você.';
+                } else {
+                    statusBadge.className = 'status-badge status-aguardando';
+                    statusBadge.textContent = '🟡 Aguardando confirmação';
+                    statusTexto.textContent = 'Estamos confirmando seu pagamento — isso costuma ser rápido. Pode aguardar aqui.';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

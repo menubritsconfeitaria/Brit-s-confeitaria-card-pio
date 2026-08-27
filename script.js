@@ -578,7 +578,11 @@ function selecionarPagamento(forma) {
     document.getElementById('btnPix').classList.toggle('selecionado', forma === 'Pix');
     document.getElementById('btnCartao').classList.toggle('selecionado', forma === 'Cartão');
     document.getElementById('btnDinheiro').classList.toggle('selecionado', forma === 'Dinheiro');
+    document.getElementById('btnPagarOnline').classList.toggle('selecionado', forma === 'Pagar Online');
     areaTrocoDiv.style.display = forma === 'Dinheiro' ? 'block' : 'none';
+    if (botaoFinalizarCompra && lojaAbertaAtual) {
+        botaoFinalizarCompra.textContent = forma === 'Pagar Online' ? '🌐 Pagar Agora' : 'Finalizar Compra';
+    }
 }
 
 // Remove acentos e padroniza texto para comparar nomes de bairro
@@ -1217,7 +1221,7 @@ function repetirUltimoPedido() {
     alert('Itens do seu último pedido foram adicionados ao carrinho!');
 }
 
-botaoFinalizarCompra.addEventListener('click', () => {
+botaoFinalizarCompra.addEventListener('click', async () => {
     if (!lojaAbertaAtual) {
         alert('Estamos fechados no momento. Assim que reabrirmos, você já pode finalizar seu pedido!');
         return;
@@ -1334,6 +1338,33 @@ botaoFinalizarCompra.addEventListener('click', () => {
         nome, telefone, rua, numero, complemento, bairro, cidade, estado, cep,
         tipoEntrega: tipoEntregaAtual
     }));
+
+    // Se o cliente escolheu pagar online, o fluxo é diferente: em vez de ir pro WhatsApp,
+    // manda pro checkout da InfinitePay (Pix ou Cartão), e só confirma o pedido de verdade
+    // quando o pagamento realmente cair (isso quem confirma é o Webhook, não essa tela)
+    if (formaPagamentoAtual === 'Pagar Online') {
+        if (!pedidoId) {
+            alert('Não foi possível criar o pedido agora. Tente novamente em instantes.');
+            return;
+        }
+        botaoFinalizarCompra.disabled = true;
+        botaoFinalizarCompra.textContent = 'Preparando pagamento...';
+        try {
+            const criarCheckout = firebase.functions().httpsCallable('criarCheckoutInfinitePay');
+            const resultado = await criarCheckout({ pedidoId });
+            carrinho = [];
+            salvarCarrinho();
+            atualizarCarrinhoHTML();
+            limparFormularioEndereco();
+            window.location.href = resultado.data.checkoutUrl;
+        } catch (err) {
+            console.log('Não foi possível criar o checkout de pagamento:', err.message);
+            alert('Não foi possível iniciar o pagamento. Tente novamente.');
+            botaoFinalizarCompra.disabled = false;
+            botaoFinalizarCompra.textContent = '🌐 Pagar Agora';
+        }
+        return;
+    }
 
     // Configuração e abertura do WhatsApp
     const numeroWhatsApp = LOJA_CONFIG.whatsappPedidos;
