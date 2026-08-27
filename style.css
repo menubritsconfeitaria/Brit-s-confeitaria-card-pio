@@ -1309,3 +1309,88 @@ footer {
     font-size: 0.95em;
     cursor: pointer;
 }
+
+/* Modal de escolha de adicionais (recheio, extras, etc.) */
+.modal-adicionais-fundo {
+    position: fixed;
+    inset: 0;
+    z-index: 210;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+.modal-adicionais-cartao {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 24px 20px;
+    max-width: 420px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+}
+.modal-adicionais-fechar {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: var(--bg);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 1em;
+    cursor: pointer;
+}
+.modal-adicionais-cartao h3 {
+    margin: 0 0 16px;
+    padding-right: 30px;
+    color: var(--primary);
+}
+.grupo-adicional-titulo {
+    font-weight: 700;
+    font-size: 0.95em;
+    margin: 14px 0 6px;
+}
+.grupo-adicional-tag {
+    font-size: 0.75em;
+    font-weight: 400;
+    color: var(--muted);
+}
+.opcao-adicional {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+.opcao-adicional.selecionada {
+    border-color: var(--primary);
+    background: var(--bg);
+}
+.opcao-adicional-esquerda {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.opcao-adicional-preco {
+    color: var(--muted);
+    font-size: 0.85em;
+}
+.modal-adicionais-confirmar {
+    width: 100%;
+    margin-top: 16px;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.95em;
+    cursor: pointer;
+}
