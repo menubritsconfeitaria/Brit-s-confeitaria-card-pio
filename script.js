@@ -427,35 +427,39 @@ function salvarPedidoNoPainel(dadosPedido) {
     try {
         if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) {
             console.log('Firebase indisponível — pedido seguirá só pelo WhatsApp.');
-            return null;
+            return { id: null, promessaSalvo: Promise.resolve() };
         }
         const novoPedidoRef = firebase.database().ref('pedidos').push();
 
         // Gera um número sequencial pro pedido (nunca reinicia, nem no dia seguinte) usando uma
-        // transação atômica — garante que dois pedidos nunca recebam o mesmo número por coincidência
-        firebase.database().ref('contadores/proximoPedido').transaction(atual => (atual || 0) + 1)
+        // transação atômica — garante que dois pedidos nunca recebam o mesmo número por coincidência.
+        // "promessaSalvo" só resolve quando o pedido REALMENTE terminou de ser escrito no banco —
+        // importante pro fluxo de pagamento online, que precisa ter certeza que o pedido já existe
+        // antes de pedir pra Cloud Function ler ele (senão corre o risco de "pedido não encontrado")
+        const promessaSalvo = firebase.database().ref('contadores/proximoPedido').transaction(atual => (atual || 0) + 1)
             .then(resultado => {
                 const numeroAtribuido = resultado.committed ? resultado.snapshot.val() : null;
-                novoPedidoRef.set({
+                return novoPedidoRef.set({
                     ...dadosPedido,
                     numero: numeroAtribuido,
                     status: 'pendente',
                     timestamp: firebase.database.ServerValue.TIMESTAMP
-                }).catch(err => console.log('Não foi possível salvar o pedido no painel:', err));
+                });
             })
             .catch(err => {
                 console.log('Não foi possível gerar o número do pedido, salvando sem numeração:', err);
-                novoPedidoRef.set({
+                return novoPedidoRef.set({
                     ...dadosPedido,
                     status: 'pendente',
                     timestamp: firebase.database.ServerValue.TIMESTAMP
-                }).catch(err2 => console.log('Não foi possível salvar o pedido no painel:', err2));
-            });
+                });
+            })
+            .catch(err2 => console.log('Não foi possível salvar o pedido no painel:', err2));
 
-        return novoPedidoRef.key;
+        return { id: novoPedidoRef.key, promessaSalvo };
     } catch (err) {
         console.log('Não foi possível salvar o pedido no painel:', err);
-        return null;
+        return { id: null, promessaSalvo: Promise.resolve() };
     }
 }
 
@@ -1297,7 +1301,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
     mensagemPedido += `\nAguardando a confirmação!`;
 
     // Salva o pedido no painel da loja (Firebase), sem travar o fluxo caso falhe
-    const pedidoId = salvarPedidoNoPainel({
+    const { id: pedidoId, promessaSalvo } = salvarPedidoNoPainel({
         nome, telefone,
         tipoEntrega: tipoEntregaAtual,
         endereco: tipoEntregaAtual === 'entrega' ? { rua, numero, complemento, bairro, cidade, estado, cep } : null,
@@ -1350,6 +1354,9 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         botaoFinalizarCompra.disabled = true;
         botaoFinalizarCompra.textContent = 'Preparando pagamento...';
         try {
+            // Espera o pedido REALMENTE terminar de ser escrito no banco antes de pedir
+            // pra Cloud Function ler ele — senão, ela pode chegar cedo demais e não achar nada
+            await promessaSalvo;
             const criarCheckout = firebase.functions().httpsCallable('criarCheckoutInfinitePay');
             const resultado = await criarCheckout({ pedidoId });
             carrinho = [];
