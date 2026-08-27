@@ -27,12 +27,14 @@
     p { color: var(--muted); font-size: 0.95em; line-height: 1.5; margin: 0 0 6px; }
     .numero-pedido { font-weight: 700; color: #3a2c22; }
     .status-badge {
-        display: inline-block; margin-top: 16px; padding: 8px 18px; border-radius: 20px;
-        font-weight: 700; font-size: 0.9em;
+        display: inline-flex; align-items: center; gap: 8px; margin-top: 16px; padding: 10px 20px;
+        border-radius: 20px; font-weight: 700; font-size: 0.95em;
     }
     .status-aguardando { background: #fff3cd; color: #8a6300; }
     .status-pago { background: #d4edda; color: #1e6b34; }
     .status-divergente { background: #f8d7da; color: #a53238; }
+    .girando { display: inline-block; animation: girar 1.4s linear infinite; }
+    @keyframes girar { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     a.btn-voltar {
         display: inline-block; margin-top: 22px; background: var(--primary); color: #fff;
         text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: 700;
@@ -41,31 +43,36 @@
 </head>
 <body>
     <div class="cartao">
-        <div class="emoji">🎉</div>
+        <div class="emoji" id="emojiPrincipal">🎉</div>
         <h1>Pedido recebido!</h1>
         <p>Seu pedido foi enviado com sucesso.</p>
-        <p class="numero-pedido" id="numeroPedidoTexto">Confirmando os dados do seu pedido...</p>
-        <p id="statusTexto">Estamos confirmando seu pagamento — isso costuma ser rápido.</p>
-        <div id="statusBadge" class="status-badge status-aguardando">🟡 Aguardando confirmação</div>
+        <p class="numero-pedido" id="numeroPedidoTexto">&nbsp;</p>
+        <div id="statusBadge" class="status-badge status-aguardando">
+            <span class="girando" id="iconeGirando">🔄</span> Confirmando pagamento...
+        </div>
+        <p id="statusTexto">Isso costuma ser rápido — pode aguardar aqui, a página se atualiza sozinha.</p>
         <br>
         <a href="index.html" class="btn-voltar">Voltar ao cardápio</a>
     </div>
 
-    <script src="loja-config.js"></script>
-    <script src="firebase-config.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-database-compat.js"></script>
+    <script src="loja-config.js"></script>
+    <script src="firebase-config.js"></script>
     <script>
         // Nunca confia só no fato do cliente ter voltado pra essa página — sempre escuta
         // o status real do pedido no Firebase (que só o Webhook da InfinitePay atualiza de verdade)
         const parametros = new URLSearchParams(window.location.search);
-        const pedidoId = parametros.get('pedido');
+        // Aceita tanto o "pedido" que eu mesmo mando quanto o "order_nsu" que a InfinitePay
+        // sempre inclui no retorno (é o mesmo valor) — cobre o caso de um dos dois "sumir"
+        // por causa de como a InfinitePay monta a URL de volta
+        const pedidoId = parametros.get('pedido') || parametros.get('order_nsu');
         const numeroTexto = document.getElementById('numeroPedidoTexto');
         const statusTexto = document.getElementById('statusTexto');
         const statusBadge = document.getElementById('statusBadge');
 
         if (!pedidoId) {
-            numeroTexto.textContent = '';
+            statusTexto.textContent = 'Não conseguimos identificar seu pedido automaticamente. Se você pagou, não se preocupe — a loja já foi avisada.';
         } else if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) {
             firebase.database().ref('pedidos/' + pedidoId).on('value', snap => {
                 const pedido = snap.val();
@@ -76,16 +83,16 @@
                 const status = pedido.pagamento && pedido.pagamento.status;
                 if (status === 'pago') {
                     statusBadge.className = 'status-badge status-pago';
-                    statusBadge.textContent = '🟢 Pagamento confirmado!';
+                    statusBadge.innerHTML = '🟢 Pagamento confirmado!';
                     statusTexto.textContent = `${LOJA_CONFIG ? LOJA_CONFIG.nome : 'A loja'} já recebeu seu pagamento e vai preparar seu pedido.`;
                 } else if (status === 'divergente') {
                     statusBadge.className = 'status-badge status-divergente';
-                    statusBadge.textContent = '⚠️ Precisa de atenção';
+                    statusBadge.innerHTML = '⚠️ Precisa de atenção';
                     statusTexto.textContent = 'Encontramos uma diferença no valor do pagamento. A loja vai entrar em contato com você.';
                 } else {
                     statusBadge.className = 'status-badge status-aguardando';
-                    statusBadge.textContent = '🟡 Aguardando confirmação';
-                    statusTexto.textContent = 'Estamos confirmando seu pagamento — isso costuma ser rápido. Pode aguardar aqui.';
+                    statusBadge.innerHTML = '<span class="girando">🔄</span> Confirmando pagamento...';
+                    statusTexto.textContent = 'Isso costuma ser rápido — pode aguardar aqui, a página se atualiza sozinha.';
                 }
             });
         }
