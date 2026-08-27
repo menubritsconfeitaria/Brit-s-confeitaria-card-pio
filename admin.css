@@ -747,18 +747,15 @@ body {
 }
 
 @media print {
-    body * { visibility: hidden; }
-    #fechamentoConteudo, #fechamentoConteudo * { visibility: visible; }
-    #fechamentoConteudo { position: absolute; left: 0; top: 0; width: 100%; }
-    .fechamento-print-cabecalho { display: block !important; }
-    .fechamento-pedido-acoes, .fechamento-acoes { display: none !important; }
-
-    #areaImpressaoPedido, #areaImpressaoPedido * { visibility: visible; }
-    #areaImpressaoPedido { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
+    /* Esconde o painel inteiro DE VERDADE (display:none tira do fluxo, diferente de
+       visibility:hidden, que mantinha o espaço todo ocupado e gerava páginas em branco) */
+    #telaLogin, #painel { display: none !important; }
+    #areaImpressaoPedido { display: block !important; }
+    #areaImpressaoPedido .fechamento-pedido-acoes,
+    #areaImpressaoPedido .fechamento-acoes { display: none !important; }
 
     /* Formato 80mm — bobina de PDV de mesa, a mais comum */
-    body.formato-80mm #areaImpressaoPedido,
-    body.formato-80mm #fechamentoConteudo {
+    body.formato-80mm #areaImpressaoPedido {
         font-size: 12px;
         line-height: 1.35;
     }
@@ -766,8 +763,7 @@ body {
     body.formato-80mm .fechamento-print-cabecalho h2 { font-size: 14px; }
 
     /* Formato 58mm — bobina de impressora portátil, bem mais estreita */
-    body.formato-58mm #areaImpressaoPedido,
-    body.formato-58mm #fechamentoConteudo {
+    body.formato-58mm #areaImpressaoPedido {
         font-size: 9px;
         line-height: 1.25;
     }

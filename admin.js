@@ -362,6 +362,18 @@ function imprimirPedidoIndividual(id) {
     window.print();
 }
 
+// Imprime o relatório de fechamento — copia o conteúdo pra mesma área usada nos tickets
+// individuais (fora do painel), em vez de imprimir direto de dentro do painel, que gerava
+// páginas em branco (o painel inteiro, mesmo escondido, ainda ocupava espaço no layout)
+function imprimirFechamento() {
+    const conteudo = document.getElementById('fechamentoConteudo');
+    const areaImpressao = document.getElementById('areaImpressaoPedido');
+    if (!conteudo || !areaImpressao) return;
+    areaImpressao.innerHTML = conteudo.innerHTML;
+    aplicarFormatoImpressao();
+    window.print();
+}
+
 // ---------- MONTAGEM DO CARD DE PEDIDO ----------
 
 // Guarda os dados de cada pedido renderizado, pra poder imprimir sem precisar buscar de novo
@@ -1121,7 +1133,7 @@ function renderFechamentoDiario(pedidos, dataInicioInput, dataFimInput) {
         ${pagamentosHtml}
         <div class="fechamento-acoes">
             <button class="btn-secondary" onclick="copiarTodosPedidos('${dataFormatada}')">📋 Copiar todos os pedidos</button>
-            <button class="btn-secondary" onclick="aplicarFormatoImpressao(); window.print()">🖨️ Imprimir relatório</button>
+            <button class="btn-secondary" onclick="imprimirFechamento()">🖨️ Imprimir relatório</button>
         </div>
     `;
 }
