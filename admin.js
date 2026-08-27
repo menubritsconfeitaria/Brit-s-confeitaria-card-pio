@@ -690,26 +690,96 @@ function escutarHistoricoNotificacoes() {
     if (!container) return;
     db.ref('notificacoesEnviadas').limitToLast(20).on('value', snap => {
         const registros = snap.val() || {};
-        const lista = Object.values(registros).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        const lista = Object.entries(registros)
+            .map(([id, n]) => ({ id, ...n }))
+            .sort((a, b) => (b.timestamp || b.agendadoPara || b.criadoEm || 0) - (a.timestamp || a.agendadoPara || a.criadoEm || 0));
 
         if (lista.length === 0) {
             container.innerHTML = '<p class="dica-secao">Nenhuma notificação enviada ainda.</p>';
             return;
         }
 
+        const tagsPorStatus = {
+            agendada: '🟡 Agendada',
+            enviada: '🟢 Enviada',
+            falhou: '🔴 Falhou',
+            cancelada: '❌ Cancelada'
+        };
+
         container.innerHTML = lista.map(n => {
-            const data = n.timestamp ? new Date(n.timestamp) : null;
+            // Pra agendada, mostra a data/hora agendada; pra já processada, mostra quando foi enviada
+            const dataReferencia = n.status === 'agendada' ? n.agendadoPara : (n.timestamp || n.agendadoPara);
+            const data = dataReferencia ? new Date(dataReferencia) : null;
             const dataTexto = data ? data.toLocaleDateString('pt-BR') : '';
             const horaTexto = data ? data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+            const prefixoData = n.status === 'agendada' ? 'Agendada pra' : '';
+
+            let linhaStatus = tagsPorStatus[n.status] || '🟢 Enviada'; // registros antigos, de antes do status existir
+            if (n.status === 'enviada' && n.falhas > 0) {
+                linhaStatus = `🟡 ${n.enviados} enviadas, ${n.falhas} falharam`;
+            } else if (n.status === 'enviada' || !n.status) {
+                linhaStatus = `🟢 Enviada · 👥 ${n.destinatarios || 0} destinatário(s)`;
+            }
+
+            const botaoCancelar = n.status === 'agendada'
+                ? `<button class="btn-secondary" style="margin-top:6px;" onclick="cancelarNotificacaoAgendadaDoPainel('${n.id}')">Cancelar</button>`
+                : '';
+
             return `
                 <div class="loja-status-card" style="margin-bottom:8px;">
                     <strong>${n.titulo || ''}</strong>
                     <p style="margin:4px 0;">${n.corpo || ''}</p>
-                    <p class="dica-secao" style="margin:0;">📅 ${dataTexto} 🕐 ${horaTexto} · 👥 ${n.destinatarios || 0} destinatário(s) · ${n.falhas > 0 ? `🟡 ${n.enviados} enviadas, ${n.falhas} falharam` : '🟢 Enviada'}</p>
+                    <p class="dica-secao" style="margin:0;">📅 ${prefixoData} ${dataTexto} 🕐 ${horaTexto} · ${linhaStatus}</p>
+                    ${botaoCancelar}
                 </div>
             `;
         }).join('');
     });
+}
+
+// Agenda a notificação pra ser enviada mais tarde — a Cloud Function processarNotificacoesAgendadas
+// (rodando de 5 em 5 min) é quem realmente dispara, na hora certa
+function agendarNotificacaoDoPainel() {
+    const titulo = document.getElementById('notifPersonalizadaTitulo').value.trim();
+    const corpo = document.getElementById('notifPersonalizadaCorpo').value.trim();
+    const data = document.getElementById('notifAgendarData').value;
+    const hora = document.getElementById('notifAgendarHora').value;
+    const msgEl = document.getElementById('notifPersonalizadaMsg');
+
+    if (!titulo || !corpo) {
+        msgEl.textContent = 'Preenche o título e a mensagem antes de agendar.';
+        return;
+    }
+    if (!data || !hora) {
+        msgEl.textContent = 'Escolhe a data e o horário antes de agendar.';
+        return;
+    }
+
+    const agendadoPara = new Date(`${data}T${hora}`).getTime();
+    if (isNaN(agendadoPara) || agendadoPara <= Date.now()) {
+        msgEl.textContent = 'Escolhe uma data/horário no futuro.';
+        return;
+    }
+
+    msgEl.textContent = 'Agendando...';
+    firebase.functions().httpsCallable('agendarNotificacao')({ titulo, corpo, agendadoPara })
+        .then(() => {
+            msgEl.textContent = '📅 Agendada com sucesso!';
+            document.getElementById('notifPersonalizadaTitulo').value = '';
+            document.getElementById('notifPersonalizadaCorpo').value = '';
+            document.getElementById('notifAgendarData').value = '';
+            document.getElementById('notifAgendarHora').value = '';
+            atualizarPreviaNotificacao();
+        })
+        .catch(err => { msgEl.textContent = 'Erro ao agendar: ' + err.message; });
+}
+
+// Cancela uma notificação que ainda está agendada (a Cloud Function confere de novo se
+// ainda dá tempo, então não tem risco de cancelar algo que já foi enviado)
+function cancelarNotificacaoAgendadaDoPainel(id) {
+    if (!confirm('Cancelar essa notificação agendada?')) return;
+    firebase.functions().httpsCallable('cancelarNotificacaoAgendada')({ id })
+        .catch(err => alert('Não foi possível cancelar: ' + err.message));
 }
 
 function carregarClientesInativos() {

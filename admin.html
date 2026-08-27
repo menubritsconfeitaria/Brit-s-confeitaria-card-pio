@@ -163,6 +163,14 @@
 
                     <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="enviarNotificacaoPersonalizadaDoPainel()">📢 Enviar agora</button>
                     <p id="notifPersonalizadaMsg" class="ordem-categorias-msg"></p>
+
+                    <p class="campo-label" style="margin-top:14px;">📅 Ou agendar pra mais tarde</p>
+                    <div class="produto-admin-linha">
+                        <div class="campo-com-label"><label class="campo-label">Data</label><input type="date" id="notifAgendarData"></div>
+                        <div class="campo-com-label"><label class="campo-label">Horário</label><input type="time" id="notifAgendarHora"></div>
+                    </div>
+                    <p class="dica-secao">O envio pode atrasar até 5 minutos da hora escolhida (o sistema confere periodicamente, não na hora exata).</p>
+                    <button class="btn-secondary" onclick="agendarNotificacaoDoPainel()">📅 Agendar</button>
                 </div>
 
                 <div class="loja-status-card" style="margin-top:16px;">
