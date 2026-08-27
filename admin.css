@@ -252,6 +252,18 @@ body {
     border-radius: 8px;
 }
 
+/* Aviso de resgate de recompensa no pedido — bem destacado, pra não passar despercebido */
+.pedido-resgate {
+    font-size: 0.9em;
+    color: #8a6300;
+    background: #fff3cd;
+    border: 1px solid #f0dca0;
+    padding: 8px 10px;
+    border-radius: 8px;
+    margin-top: 8px;
+    font-weight: 600;
+}
+
 .pedido-acoes {
     display: flex;
     gap: 10px;
@@ -863,4 +875,30 @@ body {
     width: 20px;
     height: 20px;
     cursor: pointer;
+}
+
+/* Campo de texto dos grupos de adicionais (formato: uma linha por grupo) */
+.campo-adicionais {
+    width: 100%;
+    min-height: 70px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.9em;
+    resize: vertical;
+}
+.campo-adicionais code {
+    background: var(--bg);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+}
+.aviso-adicionais {
+    color: #a53238;
+    background: #f8d7da;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.85em;
+    font-weight: 600;
 }

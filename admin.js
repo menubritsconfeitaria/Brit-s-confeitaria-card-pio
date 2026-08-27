@@ -350,6 +350,7 @@ function montarHtmlTicketImpressao(pedido, numeroPedido) {
         <p><strong>Forma de pagamento:</strong> ${pedido.formaPagamento || 'Não informado'}</p>
         ${pedido.troco ? `<p><strong>Troco para:</strong> R$ ${pedido.troco}</p>` : ''}
         ${pedido.observacoes ? `<p><strong>Observações:</strong> ${pedido.observacoes}</p>` : ''}
+        ${pedido.recompensaResgatada ? `<p><strong>🎁 RESGATE DO CLUBE:</strong> ${pedido.recompensaResgatada.descricao}</p>` : ''}
         <hr>
         <p class="ticket-total"><strong>Total: ${formatarPreco(totalDoPedido(pedido))}</strong></p>
     `;
@@ -424,6 +425,9 @@ function montarCardPedido(id, pedido, comAcoes) {
     }
 
     const obsHtml = pedido.observacoes ? `<div class="pedido-obs">📝 ${pedido.observacoes}</div>` : '';
+    const resgateHtml = pedido.recompensaResgatada
+        ? `<div class="pedido-resgate">🎁 Cliente do Clube resgatou: <strong>${pedido.recompensaResgatada.descricao}</strong> — separa isso no pedido!</div>`
+        : '';
 
     const tagStatus = {
         pendente: '<span class="pedido-tag tag-status-pendente">Pendente</span>',
@@ -451,6 +455,7 @@ function montarCardPedido(id, pedido, comAcoes) {
             </div>
             <div class="pedido-hora">${formatarHora(pedido.timestamp)}</div>
         </div>
+        ${resgateHtml}
         <div>📞 ${pedido.telefone || ''}</div>
         <ul class="pedido-itens">${itensHtml}</ul>
         <div class="pedido-total-linha"><span>Subtotal</span><span>${formatarPreco(pedido.subtotal)}</span></div>
