@@ -281,6 +281,7 @@ aplicarConfigDaLoja(LOJA_CONFIG); // aplica a configuração real assim que a p�
 
 let lojaAbertaAtual = true;
 let pagamentoOnlineAtivo = false; // só vira true se a loja ativou isso no painel
+let adicionaisAtivo = false; // idem, pro recurso de adicionais por produto
 let modoDemoAtivo = false; // true enquanto a prévia personalizada está ativa
 let ultimaConfigLojaReal = null; // guarda a última config de verdade, pra restaurar depois do modo demo
 
@@ -312,6 +313,7 @@ function atualizarStatusLoja(config) {
     // Guarda se a loja já ativou o pagamento online — usado por selecionarPagamento()
     // pra decidir se Pix/Cartão exigem pagar na hora ou continuam combinados como sempre
     pagamentoOnlineAtivo = !!(config && config.pagamentoOnlineAtivo);
+    adicionaisAtivo = !!(config && config.adicionaisAtivo);
 
     // Durante a prévia personalizada, sempre mostra "aberta" — não importa o horário
     // real da Brit's, a pessoa vendo a prévia precisa ver o site "no seu melhor momento"
@@ -658,6 +660,123 @@ function categoriaParaId(categoria) {
         .replace(/^-+|-+$/g, '');
 }
 
+// ---------- Modal de escolha de adicionais (recheio, extras, etc.) ----------
+
+// Guarda o contexto (produto, quantidade, observação da variante) enquanto o modal está
+// aberto, e as escolhas feitas em cada grupo — obrigatório guarda 1 índice, opcional guarda
+// um Set (pode escolher vários, ou nenhum)
+let produtoNoModalAdicionais = null;
+let selecoesAdicionais = {};
+
+function formatarPrecoTexto(valor) {
+    return `R$ ${valor.toFixed(2).replace('.', ',')}`;
+}
+
+function abrirModalAdicionais(produto, quantidade, observacao) {
+    produtoNoModalAdicionais = { produto, quantidade, observacao };
+    selecoesAdicionais = {};
+    produto.grupoAdicionais.forEach((grupo, i) => {
+        selecoesAdicionais[i] = grupo.obrigatorio ? null : new Set();
+    });
+
+    document.getElementById('modalAdicionaisNomeProduto').textContent = produto.nome;
+    renderizarGruposAdicionais();
+    document.getElementById('modalAdicionais').style.display = 'flex';
+}
+
+function fecharModalAdicionais() {
+    document.getElementById('modalAdicionais').style.display = 'none';
+    produtoNoModalAdicionais = null;
+}
+
+function renderizarGruposAdicionais() {
+    const produto = produtoNoModalAdicionais.produto;
+    const container = document.getElementById('modalAdicionaisGrupos');
+
+    container.innerHTML = produto.grupoAdicionais.map((grupo, gi) => {
+        const tag = grupo.obrigatorio ? 'obrigatório' : 'opcional';
+        const opcoesHtml = grupo.opcoes.map((op, oi) => {
+            const selecionada = grupo.obrigatorio ? selecoesAdicionais[gi] === oi : selecoesAdicionais[gi].has(oi);
+            const inputTipo = grupo.obrigatorio ? 'radio' : 'checkbox';
+            return `
+                <div class="opcao-adicional${selecionada ? ' selecionada' : ''}" data-grupo="${gi}" data-opcao="${oi}">
+                    <span class="opcao-adicional-esquerda">
+                        <input type="${inputTipo}" ${selecionada ? 'checked' : ''} readonly>
+                        ${op.nome}
+                    </span>
+                    <span class="opcao-adicional-preco">${op.preco > 0 ? '+' + formatarPrecoTexto(op.preco) : ''}</span>
+                </div>
+            `;
+        }).join('');
+        return `<div class="grupo-adicional-titulo">${grupo.nome} <span class="grupo-adicional-tag">(${tag})</span></div>${opcoesHtml}`;
+    }).join('');
+
+    container.querySelectorAll('.opcao-adicional').forEach(el => {
+        el.addEventListener('click', () => {
+            const gi = parseInt(el.dataset.grupo, 10);
+            const oi = parseInt(el.dataset.opcao, 10);
+            const grupo = produto.grupoAdicionais[gi];
+            if (grupo.obrigatorio) {
+                selecoesAdicionais[gi] = oi;
+            } else {
+                if (selecoesAdicionais[gi].has(oi)) selecoesAdicionais[gi].delete(oi);
+                else selecoesAdicionais[gi].add(oi);
+            }
+            renderizarGruposAdicionais();
+        });
+    });
+
+    atualizarPrecoModalAdicionais();
+}
+
+function calcularPrecoExtrasSelecionados() {
+    const produto = produtoNoModalAdicionais.produto;
+    let extra = 0;
+    produto.grupoAdicionais.forEach((grupo, gi) => {
+        if (grupo.obrigatorio) {
+            if (selecoesAdicionais[gi] != null) extra += grupo.opcoes[selecoesAdicionais[gi]].preco;
+        } else {
+            selecoesAdicionais[gi].forEach(oi => { extra += grupo.opcoes[oi].preco; });
+        }
+    });
+    return extra;
+}
+
+function atualizarPrecoModalAdicionais() {
+    const produto = produtoNoModalAdicionais.produto;
+    const total = produto.preco + calcularPrecoExtrasSelecionados();
+    document.getElementById('modalAdicionaisBtnConfirmar').textContent = `Adicionar · ${formatarPrecoTexto(total)}`;
+}
+
+function confirmarAdicionaisEAdicionar() {
+    const { produto, quantidade, observacao } = produtoNoModalAdicionais;
+
+    // Confere se todo grupo obrigatório tem uma escolha feita antes de deixar adicionar
+    for (let gi = 0; gi < produto.grupoAdicionais.length; gi++) {
+        const grupo = produto.grupoAdicionais[gi];
+        if (grupo.obrigatorio && selecoesAdicionais[gi] == null) {
+            alert(`Escolha uma opção em "${grupo.nome}" antes de adicionar.`);
+            return;
+        }
+    }
+
+    const precoEfetivo = produto.preco + calcularPrecoExtrasSelecionados();
+
+    // Monta o texto legível do que foi escolhido, pra mostrar no carrinho/pedido/painel
+    const partesTexto = [];
+    produto.grupoAdicionais.forEach((grupo, gi) => {
+        if (grupo.obrigatorio) {
+            if (selecoesAdicionais[gi] != null) partesTexto.push(grupo.opcoes[selecoesAdicionais[gi]].nome);
+        } else {
+            selecoesAdicionais[gi].forEach(oi => partesTexto.push('+ ' + grupo.opcoes[oi].nome));
+        }
+    });
+    const adicionaisTexto = partesTexto.join(', ');
+
+    finalizarAdicaoAoCarrinho(produto.nome, precoEfetivo, quantidade, observacao, adicionaisTexto);
+    fecharModalAdicionais();
+}
+
 function renderizarProdutos() {
     listaProdutosDiv.innerHTML = '';
 
@@ -829,35 +948,56 @@ function renderizarProdutos() {
             }
 
             const observacaoValor = varianteSelecionada ? varianteSelecionada.dataset.variante : (inputObs ? inputObs.value.trim() : '');
-
             const stepperValor = cardProduto.querySelector('.qtd-valor');
             const quantidadeEscolhida = stepperValor ? (parseInt(stepperValor.textContent, 10) || 1) : 1;
 
-            const produtoExistente = carrinho.find(item => item.nome === nomeProduto && (item.observacao || '') === observacaoValor);
+            // Se o produto tem grupos de adicionais configurados (recheio, extras, etc.),
+            // abre o modal de escolha em vez de adicionar direto — quem finaliza a adição
+            // nesse caso é confirmarAdicionaisEAdicionar(), depois que a pessoa escolher
+            const produtoCompleto = produtos.find(p => p.nome === nomeProduto);
+            const temAdicionais = adicionaisAtivo && produtoCompleto && Array.isArray(produtoCompleto.grupoAdicionais) && produtoCompleto.grupoAdicionais.length > 0;
 
-            if (produtoExistente) {
-                produtoExistente.quantidade += quantidadeEscolhida;
-                produtoExistente.preco = precoProduto; // Garante que o preço fica sempre atualizado (ex: entrou em oferta)
+            if (temAdicionais) {
+                abrirModalAdicionais(produtoCompleto, quantidadeEscolhida, observacaoValor);
             } else {
-                const produtoAdicionar = {
-                    nome: nomeProduto,
-                    preco: precoProduto,
-                    quantidade: quantidadeEscolhida,
-                    observacao: observacaoValor || null
-                };
-                carrinho.push(produtoAdicionar);
+                finalizarAdicaoAoCarrinho(nomeProduto, precoProduto, quantidadeEscolhida, observacaoValor, null);
             }
 
             if (inputObs) inputObs.value = '';
             if (stepperValor) stepperValor.textContent = '1'; // reseta o seletor de quantidade pro próximo uso
             cardProduto.querySelectorAll('.variante-pill').forEach(p => p.classList.remove('selecionada'));
-
-            alert(`${quantidadeEscolhida}x ${nomeProduto} adicionado ao carrinho!`);
-            console.log('Carrinho atual:', carrinho);
-            salvarCarrinho();
-            atualizarCarrinhoHTML();
         });
     });
+
+    // Adiciona o item de verdade no carrinho — usada tanto pelo caminho direto (produto sem
+    // adicionais) quanto pelo modal de adicionais, depois que a pessoa confirma as escolhas
+    function finalizarAdicaoAoCarrinho(nomeProduto, precoEfetivo, quantidade, observacao, adicionaisTexto) {
+        // Só agrupa como "mesmo item" se nome, observação E adicionais escolhidos forem
+        // idênticos — senão, dois bolos com recheios diferentes viram uma linha só, errado
+        const produtoExistente = carrinho.find(item =>
+            item.nome === nomeProduto &&
+            (item.observacao || '') === (observacao || '') &&
+            (item.adicionaisTexto || '') === (adicionaisTexto || '')
+        );
+
+        if (produtoExistente) {
+            produtoExistente.quantidade += quantidade;
+            produtoExistente.preco = precoEfetivo; // Garante que o preço fica sempre atualizado (ex: entrou em oferta)
+        } else {
+            carrinho.push({
+                nome: nomeProduto,
+                preco: precoEfetivo,
+                quantidade,
+                observacao: observacao || null,
+                adicionaisTexto: adicionaisTexto || null
+            });
+        }
+
+        alert(`${quantidade}x ${nomeProduto} adicionado ao carrinho!`);
+        console.log('Carrinho atual:', carrinho);
+        salvarCarrinho();
+        atualizarCarrinhoHTML();
+    }
 
     iniciarObservadorCategorias();
 }
@@ -945,7 +1085,7 @@ function atualizarCarrinhoHTML() {
             const itemDiv = document.createElement('div');
             itemDiv.classList.add('carrinho-item');
             itemDiv.innerHTML = `
-                <span>${item.nome}${item.observacao ? ` <em class="obs-mini">(${item.observacao})</em>` : ''}</span>
+                <span>${item.nome}${item.observacao ? ` <em class="obs-mini">(${item.observacao})</em>` : ''}${item.adicionaisTexto ? ` <em class="obs-mini">— ${item.adicionaisTexto}</em>` : ''}</span>
                 <div class="quantidade-controle">
                     <button class="btn-quantidade" data-index="${index}" data-acao="diminuir">-</button>
                     <span>${item.quantidade}</span>
@@ -1271,7 +1411,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
     carrinho.forEach(item => {
         const subitem = item.preco * item.quantidade;
         subtotalPedido += subitem;
-        itensPedido += `- ${item.nome}${item.observacao ? ` (${item.observacao})` : ''} (x${item.quantidade}) - R$ ${subitem.toFixed(2).replace('.', ',')}\n`;
+        itensPedido += `- ${item.nome}${item.observacao ? ` (${item.observacao})` : ''}${item.adicionaisTexto ? ` — ${item.adicionaisTexto}` : ''} (x${item.quantidade}) - R$ ${subitem.toFixed(2).replace('.', ',')}\n`;
     });
 
     const desconto = calcularDesconto(subtotalPedido);
@@ -1315,7 +1455,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         formaPagamento: formaPagamentoAtual,
         troco: (formaPagamentoAtual === 'Dinheiro' && troco) ? troco : null,
         observacoes: obs || null,
-        itens: carrinho.map(item => ({ nome: item.nome, preco: item.preco, quantidade: item.quantidade, observacao: item.observacao || null })),
+        itens: carrinho.map(item => ({ nome: item.nome, preco: item.preco, quantidade: item.quantidade, observacao: item.observacao || null, adicionaisTexto: item.adicionaisTexto || null })),
         subtotal: subtotalPedido,
         cupom: cupomAplicado ? cupomAplicado.codigo : null,
         desconto: desconto > 0 ? desconto : 0,

@@ -268,6 +268,7 @@ function salvarSomAlerta() {
 
 // Guarda o formato de impressão escolhido (80mm ou 58mm), lido do Firebase ao carregar o painel
 let formatoImpressaoAtual = '80mm';
+let adicionaisAtivo = false; // controla se o campo de adicionais aparece no cadastro de produto
 
 function salvarFormatoImpressao(formato) {
     formatoImpressaoAtual = formato;
@@ -327,6 +328,7 @@ function montarHtmlTicketImpressao(pedido, numeroPedido) {
         <div class="ticket-item">
             <strong>${item.quantidade}x ${item.nome}</strong>
             ${item.observacao ? `<div class="ticket-obs">↳ ${item.observacao}</div>` : ''}
+            ${item.adicionaisTexto ? `<div class="ticket-obs">↳ ${item.adicionaisTexto}</div>` : ''}
         </div>
     `).join('');
 
@@ -412,7 +414,7 @@ function montarCardPedido(id, pedido, comAcoes) {
 
     let itensHtml = '';
     (pedido.itens || []).forEach(item => {
-        itensHtml += `<li><span>${item.quantidade}x ${item.nome}</span><span>${formatarPreco(item.preco * item.quantidade)}</span></li>`;
+        itensHtml += `<li><span>${item.quantidade}x ${item.nome}${item.adicionaisTexto ? ` <em>(${item.adicionaisTexto})</em>` : ''}</span><span>${formatarPreco(item.preco * item.quantidade)}</span></li>`;
     });
 
     let enderecoHtml = '';
@@ -570,6 +572,14 @@ function definirModoLoja(modo) {
 // Ativa/desativa o botão "Pagar Online Agora" no cardápio. Fica desativado por padrão
 // (inclusive em qualquer cliente novo do template) — só liga depois que a loja realmente
 // configurou a InfiniteTag e testou, evitando o cliente ver um botão quebrado.
+// Ativa/desativa o recurso de Adicionais por Produto — quando desativado, o campo some
+// do formulário de cadastro (deixa mais simples pra quem não usa) e o modal de escolha
+// nunca aparece pro cliente, mesmo que algum produto ainda tenha grupos configurados
+function salvarAdicionaisAtivo(ativo) {
+    db.ref('configuracao/loja/adicionaisAtivo').set(!!ativo)
+        .catch(err => alert('Erro ao atualizar os adicionais: ' + err.message));
+}
+
 function salvarPagamentoOnlineAtivo(ativo) {
     db.ref('configuracao/loja/pagamentoOnlineAtivo').set(!!ativo)
         .catch(err => alert('Erro ao atualizar o pagamento online: ' + err.message));
@@ -609,6 +619,10 @@ function escutarConfigLoja() {
 
         const chkPagamento = document.getElementById('chkPagamentoOnlineAtivo');
         if (chkPagamento) chkPagamento.checked = !!config.pagamentoOnlineAtivo;
+
+        adicionaisAtivo = !!config.adicionaisAtivo;
+        const chkAdicionais = document.getElementById('chkAdicionaisAtivo');
+        if (chkAdicionais) chkAdicionais.checked = adicionaisAtivo;
     });
 }
 
@@ -680,6 +694,17 @@ function montarLinhaProduto(id, produto) {
         <label class="campo-label">Sabores/opções (digite cada um separado por VÍRGULA — deixe em branco se não tiver)</label>
         <input type="text" id="prodVariantes_${id}" value="${(produto.variantes || []).join(', ')}" placeholder="Ex: Chocolate, Morango, Baunilha" oninput="atualizarPreviaVariantes('${id}')">
         <div id="previaVariantes_${id}" class="previa-variantes"></div>
+
+        <div id="blocoAdicionais_${id}" style="display:${adicionaisAtivo ? 'block' : 'none'};">
+            <label class="campo-label">
+                Grupos de adicionais (opcional) — um grupo por linha, formato:
+                <code>Nome do grupo (obrigatório ou opcional): opção1, opção2 +preço, opção3</code>
+            </label>
+            <textarea id="prodAdicionais_${id}" class="campo-adicionais" placeholder="Escolha o recheio (obrigatório): Chocolate, Ninho com Morango +2, Doce de Leite
+Adicione extras (opcional): Granola +2, Chantilly extra +3, Confete +1.5">${montarTextoAdicionaisParaEdicao(produto.grupoAdicionais)}</textarea>
+            <p class="dica-secao">Grupo "obrigatório" = o cliente tem que escolher 1. Grupo "opcional" = pode escolher quantos quiser (ou nenhum). Opção sem "+preço" fica de graça. ⚠️ Pros centavos, use PONTO, não vírgula (ex: "+1.50", não "+1,50" — a vírgula aqui é só pra separar as opções).</p>
+            <p id="avisoAdicionais_${id}" class="aviso-adicionais" style="display:none;"></p>
+        </div>
 
         <div class="produto-admin-acoes">
             <button class="btn-salvar-produto" onclick="salvarProduto('${id}')">💾 Salvar</button>
@@ -765,6 +790,60 @@ function paraNumero(texto) {
     return parseFloat(String(texto).trim().replace(',', '.'));
 }
 
+// Converte uma linha de texto (ex: "Escolha o recheio (obrigatório): Chocolate, Ninho +2")
+// num grupo de adicionais estruturado. Retorna null se a linha não fizer sentido.
+function parseLinhaAdicionais(linha) {
+    const partesLinha = linha.split(':');
+    if (partesLinha.length < 2) return null;
+
+    const cabecalho = partesLinha[0].trim();
+    const opcoesTexto = partesLinha.slice(1).join(':').trim();
+    if (!opcoesTexto) return null;
+
+    const obrigatorio = /\(obrigat[oó]rio\)/i.test(cabecalho);
+    const nomeGrupo = cabecalho.replace(/\(obrigat[oó]rio\)/i, '').replace(/\(opcional\)/i, '').trim();
+    if (!nomeGrupo) return null;
+
+    const opcoes = opcoesTexto.split(',').map(opcaoTexto => {
+        opcaoTexto = opcaoTexto.trim();
+        // Só aceita PONTO pra decimais aqui (não vírgula) — a vírgula já é usada pra
+        // separar as opções, então "+1,50" quebraria ao dividir a linha
+        const precoMatch = opcaoTexto.match(/\+\s*([\d.]+)\s*$/);
+        if (!precoMatch) return { nome: opcaoTexto, preco: 0 };
+        const preco = parseFloat(precoMatch[1]) || 0;
+        return { nome: opcaoTexto.slice(0, precoMatch.index).trim(), preco };
+    }).filter(o => o.nome.length > 0);
+
+    return opcoes.length > 0 ? { nome: nomeGrupo, obrigatorio, opcoes } : null;
+}
+
+// Converte o texto inteiro do campo (várias linhas, uma por grupo) na estrutura de dados —
+// usado ao SALVAR o produto
+function parseTextoAdicionais(texto) {
+    if (!texto || !texto.trim()) return null;
+    const linhas = texto.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    const grupos = linhas.map(parseLinhaAdicionais).filter(g => g !== null);
+    return grupos.length > 0 ? grupos : null;
+}
+
+// Faz o caminho inverso: pega a estrutura de dados já salva e monta o texto de volta,
+// pra preencher o campo quando abrir o produto pra editar de novo
+function montarTextoAdicionaisParaEdicao(grupoAdicionais) {
+    if (!Array.isArray(grupoAdicionais) || grupoAdicionais.length === 0) return '';
+    return grupoAdicionais.map(g => {
+        const tag = g.obrigatorio ? '(obrigatório)' : '(opcional)';
+        const opcoesTexto = (g.opcoes || []).map(o => o.preco > 0 ? `${o.nome} +${o.preco}` : o.nome).join(', ');
+        return `${g.nome} ${tag}: ${opcoesTexto}`;
+    }).join('\n');
+}
+
+// Confere se algum "nome de opção" ficou só com números — sinal quase certo de que a
+// pessoa usou vírgula pro preço (ex: "+1,50") e a linha quebrou ao meio sem querer
+function detectarPossivelErroDeVirgula(grupos) {
+    if (!grupos) return false;
+    return grupos.some(g => (g.opcoes || []).some(o => /^\d+$/.test(o.nome)));
+}
+
 function salvarProduto(id) {
     const nome = document.getElementById('prodNome_' + id).value.trim();
     const descricao = document.getElementById('prodDesc_' + id).value.trim();
@@ -774,6 +853,7 @@ function salvarProduto(id) {
     const categoria = document.getElementById('prodCategoria_' + id).value.trim();
     const disponivel = document.getElementById('prodDisp_' + id).checked;
     const variantesTexto = document.getElementById('prodVariantes_' + id).value.trim();
+    const adicionaisTexto = document.getElementById('prodAdicionais_' + id).value.trim();
 
     const imagens = imagensTexto ? imagensTexto.split(',').map(v => v.trim()).filter(v => v.length > 0) : [];
 
@@ -782,7 +862,7 @@ function salvarProduto(id) {
         return;
     }
 
-    const dados = { nome, descricao, preco, imagem: imagens[0], imagens, categoria, disponivel, precoOriginal: null, variantes: null };
+    const dados = { nome, descricao, preco, imagem: imagens[0], imagens, categoria, disponivel, precoOriginal: null, variantes: null, grupoAdicionais: null };
 
     if (!isNaN(precoOriginal) && precoOriginal > preco) {
         dados.precoOriginal = precoOriginal;
@@ -792,8 +872,21 @@ function salvarProduto(id) {
         dados.variantes = variantesTexto.split(',').map(v => v.trim()).filter(v => v.length > 0);
     }
 
+    dados.grupoAdicionais = parseTextoAdicionais(adicionaisTexto);
+
+    const avisoEl = document.getElementById('avisoAdicionais_' + id);
+    if (detectarPossivelErroDeVirgula(dados.grupoAdicionais)) {
+        if (avisoEl) {
+            avisoEl.style.display = 'block';
+            avisoEl.textContent = '⚠️ Parece que você usou vírgula num preço (ex: "+1,50") — troca por ponto (ex: "+1.50") e salva de novo, senão o preço fica errado.';
+        }
+        return; // não salva até corrigir, pra não gravar um preço errado sem querer
+    }
+    if (avisoEl) avisoEl.style.display = 'none';
+
     db.ref('produtos/' + id).update(dados).catch(err => alert('Erro ao salvar produto: ' + err.message));
 }
+
 
 function excluirProduto(id) {
     if (!confirm('Excluir este produto do cardápio? Essa ação não pode ser desfeita.')) return;
@@ -1142,7 +1235,7 @@ function montarCardPedidoFechamento(p) {
     const statusLabel = STATUS_LABELS_FECHAMENTO[p.status] || p.status;
     const tipoLabel = p.tipoEntrega === 'entrega' ? '🛵 Delivery' : (p.tipoEntrega === 'retirada' ? '🏪 Retirada no local' : 'Não informado');
     const itensHtml = (p.itens || []).map(item =>
-        `<div class="pedido-total-linha"><span>${item.quantidade}x ${item.nome}</span><span>${formatarPreco((item.preco || 0) * item.quantidade)}</span></div>`
+        `<div class="pedido-total-linha"><span>${item.quantidade}x ${item.nome}${item.adicionaisTexto ? ` <em>(${item.adicionaisTexto})</em>` : ''}</span><span>${formatarPreco((item.preco || 0) * item.quantidade)}</span></div>`
     ).join('');
     const lancado = !!p.lancado;
 
@@ -1183,7 +1276,7 @@ function montarTextoPedido(p) {
     texto += `Status: ${statusLabel}\n`;
     texto += `Tipo: ${tipoLabel}\n\n`;
     texto += `Itens:\n`;
-    (p.itens || []).forEach(item => { texto += `${item.quantidade}x ${item.nome}\n`; });
+    (p.itens || []).forEach(item => { texto += `${item.quantidade}x ${item.nome}${item.adicionaisTexto ? ' (' + item.adicionaisTexto + ')' : ''}\n`; });
     texto += `\nSubtotal: ${formatarPreco(p.subtotal || 0)}\n`;
     texto += `Desconto: ${formatarPreco(p.desconto || 0)}\n`;
     texto += `Frete: ${formatarPreco(p.frete || 0)}\n`;
