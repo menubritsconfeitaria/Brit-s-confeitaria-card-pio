@@ -602,56 +602,100 @@ function calcularAbertoPorHorarioAdmin(horarios) {
     return minutosAgora >= (ha * 60 + ma) && minutosAgora < (hf * 60 + mf);
 }
 
+// Mesmos limites de pontos usados no cardápio (Bronze/Prata/Ouro/VIP), pra manter o painel
+// mostrando exatamente o mesmo nível que o cliente vê do lado dele
+function calcularNivelAdmin(pontos, cfg) {
+    if (pontos >= (cfg.minVip || 200)) return { nome: 'VIP', emoji: '💎' };
+    if (pontos >= (cfg.minOuro || 100)) return { nome: 'Ouro', emoji: '🥇' };
+    if (pontos >= (cfg.minPrata || 50)) return { nome: 'Prata', emoji: '🥈' };
+    return { nome: 'Bronze', emoji: '🥉' };
+}
+
 // Busca clientes do Clube de Fidelidade que não compram há um tempo, cruzando com o
 // histórico real de pedidos (não confia só na data de cadastro do clube). Não envia nada
 // sozinho — só monta a lista, com um botão que abre o WhatsApp já com a mensagem pronta.
+// Cada card abre (ao clicar) mostrando nível, pontos e as recompensas já resgatadas.
 function carregarClientesInativos() {
-    const diasLimite = parseInt(document.getElementById('diasInatividade').value, 10) || 30;
+    const diasLimite = parseInt(document.getElementById('diasInatividade').value, 10) || 0;
     const container = document.getElementById('listaClientesInativos');
     container.innerHTML = '<p class="dica-secao">Buscando...</p>';
 
     Promise.all([
         db.ref('fidelidade').once('value'),
-        db.ref('pedidos').once('value')
-    ]).then(([snapFidelidade, snapPedidos]) => {
+        db.ref('pedidos').once('value'),
+        db.ref('configuracao/fidelidade').once('value')
+    ]).then(([snapFidelidade, snapPedidos, snapConfigFidelidade]) => {
         const clientes = snapFidelidade.val() || {};
         const pedidos = snapPedidos.val() || {};
+        const cfgNiveis = snapConfigFidelidade.val() || {};
 
-        // Acha a data do pedido MAIS RECENTE de cada telefone
+        // Acha a data do pedido MAIS RECENTE de cada telefone, e também junta a lista de
+        // recompensas já resgatadas E entregues (só conta de verdade quando o pedido foi
+        // marcado como entregue — é o mesmo momento em que os pontos são creditados/descontados)
         const ultimaCompraPorTelefone = {};
+        const recompensasPorTelefone = {};
         Object.values(pedidos).forEach(pedido => {
-            if (!pedido.telefone || !pedido.timestamp) return;
-            if (!ultimaCompraPorTelefone[pedido.telefone] || pedido.timestamp > ultimaCompraPorTelefone[pedido.telefone]) {
+            if (!pedido.telefone) return;
+            if (pedido.timestamp && (!ultimaCompraPorTelefone[pedido.telefone] || pedido.timestamp > ultimaCompraPorTelefone[pedido.telefone])) {
                 ultimaCompraPorTelefone[pedido.telefone] = pedido.timestamp;
+            }
+            if (pedido.recompensaResgatada && pedido.status === 'entregue') {
+                if (!recompensasPorTelefone[pedido.telefone]) recompensasPorTelefone[pedido.telefone] = [];
+                recompensasPorTelefone[pedido.telefone].push({
+                    descricao: pedido.recompensaResgatada.descricao,
+                    data: pedido.timestamp
+                });
             }
         });
 
         const agora = Date.now();
-        const inativos = Object.entries(clientes).map(([telefone, dados]) => {
+        const listaClientes = Object.entries(clientes).map(([telefone, dados]) => {
             // Se o cliente nunca fez pedido registrado, usa a data de entrada no clube como referência
             const referencia = ultimaCompraPorTelefone[telefone] || dados.criadoEm || agora;
             const diasSemComprar = Math.floor((agora - referencia) / (1000 * 60 * 60 * 24));
-            return { telefone, nome: dados.nome || 'Sem nome', diasSemComprar, nuncaComprou: !ultimaCompraPorTelefone[telefone] };
+            return {
+                telefone, nome: dados.nome || 'Sem nome', diasSemComprar,
+                nuncaComprou: !ultimaCompraPorTelefone[telefone],
+                pontos: dados.pontos || 0,
+                totalGasto: dados.totalGasto || 0,
+                recompensas: (recompensasPorTelefone[telefone] || []).sort((a, b) => b.data - a.data)
+            };
         })
         .filter(c => c.diasSemComprar >= diasLimite)
         .sort((a, b) => b.diasSemComprar - a.diasSemComprar);
 
-        if (inativos.length === 0) {
-            container.innerHTML = '<p class="dica-secao">Ninguém sumido por enquanto — todos os clientes do clube compraram recentemente. 🎉</p>';
+        if (listaClientes.length === 0) {
+            container.innerHTML = '<p class="dica-secao">Nenhum cliente encontrado com esse filtro.</p>';
             return;
         }
 
-        container.innerHTML = inativos.map(c => {
-            const mensagem = encodeURIComponent(`Oi ${c.nome}! Sentimos sua falta por aqui na ${LOJA_CONFIG.nome} 🥹 Que tal dar uma olhada nas novidades? ${LOJA_CONFIG.urlCardapio}`);
+        container.innerHTML = listaClientes.map((c, i) => {
+            const nivel = calcularNivelAdmin(c.pontos, cfgNiveis);
+            const modeloMensagem = document.getElementById('mensagemClientes').value.trim()
+                || 'Oi {nome}! Sentimos sua falta por aqui 🥹';
+            const mensagem = encodeURIComponent(modeloMensagem.replace(/\{nome\}/gi, c.nome));
             const linkWhats = `https://api.whatsapp.com/send?phone=55${c.telefone.replace(/\D/g, '')}&text=${mensagem}`;
             const textoTempo = c.nuncaComprou ? 'nunca fez um pedido registrado' : `última compra há ${c.diasSemComprar} dias`;
+
+            const recompensasHtml = c.recompensas.length > 0
+                ? c.recompensas.map(r => `<li>🎁 ${r.descricao} — ${new Date(r.data).toLocaleDateString('pt-BR')}</li>`).join('')
+                : '<li class="dica-secao">Nenhuma recompensa resgatada ainda</li>';
+
             return `
-                <div class="loja-status-card" style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                    <div>
-                        <strong>${c.nome}</strong>
-                        <div class="dica-secao" style="margin:2px 0 0;">${textoTempo}</div>
+                <div class="loja-status-card" style="margin-bottom:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; cursor:pointer;" onclick="document.getElementById('detalheCliente_${i}').style.display = document.getElementById('detalheCliente_${i}').style.display === 'none' ? 'block' : 'none';">
+                        <div>
+                            <strong>${nivel.emoji} ${c.nome}</strong>
+                            <div class="dica-secao" style="margin:2px 0 0;">${textoTempo} · ${c.pontos} pontos (${nivel.nome})</div>
+                        </div>
+                        <a href="${linkWhats}" target="_blank" rel="noopener noreferrer" class="btn-salvar-ordem" style="text-decoration:none;" onclick="event.stopPropagation();">💬 Mandar mensagem</a>
                     </div>
-                    <a href="${linkWhats}" target="_blank" rel="noopener noreferrer" class="btn-salvar-ordem" style="text-decoration:none;">💬 Mandar mensagem</a>
+                    <div id="detalheCliente_${i}" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--border);">
+                        <p style="margin:0 0 6px;"><strong>Telefone:</strong> ${c.telefone}</p>
+                        <p style="margin:0 0 6px;"><strong>Total já gasto:</strong> ${formatarPreco(c.totalGasto)}</p>
+                        <p style="margin:0 0 4px;"><strong>Recompensas resgatadas:</strong></p>
+                        <ul style="margin:0; padding-left:20px;">${recompensasHtml}</ul>
+                    </div>
                 </div>
             `;
         }).join('');

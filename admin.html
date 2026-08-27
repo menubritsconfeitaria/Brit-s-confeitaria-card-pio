@@ -256,11 +256,13 @@
                     <button onclick="adicionarRecompensa()">+ Adicionar recompensa</button>
                 </div>
 
-                <h3 style="margin-top:22px;">💌 Clientes que sumiram</h3>
-                <p class="dica-secao">Clientes com cadastro no Clube que não compram há um tempo — manda uma mensagem com um clique, direto do seu WhatsApp (nada é enviado automaticamente).</p>
-                <div class="produto-admin-linha" style="margin-bottom:10px;">
+                <h3 style="margin-top:22px;">💌 Falar com os clientes</h3>
+                <p class="dica-secao">Clientes cadastrados no Clube — manda uma mensagem com um clique, direto do seu WhatsApp (nada é enviado automaticamente). Serve tanto pra reconquistar quem sumiu quanto pra avisar todo mundo de uma promoção.</p>
+                <label class="campo-label">Mensagem (use <code>{nome}</code> pra personalizar com o nome do cliente)</label>
+                <textarea id="mensagemClientes" class="campo-adicionais" style="min-height:60px;">Oi {nome}! Sentimos sua falta por aqui 🥹 Que tal dar uma olhada nas novidades?</textarea>
+                <div class="produto-admin-linha" style="margin:10px 0;">
                     <div class="campo-com-label">
-                        <label class="campo-label">Considerar "sumido" a partir de quantos dias sem comprar?</label>
+                        <label class="campo-label">Mostrar clientes sem comprar há quantos dias? (0 = todo mundo, pra mandar uma promoção geral)</label>
                         <input type="text" inputmode="numeric" id="diasInatividade" value="30">
                     </div>
                     <button class="btn-salvar-ordem" onclick="carregarClientesInativos()" style="align-self:flex-end;">🔎 Buscar</button>
