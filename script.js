@@ -748,6 +748,36 @@ function atualizarPrecoModalAdicionais() {
     document.getElementById('modalAdicionaisBtnConfirmar').textContent = `Adicionar · ${formatarPrecoTexto(total)}`;
 }
 
+// Adiciona o item de verdade no carrinho — usada tanto pelo caminho direto (produto sem
+// adicionais) quanto pelo modal de adicionais, depois que a pessoa confirma as escolhas
+function finalizarAdicaoAoCarrinho(nomeProduto, precoEfetivo, quantidade, observacao, adicionaisTexto) {
+    // Só agrupa como "mesmo item" se nome, observação E adicionais escolhidos forem
+    // idênticos — senão, dois bolos com recheios diferentes viram uma linha só, errado
+    const produtoExistente = carrinho.find(item =>
+        item.nome === nomeProduto &&
+        (item.observacao || '') === (observacao || '') &&
+        (item.adicionaisTexto || '') === (adicionaisTexto || '')
+    );
+
+    if (produtoExistente) {
+        produtoExistente.quantidade += quantidade;
+        produtoExistente.preco = precoEfetivo; // Garante que o preço fica sempre atualizado (ex: entrou em oferta)
+    } else {
+        carrinho.push({
+            nome: nomeProduto,
+            preco: precoEfetivo,
+            quantidade,
+            observacao: observacao || null,
+            adicionaisTexto: adicionaisTexto || null
+        });
+    }
+
+    alert(`${quantidade}x ${nomeProduto} adicionado ao carrinho!`);
+    console.log('Carrinho atual:', carrinho);
+    salvarCarrinho();
+    atualizarCarrinhoHTML();
+}
+
 function confirmarAdicionaisEAdicionar() {
     const { produto, quantidade, observacao } = produtoNoModalAdicionais;
 
@@ -969,35 +999,6 @@ function renderizarProdutos() {
         });
     });
 
-    // Adiciona o item de verdade no carrinho — usada tanto pelo caminho direto (produto sem
-    // adicionais) quanto pelo modal de adicionais, depois que a pessoa confirma as escolhas
-    function finalizarAdicaoAoCarrinho(nomeProduto, precoEfetivo, quantidade, observacao, adicionaisTexto) {
-        // Só agrupa como "mesmo item" se nome, observação E adicionais escolhidos forem
-        // idênticos — senão, dois bolos com recheios diferentes viram uma linha só, errado
-        const produtoExistente = carrinho.find(item =>
-            item.nome === nomeProduto &&
-            (item.observacao || '') === (observacao || '') &&
-            (item.adicionaisTexto || '') === (adicionaisTexto || '')
-        );
-
-        if (produtoExistente) {
-            produtoExistente.quantidade += quantidade;
-            produtoExistente.preco = precoEfetivo; // Garante que o preço fica sempre atualizado (ex: entrou em oferta)
-        } else {
-            carrinho.push({
-                nome: nomeProduto,
-                preco: precoEfetivo,
-                quantidade,
-                observacao: observacao || null,
-                adicionaisTexto: adicionaisTexto || null
-            });
-        }
-
-        alert(`${quantidade}x ${nomeProduto} adicionado ao carrinho!`);
-        console.log('Carrinho atual:', carrinho);
-        salvarCarrinho();
-        atualizarCarrinhoHTML();
-    }
 
     iniciarObservadorCategorias();
 }
