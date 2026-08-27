@@ -683,6 +683,35 @@ function enviarNotificacaoPersonalizadaDoPainel() {
         });
 }
 
+// Mostra as últimas notificações enviadas — vem direto do que a Cloud Function salvou,
+// nunca inventado. Pega só as 20 mais recentes, pra não deixar a lista gigante com o tempo.
+function escutarHistoricoNotificacoes() {
+    const container = document.getElementById('listaHistoricoNotificacoes');
+    if (!container) return;
+    db.ref('notificacoesEnviadas').limitToLast(20).on('value', snap => {
+        const registros = snap.val() || {};
+        const lista = Object.values(registros).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+        if (lista.length === 0) {
+            container.innerHTML = '<p class="dica-secao">Nenhuma notificação enviada ainda.</p>';
+            return;
+        }
+
+        container.innerHTML = lista.map(n => {
+            const data = n.timestamp ? new Date(n.timestamp) : null;
+            const dataTexto = data ? data.toLocaleDateString('pt-BR') : '';
+            const horaTexto = data ? data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+            return `
+                <div class="loja-status-card" style="margin-bottom:8px;">
+                    <strong>${n.titulo || ''}</strong>
+                    <p style="margin:4px 0;">${n.corpo || ''}</p>
+                    <p class="dica-secao" style="margin:0;">📅 ${dataTexto} 🕐 ${horaTexto} · 👥 ${n.destinatarios || 0} destinatário(s) · ${n.falhas > 0 ? `🟡 ${n.enviados} enviadas, ${n.falhas} falharam` : '🟢 Enviada'}</p>
+                </div>
+            `;
+        }).join('');
+    });
+}
+
 function carregarClientesInativos() {
     const diasLimite = parseInt(document.getElementById('diasInatividade').value, 10) || 0;
     const container = document.getElementById('listaClientesInativos');
@@ -1744,6 +1773,7 @@ function iniciarEscutaPedidos() {
     escutarStatusAssinatura();
     escutarFormatoImpressao();
     escutarContadorDestinatarios();
+    escutarHistoricoNotificacoes();
     const previaLojaNomeEl = document.getElementById('previaLojaNome');
     if (previaLojaNomeEl) previaLojaNomeEl.textContent = LOJA_CONFIG.nome;
     escutarConfigSomAlerta();
