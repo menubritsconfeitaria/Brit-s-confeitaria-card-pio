@@ -677,8 +677,13 @@ function carregarClientesInativos() {
         container.innerHTML = listaClientes.map((c, i) => {
             const nivel = calcularNivelAdmin(c.pontos, cfgNiveis);
             const modeloMensagem = document.getElementById('mensagemClientes').value.trim()
-                || 'Oi {nome}! Sentimos sua falta por aqui 🥹';
-            const mensagem = encodeURIComponent(modeloMensagem.replace(/\{nome\}/gi, c.nome));
+                || 'Oi {nome}! Sentimos sua falta por aqui na {loja} 🥹';
+            const mensagem = encodeURIComponent(
+                modeloMensagem
+                    .replace(/\{nome\}/gi, c.nome)
+                    .replace(/\{loja\}/gi, LOJA_CONFIG.nome)
+                    .replace(/\{link\}/gi, LOJA_CONFIG.urlCardapio)
+            );
             const linkWhats = `https://api.whatsapp.com/send?phone=55${c.telefone.replace(/\D/g, '')}&text=${mensagem}`;
             const textoTempo = c.nuncaComprou ? 'nunca fez um pedido registrado' : `última compra há ${c.diasSemComprar} dias`;
 
