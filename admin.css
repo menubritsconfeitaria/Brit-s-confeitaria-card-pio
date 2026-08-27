@@ -755,6 +755,25 @@ body {
 
     #areaImpressaoPedido, #areaImpressaoPedido * { visibility: visible; }
     #areaImpressaoPedido { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
+
+    /* Formato 80mm — bobina de PDV de mesa, a mais comum */
+    body.formato-80mm #areaImpressaoPedido,
+    body.formato-80mm #fechamentoConteudo {
+        font-size: 12px;
+        line-height: 1.35;
+    }
+    body.formato-80mm .ticket-cabecalho h2,
+    body.formato-80mm .fechamento-print-cabecalho h2 { font-size: 14px; }
+
+    /* Formato 58mm — bobina de impressora portátil, bem mais estreita */
+    body.formato-58mm #areaImpressaoPedido,
+    body.formato-58mm #fechamentoConteudo {
+        font-size: 9px;
+        line-height: 1.25;
+    }
+    body.formato-58mm .ticket-cabecalho h2,
+    body.formato-58mm .fechamento-print-cabecalho h2 { font-size: 11px; }
+    body.formato-58mm hr { margin: 4px 0; }
 }
 
 /* Abas de navegação do painel */

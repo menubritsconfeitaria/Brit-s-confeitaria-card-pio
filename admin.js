@@ -266,6 +266,45 @@ function salvarSomAlerta() {
 
 // ---------- HELPERS ----------
 
+// Guarda o formato de impressão escolhido (80mm ou 58mm), lido do Firebase ao carregar o painel
+let formatoImpressaoAtual = '80mm';
+
+function salvarFormatoImpressao(formato) {
+    formatoImpressaoAtual = formato;
+    marcarFormatoSelecionado(formato);
+    db.ref('configuracao/impressora/formato').set(formato)
+        .catch(err => alert('Não foi possível salvar o formato de impressão: ' + err.message));
+}
+
+function marcarFormatoSelecionado(formato) {
+    document.getElementById('btnFormato80mm').classList.toggle('selecionado', formato === '80mm');
+    document.getElementById('btnFormato58mm').classList.toggle('selecionado', formato === '58mm');
+}
+
+function escutarFormatoImpressao() {
+    db.ref('configuracao/impressora/formato').on('value', snap => {
+        formatoImpressaoAtual = snap.val() || '80mm';
+        marcarFormatoSelecionado(formatoImpressaoAtual);
+    });
+}
+
+// Ajusta a impressão (tamanho da página + fonte) pro formato de bobina escolhido, injetando
+// um <style> na hora — feito assim porque o navegador não permite um "@page" só pra um trecho
+// específico da página, então precisa ser a regra @page inteira do documento, trocada na hora
+function aplicarFormatoImpressao() {
+    let estilo = document.getElementById('estiloFormatoImpressao');
+    if (!estilo) {
+        estilo = document.createElement('style');
+        estilo.id = 'estiloFormatoImpressao';
+        document.head.appendChild(estilo);
+    }
+    const larguraPagina = formatoImpressaoAtual === '58mm' ? '58mm' : '80mm';
+    estilo.textContent = `@page { size: ${larguraPagina} auto; margin: 2mm; }`;
+
+    document.body.classList.remove('formato-80mm', 'formato-58mm');
+    document.body.classList.add('formato-' + formatoImpressaoAtual);
+}
+
 function formatarPreco(v) {
     return `R$ ${Number(v || 0).toFixed(2).replace('.', ',')}`;
 }
@@ -319,6 +358,7 @@ function imprimirPedidoIndividual(id) {
     if (!pedido) { alert('Não foi possível encontrar os dados desse pedido pra imprimir.'); return; }
     const areaImpressao = document.getElementById('areaImpressaoPedido');
     areaImpressao.innerHTML = montarHtmlTicketImpressao(pedido, pedido.numero || null);
+    aplicarFormatoImpressao();
     window.print();
 }
 
@@ -1081,7 +1121,7 @@ function renderFechamentoDiario(pedidos, dataInicioInput, dataFimInput) {
         ${pagamentosHtml}
         <div class="fechamento-acoes">
             <button class="btn-secondary" onclick="copiarTodosPedidos('${dataFormatada}')">📋 Copiar todos os pedidos</button>
-            <button class="btn-secondary" onclick="window.print()">🖨️ Imprimir relatório</button>
+            <button class="btn-secondary" onclick="aplicarFormatoImpressao(); window.print()">🖨️ Imprimir relatório</button>
         </div>
     `;
 }
@@ -1405,6 +1445,7 @@ function iniciarEscutaPedidos() {
     escutarConfigFidelidade();
     escutarVisitantesOnline();
     escutarStatusAssinatura();
+    escutarFormatoImpressao();
     escutarConfigSomAlerta();
     inicializarAbasPainel();
 
