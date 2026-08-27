@@ -884,7 +884,9 @@ function salvarProduto(id) {
     }
     if (avisoEl) avisoEl.style.display = 'none';
 
-    db.ref('produtos/' + id).update(dados).catch(err => alert('Erro ao salvar produto: ' + err.message));
+    db.ref('produtos/' + id).update(dados)
+        .then(() => alert('Produto salvo!'))
+        .catch(err => alert('Erro ao salvar produto: ' + err.message));
 }
 
 
