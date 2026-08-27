@@ -254,6 +254,16 @@
         <button type="button" class="lightbox-seta lightbox-proximo" onclick="lightboxNavegar(1)">›</button>
     </div>
 
+    <!-- Modal de escolha de adicionais (recheio, extras, etc.) -->
+    <div id="modalAdicionais" class="modal-adicionais-fundo" style="display:none;">
+        <div class="modal-adicionais-cartao">
+            <button type="button" class="modal-adicionais-fechar" onclick="fecharModalAdicionais()">✕</button>
+            <h3 id="modalAdicionaisNomeProduto"></h3>
+            <div id="modalAdicionaisGrupos"></div>
+            <button type="button" id="modalAdicionaisBtnConfirmar" class="modal-adicionais-confirmar" onclick="confirmarAdicionaisEAdicionar()">Adicionar</button>
+        </div>
+    </div>
+
     <div id="toastNotificacao" class="toast-notificacao" style="display:none;">
         <span id="toastNotificacaoTitulo"></span>
         <span id="toastNotificacaoCorpo"></span>
