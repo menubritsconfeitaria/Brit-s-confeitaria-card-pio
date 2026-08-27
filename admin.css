@@ -210,6 +210,10 @@ body {
 .tag-status-em-rota { background: #d6e9fb; color: #1a5a96; }
 .tag-status-entregue { background: #e0f5e9; color: #157347; }
 .tag-status-recusado { background: #f8d7da; color: #a53238; }
+.tag-pagamento-aguardando { background: #fff3cd; color: #8a6300; }
+.tag-pagamento-pago { background: #d4edda; color: #157347; font-weight: 700; }
+.tag-pagamento-divergente { background: #f8d7da; color: #a53238; font-weight: 700; }
+.link-comprovante { font-size: 0.85em; color: #6a4bb5; text-decoration: underline; margin-left: 4px; }
 
 .pedido-itens {
     list-style: none;

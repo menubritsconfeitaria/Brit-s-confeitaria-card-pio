@@ -327,6 +327,27 @@ function imprimirPedidoIndividual(id) {
 // Guarda os dados de cada pedido renderizado, pra poder imprimir sem precisar buscar de novo
 let pedidosParaImpressao = {};
 
+// Monta a etiqueta de status do pagamento online (separado do status do pedido em si).
+// Pedidos sem pagamento online (Pix/Cartão/Dinheiro combinado na entrega) não têm esse
+// campo — nesse caso não mostra nada extra, é o comportamento normal de sempre.
+function montarTagPagamento(pedido) {
+    if (!pedido.pagamento) return '';
+    const p = pedido.pagamento;
+    const tags = {
+        aguardando: '<span class="pedido-tag tag-pagamento-aguardando">🟡 Aguardando pagamento</span>',
+        pago: `<span class="pedido-tag tag-pagamento-pago">🟢 Pago (${p.metodo || 'Online'})</span>`,
+        divergente: '<span class="pedido-tag tag-pagamento-divergente">⚠️ Valor divergente — confira</span>'
+    };
+    let html = tags[p.status] || '';
+    if (p.status === 'pago' && p.receiptUrl) {
+        html += ` <a href="${p.receiptUrl}" target="_blank" rel="noopener noreferrer" class="link-comprovante">🧾 Ver comprovante</a>`;
+    }
+    if (p.status === 'aguardando' && p.checkoutUrl) {
+        html += ` <a href="${p.checkoutUrl}" target="_blank" rel="noopener noreferrer" class="link-comprovante">🔗 Abrir pagamento</a>`;
+    }
+    return html;
+}
+
 function montarCardPedido(id, pedido, comAcoes) {
     pedidosParaImpressao[id] = pedido;
 
@@ -370,6 +391,7 @@ function montarCardPedido(id, pedido, comAcoes) {
                 <div>
                     <span class="pedido-tag ${pedido.tipoEntrega === 'entrega' ? 'tag-entrega' : 'tag-retirada'}">${pedido.tipoEntrega === 'entrega' ? '🛵 Entrega' : '🏠 Retirada'}</span>
                     <span class="pedido-tag tag-pagamento">💰 ${pedido.formaPagamento || ''}${pedido.troco ? ' (troco p/ ' + pedido.troco + ')' : ''}</span>
+                    ${montarTagPagamento(pedido)}
                     ${tagStatus}
                 </div>
             </div>
@@ -1077,7 +1099,7 @@ function montarCardPedidoFechamento(p) {
         <div class="pedido-total-linha"><span>Desconto</span><span>${formatarPreco(p.desconto || 0)}</span></div>
         <div class="pedido-total-linha"><span>Frete</span><span>${formatarPreco(p.frete || 0)}</span></div>
         <div class="pedido-total-linha total-final"><span>Total</span><span>${formatarPreco(totalDoPedido(p))}</span></div>
-        <p class="dica-secao"><strong>Pagamento:</strong> ${p.formaPagamento || 'Não informado'}</p>
+        <p class="dica-secao"><strong>Pagamento:</strong> ${p.formaPagamento || 'Não informado'}${p.pagamento ? ` &nbsp;|&nbsp; <strong>Status:</strong> ${montarTagPagamento(p)}` : ''}</p>
         ${p.observacoes ? `<p class="dica-secao"><strong>Observações:</strong> ${p.observacoes}</p>` : ''}
         ${p.tipoEntrega === 'entrega' ? `<p class="dica-secao"><strong>Endereço:</strong> ${formatarEnderecoResumo(p.endereco)}</p>` : ''}
 
@@ -1104,6 +1126,10 @@ function montarTextoPedido(p) {
     texto += `Frete: ${formatarPreco(p.frete || 0)}\n`;
     texto += `Total: ${formatarPreco(totalDoPedido(p))}\n\n`;
     texto += `Forma de pagamento: ${p.formaPagamento || 'Não informado'}\n`;
+    if (p.pagamento) {
+        const statusPagamentoLabel = { aguardando: 'Aguardando pagamento', pago: 'PAGO', divergente: 'VALOR DIVERGENTE - conferir' }[p.pagamento.status] || p.pagamento.status;
+        texto += `Status do pagamento: ${statusPagamentoLabel}${p.pagamento.metodo ? ' (' + p.pagamento.metodo + ')' : ''}\n`;
+    }
     if (p.observacoes) texto += `\nObservação: ${p.observacoes}\n`;
     if (p.tipoEntrega === 'entrega') texto += `\nEndereço: ${formatarEnderecoResumo(p.endereco)}\n`;
     return texto;
