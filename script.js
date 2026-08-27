@@ -280,6 +280,7 @@ function aplicarConfigDaLoja(config) {
 aplicarConfigDaLoja(LOJA_CONFIG); // aplica a configuração real assim que a página carrega
 
 let lojaAbertaAtual = true;
+let pagamentoOnlineAtivo = false; // só vira true se a loja ativou isso no painel
 let modoDemoAtivo = false; // true enquanto a prévia personalizada está ativa
 let ultimaConfigLojaReal = null; // guarda a última config de verdade, pra restaurar depois do modo demo
 
@@ -308,13 +309,9 @@ function atualizarStatusLoja(config) {
     const texto = document.getElementById('statusLojaTexto');
     if (!banner || !texto) return;
 
-    // Só mostra o botão "Pagar Online Agora" depois que a loja realmente ativar isso
-    // no painel (aba Loja) — evita o cliente clicar num botão que ainda não funciona,
-    // principalmente em lojas novas do template que ainda não configuraram a InfinitePay
-    const btnPagarOnline = document.getElementById('btnPagarOnline');
-    if (btnPagarOnline) {
-        btnPagarOnline.style.display = (config && config.pagamentoOnlineAtivo) ? '' : 'none';
-    }
+    // Guarda se a loja já ativou o pagamento online — usado por selecionarPagamento()
+    // pra decidir se Pix/Cartão exigem pagar na hora ou continuam combinados como sempre
+    pagamentoOnlineAtivo = !!(config && config.pagamentoOnlineAtivo);
 
     // Durante a prévia personalizada, sempre mostra "aberta" — não importa o horário
     // real da Brit's, a pessoa vendo a prévia precisa ver o site "no seu melhor momento"
@@ -590,10 +587,12 @@ function selecionarPagamento(forma) {
     document.getElementById('btnPix').classList.toggle('selecionado', forma === 'Pix');
     document.getElementById('btnCartao').classList.toggle('selecionado', forma === 'Cartão');
     document.getElementById('btnDinheiro').classList.toggle('selecionado', forma === 'Dinheiro');
-    document.getElementById('btnPagarOnline').classList.toggle('selecionado', forma === 'Pagar Online');
     areaTrocoDiv.style.display = forma === 'Dinheiro' ? 'block' : 'none';
+    // Pix e Cartão só exigem pagamento na hora se a loja já tiver ativado o pagamento
+    // online (aba Loja, no painel) — senão, funcionam do jeito de sempre (combinado)
+    const vaiPagarAgora = pagamentoOnlineAtivo && (forma === 'Pix' || forma === 'Cartão');
     if (botaoFinalizarCompra && lojaAbertaAtual) {
-        botaoFinalizarCompra.textContent = forma === 'Pagar Online' ? '🌐 Pagar Agora' : 'Finalizar Compra';
+        botaoFinalizarCompra.textContent = vaiPagarAgora ? '🌐 Pagar Agora' : 'Finalizar Compra';
     }
 }
 
@@ -1354,7 +1353,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
     // Se o cliente escolheu pagar online, o fluxo é diferente: em vez de ir pro WhatsApp,
     // manda pro checkout da InfinitePay (Pix ou Cartão), e só confirma o pedido de verdade
     // quando o pagamento realmente cair (isso quem confirma é o Webhook, não essa tela)
-    if (formaPagamentoAtual === 'Pagar Online') {
+    if (pagamentoOnlineAtivo && (formaPagamentoAtual === 'Pix' || formaPagamentoAtual === 'Cartão')) {
         if (!pedidoId) {
             alert('Não foi possível criar o pedido agora. Tente novamente em instantes.');
             return;
