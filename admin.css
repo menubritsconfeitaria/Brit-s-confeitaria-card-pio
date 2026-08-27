@@ -834,3 +834,18 @@ body {
     color: #a53238;
     border-bottom: 1px solid #f0b8bd;
 }
+
+/* Linha de interruptor simples (checkbox + texto), usada nas configurações da loja */
+.switch-linha {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+}
+.switch-linha input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}

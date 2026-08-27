@@ -515,6 +515,14 @@ function definirModoLoja(modo) {
         .catch(err => alert('Erro ao atualizar o status da loja: ' + err.message));
 }
 
+// Ativa/desativa o botão "Pagar Online Agora" no cardápio. Fica desativado por padrão
+// (inclusive em qualquer cliente novo do template) — só liga depois que a loja realmente
+// configurou a InfiniteTag e testou, evitando o cliente ver um botão quebrado.
+function salvarPagamentoOnlineAtivo(ativo) {
+    db.ref('configuracao/loja/pagamentoOnlineAtivo').set(!!ativo)
+        .catch(err => alert('Erro ao atualizar o pagamento online: ' + err.message));
+}
+
 function marcarModoSelecionado(modo) {
     document.getElementById('btnModoAuto').classList.toggle('selecionado', modo === 'auto');
     document.getElementById('btnModoAberto').classList.toggle('selecionado', modo === 'aberto');
@@ -546,6 +554,9 @@ function escutarConfigLoja() {
         else aberta = calcularAbertoPorHorarioAdmin(config.horarios);
 
         document.getElementById('lojaStatusAtual').textContent = aberta ? '🟢 Aberta' : '🔴 Fechada';
+
+        const chkPagamento = document.getElementById('chkPagamentoOnlineAtivo');
+        if (chkPagamento) chkPagamento.checked = !!config.pagamentoOnlineAtivo;
     });
 }
 

@@ -93,6 +93,21 @@
                     <button class="btn-salvar-horarios" onclick="salvarHorarios()">Salvar horários</button>
                     <p id="horariosSalvosMsg" class="horarios-salvos-msg"></p>
                 </div>
+
+                <div class="loja-status-card" style="margin-top:16px;">
+                    <h3>💳 Pagamento Online (InfinitePay)</h3>
+                    <p class="dica-secao">
+                        Só ativa isso depois de configurar a InfiniteTag em
+                        <code>functions/loja-config.js</code> e testar. Enquanto estiver
+                        desativado, o botão "Pagar Online Agora" fica escondido no cardápio
+                        — os clientes continuam pedindo normalmente (Pix/Cartão/Dinheiro
+                        combinado na entrega).
+                    </p>
+                    <label class="switch-linha">
+                        <input type="checkbox" id="chkPagamentoOnlineAtivo" onchange="salvarPagamentoOnlineAtivo(this.checked)">
+                        Pagamento Online ativado (mostrar o botão pro cliente)
+                    </label>
+                </div>
             </section>
 
             <section data-tab="produtos">

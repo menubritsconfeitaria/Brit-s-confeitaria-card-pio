@@ -308,6 +308,14 @@ function atualizarStatusLoja(config) {
     const texto = document.getElementById('statusLojaTexto');
     if (!banner || !texto) return;
 
+    // Só mostra o botão "Pagar Online Agora" depois que a loja realmente ativar isso
+    // no painel (aba Loja) — evita o cliente clicar num botão que ainda não funciona,
+    // principalmente em lojas novas do template que ainda não configuraram a InfinitePay
+    const btnPagarOnline = document.getElementById('btnPagarOnline');
+    if (btnPagarOnline) {
+        btnPagarOnline.style.display = (config && config.pagamentoOnlineAtivo) ? '' : 'none';
+    }
+
     // Durante a prévia personalizada, sempre mostra "aberta" — não importa o horário
     // real da Brit's, a pessoa vendo a prévia precisa ver o site "no seu melhor momento"
     if (modoDemoAtivo) {
