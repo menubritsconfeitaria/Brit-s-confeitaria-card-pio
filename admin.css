@@ -902,3 +902,26 @@ body {
     font-size: 0.85em;
     font-weight: 600;
 }
+
+/* Prévia da notificação personalizada, parecida com uma notificação de verdade */
+.notif-previa {
+    background: #2d2d2d;
+    color: #fff;
+    border-radius: 10px;
+    padding: 12px 14px;
+    max-width: 320px;
+}
+.notif-previa-topo {
+    font-size: 0.75em;
+    color: #b0b0b0;
+    margin-bottom: 4px;
+}
+.notif-previa-titulo {
+    font-weight: 700;
+    font-size: 0.95em;
+    margin-bottom: 2px;
+}
+.notif-previa-corpo {
+    font-size: 0.85em;
+    color: #d8d8d8;
+}

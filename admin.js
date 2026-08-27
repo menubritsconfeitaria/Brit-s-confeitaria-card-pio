@@ -620,6 +620,35 @@ function calcularNivelAdmin(pontos, cfg) {
 // histórico real de pedidos (não confia só na data de cadastro do clube). Não envia nada
 // sozinho — só monta a lista, com um botão que abre o WhatsApp já com a mensagem pronta.
 // Cada card abre (ao clicar) mostrando nível, pontos e as recompensas já resgatadas.
+// Atualiza a prévia visual e os contadores de caracteres, conforme a pessoa digita
+function atualizarPreviaNotificacao() {
+    const titulo = document.getElementById('notifPersonalizadaTitulo').value;
+    const corpo = document.getElementById('notifPersonalizadaCorpo').value;
+    document.getElementById('contadorTitulo').textContent = `${titulo.length}/50`;
+    document.getElementById('contadorMensagem').textContent = `${corpo.length}/200`;
+    document.getElementById('previaTitulo').textContent = titulo || 'Título aparece aqui';
+    document.getElementById('previaCorpo').textContent = corpo || 'A mensagem aparece aqui, do jeito que o cliente vai ver.';
+}
+
+// Preenche os campos com um modelo pronto — a pessoa ainda pode editar antes de enviar
+function usarModeloNotificacao(titulo, corpo) {
+    document.getElementById('notifPersonalizadaTitulo').value = titulo;
+    document.getElementById('notifPersonalizadaCorpo').value = corpo;
+    atualizarPreviaNotificacao();
+}
+
+// Mostra, em tempo real, quantos aparelhos estão prontos pra receber notificação —
+// número real, direto do Firebase, nunca inventado
+function escutarContadorDestinatarios() {
+    const el = document.getElementById('contadorDestinatarios');
+    if (!el) return;
+    db.ref('notificacaoTokens').on('value', snap => {
+        const tokens = snap.val() || {};
+        const total = Object.keys(tokens).length;
+        el.textContent = `${total} ${total === 1 ? 'cliente' : 'clientes'}`;
+    });
+}
+
 // Chama a Cloud Function que manda a notificação personalizada pra todo mundo que já
 // ativou notificações no cardápio — o envio de verdade acontece no servidor, aqui só
 // dispara e mostra o resultado
@@ -633,17 +662,21 @@ function enviarNotificacaoPersonalizadaDoPainel() {
         return;
     }
 
+    const destinatariosTexto = document.getElementById('contadorDestinatarios').textContent;
+    if (!confirm(`Enviar esta notificação para ${destinatariosTexto}?`)) return;
+
     msgEl.textContent = 'Enviando...';
     firebase.functions().httpsCallable('enviarNotificacaoPersonalizada')({ titulo, corpo })
         .then(resultado => {
-            const enviados = resultado.data.enviados;
-            msgEl.textContent = enviados > 0
-                ? `Enviado pra ${enviados} pessoa(s)! ✅`
-                : 'Ninguém ativou notificação ainda — ninguém pra receber.';
-            if (enviados > 0) {
-                document.getElementById('notifPersonalizadaTitulo').value = '';
-                document.getElementById('notifPersonalizadaCorpo').value = '';
+            const { destinatarios, enviados, falhas } = resultado.data;
+            if (destinatarios === 0) {
+                msgEl.textContent = 'Ninguém ativou notificação ainda — ninguém pra receber.';
+                return;
             }
+            msgEl.textContent = `✅ Enviada! Destinatários: ${destinatarios} · Enviadas: ${enviados}${falhas > 0 ? ' · Falhas: ' + falhas : ''}`;
+            document.getElementById('notifPersonalizadaTitulo').value = '';
+            document.getElementById('notifPersonalizadaCorpo').value = '';
+            atualizarPreviaNotificacao();
         })
         .catch(err => {
             msgEl.textContent = 'Erro ao enviar: ' + err.message;
@@ -1710,6 +1743,9 @@ function iniciarEscutaPedidos() {
     escutarVisitantesOnline();
     escutarStatusAssinatura();
     escutarFormatoImpressao();
+    escutarContadorDestinatarios();
+    const previaLojaNomeEl = document.getElementById('previaLojaNome');
+    if (previaLojaNomeEl) previaLojaNomeEl.textContent = LOJA_CONFIG.nome;
     escutarConfigSomAlerta();
     inicializarAbasPainel();
 

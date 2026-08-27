@@ -133,12 +133,34 @@
                 </div>
 
                 <div class="loja-status-card" style="margin-top:16px;">
-                    <h3>📢 Enviar notificação personalizada</h3>
-                    <p class="dica-secao">Manda um aviso pra todo mundo que já ativou notificação no cardápio (título e mensagem livres — use pra novidades, avisos de horário, o que quiser).</p>
-                    <label class="campo-label">Título</label>
-                    <input type="text" id="notifPersonalizadaTitulo" placeholder="Ex: 📢 Horário especial hoje!">
-                    <label class="campo-label">Mensagem</label>
-                    <input type="text" id="notifPersonalizadaCorpo" placeholder="Ex: Hoje funcionamos até às 23h!">
+                    <h3>📢 Notificações</h3>
+                    <p class="dica-secao">Envie novidades, promoções e avisos direto pra quem já ativou notificação no cardápio.</p>
+
+                    <label class="campo-label">Título <span id="contadorTitulo" class="dica-secao">0/50</span></label>
+                    <input type="text" id="notifPersonalizadaTitulo" maxlength="50" placeholder="Ex: 📢 Horário especial hoje!" oninput="atualizarPreviaNotificacao()">
+
+                    <label class="campo-label">Mensagem <span id="contadorMensagem" class="dica-secao">0/200</span></label>
+                    <textarea id="notifPersonalizadaCorpo" maxlength="200" class="campo-adicionais" style="min-height:60px;" placeholder="Ex: Hoje funcionamos até às 23h!" oninput="atualizarPreviaNotificacao()"></textarea>
+
+                    <p class="campo-label" style="margin-top:14px;">⚡ Modelos prontos</p>
+                    <div class="opcoes-radio">
+                        <div class="opcao-btn" onclick="usarModeloNotificacao('🍰 Novidade', 'Tem novidade no nosso cardápio! Confira agora.')">🍰 Novidade</div>
+                        <div class="opcao-btn" onclick="usarModeloNotificacao('🔥 Promoção', '🔥 Aproveite nossa promoção especial de hoje! Faça seu pedido pelo nosso cardápio.')">🔥 Promoção</div>
+                        <div class="opcao-btn" onclick="usarModeloNotificacao('❤️ Sentimos sua falta', '❤️ Sentimos sua falta! Que tal pedir novamente aquele seu favorito?')">❤️ Sentimos sua falta</div>
+                        <div class="opcao-btn" onclick="usarModeloNotificacao('⏰ Estamos atendendo', 'Já estamos atendendo! Faça seu pedido pelo nosso cardápio online.')">⏰ Estamos atendendo</div>
+                        <div class="opcao-btn" onclick="usarModeloNotificacao('🍓 Produto novo', '🍓 Temos uma novidade deliciosa esperando por você. Confira nosso cardápio!')">🍓 Produto novo</div>
+                        <div class="opcao-btn" onclick="usarModeloNotificacao('📢 Aviso', '📢 Confira nosso horário de atendimento e faça seu pedido.')">📢 Aviso</div>
+                    </div>
+
+                    <p class="campo-label" style="margin-top:14px;">Prévia</p>
+                    <div class="notif-previa">
+                        <div class="notif-previa-topo">📢 <span id="previaLojaNome">Sua Loja</span></div>
+                        <div class="notif-previa-titulo" id="previaTitulo">Título aparece aqui</div>
+                        <div class="notif-previa-corpo" id="previaCorpo">A mensagem aparece aqui, do jeito que o cliente vai ver.</div>
+                    </div>
+
+                    <p class="dica-secao" style="margin-top:12px;">👥 Destinatários disponíveis: <strong id="contadorDestinatarios">carregando...</strong> — só quem ativou notificação recebe.</p>
+
                     <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="enviarNotificacaoPersonalizadaDoPainel()">📢 Enviar agora</button>
                     <p id="notifPersonalizadaMsg" class="ordem-categorias-msg"></p>
                 </div>
