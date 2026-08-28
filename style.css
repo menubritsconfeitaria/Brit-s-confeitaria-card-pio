@@ -522,7 +522,7 @@ footer {
 }
 
 .produto-item.indisponivel::after {
-    content: "Indisponível";
+    content: "Esgotado";
     position: absolute;
     top: 40%;
     left: 50%;
