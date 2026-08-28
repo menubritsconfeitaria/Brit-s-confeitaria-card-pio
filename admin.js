@@ -708,7 +708,7 @@ function escutarHistoricoNotificacoes() {
 
         container.innerHTML = lista.map(n => {
             // Pra agendada, mostra a data/hora agendada; pra já processada, mostra quando foi enviada
-            const dataReferencia = n.status === 'agendada' ? n.agendadoPara : (n.timestamp || n.agendadoPara);
+            const dataReferencia = n.status === 'agendada' ? n.agendadoPara : (n.timestamp || n.enviadoEm || n.agendadoPara);
             const data = dataReferencia ? new Date(dataReferencia) : null;
             const dataTexto = data ? data.toLocaleDateString('pt-BR') : '';
             const horaTexto = data ? data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
