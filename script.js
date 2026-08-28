@@ -414,7 +414,7 @@ function escutarProdutos() {
 function atualizarAvisoOferta() {
     const banner = document.getElementById('ofertaBanner');
     if (!banner) return;
-    const temOferta = produtos.some(p => p.disponivel && p.precoOriginal && p.precoOriginal > p.preco);
+    const temOferta = produtos.some(p => !p.escondido && p.disponivel && p.precoOriginal && p.precoOriginal > p.preco);
     banner.style.display = (temOferta && !ofertaBannerFechadoPeloUsuario) ? 'flex' : 'none';
 }
 
@@ -1014,13 +1014,17 @@ function renderizarProdutos() {
 
 // NOVO: Função para renderizar as categorias
 function renderizarCategorias() {
+    // Não conta produtos escondidos pra montar as categorias — senão uma categoria que só
+    // tinha produto escondido continuava aparecendo no menu, mesmo sem nada pra mostrar
+    const produtosVisiveis = produtos.filter(p => !p.escondido);
+
     // Pega todas as categorias únicas dos produtos, na ordem definida no painel
-    const categorias = ['Todos', ...ordenarCategorias([...new Set(produtos.map(produto => produto.categoria))])];
+    const categorias = ['Todos', ...ordenarCategorias([...new Set(produtosVisiveis.map(produto => produto.categoria))])];
 
     categoriasNav.innerHTML = ''; // Limpa a navegação de categorias
 
     // Botão especial de Ofertas, só aparece se tiver produto em oferta disponível
-    const temOfertaAtiva = produtos.some(p => p.disponivel && p.precoOriginal && p.precoOriginal > p.preco);
+    const temOfertaAtiva = produtosVisiveis.some(p => p.disponivel && p.precoOriginal && p.precoOriginal > p.preco);
     if (temOfertaAtiva) {
         const liOferta = document.createElement('li');
         const btnOferta = document.createElement('button');
