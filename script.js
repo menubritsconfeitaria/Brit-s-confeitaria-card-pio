@@ -1466,10 +1466,12 @@ botaoFinalizarCompra.addEventListener('click', async () => {
 
     const desconto = calcularDesconto(subtotalPedido);
     const freteGratisCupom = cupomAplicado && cupomAplicado.tipo === 'frete_gratis';
+    const freteGratisPorValor = freteGratisAcimaValor > 0 && (subtotalPedido - desconto) >= freteGratisAcimaValor;
+    const freteGratis = freteGratisCupom || freteGratisPorValor;
     const subtotalTexto = `R$ ${subtotalPedido.toFixed(2).replace('.', ',')}`;
-    const frete = (tipoEntregaAtual === 'entrega' && !freteGratisCupom) ? freteAtual : 0;
+    const frete = (tipoEntregaAtual === 'entrega' && !freteGratis) ? freteAtual : 0;
     const freteTexto = tipoEntregaAtual === 'entrega'
-        ? (freteGratisCupom ? 'Grátis (cupom)' : (freteConfirmado ? `R$ ${frete.toFixed(2).replace('.', ',')}` : 'A confirmar pelo WhatsApp'))
+        ? (freteGratis ? 'Grátis' : (freteConfirmado ? `R$ ${frete.toFixed(2).replace('.', ',')}` : 'A confirmar pelo WhatsApp'))
         : 'Não se aplica (retirada no local)';
     const totalPedido = (tipoEntregaAtual === 'retirada' || freteConfirmado)
         ? `R$ ${(subtotalPedido - desconto + frete).toFixed(2).replace('.', ',')}`
