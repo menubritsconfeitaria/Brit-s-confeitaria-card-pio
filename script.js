@@ -282,6 +282,8 @@ aplicarConfigDaLoja(LOJA_CONFIG); // aplica a configuração real assim que a p�
 let lojaAbertaAtual = true;
 let pagamentoOnlineAtivo = false; // só vira true se a loja ativou isso no painel
 let adicionaisAtivo = false; // idem, pro recurso de adicionais por produto
+let pedidoMinimoValor = 0; // 0 = sem pedido mínimo configurado
+let freteGratisAcimaValor = 0; // 0 = sem frete grátis por valor configurado
 let modoDemoAtivo = false; // true enquanto a prévia personalizada está ativa
 let ultimaConfigLojaReal = null; // guarda a última config de verdade, pra restaurar depois do modo demo
 
@@ -314,6 +316,8 @@ function atualizarStatusLoja(config) {
     // pra decidir se Pix/Cartão exigem pagar na hora ou continuam combinados como sempre
     pagamentoOnlineAtivo = !!(config && config.pagamentoOnlineAtivo);
     adicionaisAtivo = !!(config && config.adicionaisAtivo);
+    pedidoMinimoValor = (config && config.pedidoMinimo) || 0;
+    freteGratisAcimaValor = (config && config.freteGratisAcima) || 0;
 
     // Durante a prévia personalizada, sempre mostra "aberta" — não importa o horário
     // real da Brit's, a pessoa vendo a prévia precisa ver o site "no seu melhor momento"
@@ -810,8 +814,13 @@ function confirmarAdicionaisEAdicionar() {
 function renderizarProdutos() {
     listaProdutosDiv.innerHTML = '';
 
+    // Não mostra produtos marcados como "escondido" no cardápio — diferente de "esgotado"
+    // (que ainda aparece, só sem poder comprar), esse nem entra na vitrine. A lista original
+    // "produtos" continua intacta, usada em outros lugares (tipo o modal de adicionais)
+    const produtosVisiveis = produtos.filter(p => !p.escondido);
+
     // Agrupa os produtos por categoria, respeitando a ordem definida no painel
-    const categoriasNaOrdem = ordenarCategorias([...new Set(produtos.map(produto => produto.categoria))]);
+    const categoriasNaOrdem = ordenarCategorias([...new Set(produtosVisiveis.map(produto => produto.categoria))]);
 
     // Guarda a lista de imagens de cada carrossel, pra usar nos cliques (setas e lightbox)
     carrosselImagensRegistro = {};
@@ -864,14 +873,14 @@ function renderizarProdutos() {
             }
             ${produto.disponivel
                 ? `<button class="adicionar-carrinho" data-nome="${produto.nome}" data-preco="${produto.preco}">Adicionar ao Carrinho</button>`
-                : `<button class="adicionar-carrinho indisponivel-btn" disabled>Indisponível</button>`
+                : `<button class="adicionar-carrinho indisponivel-btn" disabled>Esgotado</button>`
             }
         `;
         return produtoItemDiv;
     }
 
     // Seção especial "🔥 Ofertas do Dia" (só aparece se tiver algum produto em oferta disponível)
-    const produtosEmOferta = produtos.filter(p => p.disponivel && p.precoOriginal && p.precoOriginal > p.preco);
+    const produtosEmOferta = produtosVisiveis.filter(p => p.disponivel && p.precoOriginal && p.precoOriginal > p.preco);
     if (produtosEmOferta.length > 0) {
         const tituloOferta = document.createElement('h3');
         tituloOferta.classList.add('categoria-titulo', 'categoria-titulo-oferta');
@@ -886,7 +895,7 @@ function renderizarProdutos() {
     }
 
     categoriasNaOrdem.forEach(categoria => {
-        const produtosDaCategoria = produtos.filter(produto => produto.categoria === categoria);
+        const produtosDaCategoria = produtosVisiveis.filter(produto => produto.categoria === categoria);
         if (produtosDaCategoria.length === 0) return;
 
         const tituloEl = document.createElement('h3');
@@ -1113,14 +1122,38 @@ function atualizarCarrinhoHTML() {
 
     const freteGratisCupom = cupomAplicado && cupomAplicado.tipo === 'frete_gratis';
     const subtotalComDesconto = totalGeral - desconto;
+    const freteGratisPorValor = freteGratisAcimaValor > 0 && subtotalComDesconto >= freteGratisAcimaValor;
+    const freteGratis = freteGratisCupom || freteGratisPorValor;
 
     if (freteConfirmado) {
-        const freteFinal = freteGratisCupom ? 0 : freteAtual;
-        freteCarrinhoSpan.textContent = freteGratisCupom ? 'Grátis 🎉' : `R$ ${freteAtual.toFixed(2).replace('.', ',')}`;
+        const freteFinal = freteGratis ? 0 : freteAtual;
+        freteCarrinhoSpan.textContent = freteGratis ? 'Grátis 🎉' : `R$ ${freteAtual.toFixed(2).replace('.', ',')}`;
         totalCarrinhoSpan.textContent = `R$ ${(subtotalComDesconto + freteFinal).toFixed(2).replace('.', ',')}`;
     } else {
         freteCarrinhoSpan.textContent = 'A confirmar';
         totalCarrinhoSpan.textContent = `R$ ${subtotalComDesconto.toFixed(2).replace('.', ',')} + entrega`;
+    }
+
+    // Mensagem de incentivo: avisa quanto falta pro pedido mínimo, ou pro frete grátis
+    // (só mostra uma de cada vez — pedido mínimo primeiro, por ser mais importante)
+    const incentivoEl = document.getElementById('incentivoCarrinhoMsg');
+    if (incentivoEl) {
+        if (carrinho.length === 0) {
+            incentivoEl.style.display = 'none';
+        } else if (pedidoMinimoValor > 0 && subtotalComDesconto < pedidoMinimoValor) {
+            const faltam = (pedidoMinimoValor - subtotalComDesconto).toFixed(2).replace('.', ',');
+            incentivoEl.textContent = `🛒 Faltam R$ ${faltam} pro pedido mínimo de R$ ${pedidoMinimoValor.toFixed(2).replace('.', ',')}`;
+            incentivoEl.style.display = 'block';
+        } else if (!freteGratis && freteGratisAcimaValor > 0 && subtotalComDesconto < freteGratisAcimaValor) {
+            const faltam = (freteGratisAcimaValor - subtotalComDesconto).toFixed(2).replace('.', ',');
+            incentivoEl.textContent = `🚚 Faltam R$ ${faltam} pra ganhar frete grátis!`;
+            incentivoEl.style.display = 'block';
+        } else if (freteGratisPorValor) {
+            incentivoEl.textContent = `🎉 Você ganhou frete grátis!`;
+            incentivoEl.style.display = 'block';
+        } else {
+            incentivoEl.style.display = 'none';
+        }
     }
 
     document.querySelectorAll('.btn-quantidade').forEach(botao => {
@@ -1381,6 +1414,18 @@ botaoFinalizarCompra.addEventListener('click', async () => {
     if (carrinho.length === 0) {
         alert('Seu carrinho está vazio. Adicione alguns produtos antes de finalizar a compra!');
         return;
+    }
+
+    // Confere o pedido mínimo (se configurado) antes de deixar finalizar
+    if (pedidoMinimoValor > 0) {
+        const subtotalAtual = carrinho.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
+        const descontoAtual = calcularDesconto(subtotalAtual);
+        const subtotalComDescontoAtual = subtotalAtual - descontoAtual;
+        if (subtotalComDescontoAtual < pedidoMinimoValor) {
+            const faltam = (pedidoMinimoValor - subtotalComDescontoAtual).toFixed(2).replace('.', ',');
+            alert(`Pedido mínimo de R$ ${pedidoMinimoValor.toFixed(2).replace('.', ',')} — faltam R$ ${faltam} pra você poder finalizar.`);
+            return;
+        }
     }
 
     // Coleta os dados do formulário

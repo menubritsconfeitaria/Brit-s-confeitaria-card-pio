@@ -580,6 +580,23 @@ function definirModoLoja(modo) {
 // Ativa/desativa o recurso de Adicionais por Produto — quando desativado, o campo some
 // do formulário de cadastro (deixa mais simples pra quem não usa) e o modal de escolha
 // nunca aparece pro cliente, mesmo que algum produto ainda tenha grupos configurados
+// Aceita tanto vírgula quanto ponto como separador decimal (ex: "45,00" ou "45.00")
+function paraNumeroFlexivel(texto) {
+    if (!texto) return 0;
+    const n = parseFloat(String(texto).trim().replace(',', '.'));
+    return isNaN(n) || n < 0 ? 0 : n;
+}
+
+function salvarPedidoMinimoEFreteGratis() {
+    const pedidoMinimo = paraNumeroFlexivel(document.getElementById('valorPedidoMinimo').value);
+    const freteGratisAcima = paraNumeroFlexivel(document.getElementById('valorFreteGratisAcima').value);
+    const msgEl = document.getElementById('pedidoMinimoMsg');
+
+    db.ref('configuracao/loja').update({ pedidoMinimo, freteGratisAcima })
+        .then(() => { msgEl.textContent = 'Salvo!'; })
+        .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+}
+
 function salvarAdicionaisAtivo(ativo) {
     db.ref('configuracao/loja/adicionaisAtivo').set(!!ativo)
         .catch(err => alert('Erro ao atualizar os adicionais: ' + err.message));
@@ -912,6 +929,11 @@ function escutarConfigLoja() {
         adicionaisAtivo = !!config.adicionaisAtivo;
         const chkAdicionais = document.getElementById('chkAdicionaisAtivo');
         if (chkAdicionais) chkAdicionais.checked = adicionaisAtivo;
+
+        const campoPedidoMinimo = document.getElementById('valorPedidoMinimo');
+        const campoFreteGratis = document.getElementById('valorFreteGratisAcima');
+        if (campoPedidoMinimo) campoPedidoMinimo.value = config.pedidoMinimo || '';
+        if (campoFreteGratis) campoFreteGratis.value = config.freteGratisAcima || '';
     });
 }
 
@@ -959,6 +981,9 @@ function montarLinhaProduto(id, produto) {
             <input type="text" id="prodNome_${id}" value="${produto.nome || ''}" placeholder="Nome do produto">
             <label class="produto-disponivel-check">
                 <input type="checkbox" id="prodDisp_${id}" ${produto.disponivel !== false ? 'checked' : ''}> Disponível
+            </label>
+            <label class="produto-disponivel-check">
+                <input type="checkbox" id="prodEscondido_${id}" ${produto.escondido ? 'checked' : ''}> Esconder do cardápio
             </label>
         </div>
         <textarea id="prodDesc_${id}" placeholder="Descrição" rows="2">${produto.descricao || ''}</textarea>
@@ -1141,6 +1166,7 @@ function salvarProduto(id) {
     const imagensTexto = document.getElementById('prodImagens_' + id).value.trim();
     const categoria = document.getElementById('prodCategoria_' + id).value.trim();
     const disponivel = document.getElementById('prodDisp_' + id).checked;
+    const escondido = document.getElementById('prodEscondido_' + id).checked;
     const variantesTexto = document.getElementById('prodVariantes_' + id).value.trim();
     const adicionaisTexto = document.getElementById('prodAdicionais_' + id).value.trim();
 
@@ -1151,7 +1177,7 @@ function salvarProduto(id) {
         return;
     }
 
-    const dados = { nome, descricao, preco, imagem: imagens[0], imagens, categoria, disponivel, precoOriginal: null, variantes: null, grupoAdicionais: null };
+    const dados = { nome, descricao, preco, imagem: imagens[0], imagens, categoria, disponivel, escondido, precoOriginal: null, variantes: null, grupoAdicionais: null };
 
     if (!isNaN(precoOriginal) && precoOriginal > preco) {
         dados.precoOriginal = precoOriginal;

@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin.css">
+    <link rel="icon" type="image/png" href="logopng.png">
 </head>
 <body>
 
@@ -121,6 +122,17 @@
                         <input type="checkbox" id="chkAdicionaisAtivo" onchange="salvarAdicionaisAtivo(this.checked)">
                         Adicionais por Produto ativado
                     </label>
+                </div>
+
+                <div class="loja-status-card" style="margin-top:16px;">
+                    <h3>🛒 Pedido Mínimo e Frete Grátis</h3>
+                    <p class="dica-secao">Deixa em branco ou zero pra desativar qualquer um dos dois.</p>
+                    <label class="campo-label">Valor mínimo do pedido (R$)</label>
+                    <input type="text" inputmode="decimal" id="valorPedidoMinimo" placeholder="Ex: 20 (deixa vazio pra não ter mínimo)">
+                    <label class="campo-label" style="margin-top:10px;">Frete grátis a partir de (R$)</label>
+                    <input type="text" inputmode="decimal" id="valorFreteGratisAcima" placeholder="Ex: 80 (deixa vazio pra não ter frete grátis)">
+                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="salvarPedidoMinimoEFreteGratis()">💾 Salvar</button>
+                    <p id="pedidoMinimoMsg" class="ordem-categorias-msg"></p>
                 </div>
 
                 <div class="loja-status-card" style="margin-top:16px;">
