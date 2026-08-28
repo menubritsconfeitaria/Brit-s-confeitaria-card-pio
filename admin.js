@@ -688,7 +688,7 @@ function enviarNotificacaoPersonalizadaDoPainel() {
 function escutarHistoricoNotificacoes() {
     const container = document.getElementById('listaHistoricoNotificacoes');
     if (!container) return;
-    db.ref('notificacoesEnviadas').limitToLast(20).on('value', snap => {
+    db.ref('notificacoesEnviadas').limitToLast(50).on('value', snap => {
         const registros = snap.val() || {};
         const lista = Object.entries(registros)
             .map(([id, n]) => ({ id, ...n }))
