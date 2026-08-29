@@ -25,7 +25,7 @@ const LOJA_CONFIG = {
 
     // Cidade/região atendida pelo delivery — aparece no cabeçalho, ajuda o cliente
     // a confirmar rapidinho que está no lugar certo (deixe "" pra não mostrar)
-    cidade: "Colatina/ES",
+    cidade: "COLATINA/ES",
 
     // Arquivo da logo (precisa estar na mesma pasta do index.html)
     logo: "logopng.png",
