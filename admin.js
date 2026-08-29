@@ -391,9 +391,17 @@ let pedidosParaImpressao = {};
 function montarTagPagamento(pedido) {
     if (!pedido.pagamento) return '';
     const p = pedido.pagamento;
+    const ehSinal = p.tipoPagamento === 'sinal';
+    const totalPedido = totalDoPedido(pedido);
+    const restante = ehSinal && p.valorSinal != null ? formatarPreco(totalPedido - p.valorSinal) : null;
+
     const tags = {
-        aguardando: '<span class="pedido-tag tag-pagamento-aguardando">🟡 Aguardando pagamento</span>',
-        pago: `<span class="pedido-tag tag-pagamento-pago">🟢 Pago (${p.metodo || 'Online'})</span>`,
+        aguardando: ehSinal
+            ? `<span class="pedido-tag tag-pagamento-aguardando">🟡 Aguardando sinal (${p.percentualSinal}% = ${formatarPreco(p.valorSinal)})</span>`
+            : '<span class="pedido-tag tag-pagamento-aguardando">🟡 Aguardando pagamento</span>',
+        pago: ehSinal
+            ? `<span class="pedido-tag tag-pagamento-pago">🟢 Sinal pago (${formatarPreco(p.valorSinal)}) — falta ${restante} na entrega</span>`
+            : `<span class="pedido-tag tag-pagamento-pago">🟢 Pago (${p.metodo || 'Online'})</span>`,
         divergente: '<span class="pedido-tag tag-pagamento-divergente">⚠️ Valor divergente — confira</span>'
     };
     let html = tags[p.status] || '';
@@ -670,6 +678,16 @@ function salvarAgendamentoAtivo(ativo) {
         .catch(err => alert('Erro ao atualizar o agendamento: ' + err.message));
 }
 
+// Salva a configuração do sinal (percentual + prazo de pagamento)
+function salvarConfigSinal() {
+    const percentualSinal = parseInt(document.getElementById('percentualSinal').value, 10) || 0;
+    const prazoPagamentoHoras = parseInt(document.getElementById('prazoPagamentoHoras').value, 10) || 24;
+    const msgEl = document.getElementById('configSinalMsg');
+    db.ref('configuracao/agenda').update({ percentualSinal, prazoPagamentoHoras })
+        .then(() => { msgEl.textContent = 'Salvo!'; })
+        .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+}
+
 // Salva o limite de encomendas por dia
 function salvarCapacidadeAgenda() {
     const valor = parseInt(document.getElementById('capacidadeMaximaDia').value, 10) || 0;
@@ -707,6 +725,11 @@ function escutarConfigAgenda() {
 
         const campoCapacidade = document.getElementById('capacidadeMaximaDia');
         if (campoCapacidade) campoCapacidade.value = config.capacidadeMaximaDia || '';
+
+        const campoPercentualSinal = document.getElementById('percentualSinal');
+        if (campoPercentualSinal) campoPercentualSinal.value = config.percentualSinal || '';
+        const campoPrazoPagamento = document.getElementById('prazoPagamentoHoras');
+        if (campoPrazoPagamento) campoPrazoPagamento.value = config.prazoPagamentoHoras || '';
 
         const lista = document.getElementById('listaDatasBloqueadas');
         if (!lista) return;

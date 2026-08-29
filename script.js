@@ -287,6 +287,7 @@ let lojaAbertaAtual = true;
 let pagamentoOnlineAtivo = false; // só vira true se a loja ativou isso no painel
 let adicionaisAtivo = false; // idem, pro recurso de adicionais por produto
 let agendamentoAtivo = false; // idem, pro recurso de encomenda com data agendada
+let percentualSinalEncomenda = 0; // 0 = não exige sinal, encomenda segue o fluxo combinado normal
 let pedidoMinimoValor = 0; // 0 = sem pedido mínimo configurado
 let freteGratisAcimaValor = 0; // 0 = sem frete grátis por valor configurado
 let modoDemoAtivo = false; // true enquanto a prévia personalizada está ativa
@@ -405,6 +406,11 @@ function escutarStatusLoja() {
     setInterval(() => {
         firebase.database().ref('configuracao/loja').once('value').then(snap => atualizarStatusLoja(snap.val()));
     }, 60000);
+
+    // Escuta a configuração do sinal de encomenda separadamente (nó diferente)
+    firebase.database().ref('configuracao/agenda/percentualSinal').on('value', snap => {
+        percentualSinalEncomenda = snap.val() || 0;
+    });
 }
 
 // Carrega o cardápio do Firebase e re-renderiza sozinho sempre que algo mudar no painel
@@ -1605,6 +1611,34 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         nome, telefone, rua, numero, complemento, bairro, cidade, estado, cep,
         tipoEntrega: tipoEntregaAtual
     }));
+
+    // Se é uma encomenda agendada E a loja exige sinal de confirmação, o fluxo cobra só
+    // uma % do valor (nunca o pedido inteiro) — funciona independente da forma de
+    // pagamento escolhida, já que o sinal é sempre via Pix/Cartão pra confirmar de verdade
+    if (querAgendar && percentualSinalEncomenda > 0) {
+        if (!pedidoId) {
+            alert('Não foi possível criar o pedido agora. Tente novamente em instantes.');
+            return;
+        }
+        botaoFinalizarCompra.disabled = true;
+        botaoFinalizarCompra.textContent = 'Preparando pagamento do sinal...';
+        try {
+            await promessaSalvo;
+            const criarCheckoutSinal = firebase.functions().httpsCallable('criarCheckoutSinalEncomenda');
+            const resultado = await criarCheckoutSinal({ pedidoId });
+            carrinho = [];
+            salvarCarrinho();
+            atualizarCarrinhoHTML();
+            limparFormularioEndereco();
+            window.location.href = resultado.data.checkoutUrl;
+        } catch (err) {
+            console.log('Não foi possível criar o checkout do sinal:', err.message, '| Detalhes:', JSON.stringify(err.details));
+            alert('Não foi possível iniciar o pagamento do sinal. Tente novamente.');
+            botaoFinalizarCompra.disabled = false;
+            botaoFinalizarCompra.textContent = 'Finalizar Compra';
+        }
+        return;
+    }
 
     // Se o cliente escolheu pagar online, o fluxo é diferente: em vez de ir pro WhatsApp,
     // manda pro checkout da InfinitePay (Pix ou Cartão), e só confirma o pedido de verdade

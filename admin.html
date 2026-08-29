@@ -217,6 +217,23 @@
                 </div>
 
                 <div class="loja-status-card" style="margin-top:16px;">
+                    <h3>💰 Sinal de confirmação (opcional)</h3>
+                    <p class="dica-secao">
+                        Se configurado, toda encomenda com data agendada passa a exigir o
+                        pagamento de um sinal (uma % do valor) via Pix/Cartão pra confirmar de
+                        verdade a reserva — sem pagar dentro do prazo, o pedido é cancelado
+                        sozinho. Deixa em 0 pra não exigir sinal nenhum (só WhatsApp, como já era).
+                        <strong>Precisa ter a InfiniteTag configurada</strong> (mesma do pagamento online).
+                    </p>
+                    <label class="campo-label">Percentual do sinal (%)</label>
+                    <input type="text" inputmode="numeric" id="percentualSinal" placeholder="Ex: 50 (deixa 0 ou vazio pra não exigir sinal)">
+                    <label class="campo-label" style="margin-top:10px;">Prazo pra pagar o sinal (horas)</label>
+                    <input type="text" inputmode="numeric" id="prazoPagamentoHoras" placeholder="Ex: 24">
+                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="salvarConfigSinal()">💾 Salvar</button>
+                    <p id="configSinalMsg" class="ordem-categorias-msg"></p>
+                </div>
+
+                <div class="loja-status-card" style="margin-top:16px;">
                     <h3>🚫 Bloquear um dia específico</h3>
                     <p class="dica-secao">Pra férias, feriado, ou qualquer dia que você já sabe que não vai conseguir atender encomenda nenhuma.</p>
                     <input type="date" id="dataParaBloquear">
