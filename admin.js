@@ -12,6 +12,9 @@ function aplicarConfigDaLojaNoAdmin() {
     const painelLogo = document.getElementById('painelLogo');
     if (painelLogo) { painelLogo.src = LOJA_CONFIG.logo; painelLogo.alt = `Logo ${LOJA_CONFIG.nome}`; }
 
+    const tituloAba = document.getElementById('tituloAba');
+    if (tituloAba) tituloAba.textContent = `Painel de Pedidos - ${LOJA_CONFIG.nome}`;
+
     const clubeTituloAdmin = document.getElementById('clubeTituloAdmin');
     if (clubeTituloAdmin) clubeTituloAdmin.textContent = `⭐ Clube ${LOJA_CONFIG.nomeCurto} (Fidelidade)`;
 }
