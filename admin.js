@@ -663,6 +663,70 @@ function usarModeloNotificacao(titulo, corpo) {
 
 // Mostra, em tempo real, quantos aparelhos estão prontos pra receber notificação —
 // número real, direto do Firebase, nunca inventado
+// Ativa/desativa o recurso de Agendamento de Encomendas — mesmo padrão do interruptor
+// de pagamento online e adicionais: desativado some do cardápio, sem afetar nada mais
+function salvarAgendamentoAtivo(ativo) {
+    db.ref('configuracao/loja/agendamentoAtivo').set(!!ativo)
+        .catch(err => alert('Erro ao atualizar o agendamento: ' + err.message));
+}
+
+// Salva o limite de encomendas por dia
+function salvarCapacidadeAgenda() {
+    const valor = parseInt(document.getElementById('capacidadeMaximaDia').value, 10) || 0;
+    const msgEl = document.getElementById('capacidadeAgendaMsg');
+    db.ref('configuracao/agenda/capacidadeMaximaDia').set(valor)
+        .then(() => { msgEl.textContent = 'Salvo!'; })
+        .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+}
+
+// Bloqueia manualmente um dia específico (férias, feriado, etc.)
+function bloquearDataAgenda() {
+    const data = document.getElementById('dataParaBloquear').value;
+    const msgEl = document.getElementById('bloquearDataMsg');
+    if (!data) { msgEl.textContent = 'Escolhe uma data primeiro.'; return; }
+
+    db.ref('configuracao/agenda/datasBloqueadas/' + data).set(true)
+        .then(() => {
+            msgEl.textContent = 'Dia bloqueado!';
+            document.getElementById('dataParaBloquear').value = '';
+        })
+        .catch(err => { msgEl.textContent = 'Erro ao bloquear: ' + err.message; });
+}
+
+// Desbloqueia um dia que tinha sido bloqueado antes
+function desbloquearDataAgenda(data) {
+    db.ref('configuracao/agenda/datasBloqueadas/' + data).remove()
+        .catch(err => alert('Erro ao desbloquear: ' + err.message));
+}
+
+// Escuta a configuração da agenda em tempo real, preenchendo o campo de capacidade
+// e a lista de dias bloqueados
+function escutarConfigAgenda() {
+    db.ref('configuracao/agenda').on('value', snap => {
+        const config = snap.val() || {};
+
+        const campoCapacidade = document.getElementById('capacidadeMaximaDia');
+        if (campoCapacidade) campoCapacidade.value = config.capacidadeMaximaDia || '';
+
+        const lista = document.getElementById('listaDatasBloqueadas');
+        if (!lista) return;
+        const datas = Object.keys(config.datasBloqueadas || {}).sort();
+        if (datas.length === 0) {
+            lista.innerHTML = '<p class="dica-secao">Nenhum dia bloqueado.</p>';
+            return;
+        }
+        lista.innerHTML = datas.map(data => {
+            const dataFormatada = data.split('-').reverse().join('/');
+            return `
+                <div class="loja-status-card" style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                    <strong>${dataFormatada}</strong>
+                    <button class="btn-secondary" onclick="desbloquearDataAgenda('${data}')">Desbloquear</button>
+                </div>
+            `;
+        }).join('');
+    });
+}
+
 function escutarContadorDestinatarios() {
     const el = document.getElementById('contadorDestinatarios');
     if (!el) return;
@@ -936,6 +1000,9 @@ function escutarConfigLoja() {
         adicionaisAtivo = !!config.adicionaisAtivo;
         const chkAdicionais = document.getElementById('chkAdicionaisAtivo');
         if (chkAdicionais) chkAdicionais.checked = adicionaisAtivo;
+
+        const chkAgendamento = document.getElementById('chkAgendamentoAtivo');
+        if (chkAgendamento) chkAgendamento.checked = !!config.agendamentoAtivo;
 
         const campoPedidoMinimo = document.getElementById('valorPedidoMinimo');
         const campoFreteGratis = document.getElementById('valorFreteGratisAcima');
@@ -1876,6 +1943,7 @@ function iniciarEscutaPedidos() {
     escutarStatusAssinatura();
     escutarFormatoImpressao();
     escutarContadorDestinatarios();
+    escutarConfigAgenda();
     escutarHistoricoNotificacoes();
     const previaLojaNomeEl = document.getElementById('previaLojaNome');
     if (previaLojaNomeEl) previaLojaNomeEl.textContent = LOJA_CONFIG.nome;

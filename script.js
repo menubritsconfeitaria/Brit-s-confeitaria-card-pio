@@ -78,6 +78,7 @@ const valorPorKm = 0.70;
 
 // Estado atual do cálculo de frete (retirada é a opção padrão, então começa sem frete)
 let freteAtual = 0;
+let dataEncomendaVerificada = null; // guarda a última data checada e se estava disponível, pra não deixar finalizar sem checar
 let freteConfirmado = true;
 
 // Referências aos elementos HTML
@@ -285,6 +286,7 @@ aplicarConfigDaLoja(LOJA_CONFIG); // aplica a configuração real assim que a p�
 let lojaAbertaAtual = true;
 let pagamentoOnlineAtivo = false; // só vira true se a loja ativou isso no painel
 let adicionaisAtivo = false; // idem, pro recurso de adicionais por produto
+let agendamentoAtivo = false; // idem, pro recurso de encomenda com data agendada
 let pedidoMinimoValor = 0; // 0 = sem pedido mínimo configurado
 let freteGratisAcimaValor = 0; // 0 = sem frete grátis por valor configurado
 let modoDemoAtivo = false; // true enquanto a prévia personalizada está ativa
@@ -319,6 +321,18 @@ function atualizarStatusLoja(config) {
     // pra decidir se Pix/Cartão exigem pagar na hora ou continuam combinados como sempre
     pagamentoOnlineAtivo = !!(config && config.pagamentoOnlineAtivo);
     adicionaisAtivo = !!(config && config.adicionaisAtivo);
+
+    const agendamentoAtivoConfig = !!(config && config.agendamentoAtivo);
+    agendamentoAtivo = agendamentoAtivoConfig;
+    const opcaoAgendar = document.getElementById('opcaoAgendarEncomenda');
+    if (opcaoAgendar) opcaoAgendar.style.display = agendamentoAtivoConfig ? 'flex' : 'none';
+    // Se desativou o recurso mas o cliente já tinha marcado antes, desmarca e some tudo
+    if (!agendamentoAtivoConfig) {
+        const chkAgendar = document.getElementById('clienteQuerAgendar');
+        const areaData = document.getElementById('areaDataEncomenda');
+        if (chkAgendar) chkAgendar.checked = false;
+        if (areaData) areaData.style.display = 'none';
+    }
     pedidoMinimoValor = (config && config.pedidoMinimo) || 0;
     freteGratisAcimaValor = (config && config.freteGratisAcima) || 0;
 
@@ -602,6 +616,34 @@ function selecionarPagamento(forma) {
     const vaiPagarAgora = pagamentoOnlineAtivo && (forma === 'Pix' || forma === 'Cartão');
     if (botaoFinalizarCompra && lojaAbertaAtual) {
         botaoFinalizarCompra.textContent = vaiPagarAgora ? '🌐 Pagar Agora' : 'Finalizar Compra';
+    }
+}
+
+// Consulta o servidor pra saber se a data escolhida pra encomenda está disponível
+// (não bloqueada manualmente, e ainda tem vaga dentro do limite do dia, se houver)
+async function verificarDisponibilidadeAgenda() {
+    const data = document.getElementById('clienteDataEncomenda').value;
+    const msgEl = document.getElementById('disponibilidadeAgendaMsg');
+    if (!data) { msgEl.textContent = ''; dataEncomendaVerificada = null; return; }
+
+    msgEl.textContent = 'Verificando disponibilidade...';
+    dataEncomendaVerificada = null;
+
+    try {
+        const verificar = firebase.functions().httpsCallable('verificarDisponibilidadeData');
+        const resultado = await verificar({ data });
+
+        if (resultado.data.disponivel) {
+            const vagasTexto = resultado.data.vagasRestantes != null ? ` (${resultado.data.vagasRestantes} vaga(s) restante(s))` : '';
+            msgEl.textContent = `✅ Data disponível!${vagasTexto}`;
+            dataEncomendaVerificada = data;
+        } else if (resultado.data.motivo === 'bloqueada') {
+            msgEl.textContent = '❌ Não atendemos encomendas nessa data. Escolha outra, por favor.';
+        } else {
+            msgEl.textContent = '❌ Essa data já está com a agenda lotada. Escolha outra, por favor.';
+        }
+    } catch (err) {
+        msgEl.textContent = 'Não foi possível verificar a disponibilidade agora — tente de novo em instantes.';
     }
 }
 
@@ -1447,12 +1489,18 @@ botaoFinalizarCompra.addEventListener('click', async () => {
     const cep = cepClienteInput.value.trim();
     const troco = clienteTrocoInput.value.trim();
     const obs = clienteObsInput.value.trim();
-    const querAgendar = document.getElementById('clienteQuerAgendar').checked;
+    const querAgendar = agendamentoAtivo && document.getElementById('clienteQuerAgendar').checked;
     const dataEncomenda = document.getElementById('clienteDataEncomenda').value;
 
-    // Se marcou que é uma encomenda com data, exige escolher a data
+    // Se marcou que é uma encomenda com data, exige escolher a data E que ela tenha
+    // sido verificada como disponível (evita finalizar sem checar, ou depois de mudar
+    // a data sem verificar de novo)
     if (querAgendar && !dataEncomenda) {
         alert('Escolha a data desejada pra encomenda, ou desmarque a opção de agendamento.');
+        return;
+    }
+    if (querAgendar && dataEncomendaVerificada !== dataEncomenda) {
+        alert('Confirma a disponibilidade da data escolhida antes de finalizar (aguarde a verificação, ou escolha a data de novo).');
         return;
     }
 

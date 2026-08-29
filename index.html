@@ -147,13 +147,14 @@
                     <input type="text" id="clienteTroco" placeholder="Ex: R$ 50,00">
                 </div>
 
-                <label class="checkbox-encomenda">
+                <label class="checkbox-encomenda" id="opcaoAgendarEncomenda" style="display:none;">
                     <input type="checkbox" id="clienteQuerAgendar" onchange="document.getElementById('areaDataEncomenda').style.display = this.checked ? 'block' : 'none';">
                     📅 Esse pedido é uma encomenda pra uma data específica (ex: bolo de festa)
                 </label>
                 <div id="areaDataEncomenda" style="display:none;">
                     <label>Data desejada pra encomenda</label>
-                    <input type="date" id="clienteDataEncomenda">
+                    <input type="date" id="clienteDataEncomenda" onchange="verificarDisponibilidadeAgenda()">
+                    <p id="disponibilidadeAgendaMsg" class="dica-encomenda"></p>
                     <p class="dica-encomenda">Isso não é uma confirmação automática — a Brit's Confeitaria vai entrar em contato pra confirmar disponibilidade dessa data.</p>
                 </div>
 
