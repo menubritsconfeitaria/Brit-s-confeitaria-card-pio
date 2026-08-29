@@ -249,6 +249,9 @@ function aplicarConfigDaLoja(config) {
     const headerP = document.querySelector('header p');
     if (headerP) headerP.textContent = config.subtitulo;
 
+    const headerCidade = document.getElementById('headerCidade');
+    if (headerCidade) headerCidade.textContent = config.cidade ? `📍 Atendemos ${config.cidade}` : '';
+
     const headerLogo = document.querySelector('header .logo');
     if (headerLogo) { headerLogo.src = config.logo; headerLogo.alt = `Logo ${config.nome}`; }
 
