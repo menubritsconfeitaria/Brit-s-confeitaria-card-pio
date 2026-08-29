@@ -645,7 +645,7 @@ async function calcularFrete() {
             } else {
                 freteAtual = 0;
                 freteConfirmado = false;
-                infoFreteDiv.textContent = `Bairro (${dados.bairro || 'não identificado'}) fora da área calculada automaticamente. O valor da entrega será confirmado pelo WhatsApp.`;
+                infoFreteDiv.textContent = `😕 No momento não atendemos entrega no bairro "${dados.bairro || 'informado'}". Se preferir, você pode escolher retirar no local, ou entrar em contato pelo WhatsApp pra confirmar.`;
             }
         }
     } catch (err) {
@@ -1447,6 +1447,14 @@ botaoFinalizarCompra.addEventListener('click', async () => {
     const cep = cepClienteInput.value.trim();
     const troco = clienteTrocoInput.value.trim();
     const obs = clienteObsInput.value.trim();
+    const querAgendar = document.getElementById('clienteQuerAgendar').checked;
+    const dataEncomenda = document.getElementById('clienteDataEncomenda').value;
+
+    // Se marcou que é uma encomenda com data, exige escolher a data
+    if (querAgendar && !dataEncomenda) {
+        alert('Escolha a data desejada pra encomenda, ou desmarque a opção de agendamento.');
+        return;
+    }
 
     // Validação simples dos campos obrigatórios
     if (!nome || !telefone) {
@@ -1485,6 +1493,10 @@ botaoFinalizarCompra.addEventListener('click', async () => {
     mensagemPedido += `*Cliente:* ${nome}\n`;
     mensagemPedido += `*Telefone:* ${telefone}\n`;
     mensagemPedido += `*Tipo:* ${tipoEntregaAtual === 'entrega' ? 'Entrega' : 'Retirada no local'}\n`;
+    if (querAgendar && dataEncomenda) {
+        const [ano, mes, dia] = dataEncomenda.split('-');
+        mensagemPedido += `📅 *ENCOMENDA PRA:* ${dia}/${mes}/${ano} (confirmar disponibilidade com o cliente)\n`;
+    }
     if (tipoEntregaAtual === 'entrega') {
         mensagemPedido += `*Endereço:* ${rua}, ${numero} ${complemento ? `(${complemento})` : ''}\n`;
         mensagemPedido += `*Bairro:* ${bairro}\n`;
@@ -1510,6 +1522,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         formaPagamento: formaPagamentoAtual,
         troco: (formaPagamentoAtual === 'Dinheiro' && troco) ? troco : null,
         observacoes: obs || null,
+        dataEncomenda: querAgendar && dataEncomenda ? dataEncomenda : null,
         itens: carrinho.map(item => ({ nome: item.nome, preco: item.preco, quantidade: item.quantidade, observacao: item.observacao || null, adicionaisTexto: item.adicionaisTexto || null })),
         subtotal: subtotalPedido,
         cupom: cupomAplicado ? cupomAplicado.codigo : null,
@@ -1548,7 +1561,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
     // Se o cliente escolheu pagar online, o fluxo é diferente: em vez de ir pro WhatsApp,
     // manda pro checkout da InfinitePay (Pix ou Cartão), e só confirma o pedido de verdade
     // quando o pagamento realmente cair (isso quem confirma é o Webhook, não essa tela)
-    if (pagamentoOnlineAtivo && (formaPagamentoAtual === 'Pix' || formaPagamentoAtual === 'Cartão')) {
+    if (pagamentoOnlineAtivo && !querAgendar && (formaPagamentoAtual === 'Pix' || formaPagamentoAtual === 'Cartão')) {
         if (!pedidoId) {
             alert('Não foi possível criar o pedido agora. Tente novamente em instantes.');
             return;
@@ -1581,6 +1594,13 @@ botaoFinalizarCompra.addEventListener('click', async () => {
 
     // Abre o WhatsApp em uma nova aba
     window.open(linkWhatsApp, '_blank');
+
+    // Se foi marcado como encomenda com data, mostra um aviso extra de que
+    // não é confirmação automática — a loja ainda precisa confirmar por fora
+    if (querAgendar && dataEncomenda) {
+        const [ano, mes, dia] = dataEncomenda.split('-');
+        alert(`📅 Pedido de encomenda enviado!\n\nA ${LOJA_CONFIG.nome} vai entrar em contato pra confirmar a disponibilidade da data solicitada (${dia}/${mes}/${ano}).`);
+    }
 
     // Limpa o carrinho e o formulário após o envio para o WhatsApp
     carrinho = [];

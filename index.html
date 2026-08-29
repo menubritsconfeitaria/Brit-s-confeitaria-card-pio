@@ -147,6 +147,16 @@
                     <input type="text" id="clienteTroco" placeholder="Ex: R$ 50,00">
                 </div>
 
+                <label class="checkbox-encomenda">
+                    <input type="checkbox" id="clienteQuerAgendar" onchange="document.getElementById('areaDataEncomenda').style.display = this.checked ? 'block' : 'none';">
+                    📅 Esse pedido é uma encomenda pra uma data específica (ex: bolo de festa)
+                </label>
+                <div id="areaDataEncomenda" style="display:none;">
+                    <label>Data desejada pra encomenda</label>
+                    <input type="date" id="clienteDataEncomenda">
+                    <p class="dica-encomenda">Isso não é uma confirmação automática — a Brit's Confeitaria vai entrar em contato pra confirmar disponibilidade dessa data.</p>
+                </div>
+
                 <label>Observações (opcional)</label>
                 <textarea id="clienteObs" rows="2" placeholder="Ex: sem lactose, para uma festa, etc."></textarea>
             </div>
@@ -190,6 +200,56 @@
                 </div>
             </div>
 
+            <section class="personalizar-secao">
+                <button type="button" class="personalizar-chamada" onclick="alternarPersonalizarConteudo()">
+                    ➡️ Tenha o seu cardápio digital personalizado com a sua marca
+                </button>
+
+                <div id="personalizarConteudo" class="personalizar-conteudo" style="display:none;">
+                    <p class="personalizar-subtitulo">Veja como ficaria o SEU cardápio, com a SUA marca — é só preencher aqui embaixo:</p>
+
+                    <div class="personalizar-grid">
+                        <div class="personalizar-form">
+                            <label for="pcNomeLoja">Nome da sua loja</label>
+                            <input type="text" id="pcNomeLoja" placeholder="Ex: Doces da Maria" maxlength="40">
+
+                            <label for="pcLogoInput">Sua logo (opcional, imagem quadrada fica melhor)</label>
+                            <input type="file" id="pcLogoInput" accept="image/*">
+
+                            <label for="pcWhatsapp">Seu WhatsApp</label>
+                            <input type="text" id="pcWhatsapp" placeholder="Ex: 27 99999-8888">
+
+                            <label for="pcInstagram">Seu Instagram (opcional)</label>
+                            <input type="text" id="pcInstagram" placeholder="Ex: @doces.damaria">
+
+                            <label for="pcCorPrincipal">Cor principal da sua marca</label>
+                            <input type="color" id="pcCorPrincipal" value="#a0522d">
+
+                            <button type="button" class="btn-ver-previa" onclick="ativarModoDemoCompleto()">👀 Ver meu cardápio assim, no site inteiro!</button>
+                            <button type="button" onclick="enviarInteressePersonalizado()">📲 Quero o meu cardápio assim!</button>
+                        </div>
+
+                        <div class="personalizar-preview">
+                            <p class="preview-legenda">👆 Prévia em tempo real</p>
+                            <div class="preview-mini-cardapio" id="pcPreviewCaixa">
+                                <img id="pcPreviewLogo" src="logopng.png" alt="Prévia da sua logo">
+                                <h3 id="pcPreviewNome">Bem-vindo à Sua Loja!</h3>
+                                <p>Seu cardápio diário de delícias frescas.</p>
+                            <div class="preview-botao-exemplo" id="pcPreviewBotao">Fazer pedido</div>
+                        </div>
+                    </div>
+                    </div>
+
+                    <ul class="personalizar-beneficios">
+                        <li>✅ Painel de controle completo: aceite pedidos, cadastre produtos e acompanhe tudo em tempo real</li>
+                        <li>✅ Cardápio sempre atualizado, sem precisar reimprimir nada</li>
+                        <li>✅ Pedidos organizados automaticamente, sem bagunça no WhatsApp</li>
+                        <li>✅ Cupons, clube de fidelidade e notificações de oferta pra fidelizar seus clientes</li>
+                        <li>✅ Relatório pronto do dia, fácil de conferir e fechar o caixa</li>
+                        <li>✅ Fácil de usar, sem precisar saber nada de tecnologia</li>
+                    </ul>
+                </div>
+            </section>
         </div>
     </main>
 

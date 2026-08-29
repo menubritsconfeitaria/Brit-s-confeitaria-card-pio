@@ -1401,3 +1401,18 @@ footer {
     font-size: 0.95em;
     cursor: pointer;
 }
+
+/* Checkbox de encomenda com data agendada */
+.checkbox-encomenda {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9em;
+    margin: 12px 0 6px;
+    cursor: pointer;
+}
+.dica-encomenda {
+    font-size: 0.8em;
+    color: var(--muted);
+    margin: 4px 0 10px;
+}
