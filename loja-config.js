@@ -12,18 +12,37 @@
  *   - Cadastrar os produtos, categorias e horários no painel admin
  *   - Se for usar notificação push: gerar uma VAPID_KEY nova (em script.js) e
  *     publicar a Cloud Function (functions/index.js) nesse projeto Firebase novo
- *   - Se for usar pagamento online: configurar a InfiniteTag em functions/loja-config.js
  */
 const LOJA_CONFIG = {
-    nome: "NOME DA LOJA AQUI",
-    nomeCurto: "NOME CURTO AQUI",
-    subtitulo: "Frase curta que aparece embaixo do nome, no cabeçalho.",
-    cidade: "CIDADE-DO-CLIENTE/UF",
+    // Nome completo da loja, como aparece no cabeçalho, título da aba e mensagens
+    nome: "Brit's Confeitaria",
+
+    // Versão curta do nome, usada em lugares menores (ex: "Clube Brit's")
+    nomeCurto: "Brit's",
+
+    // Frase que aparece embaixo do nome, no cabeçalho
+    subtitulo: "Seu cardápio diário de delícias frescas.",
+
+    // Cidade/região atendida pelo delivery — aparece no cabeçalho, ajuda o cliente
+    // a confirmar rapidinho que está no lugar certo (deixe "" pra não mostrar)
+    cidade: "Colatina/ES",
+
+    // Arquivo da logo (precisa estar na mesma pasta do index.html)
     logo: "logopng.png",
-    whatsappPedidos: "55DDDNUMERO",
-    instagramUrl: "",
-    urlCardapio: "https://URL-DO-CARDAPIO-DESSE-CLIENTE/",
+
+    // WhatsApp que recebe os PEDIDOS dos clientes (só números, com DDI 55 + DDD)
+    whatsappPedidos: "5527997633871",
+
+    // Link completo do Instagram da loja (deixe "" pra não mostrar o ícone)
+    instagramUrl: "https://www.instagram.com/brites.doces/",
+
+    // URL onde esse cardápio fica publicado (usada nas tags de compartilhamento)
+    urlCardapio: "https://menubritsconfeitaria.github.io/Brit-s-confeitaria-card-pio/",
+
+    // Cores da marca (aceita qualquer cor CSS válida, ex: "#a0522d" ou "rgb(160,82,45)")
     corPrimaria: "#a0522d",
     corAccent: "#c9974c",
+
+    // Ano mostrado no rodapé, junto com o nome da loja
     anoCopyright: "2026"
 };
