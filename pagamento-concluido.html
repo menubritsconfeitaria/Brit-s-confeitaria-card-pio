@@ -40,6 +40,7 @@
         text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: 700;
     }
 </style>
+<link rel="icon" type="image/png" href="logopng.png">
 </head>
 <body>
     <div class="cartao">
@@ -81,10 +82,17 @@
                 numeroTexto.textContent = pedido.numero ? `Pedido #${String(pedido.numero).padStart(3, '0')}` : '';
 
                 const status = pedido.pagamento && pedido.pagamento.status;
+                const ehSinal = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal';
                 if (status === 'pago') {
                     statusBadge.className = 'status-badge status-pago';
-                    statusBadge.innerHTML = '🟢 Pagamento confirmado!';
-                    statusTexto.textContent = `${LOJA_CONFIG ? LOJA_CONFIG.nome : 'A loja'} já recebeu seu pagamento e vai preparar seu pedido.`;
+                    if (ehSinal) {
+                        const valorSinalTexto = `R$ ${Number(pedido.pagamento.valorSinal).toFixed(2).replace('.', ',')}`;
+                        statusBadge.innerHTML = '🟢 Sinal confirmado!';
+                        statusTexto.textContent = `Recebemos o sinal de ${valorSinalTexto} e sua encomenda pro dia ${pedido.dataEncomenda ? pedido.dataEncomenda.split('-').reverse().join('/') : ''} está confirmada! O restante fica combinado pra hora da entrega.`;
+                    } else {
+                        statusBadge.innerHTML = '🟢 Pagamento confirmado!';
+                        statusTexto.textContent = `${LOJA_CONFIG ? LOJA_CONFIG.nome : 'A loja'} já recebeu seu pagamento e vai preparar seu pedido.`;
+                    }
                 } else if (status === 'divergente') {
                     statusBadge.className = 'status-badge status-divergente';
                     statusBadge.innerHTML = '⚠️ Precisa de atenção';
