@@ -11,7 +11,9 @@ let carrinho = JSON.parse(localStorage.getItem('carrinhoBritS')) || [];
    TABELA DE BAIRROS E DISTÂNCIA EM KM ATÉ A CONFEITARIA
    (mesma tabela usada no catálogo de referência)
    =================================================================== */
-const bairrosEntrega = {
+// Lista de reserva (fallback) — usada só se a loja ainda não tiver configurado nada em
+// "Áreas de Entrega" no painel. Depois de configurado lá, os valores do Firebase que valem.
+const bairrosEntregaPadrao = {
     "barbados": 0,
     "colatina velha": 8,
     "centro": 9,
@@ -74,7 +76,9 @@ const bairrosEntrega = {
     "padre jose de anchieta": 12.3,
     "parque dos jacarandas": 12
 };
-const valorPorKm = 0.70;
+const valorPorKmPadrao = 0.70;
+let bairrosEntrega = bairrosEntregaPadrao;
+let valorPorKm = valorPorKmPadrao;
 
 // Estado atual do cálculo de frete (retirada é a opção padrão, então começa sem frete)
 let freteAtual = 0;
@@ -416,6 +420,22 @@ function escutarStatusLoja() {
 }
 
 // Carrega o cardápio do Firebase e re-renderiza sozinho sempre que algo mudar no painel
+// Escuta a configuração de "Áreas de Entrega" do painel — se a loja já cadastrou algo
+// lá, usa isso; se ainda estiver vazio (cliente novo, nunca configurou), continua usando
+// a lista de reserva (bairrosEntregaPadrao) sem quebrar nada
+function escutarConfigFrete() {
+    if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
+    firebase.database().ref('configuracao/frete').on('value', snap => {
+        const config = snap.val();
+        if (config && config.bairros && Object.keys(config.bairros).length > 0) {
+            bairrosEntrega = config.bairros;
+        } else {
+            bairrosEntrega = bairrosEntregaPadrao;
+        }
+        valorPorKm = (config && config.valorPorKm) || valorPorKmPadrao;
+    });
+}
+
 function escutarProdutos() {
     if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) {
         listaProdutosDiv.innerHTML = '<p class="cardapio-erro">Não foi possível carregar o cardápio agora. Recarregue a página em instantes.</p>';
@@ -423,7 +443,9 @@ function escutarProdutos() {
     }
     firebase.database().ref('produtos').on('value', snap => {
         const val = snap.val() || {};
-        const lista = Object.values(val).filter(p => p && p.nome);
+        const lista = Object.entries(val)
+            .filter(([id, p]) => p && p.nome)
+            .map(([id, p]) => ({ ...p, id }));
         lista.sort((a, b) => (a.criadoEm || 0) - (b.criadoEm || 0));
         produtos = lista;
         sincronizarPrecosCarrinho();
@@ -432,6 +454,7 @@ function escutarProdutos() {
         atualizarCarrinhoHTML();
         atualizarAvisoOferta();
         rolarParaVendaSePendente(); // só rola pra seção de venda depois que a página já "assentou"
+        rolarParaProdutoLinkado(); // idem, pro link de produto específico
     });
 }
 
@@ -922,6 +945,7 @@ function renderizarProdutos() {
     function construirCardProduto(produto) {
         const produtoItemDiv = document.createElement('div');
         produtoItemDiv.classList.add('produto-item');
+        if (produto.id) produtoItemDiv.id = 'produto-' + produto.id;
 
         if (!produto.disponivel) {
             produtoItemDiv.classList.add('indisponivel');
@@ -967,6 +991,7 @@ function renderizarProdutos() {
                 ? `<button class="adicionar-carrinho" data-nome="${produto.nome}" data-preco="${produto.preco}">Adicionar ao Carrinho</button>`
                 : `<button class="adicionar-carrinho indisponivel-btn" disabled>Esgotado</button>`
             }
+            ${produto.id ? `<button type="button" class="btn-copiar-link-produto" data-id="${produto.id}">🔗 Copiar link deste produto</button>` : ''}
         `;
         return produtoItemDiv;
     }
@@ -1087,6 +1112,23 @@ function renderizarProdutos() {
         stepper.querySelector('.qtd-mais').addEventListener('click', () => {
             const v = parseInt(valorEl.textContent, 10) || 1;
             valorEl.textContent = v + 1;
+        });
+    });
+
+    // Copia um link direto pra esse produto específico (útil pra mandar pra alguém)
+    document.querySelectorAll('.btn-copiar-link-produto').forEach(botao => {
+        botao.addEventListener('click', async (evento) => {
+            const idProduto = evento.target.dataset.id;
+            const url = `${window.location.origin}${window.location.pathname}?produto=${idProduto}`;
+            const textoOriginal = evento.target.textContent;
+            try {
+                await navigator.clipboard.writeText(url);
+                evento.target.textContent = '✅ Link copiado!';
+            } catch (err) {
+                // Alguns navegadores/contextos bloqueiam o clipboard — mostra o link pra copiar na mão
+                prompt('Copia esse link manualmente:', url);
+            }
+            setTimeout(() => { evento.target.textContent = textoOriginal; }, 2000);
         });
     });
 
@@ -1233,6 +1275,20 @@ function iniciarObservadorCategorias() {
 function atualizarCarrinhoHTML() {
     carrinhoItensDiv.innerHTML = '';
     atualizarResumoEncomendaCheckout(); // mantém o valor estimado do sinal sempre atualizado
+
+    // Atualiza a barrinha flutuante — só aparece quando tem algo no carrinho
+    const flutuante = document.getElementById('carrinhoFlutuante');
+    if (flutuante) {
+        if (carrinho.length === 0) {
+            flutuante.style.display = 'none';
+        } else {
+            const qtdTotal = carrinho.reduce((soma, item) => soma + item.quantidade, 0);
+            const totalFlutuante = carrinho.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
+            document.getElementById('carrinhoFlutuanteQtd').textContent = qtdTotal;
+            document.getElementById('carrinhoFlutuanteTotal').textContent = `R$ ${totalFlutuante.toFixed(2).replace('.', ',')}`;
+            flutuante.style.display = 'flex';
+        }
+    }
 
     let totalGeral = 0;
 
@@ -1798,6 +1854,7 @@ function sincronizarPrecosCarrinho() {
 
 // Chama as funções iniciais ao carregar a página
 escutarProdutos(); // Carrega o cardápio do Firebase (e re-renderiza sozinho quando o painel mudar algo)
+escutarConfigFrete(); // Carrega a configuração de bairros/valor por km do painel
 escutarOrdemCategorias(); // Carrega a ordem de categorias definida no painel
 
 // Clube Brit's: recupera o cliente já identificado nesse navegador (se houver) e escuta a configuração
@@ -1883,6 +1940,7 @@ function fecharBoasVindas() {
 // Ex: https://menubritsconfeitaria.github.io/Brit-s-confeitaria-card-pio/?venda=1
 const veioPeloLinkDeVenda = new URLSearchParams(window.location.search).get('venda') === '1';
 let scrollParaVendaPendente = veioPeloLinkDeVenda; // vira false depois de rolar uma vez
+let scrollParaProdutoPendente = true; // vira false depois da primeira tentativa de rolar pro produto do link
 
 if (veioPeloLinkDeVenda) {
     try { sessionStorage.setItem('boasVindasBritS', '1'); } catch (e) { /* ignora */ } // pula a tela de boas-vindas
@@ -1901,6 +1959,24 @@ function rolarParaVendaSePendente() {
         conteudo.style.display = 'block';
         setTimeout(() => conteudo.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
     }
+}
+
+// Se a pessoa abriu o cardápio por um link de produto específico (?produto=ID, gerado
+// pelo botão "Copiar link deste produto"), rola até ele e destaca por alguns segundos
+function rolarParaProdutoLinkado() {
+    if (!scrollParaProdutoPendente) return;
+    const idProduto = new URLSearchParams(window.location.search).get('produto');
+    if (!idProduto) { scrollParaProdutoPendente = false; return; }
+
+    const elemento = document.getElementById('produto-' + idProduto);
+    if (!elemento) return; // pode ser que os produtos ainda não tenham terminado de renderizar
+
+    scrollParaProdutoPendente = false;
+    setTimeout(() => {
+        elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        elemento.classList.add('produto-destacado-link');
+        setTimeout(() => elemento.classList.remove('produto-destacado-link'), 3000);
+    }, 300);
 }
 
 /* ===================================================================

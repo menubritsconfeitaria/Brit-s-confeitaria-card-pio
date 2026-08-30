@@ -1412,9 +1412,10 @@ footer {
     cursor: pointer;
 }
 .dica-encomenda {
-    font-size: 0.8em;
-    color: var(--muted);
+    font-size: 0.95em;
+    color: var(--text);
     margin: 4px 0 10px;
+    line-height: 1.4;
 }
 
 /* Seção especial de Encomendas */
@@ -1445,4 +1446,53 @@ footer {
     margin-bottom: 4px;
     font-size: 0.9em;
     font-weight: 600;
+}
+
+/* Barra flutuante do carrinho, fixa embaixo enquanto rola a página */
+.carrinho-flutuante {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 150;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 30px;
+    padding: 12px 20px;
+    font-size: 0.95em;
+    font-weight: 600;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 92vw;
+}
+.carrinho-flutuante-seta {
+    font-weight: 400;
+    opacity: 0.9;
+    font-size: 0.9em;
+}
+
+/* Botão de copiar link de um produto específico */
+.btn-copiar-link-produto {
+    width: 100%;
+    margin-top: 6px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--muted);
+    font-size: 0.8em;
+    cursor: pointer;
+}
+
+/* Destaque temporário quando chega por um link direto de produto */
+.produto-destacado-link {
+    animation: destaqueProdutoLink 1.5s ease-in-out 2;
+}
+@keyframes destaqueProdutoLink {
+    0%, 100% { box-shadow: var(--shadow); }
+    50% { box-shadow: 0 0 0 4px var(--accent); }
 }

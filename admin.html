@@ -137,6 +137,33 @@
                 </div>
 
                 <div class="loja-status-card" style="margin-top:16px;">
+                    <h3>🚚 Áreas de Entrega</h3>
+                    <p class="dica-secao">Bairros atendidos, a distância de cada um (em km), e o valor cobrado por km. Se um bairro não estiver na lista, o cliente vê um aviso de que a região não é atendida no momento.</p>
+
+                    <label class="campo-label">Valor por km (R$)</label>
+                    <input type="text" inputmode="decimal" id="valorPorKmConfig" placeholder="Ex: 0.70">
+                    <button class="btn-salvar-ordem" style="margin-top:8px;" onclick="salvarValorPorKm()">💾 Salvar valor por km</button>
+                    <p id="valorPorKmMsg" class="ordem-categorias-msg"></p>
+
+                    <div id="avisoImportarBairros" style="display:none; margin-top:14px;">
+                        <p class="dica-secao">⚠️ Você ainda não tem nenhum bairro cadastrado no painel — o site está usando a lista antiga (fixa no código). Clica abaixo pra trazer essa lista pro painel, sem perder nada, e poder editar daqui pra frente.</p>
+                        <button class="btn-secondary" onclick="importarBairrosAntigos()">📥 Importar bairros que já existiam</button>
+                    </div>
+
+                    <label class="campo-label" style="margin-top:14px;">Adicionar/editar um bairro</label>
+                    <div class="produto-admin-linha">
+                        <input type="text" id="novoBairroNome" placeholder="Nome do bairro">
+                        <input type="text" inputmode="decimal" id="novoBairroKm" placeholder="Distância (km)" style="max-width:140px;">
+                    </div>
+                    <button class="btn-secondary" style="margin-top:6px;" onclick="salvarBairro()">💾 Salvar bairro</button>
+                    <p id="bairroMsg" class="ordem-categorias-msg"></p>
+
+                    <label class="campo-label" style="margin-top:14px;">Bairros cadastrados</label>
+                    <input type="text" id="buscaBairro" placeholder="🔍 Pesquisar bairro..." oninput="renderizarListaBairros()">
+                    <div id="listaBairrosCadastrados" style="margin-top:8px; max-height:320px; overflow-y:auto;"></div>
+                </div>
+
+                <div class="loja-status-card" style="margin-top:16px;">
                     <h3>🖨️ Formato de Impressão</h3>
                     <p class="dica-secao">Escolhe o tamanho da bobina da sua impressora (PDV/térmica).</p>
                     <div class="opcoes-radio">

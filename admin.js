@@ -604,6 +604,164 @@ function paraNumeroFlexivel(texto) {
     return isNaN(n) || n < 0 ? 0 : n;
 }
 
+// Lista antiga de bairros que estava fixa no código, usada só pela função de
+// "importar" — trazer pro painel sem o cliente perder nada do que já tinha configurado
+const BAIRROS_ANTIGOS_PARA_IMPORTAR = {
+  "barbados": 0,
+  "colatina velha": 8,
+  "centro": 9,
+  "lace": 10,
+  "esplanada": 9.7,
+  "mario giurizatto": 6.2,
+  "sao silvano": 11,
+  "marista": 11,
+  "fazenda vitali": 10.5,
+  "maria ismenia": 11,
+  "maria esmenia": 11,
+  "vila lenira": 11,
+  "vila nova": 10,
+  "vila amelia": 12,
+  "vila real": 12,
+  "operario": 9,
+  "bela vista": 9,
+  "residencial nobre": 10,
+  "vista da serra": 10,
+  "honorio fraga": 15,
+  "castelo branco": 10,
+  "maria das gracas": 9,
+  "morada do sol": 14,
+  "perpetuo socorro": 10,
+  "nossa senhora aparecida": 12,
+  "jardim planalto": 11,
+  "moacir brotas": 11,
+  "moacyr brotas": 11,
+  "por do sol": 9,
+  "sao pedro": 15,
+  "sao judas tadeu": 9,
+  "sao braz": 10,
+  "santo antonio": 12,
+  "santa helena": 7,
+  "santa margarida": 7,
+  "santa monica": 11,
+  "riviera": 8,
+  "francisco simonassi": 12.3,
+  "fioravante marino": 12,
+  "cidade jardim": 14,
+  "aeroporto": 12,
+  "ayrton senna": 20,
+  "alto sao vicente": 10,
+  "alto vila nova": 10,
+  "adelia giuberti": 10,
+  "antonio damiani": 12,
+  "benjamin carlos dos santos": 7,
+  "carlos germano naumann": 14,
+  "industrial alves marques": 12,
+  "novo horizonte": 14,
+  "sao marcos": 14,
+  "vicente soella i": 25,
+  "vicente soella ii": 27,
+  "vicente soella iii": 29,
+  "vila verde": 15,
+  "vista linda": 15,
+  "santos dumont": 15,
+  "raul giuberti": 12,
+  "olivio zanoteli": 13,
+  "padre jose de anchieta": 12.3,
+  "parque dos jacarandas": 12
+};
+
+let configFreteAtual = {}; // guarda a última config de frete lida, pra renderizar a lista filtrada
+
+function escutarConfigFrete() {
+    db.ref('configuracao/frete').on('value', snap => {
+        const config = snap.val() || {};
+        configFreteAtual = config;
+
+        const campoValorKm = document.getElementById('valorPorKmConfig');
+        if (campoValorKm) campoValorKm.value = config.valorPorKm != null ? config.valorPorKm : '';
+
+        const avisoImportar = document.getElementById('avisoImportarBairros');
+        const temBairros = config.bairros && Object.keys(config.bairros).length > 0;
+        if (avisoImportar) avisoImportar.style.display = temBairros ? 'none' : 'block';
+
+        renderizarListaBairros();
+    });
+}
+
+function salvarValorPorKm() {
+    const valor = parseFloat(String(document.getElementById('valorPorKmConfig').value).replace(',', '.'));
+    const msgEl = document.getElementById('valorPorKmMsg');
+    if (isNaN(valor) || valor < 0) { msgEl.textContent = 'Digita um valor válido.'; return; }
+    db.ref('configuracao/frete/valorPorKm').set(valor)
+        .then(() => { msgEl.textContent = 'Salvo!'; })
+        .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+}
+
+// Salva (ou edita, se já existir com esse nome) um bairro — nome sempre guardado em
+// minúsculo, pra bater com a busca que o cardápio já faz na hora de calcular o frete
+function salvarBairro() {
+    const nome = document.getElementById('novoBairroNome').value.trim().toLowerCase();
+    const km = parseFloat(String(document.getElementById('novoBairroKm').value).replace(',', '.'));
+    const msgEl = document.getElementById('bairroMsg');
+    if (!nome) { msgEl.textContent = 'Digita o nome do bairro.'; return; }
+    if (isNaN(km) || km < 0) { msgEl.textContent = 'Digita uma distância válida (em km).'; return; }
+
+    db.ref('configuracao/frete/bairros/' + encodeURIComponent(nome)).set(km)
+        .then(() => {
+            msgEl.textContent = 'Bairro salvo!';
+            document.getElementById('novoBairroNome').value = '';
+            document.getElementById('novoBairroKm').value = '';
+        })
+        .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+}
+
+function removerBairro(nomeCodificado) {
+    if (!confirm('Remover esse bairro da lista de entrega?')) return;
+    db.ref('configuracao/frete/bairros/' + nomeCodificado).remove()
+        .catch(err => alert('Erro ao remover: ' + err.message));
+}
+
+// Mostra a lista de bairros já cadastrados, filtrando pela busca (se tiver algo digitado)
+function renderizarListaBairros() {
+    const container = document.getElementById('listaBairrosCadastrados');
+    if (!container) return;
+    const busca = (document.getElementById('buscaBairro').value || '').toLowerCase();
+    const bairros = configFreteAtual.bairros || {};
+    const entradas = Object.entries(bairros)
+        .map(([nomeCodificado, km]) => ({ nomeCodificado, nome: decodeURIComponent(nomeCodificado), km }))
+        .filter(b => b.nome.includes(busca))
+        .sort((a, b) => a.nome.localeCompare(b.nome));
+
+    if (entradas.length === 0) {
+        container.innerHTML = '<p class="dica-secao">Nenhum bairro encontrado.</p>';
+        return;
+    }
+    container.innerHTML = entradas.map(b => `
+        <div class="loja-status-card" style="margin-bottom:6px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="text-transform:capitalize;">${b.nome} <span class="dica-secao">(${b.km} km)</span></span>
+            <button class="btn-secondary" onclick="removerBairro('${b.nomeCodificado}')">Remover</button>
+        </div>
+    `).join('');
+}
+
+// Traz a lista antiga (que estava fixa no código) pro painel de uma vez só — não some
+// nada do que a loja já tinha, só passa a poder editar por aqui daqui pra frente
+function importarBairrosAntigos() {
+    const quantidade = Object.keys(BAIRROS_ANTIGOS_PARA_IMPORTAR).length;
+    if (quantidade === 0) {
+        alert('Não há nenhuma lista antiga pra importar — cadastra os bairros direto no formulário abaixo.');
+        return;
+    }
+    if (!confirm(`Importar ${quantidade} bairros pro painel?`)) return;
+    const atualizacoes = {};
+    Object.entries(BAIRROS_ANTIGOS_PARA_IMPORTAR).forEach(([nome, km]) => {
+        atualizacoes['configuracao/frete/bairros/' + encodeURIComponent(nome)] = km;
+    });
+    db.ref().update(atualizacoes)
+        .then(() => alert('Bairros importados com sucesso!'))
+        .catch(err => alert('Erro ao importar: ' + err.message));
+}
+
 function salvarPedidoMinimoEFreteGratis() {
     const pedidoMinimo = paraNumeroFlexivel(document.getElementById('valorPedidoMinimo').value);
     const freteGratisAcima = paraNumeroFlexivel(document.getElementById('valorFreteGratisAcima').value);
@@ -2033,6 +2191,7 @@ function iniciarEscutaPedidos() {
     escutarFormatoImpressao();
     escutarContadorDestinatarios();
     escutarConfigAgenda();
+    escutarConfigFrete();
     renderizarListaPendenteBloqueio();
     escutarHistoricoNotificacoes();
     const previaLojaNomeEl = document.getElementById('previaLojaNome');

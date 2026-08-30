@@ -92,6 +92,11 @@
             </div>
         </section>
 
+        <button id="carrinhoFlutuante" class="carrinho-flutuante" style="display:none;" onclick="document.getElementById('carrinho').scrollIntoView({behavior:'smooth', block:'start'});">
+            🛒 <span id="carrinhoFlutuanteQtd">0</span> item(ns) — <span id="carrinhoFlutuanteTotal">R$ 0,00</span>
+            <span class="carrinho-flutuante-seta">Ver carrinho ↑</span>
+        </button>
+
         <section id="carrinho" class="container">
             <h2>Seu Carrinho</h2>
             <div class="carrinho-itens">
