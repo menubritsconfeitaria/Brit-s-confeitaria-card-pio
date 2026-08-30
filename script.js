@@ -661,10 +661,12 @@ async function verificarDisponibilidadeAgenda() {
                 resumoData.textContent = data.split('-').reverse().join('/');
                 resumoDiv.style.display = 'block';
             }
+        } else if (resultado.data.motivo === 'passada') {
+            msgEl.textContent = '📅 Escolha uma data a partir de hoje, por favor.';
         } else if (resultado.data.motivo === 'bloqueada') {
-            msgEl.textContent = '❌ Não atendemos encomendas nessa data. Escolha outra, por favor.';
+            msgEl.textContent = '🔒 Agenda fechada para esse dia. Escolha outra data, por favor.';
         } else {
-            msgEl.textContent = '❌ Essa data já está com a agenda lotada. Escolha outra, por favor.';
+            msgEl.textContent = '🔒 Agenda lotada para esse dia. Escolha outra data, por favor.';
         }
     } catch (err) {
         msgEl.textContent = 'Não foi possível verificar a disponibilidade agora — tente de novo em instantes.';
@@ -967,6 +969,8 @@ function renderizarProdutos() {
             <p id="encomendaDisponibilidadeMsg" class="dica-encomenda"></p>
         `;
         listaProdutosDiv.appendChild(introEncomenda);
+        // Impede escolher uma data que já passou
+        document.getElementById('encomendaDataInput').min = new Date().toISOString().slice(0, 10);
 
         const gridEncomenda = document.createElement('div');
         gridEncomenda.classList.add('categoria-grid');

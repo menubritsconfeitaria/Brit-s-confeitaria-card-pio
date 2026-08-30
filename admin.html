@@ -234,13 +234,25 @@
                 </div>
 
                 <div class="loja-status-card" style="margin-top:16px;">
-                    <h3>🚫 Bloquear um dia específico</h3>
-                    <p class="dica-secao">Pra férias, feriado, ou qualquer dia que você já sabe que não vai conseguir atender encomenda nenhuma.</p>
+                    <h3>🚫 Bloquear dias</h3>
+                    <p class="dica-secao">Pra férias, feriado, ou qualquer combinação de dias (mesmo alternados, sem precisar ser sequência). Monta a lista abaixo (dia a dia, ou por período), e bloqueia tudo junto no final.</p>
+
+                    <label class="campo-label">Adicionar um dia à lista</label>
+                    <div class="produto-admin-linha">
+                        <input type="date" id="dataUnicaParaAdicionar">
+                        <button class="btn-secondary" onclick="adicionarDataNaListaPendente()">+ Adicionar</button>
+                    </div>
+
+                    <label class="campo-label" style="margin-top:10px;">Ou adicionar um período inteiro de uma vez</label>
                     <div class="produto-admin-linha">
                         <div class="campo-com-label"><label class="campo-label">De</label><input type="date" id="dataInicioBloqueio"></div>
-                        <div class="campo-com-label"><label class="campo-label">Até (deixa igual à de cima pra bloquear só 1 dia)</label><input type="date" id="dataFimBloqueio"></div>
+                        <div class="campo-com-label"><label class="campo-label">Até</label><input type="date" id="dataFimBloqueio"></div>
                     </div>
-                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="bloquearDataAgenda()">🚫 Bloquear esse período</button>
+                    <button class="btn-secondary" style="margin-top:6px;" onclick="adicionarPeriodoNaListaPendente()">+ Adicionar período</button>
+
+                    <div id="listaPendenteBloqueio" style="margin-top:14px;"></div>
+
+                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="confirmarBloqueioPendente()">🚫 Bloquear tudo da lista</button>
                     <p id="bloquearDataMsg" class="ordem-categorias-msg"></p>
                     <h3 style="margin-top:18px;">Dias bloqueados atualmente</h3>
                     <div id="listaDatasBloqueadas"><p class="dica-secao">Nenhum dia bloqueado.</p></div>

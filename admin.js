@@ -354,6 +354,8 @@ function montarHtmlTicketImpressao(pedido, numeroPedido) {
         ${pedido.troco ? `<p><strong>Troco para:</strong> R$ ${pedido.troco}</p>` : ''}
         ${pedido.observacoes ? `<p><strong>Observações:</strong> ${pedido.observacoes}</p>` : ''}
         ${pedido.recompensaResgatada ? `<p><strong>🎁 RESGATE DO CLUBE:</strong> ${pedido.recompensaResgatada.descricao}</p>` : ''}
+        ${pedido.dataEncomenda ? `<p><strong>📅 ENCOMENDA PRA:</strong> ${pedido.dataEncomenda.split('-').reverse().join('/')}</p>` : ''}
+        ${pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' ? `<p><strong>💰 SINAL:</strong> ${pedido.pagamento.percentualSinal}% pago (${formatarPreco(pedido.pagamento.valorSinal)}) — falta ${formatarPreco(totalDoPedido(pedido) - pedido.pagamento.valorSinal)} na entrega</p>` : ''}
         <hr>
         <p class="ticket-total"><strong>Total: ${formatarPreco(totalDoPedido(pedido))}</strong></p>
     `;
@@ -697,30 +699,76 @@ function salvarCapacidadeAgenda() {
         .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
 }
 
-// Bloqueia manualmente um período de dias (de/até) — pode ser só 1 dia, se as duas
-// datas forem iguais. Bloqueia tudo de uma vez, sem precisar repetir data por data.
-function bloquearDataAgenda() {
+// Guarda as datas que ainda não foram confirmadas — vai acumulando (dia a dia, ou por
+// período) até a pessoa clicar em "Bloquear tudo da lista"
+let datasPendentesDeBloqueio = new Set();
+
+function renderizarListaPendenteBloqueio() {
+    const container = document.getElementById('listaPendenteBloqueio');
+    if (datasPendentesDeBloqueio.size === 0) {
+        container.innerHTML = '<p class="dica-secao">Nenhuma data na lista ainda.</p>';
+        return;
+    }
+    const datasOrdenadas = [...datasPendentesDeBloqueio].sort();
+    container.innerHTML = `<p class="campo-label">Lista pendente (${datasOrdenadas.length} dia(s)):</p>` +
+        datasOrdenadas.map(data => `
+            <span class="tag-data-pendente">
+                ${data.split('-').reverse().join('/')}
+                <button type="button" onclick="removerDataDaListaPendente('${data}')" title="Remover da lista">✕</button>
+            </span>
+        `).join('');
+}
+
+// Adiciona 1 dia à lista pendente
+function adicionarDataNaListaPendente() {
+    const data = document.getElementById('dataUnicaParaAdicionar').value;
+    if (!data) return;
+    datasPendentesDeBloqueio.add(data);
+    document.getElementById('dataUnicaParaAdicionar').value = '';
+    renderizarListaPendenteBloqueio();
+}
+
+// Adiciona todos os dias de um período (De/Até) de uma vez à lista pendente
+function adicionarPeriodoNaListaPendente() {
     const dataInicio = document.getElementById('dataInicioBloqueio').value;
     const dataFim = document.getElementById('dataFimBloqueio').value || dataInicio;
     const msgEl = document.getElementById('bloquearDataMsg');
     if (!dataInicio) { msgEl.textContent = 'Escolhe pelo menos a data de início.'; return; }
     if (dataFim < dataInicio) { msgEl.textContent = 'A data final não pode ser antes da inicial.'; return; }
 
-    // Monta a lista de todas as datas dentro do período (formato YYYY-MM-DD)
-    const atualizacoes = {};
     let cursor = new Date(dataInicio + 'T00:00:00');
     const fim = new Date(dataFim + 'T00:00:00');
     while (cursor <= fim) {
-        const iso = cursor.toISOString().slice(0, 10);
-        atualizacoes['configuracao/agenda/datasBloqueadas/' + iso] = true;
+        datasPendentesDeBloqueio.add(cursor.toISOString().slice(0, 10));
         cursor.setDate(cursor.getDate() + 1);
     }
+    document.getElementById('dataInicioBloqueio').value = '';
+    document.getElementById('dataFimBloqueio').value = '';
+    msgEl.textContent = '';
+    renderizarListaPendenteBloqueio();
+}
+
+// Tira uma data específica da lista pendente (antes de confirmar)
+function removerDataDaListaPendente(data) {
+    datasPendentesDeBloqueio.delete(data);
+    renderizarListaPendenteBloqueio();
+}
+
+// Bloqueia de vez, no Firebase, todas as datas que estão na lista pendente
+function confirmarBloqueioPendente() {
+    const msgEl = document.getElementById('bloquearDataMsg');
+    if (datasPendentesDeBloqueio.size === 0) { msgEl.textContent = 'Adiciona pelo menos 1 data na lista antes de confirmar.'; return; }
+
+    const atualizacoes = {};
+    datasPendentesDeBloqueio.forEach(data => {
+        atualizacoes['configuracao/agenda/datasBloqueadas/' + data] = true;
+    });
 
     db.ref().update(atualizacoes)
         .then(() => {
-            msgEl.textContent = `${Object.keys(atualizacoes).length} dia(s) bloqueado(s)!`;
-            document.getElementById('dataInicioBloqueio').value = '';
-            document.getElementById('dataFimBloqueio').value = '';
+            msgEl.textContent = `${datasPendentesDeBloqueio.size} dia(s) bloqueado(s)!`;
+            datasPendentesDeBloqueio = new Set();
+            renderizarListaPendenteBloqueio();
         })
         .catch(err => { msgEl.textContent = 'Erro ao bloquear: ' + err.message; });
 }
@@ -1985,6 +2033,7 @@ function iniciarEscutaPedidos() {
     escutarFormatoImpressao();
     escutarContadorDestinatarios();
     escutarConfigAgenda();
+    renderizarListaPendenteBloqueio();
     escutarHistoricoNotificacoes();
     const previaLojaNomeEl = document.getElementById('previaLojaNome');
     if (previaLojaNomeEl) previaLojaNomeEl.textContent = LOJA_CONFIG.nome;

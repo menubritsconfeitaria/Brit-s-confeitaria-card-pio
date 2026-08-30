@@ -925,3 +925,26 @@ body {
     font-size: 0.85em;
     color: #d8d8d8;
 }
+
+/* Etiquetas de data pendente de bloqueio (antes de confirmar) */
+.tag-data-pendente {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #fff3cd;
+    color: #8a6300;
+    border: 1px solid #f0dca0;
+    padding: 4px 8px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    margin: 0 6px 6px 0;
+}
+.tag-data-pendente button {
+    background: none;
+    border: none;
+    color: #8a6300;
+    cursor: pointer;
+    font-size: 1em;
+    padding: 0;
+    line-height: 1;
+}
