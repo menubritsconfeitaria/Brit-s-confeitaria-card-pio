@@ -627,26 +627,50 @@ function selecionarPagamento(forma) {
     }
 }
 
+// Atualiza o resumo de encomenda mostrado pro cliente no checkout — mostra o valor
+// estimado do sinal quando configurado, ou o aviso de "vamos confirmar" quando não tem
+// sinal. Chamada tanto ao verificar a data quanto sempre que o carrinho muda (o valor
+// do sinal depende do total, que pode mudar se a pessoa adicionar mais itens depois)
+function atualizarResumoEncomendaCheckout() {
+    const resumoDiv = document.getElementById('resumoEncomendaCheckout');
+    const resumoTexto = document.getElementById('resumoTextoEncomenda');
+    if (!resumoDiv || !resumoTexto) return;
+
+    if (!dataEncomendaEscolhida) {
+        resumoDiv.style.display = 'none';
+        return;
+    }
+
+    const dataFormatada = dataEncomendaEscolhida.split('-').reverse().join('/');
+    if (percentualSinalEncomenda > 0) {
+        const subtotalAtual = carrinho.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
+        const valorSinalEstimado = subtotalAtual * (percentualSinalEncomenda / 100);
+        const valorTexto = `R$ ${valorSinalEstimado.toFixed(2).replace('.', ',')}`;
+        resumoTexto.innerHTML = `📅 <strong>Encomenda pra ${dataFormatada}</strong> — pra confirmar a reserva, você vai pagar um sinal de <strong>${percentualSinalEncomenda}%</strong> (aprox. ${valorTexto}) na próxima etapa. O restante fica combinado pra hora da entrega.`;
+    } else {
+        resumoTexto.innerHTML = `📅 <strong>Esse pedido inclui uma encomenda</strong> pra <strong>${dataFormatada}</strong> — não é confirmação automática, a loja vai entrar em contato pra confirmar disponibilidade.`;
+    }
+    resumoDiv.style.display = 'block';
+}
+
 // Consulta o servidor pra saber se a data escolhida pra encomenda está disponível
 // (não bloqueada manualmente, e ainda tem vaga dentro do limite do dia, se houver)
 async function verificarDisponibilidadeAgenda() {
     const data = document.getElementById('encomendaDataInput').value;
     const msgEl = document.getElementById('encomendaDisponibilidadeMsg');
-    const resumoDiv = document.getElementById('resumoEncomendaCheckout');
-    const resumoData = document.getElementById('resumoDataEncomenda');
 
     if (!data) {
         msgEl.textContent = '';
         dataEncomendaVerificada = null;
         dataEncomendaEscolhida = null;
-        if (resumoDiv) resumoDiv.style.display = 'none';
+        atualizarResumoEncomendaCheckout();
         return;
     }
 
     msgEl.textContent = 'Verificando disponibilidade...';
     dataEncomendaVerificada = null;
     dataEncomendaEscolhida = null;
-    if (resumoDiv) resumoDiv.style.display = 'none';
+    atualizarResumoEncomendaCheckout();
 
     try {
         const verificar = firebase.functions().httpsCallable('verificarDisponibilidadeData');
@@ -657,10 +681,7 @@ async function verificarDisponibilidadeAgenda() {
             msgEl.textContent = `✅ Data disponível!${vagasTexto}`;
             dataEncomendaVerificada = data;
             dataEncomendaEscolhida = data;
-            if (resumoDiv && resumoData) {
-                resumoData.textContent = data.split('-').reverse().join('/');
-                resumoDiv.style.display = 'block';
-            }
+            atualizarResumoEncomendaCheckout();
         } else if (resultado.data.motivo === 'passada') {
             msgEl.textContent = '📅 Escolha uma data a partir de hoje, por favor.';
         } else if (resultado.data.motivo === 'bloqueada') {
@@ -1211,6 +1232,7 @@ function iniciarObservadorCategorias() {
 // Função para atualizar a exibição do carrinho na página
 function atualizarCarrinhoHTML() {
     carrinhoItensDiv.innerHTML = '';
+    atualizarResumoEncomendaCheckout(); // mantém o valor estimado do sinal sempre atualizado
 
     let totalGeral = 0;
 
