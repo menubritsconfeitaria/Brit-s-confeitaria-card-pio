@@ -379,8 +379,15 @@ function atualizarStatusLoja(config) {
         banner.classList.add('loja-fechada');
         texto.textContent = '🔴 Estamos fechados no momento. Você pode ver o cardápio, mas os pedidos abrem no nosso próximo horário de funcionamento.';
         if (botaoFinalizarCompra) {
-            botaoFinalizarCompra.disabled = true;
-            botaoFinalizarCompra.textContent = 'Loja fechada no momento';
+            // Encomenda agendada é pra uma data futura — não depende da loja estar
+            // aberta agora, então o botão continua liberado nesse caso específico
+            if (dataEncomendaEscolhida) {
+                botaoFinalizarCompra.disabled = false;
+                botaoFinalizarCompra.textContent = 'Finalizar Compra';
+            } else {
+                botaoFinalizarCompra.disabled = true;
+                botaoFinalizarCompra.textContent = 'Loja fechada no momento';
+            }
         }
     }
 
@@ -657,6 +664,20 @@ function selecionarPagamento(forma) {
 function atualizarResumoEncomendaCheckout() {
     const resumoDiv = document.getElementById('resumoEncomendaCheckout');
     const resumoTexto = document.getElementById('resumoTextoEncomenda');
+
+    // Reage na hora se a loja estiver fechada: escolher (ou desmarcar) uma encomenda
+    // libera ou trava o botão de finalizar na hora, sem esperar a próxima atualização
+    // de status da loja (que só roda a cada 1 minuto)
+    if (!lojaAbertaAtual && botaoFinalizarCompra && !modoDemoAtivo) {
+        if (dataEncomendaEscolhida) {
+            botaoFinalizarCompra.disabled = false;
+            botaoFinalizarCompra.textContent = 'Finalizar Compra';
+        } else {
+            botaoFinalizarCompra.disabled = true;
+            botaoFinalizarCompra.textContent = 'Loja fechada no momento';
+        }
+    }
+
     if (!resumoDiv || !resumoTexto) return;
 
     if (!dataEncomendaEscolhida) {
@@ -669,7 +690,7 @@ function atualizarResumoEncomendaCheckout() {
         const subtotalAtual = carrinho.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
         const valorSinalEstimado = subtotalAtual * (percentualSinalEncomenda / 100);
         const valorTexto = `R$ ${valorSinalEstimado.toFixed(2).replace('.', ',')}`;
-        resumoTexto.innerHTML = `📅 <strong>Encomenda pra ${dataFormatada}</strong> — pra confirmar a reserva, você vai pagar um sinal de <strong>${percentualSinalEncomenda}%</strong> (aprox. ${valorTexto}) na próxima etapa. O restante fica combinado pra hora da entrega.`;
+        resumoTexto.innerHTML = `📅 <strong>Encomenda pra ${dataFormatada}</strong> — pra confirmar a reserva, você vai pagar um sinal de <strong>${percentualSinalEncomenda}%</strong> (aprox. ${valorTexto}) na próxima etapa. O restante fica combinado pra hora da entrega. A loja irá entrar em contato pra confirmação.`;
     } else {
         resumoTexto.innerHTML = `📅 <strong>Esse pedido inclui uma encomenda</strong> pra <strong>${dataFormatada}</strong> — não é confirmação automática, a loja vai entrar em contato pra confirmar disponibilidade.`;
     }
@@ -1611,7 +1632,9 @@ function repetirUltimoPedido() {
 }
 
 botaoFinalizarCompra.addEventListener('click', async () => {
-    if (!lojaAbertaAtual) {
+    // Encomenda agendada é pra uma data futura — não faz sentido bloquear só porque a
+    // loja está fechada agora, nesse exato momento (diferente de um pedido pro dia)
+    if (!lojaAbertaAtual && !dataEncomendaEscolhida) {
         alert('Estamos fechados no momento. Assim que reabrirmos, você já pode finalizar seu pedido!');
         return;
     }
