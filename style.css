@@ -1416,3 +1416,33 @@ footer {
     color: var(--muted);
     margin: 4px 0 10px;
 }
+
+/* Seção especial de Encomendas */
+.categoria-titulo-encomenda {
+    color: var(--primary) !important;
+    font-size: 1.4em !important;
+}
+.categoria-btn-encomenda {
+    background: var(--bg) !important;
+    border: 1px solid var(--accent) !important;
+    font-weight: 600 !important;
+}
+.encomenda-intro {
+    max-width: 400px;
+    margin: 0 auto 20px;
+    padding: 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+.encomenda-intro p {
+    margin: 0 0 10px;
+    font-size: 0.9em;
+    color: var(--muted);
+}
+.encomenda-intro label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 0.9em;
+    font-weight: 600;
+}

@@ -697,16 +697,30 @@ function salvarCapacidadeAgenda() {
         .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
 }
 
-// Bloqueia manualmente um dia específico (férias, feriado, etc.)
+// Bloqueia manualmente um período de dias (de/até) — pode ser só 1 dia, se as duas
+// datas forem iguais. Bloqueia tudo de uma vez, sem precisar repetir data por data.
 function bloquearDataAgenda() {
-    const data = document.getElementById('dataParaBloquear').value;
+    const dataInicio = document.getElementById('dataInicioBloqueio').value;
+    const dataFim = document.getElementById('dataFimBloqueio').value || dataInicio;
     const msgEl = document.getElementById('bloquearDataMsg');
-    if (!data) { msgEl.textContent = 'Escolhe uma data primeiro.'; return; }
+    if (!dataInicio) { msgEl.textContent = 'Escolhe pelo menos a data de início.'; return; }
+    if (dataFim < dataInicio) { msgEl.textContent = 'A data final não pode ser antes da inicial.'; return; }
 
-    db.ref('configuracao/agenda/datasBloqueadas/' + data).set(true)
+    // Monta a lista de todas as datas dentro do período (formato YYYY-MM-DD)
+    const atualizacoes = {};
+    let cursor = new Date(dataInicio + 'T00:00:00');
+    const fim = new Date(dataFim + 'T00:00:00');
+    while (cursor <= fim) {
+        const iso = cursor.toISOString().slice(0, 10);
+        atualizacoes['configuracao/agenda/datasBloqueadas/' + iso] = true;
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    db.ref().update(atualizacoes)
         .then(() => {
-            msgEl.textContent = 'Dia bloqueado!';
-            document.getElementById('dataParaBloquear').value = '';
+            msgEl.textContent = `${Object.keys(atualizacoes).length} dia(s) bloqueado(s)!`;
+            document.getElementById('dataInicioBloqueio').value = '';
+            document.getElementById('dataFimBloqueio').value = '';
         })
         .catch(err => { msgEl.textContent = 'Erro ao bloquear: ' + err.message; });
 }
@@ -1082,6 +1096,9 @@ function montarLinhaProduto(id, produto) {
             <label class="produto-disponivel-check">
                 <input type="checkbox" id="prodEscondido_${id}" ${produto.escondido ? 'checked' : ''}> Esconder do cardápio
             </label>
+            <label class="produto-disponivel-check">
+                <input type="checkbox" id="prodEncomenda_${id}" ${produto.disponivelParaEncomenda ? 'checked' : ''}> 🎂 Disponível pra Encomenda
+            </label>
         </div>
         <textarea id="prodDesc_${id}" placeholder="Descrição" rows="2">${produto.descricao || ''}</textarea>
 
@@ -1264,6 +1281,7 @@ function salvarProduto(id) {
     const categoria = document.getElementById('prodCategoria_' + id).value.trim();
     const disponivel = document.getElementById('prodDisp_' + id).checked;
     const escondido = document.getElementById('prodEscondido_' + id).checked;
+    const disponivelParaEncomenda = document.getElementById('prodEncomenda_' + id).checked;
     const variantesTexto = document.getElementById('prodVariantes_' + id).value.trim();
     const adicionaisTexto = document.getElementById('prodAdicionais_' + id).value.trim();
 
@@ -1274,7 +1292,7 @@ function salvarProduto(id) {
         return;
     }
 
-    const dados = { nome, descricao, preco, imagem: imagens[0], imagens, categoria, disponivel, escondido, precoOriginal: null, variantes: null, grupoAdicionais: null };
+    const dados = { nome, descricao, preco, imagem: imagens[0], imagens, categoria, disponivel, escondido, disponivelParaEncomenda, precoOriginal: null, variantes: null, grupoAdicionais: null };
 
     if (!isNaN(precoOriginal) && precoOriginal > preco) {
         dados.precoOriginal = precoOriginal;

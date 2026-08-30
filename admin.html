@@ -236,8 +236,11 @@
                 <div class="loja-status-card" style="margin-top:16px;">
                     <h3>🚫 Bloquear um dia específico</h3>
                     <p class="dica-secao">Pra férias, feriado, ou qualquer dia que você já sabe que não vai conseguir atender encomenda nenhuma.</p>
-                    <input type="date" id="dataParaBloquear">
-                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="bloquearDataAgenda()">🚫 Bloquear esse dia</button>
+                    <div class="produto-admin-linha">
+                        <div class="campo-com-label"><label class="campo-label">De</label><input type="date" id="dataInicioBloqueio"></div>
+                        <div class="campo-com-label"><label class="campo-label">Até (deixa igual à de cima pra bloquear só 1 dia)</label><input type="date" id="dataFimBloqueio"></div>
+                    </div>
+                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="bloquearDataAgenda()">🚫 Bloquear esse período</button>
                     <p id="bloquearDataMsg" class="ordem-categorias-msg"></p>
                     <h3 style="margin-top:18px;">Dias bloqueados atualmente</h3>
                     <div id="listaDatasBloqueadas"><p class="dica-secao">Nenhum dia bloqueado.</p></div>

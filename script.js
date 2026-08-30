@@ -79,6 +79,7 @@ const valorPorKm = 0.70;
 // Estado atual do cálculo de frete (retirada é a opção padrão, então começa sem frete)
 let freteAtual = 0;
 let dataEncomendaVerificada = null; // guarda a última data checada e se estava disponível, pra não deixar finalizar sem checar
+let dataEncomendaEscolhida = null; // data de encomenda escolhida na aba dedicada, null = pedido normal
 let freteConfirmado = true;
 
 // Referências aos elementos HTML
@@ -323,16 +324,17 @@ function atualizarStatusLoja(config) {
     pagamentoOnlineAtivo = !!(config && config.pagamentoOnlineAtivo);
     adicionaisAtivo = !!(config && config.adicionaisAtivo);
 
-    const agendamentoAtivoConfig = !!(config && config.agendamentoAtivo);
-    agendamentoAtivo = agendamentoAtivoConfig;
-    const opcaoAgendar = document.getElementById('opcaoAgendarEncomenda');
-    if (opcaoAgendar) opcaoAgendar.style.display = agendamentoAtivoConfig ? 'flex' : 'none';
-    // Se desativou o recurso mas o cliente já tinha marcado antes, desmarca e some tudo
-    if (!agendamentoAtivoConfig) {
-        const chkAgendar = document.getElementById('clienteQuerAgendar');
-        const areaData = document.getElementById('areaDataEncomenda');
-        if (chkAgendar) chkAgendar.checked = false;
-        if (areaData) areaData.style.display = 'none';
+    const agendamentoAtivoAntes = agendamentoAtivo;
+    agendamentoAtivo = !!(config && config.agendamentoAtivo);
+    // Se desativou o recurso, esquece qualquer data que tivesse sido escolhida antes
+    if (!agendamentoAtivo) {
+        dataEncomendaEscolhida = null;
+        dataEncomendaVerificada = null;
+    }
+    // Se o interruptor mudou de estado, re-renderiza pra mostrar/esconder a aba Encomendas
+    if (agendamentoAtivoAntes !== agendamentoAtivo && typeof renderizarProdutos === 'function' && produtos.length > 0) {
+        renderizarProdutos();
+        renderizarCategorias();
     }
     pedidoMinimoValor = (config && config.pedidoMinimo) || 0;
     freteGratisAcimaValor = (config && config.freteGratisAcima) || 0;
@@ -628,12 +630,23 @@ function selecionarPagamento(forma) {
 // Consulta o servidor pra saber se a data escolhida pra encomenda está disponível
 // (não bloqueada manualmente, e ainda tem vaga dentro do limite do dia, se houver)
 async function verificarDisponibilidadeAgenda() {
-    const data = document.getElementById('clienteDataEncomenda').value;
-    const msgEl = document.getElementById('disponibilidadeAgendaMsg');
-    if (!data) { msgEl.textContent = ''; dataEncomendaVerificada = null; return; }
+    const data = document.getElementById('encomendaDataInput').value;
+    const msgEl = document.getElementById('encomendaDisponibilidadeMsg');
+    const resumoDiv = document.getElementById('resumoEncomendaCheckout');
+    const resumoData = document.getElementById('resumoDataEncomenda');
+
+    if (!data) {
+        msgEl.textContent = '';
+        dataEncomendaVerificada = null;
+        dataEncomendaEscolhida = null;
+        if (resumoDiv) resumoDiv.style.display = 'none';
+        return;
+    }
 
     msgEl.textContent = 'Verificando disponibilidade...';
     dataEncomendaVerificada = null;
+    dataEncomendaEscolhida = null;
+    if (resumoDiv) resumoDiv.style.display = 'none';
 
     try {
         const verificar = firebase.functions().httpsCallable('verificarDisponibilidadeData');
@@ -643,6 +656,11 @@ async function verificarDisponibilidadeAgenda() {
             const vagasTexto = resultado.data.vagasRestantes != null ? ` (${resultado.data.vagasRestantes} vaga(s) restante(s))` : '';
             msgEl.textContent = `✅ Data disponível!${vagasTexto}`;
             dataEncomendaVerificada = data;
+            dataEncomendaEscolhida = data;
+            if (resumoDiv && resumoData) {
+                resumoData.textContent = data.split('-').reverse().join('/');
+                resumoDiv.style.display = 'block';
+            }
         } else if (resultado.data.motivo === 'bloqueada') {
             msgEl.textContent = '❌ Não atendemos encomendas nessa data. Escolha outra, por favor.';
         } else {
@@ -930,6 +948,32 @@ function renderizarProdutos() {
         return produtoItemDiv;
     }
 
+    // Seção especial "🎂 Encomendas" — só aparece se o recurso estiver ativado E tiver
+    // pelo menos 1 produto marcado como disponível pra encomenda
+    const produtosParaEncomenda = produtosVisiveis.filter(p => p.disponivelParaEncomenda);
+    if (agendamentoAtivo && produtosParaEncomenda.length > 0) {
+        const tituloEncomenda = document.createElement('h3');
+        tituloEncomenda.classList.add('categoria-titulo', 'categoria-titulo-encomenda');
+        tituloEncomenda.id = 'secao-encomendas';
+        tituloEncomenda.textContent = '🎂 Encomendas';
+        listaProdutosDiv.appendChild(tituloEncomenda);
+
+        const introEncomenda = document.createElement('div');
+        introEncomenda.classList.add('encomenda-intro');
+        introEncomenda.innerHTML = `
+            <p>Escolha a data desejada pra sua encomenda antes de adicionar ao carrinho — a gente já confere na hora se tem disponibilidade.</p>
+            <label>Data desejada</label>
+            <input type="date" id="encomendaDataInput" onchange="verificarDisponibilidadeAgenda()">
+            <p id="encomendaDisponibilidadeMsg" class="dica-encomenda"></p>
+        `;
+        listaProdutosDiv.appendChild(introEncomenda);
+
+        const gridEncomenda = document.createElement('div');
+        gridEncomenda.classList.add('categoria-grid');
+        produtosParaEncomenda.forEach(produto => gridEncomenda.appendChild(construirCardProduto(produto)));
+        listaProdutosDiv.appendChild(gridEncomenda);
+    }
+
     // Seção especial "🔥 Ofertas do Dia" (só aparece se tiver algum produto em oferta disponível)
     const produtosEmOferta = produtosVisiveis.filter(p => p.disponivel && p.precoOriginal && p.precoOriginal > p.preco);
     if (produtosEmOferta.length > 0) {
@@ -1045,6 +1089,14 @@ function renderizarProdutos() {
             // abre o modal de escolha em vez de adicionar direto — quem finaliza a adição
             // nesse caso é confirmarAdicionaisEAdicionar(), depois que a pessoa escolher
             const produtoCompleto = produtos.find(p => p.nome === nomeProduto);
+
+            // Produto de encomenda exige que a data já tenha sido escolhida e verificada
+            // como disponível antes de deixar adicionar ao carrinho
+            if (produtoCompleto && produtoCompleto.disponivelParaEncomenda && !dataEncomendaEscolhida) {
+                alert('Escolha e confirme a data desejada, ali em cima na seção "🎂 Encomendas", antes de adicionar esse produto.');
+                return;
+            }
+
             const temAdicionais = adicionaisAtivo && produtoCompleto && Array.isArray(produtoCompleto.grupoAdicionais) && produtoCompleto.grupoAdicionais.length > 0;
 
             if (temAdicionais) {
@@ -1073,6 +1125,21 @@ function renderizarCategorias() {
     const categorias = ['Todos', ...ordenarCategorias([...new Set(produtosVisiveis.map(produto => produto.categoria))])];
 
     categoriasNav.innerHTML = ''; // Limpa a navegação de categorias
+
+    // Botão especial de Encomendas, só aparece se o recurso estiver ativado e tiver produto
+    const produtosParaEncomendaNav = produtosVisiveis.filter(p => p.disponivelParaEncomenda);
+    if (agendamentoAtivo && produtosParaEncomendaNav.length > 0) {
+        const liEncomenda = document.createElement('li');
+        const btnEncomenda = document.createElement('button');
+        btnEncomenda.textContent = '🎂 Encomendas';
+        btnEncomenda.classList.add('categoria-btn', 'categoria-btn-encomenda');
+        btnEncomenda.addEventListener('click', () => {
+            const alvo = document.getElementById('secao-encomendas');
+            if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        liEncomenda.appendChild(btnEncomenda);
+        categoriasNav.appendChild(liEncomenda);
+    }
 
     // Botão especial de Ofertas, só aparece se tiver produto em oferta disponível
     const temOfertaAtiva = produtosVisiveis.some(p => p.disponivel && p.precoOriginal && p.precoOriginal > p.preco);
@@ -1495,18 +1562,13 @@ botaoFinalizarCompra.addEventListener('click', async () => {
     const cep = cepClienteInput.value.trim();
     const troco = clienteTrocoInput.value.trim();
     const obs = clienteObsInput.value.trim();
-    const querAgendar = agendamentoAtivo && document.getElementById('clienteQuerAgendar').checked;
-    const dataEncomenda = document.getElementById('clienteDataEncomenda').value;
+    const querAgendar = agendamentoAtivo && !!dataEncomendaEscolhida;
+    const dataEncomenda = dataEncomendaEscolhida;
 
-    // Se marcou que é uma encomenda com data, exige escolher a data E que ela tenha
-    // sido verificada como disponível (evita finalizar sem checar, ou depois de mudar
-    // a data sem verificar de novo)
-    if (querAgendar && !dataEncomenda) {
-        alert('Escolha a data desejada pra encomenda, ou desmarque a opção de agendamento.');
-        return;
-    }
+    // A verificação já é exigida na própria aba Encomendas antes de liberar o produto
+    // pro carrinho — aqui só uma última conferência de segurança, caso algo tenha mudado
     if (querAgendar && dataEncomendaVerificada !== dataEncomenda) {
-        alert('Confirma a disponibilidade da data escolhida antes de finalizar (aguarde a verificação, ou escolha a data de novo).');
+        alert('A disponibilidade da data da sua encomenda precisa ser verificada de novo — volta na aba Encomendas e confirma a data.');
         return;
     }
 
