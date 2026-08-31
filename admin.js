@@ -2080,12 +2080,23 @@ function copiarPedidoParaSistemaGestao(id) {
 
     const dados = {
         origem: 'brits-cardapio',
-        versao: 1,
+        versao: 2,
         cliente: { nome: p.nome || '', telefone: p.telefone || '' },
         data: dataFormatada,
-        itens: (p.itens || []).map(item => ({ nome: item.nome, quantidade: item.quantidade })),
+        dataEncomenda: p.dataEncomenda || null,
+        itens: (p.itens || []).map(item => ({
+            nome: item.nome,
+            quantidade: item.quantidade,
+            adicionais: item.adicionaisTexto || '',
+            observacao: item.observacao || ''
+        })),
         descontoPercentual,
         frete: p.frete || 0,
+        sinal: (p.pagamento && p.pagamento.tipoPagamento === 'sinal') ? {
+            percentual: p.pagamento.percentualSinal || 0,
+            valorPago: p.pagamento.status === 'pago' ? (p.pagamento.valorSinal || 0) : 0,
+            statusPagamento: p.pagamento.status || 'aguardando'
+        } : null,
         formaPagamento: formaPagamentoConvertida,
         observacoes: p.observacoes || ''
     };
