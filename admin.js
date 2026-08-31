@@ -177,6 +177,49 @@ function fazerLogin() {
         });
 }
 
+// Troca a senha de login do painel. Exige a senha atual (o Firebase obriga
+// "reautenticar" antes de trocar senha, por segurança — evita que alguém que
+// pegou o painel aberto sem querer consiga trocar a senha sem saber a atual)
+async function trocarSenhaAdmin() {
+    const senhaAtual = document.getElementById('senhaAtualInput').value;
+    const novaSenha = document.getElementById('novaSenhaInput').value;
+    const confirmarSenha = document.getElementById('confirmarSenhaInput').value;
+    const msgEl = document.getElementById('trocarSenhaMsg');
+
+    if (!senhaAtual || !novaSenha || !confirmarSenha) {
+        msgEl.textContent = 'Preenche todos os campos.';
+        return;
+    }
+    if (novaSenha.length < 6) {
+        msgEl.textContent = 'A nova senha precisa ter pelo menos 6 caracteres.';
+        return;
+    }
+    if (novaSenha !== confirmarSenha) {
+        msgEl.textContent = 'A confirmação não bate com a nova senha.';
+        return;
+    }
+
+    const usuario = firebase.auth().currentUser;
+    if (!usuario) { msgEl.textContent = 'Sessão expirada, faz login de novo.'; return; }
+
+    msgEl.textContent = 'Trocando...';
+    try {
+        const credencial = firebase.auth.EmailAuthProvider.credential(usuario.email, senhaAtual);
+        await usuario.reauthenticateWithCredential(credencial);
+        await usuario.updatePassword(novaSenha);
+        msgEl.textContent = 'Senha trocada com sucesso!';
+        document.getElementById('senhaAtualInput').value = '';
+        document.getElementById('novaSenhaInput').value = '';
+        document.getElementById('confirmarSenhaInput').value = '';
+    } catch (err) {
+        if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+            msgEl.textContent = 'Senha atual incorreta.';
+        } else {
+            msgEl.textContent = 'Erro ao trocar a senha: ' + err.message;
+        }
+    }
+}
+
 function fazerLogout() {
     auth.signOut();
 }
@@ -849,6 +892,75 @@ function salvarConfigSinal() {
 }
 
 // Salva o limite de encomendas por dia
+// Salva toda a identidade da loja — nome, cores, contatos — sobrescrevendo o que está
+// no loja-config.js, sem precisar editar código. Deixar um campo em branco volta a
+// usar o padrão do arquivo, campo por campo (não é tudo ou nada).
+// Cada recurso avançado tem seu próprio interruptor, liberado individualmente por você
+// (dono do serviço) direto no Firebase — o cliente não tem como mudar isso sozinho.
+// Mapeia o nome do recurso pro(s) elemento(s) do painel que ele controla.
+const MAPA_RECURSOS = {
+    cupons: { abas: ['cupons'] },
+    fidelidade: { abas: ['fidelidade'] },
+    agenda: { abas: ['agenda'] },
+    notificacoes: { cards: ['cardNotificacoes'] },
+    pagamentoOnline: { cards: ['cardInfiniteTag', 'cardAtivarPagamentoOnline'] },
+    visitantes: { abas: ['visitantes'] }
+};
+
+function aplicarRecursosLiberados(recursos) {
+    // Se o nó "recursosLiberados" nunca foi criado no Firebase desse cliente, trata
+    // TUDO como liberado — não quebra quem (como a Brit's) já usava o painel inteiro
+    // antes desse recurso existir. Só depois que você criar o nó (mesmo que vazio),
+    // cada recurso passa a começar DESLIGADO até você liberar um por um.
+    const nuncaConfigurado = recursos == null;
+
+    Object.entries(MAPA_RECURSOS).forEach(([nomeRecurso, alvos]) => {
+        const liberado = nuncaConfigurado || !!recursos[nomeRecurso];
+
+        (alvos.abas || []).forEach(aba => {
+            const botao = document.querySelector(`.painel-tab-btn[data-tab="${aba}"]`);
+            if (botao) botao.style.display = liberado ? '' : 'none';
+        });
+        (alvos.cards || []).forEach(id => {
+            const card = document.getElementById(id);
+            if (card) card.style.display = liberado ? '' : 'none';
+        });
+    });
+}
+
+function escutarRecursosLiberados() {
+    db.ref('configuracao/recursosLiberados').on('value', snap => {
+        aplicarRecursosLiberados(snap.val());
+    });
+}
+
+function salvarNomeECidadeLoja() {
+    const dados = {
+        nomeLoja: document.getElementById('nomeLojaConfig').value.trim() || null,
+        nomeCurtoLoja: document.getElementById('nomeCurtoLojaConfig').value.trim() || null,
+        subtituloLoja: document.getElementById('subtituloLojaConfig').value.trim() || null,
+        cidadeLoja: document.getElementById('cidadeLojaConfig').value.trim() || null,
+        whatsappLoja: document.getElementById('whatsappLojaConfig').value.trim() || null,
+        instagramLoja: document.getElementById('instagramLojaConfig').value.trim() || null,
+        corPrimariaLoja: document.getElementById('corPrimariaLojaConfig').value || null,
+        corAccentLoja: document.getElementById('corAccentLojaConfig').value || null
+    };
+    const msgEl = document.getElementById('nomeECidadeMsg');
+    db.ref('configuracao/loja').update(dados)
+        .then(() => { msgEl.textContent = 'Salvo!'; })
+        .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+}
+
+// Salva a InfiniteTag — usada pelas Cloud Functions de pagamento. Elas checam esse valor
+// primeiro, e só usam o que está fixo em functions/loja-config.js se não tiver nada aqui.
+function salvarInfiniteTag() {
+    const valor = document.getElementById('infiniteTagConfig').value.trim();
+    const msgEl = document.getElementById('infiniteTagMsg');
+    db.ref('configuracao/loja/infiniteTag').set(valor || null)
+        .then(() => { msgEl.textContent = 'Salvo!'; })
+        .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+}
+
 function salvarCapacidadeAgenda() {
     const valor = parseInt(document.getElementById('capacidadeMaximaDia').value, 10) || 0;
     const msgEl = document.getElementById('capacidadeAgendaMsg');
@@ -1246,6 +1358,25 @@ function escutarConfigLoja() {
 
         const chkAgendamento = document.getElementById('chkAgendamentoAtivo');
         if (chkAgendamento) chkAgendamento.checked = !!config.agendamentoAtivo;
+
+        const campoNomeLoja = document.getElementById('nomeLojaConfig');
+        if (campoNomeLoja) campoNomeLoja.value = config.nomeLoja || '';
+        const campoCidadeLoja = document.getElementById('cidadeLojaConfig');
+        if (campoCidadeLoja) campoCidadeLoja.value = config.cidadeLoja || '';
+        const campoNomeCurtoLoja = document.getElementById('nomeCurtoLojaConfig');
+        if (campoNomeCurtoLoja) campoNomeCurtoLoja.value = config.nomeCurtoLoja || '';
+        const campoSubtituloLoja = document.getElementById('subtituloLojaConfig');
+        if (campoSubtituloLoja) campoSubtituloLoja.value = config.subtituloLoja || '';
+        const campoWhatsappLoja = document.getElementById('whatsappLojaConfig');
+        if (campoWhatsappLoja) campoWhatsappLoja.value = config.whatsappLoja || '';
+        const campoInstagramLoja = document.getElementById('instagramLojaConfig');
+        if (campoInstagramLoja) campoInstagramLoja.value = config.instagramLoja || '';
+        const campoCorPrimariaLoja = document.getElementById('corPrimariaLojaConfig');
+        if (campoCorPrimariaLoja) campoCorPrimariaLoja.value = config.corPrimariaLoja || '#a0522d';
+        const campoCorAccentLoja = document.getElementById('corAccentLojaConfig');
+        if (campoCorAccentLoja) campoCorAccentLoja.value = config.corAccentLoja || '#c9974c';
+        const campoInfiniteTag = document.getElementById('infiniteTagConfig');
+        if (campoInfiniteTag) campoInfiniteTag.value = config.infiniteTag || '';
 
         const campoPedidoMinimo = document.getElementById('valorPedidoMinimo');
         const campoFreteGratis = document.getElementById('valorFreteGratisAcima');
@@ -2192,6 +2323,7 @@ function iniciarEscutaPedidos() {
     escutarContadorDestinatarios();
     escutarConfigAgenda();
     escutarConfigFrete();
+    escutarRecursosLiberados();
     renderizarListaPendenteBloqueio();
     escutarHistoricoNotificacoes();
     const previaLojaNomeEl = document.getElementById('previaLojaNome');

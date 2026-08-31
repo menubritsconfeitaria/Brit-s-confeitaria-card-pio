@@ -292,6 +292,8 @@ let lojaAbertaAtual = true;
 let pagamentoOnlineAtivo = false; // só vira true se a loja ativou isso no painel
 let adicionaisAtivo = false; // idem, pro recurso de adicionais por produto
 let agendamentoAtivo = false; // idem, pro recurso de encomenda com data agendada
+let ultimaConfigAplicadaAssinatura = null; // evita reaplicar a identidade da loja à toa
+let whatsappPedidosEfetivo = null; // reflete o WhatsApp real em uso (painel ou arquivo)
 let percentualSinalEncomenda = 0; // 0 = não exige sinal, encomenda segue o fluxo combinado normal
 let pedidoMinimoValor = 0; // 0 = sem pedido mínimo configurado
 let freteGratisAcimaValor = 0; // 0 = sem frete grátis por valor configurado
@@ -322,6 +324,27 @@ function atualizarStatusLoja(config) {
     const banner = document.getElementById('statusLojaBanner');
     const texto = document.getElementById('statusLojaTexto');
     if (!banner || !texto) return;
+
+    // Se a loja configurou algo pelo painel (nome, cores, contatos...), usa isso — senão,
+    // continua com o padrão do loja-config.js. Só reaplica quando algo realmente muda,
+    // pra não ficar reescrevendo a tela à toa a cada atualização de status
+    const configMesclada = {
+        ...LOJA_CONFIG,
+        nome: (config && config.nomeLoja) || LOJA_CONFIG.nome,
+        nomeCurto: (config && config.nomeCurtoLoja) || LOJA_CONFIG.nomeCurto,
+        subtitulo: (config && config.subtituloLoja) || LOJA_CONFIG.subtitulo,
+        cidade: (config && config.cidadeLoja) || LOJA_CONFIG.cidade,
+        whatsappPedidos: (config && config.whatsappLoja) || LOJA_CONFIG.whatsappPedidos,
+        instagramUrl: (config && config.instagramLoja) || LOJA_CONFIG.instagramUrl,
+        corPrimaria: (config && config.corPrimariaLoja) || LOJA_CONFIG.corPrimaria,
+        corAccent: (config && config.corAccentLoja) || LOJA_CONFIG.corAccent
+    };
+    const assinaturaConfig = JSON.stringify(configMesclada);
+    if (assinaturaConfig !== ultimaConfigAplicadaAssinatura) {
+        aplicarConfigDaLoja(configMesclada);
+        ultimaConfigAplicadaAssinatura = assinaturaConfig;
+    }
+    whatsappPedidosEfetivo = configMesclada.whatsappPedidos;
 
     // Guarda se a loja já ativou o pagamento online — usado por selecionarPagamento()
     // pra decidir se Pix/Cartão exigem pagar na hora ou continuam combinados como sempre
@@ -1838,7 +1861,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
     }
 
     // Configuração e abertura do WhatsApp
-    const numeroWhatsApp = LOJA_CONFIG.whatsappPedidos;
+    const numeroWhatsApp = whatsappPedidosEfetivo || LOJA_CONFIG.whatsappPedidos;
     const linkWhatsApp = `https://api.whatsapp.com/send?phone=${numeroWhatsApp}&text=${encodeURIComponent(mensagemPedido)}`;
 
     // Abre o WhatsApp em uma nova aba
