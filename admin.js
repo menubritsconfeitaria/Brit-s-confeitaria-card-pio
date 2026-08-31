@@ -1786,49 +1786,6 @@ function salvarOrdemCategorias() {
 
 // ---------- FOTOS EM USO (ajuda a achar imagens sem uso no GitHub) ----------
 
-function verFotosEmUso() {
-    db.ref('produtos').once('value').then(snap => {
-        const val = snap.val() || {};
-        const nomesImagens = new Set();
-        Object.values(val).forEach(produto => {
-            const imagens = (Array.isArray(produto.imagens) && produto.imagens.length > 0)
-                ? produto.imagens
-                : (produto.imagem ? [produto.imagem] : []);
-            imagens.forEach(img => { if (img) nomesImagens.add(img); });
-        });
-        renderFotosEmUso([...nomesImagens].sort());
-    }).catch(err => alert('Não foi possível carregar as fotos em uso: ' + err.message));
-}
-
-function renderFotosEmUso(lista) {
-    const div = document.getElementById('fotosEmUsoConteudo');
-    const btnCopiar = document.getElementById('btnCopiarFotos');
-
-    if (lista.length === 0) {
-        div.innerHTML = '<p class="vazio">Nenhuma foto cadastrada em nenhum produto ainda.</p>';
-        btnCopiar.style.display = 'none';
-        window._fotosEmUsoTexto = '';
-        return;
-    }
-
-    div.innerHTML = `<p class="dica-secao">${lista.length} foto(s) em uso agora. Qualquer arquivo do GitHub que NÃO estiver nessa lista pode ser removido com segurança:</p>` +
-        lista.map(nome => `<div class="pedido-total-linha"><span>🖼️ ${nome}</span></div>`).join('');
-
-    window._fotosEmUsoTexto = lista.join('\n');
-    btnCopiar.style.display = 'block';
-}
-
-function copiarFotosEmUso() {
-    if (!window._fotosEmUsoTexto) return;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(window._fotosEmUsoTexto)
-            .then(() => alert('Lista copiada! Já pode comparar com os arquivos do GitHub.'))
-            .catch(() => alert('Não foi possível copiar automaticamente. Copie o texto manualmente da tela.'));
-    } else {
-        alert('Seu navegador não permite copiar automaticamente. Copie o texto manualmente da tela.');
-    }
-}
-
 // ---------- VISITANTES ----------
 
 function escutarVisitantesOnline() {
