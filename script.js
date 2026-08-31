@@ -238,7 +238,7 @@ function aplicarCupom() {
     // Confere o limite de resgates, se configurado
     if (cupom.limiteUsos && (cupom.usosContados || 0) >= cupom.limiteUsos) {
         cupomAplicado = null;
-        msg.textContent = 'Esse cupom já atingiu o limite de usos.';
+        msg.textContent = 'Esse cupom já atingiu o limite de resgates disponíveis. 😊';
         msg.className = 'cupom-mensagem erro';
         atualizarCarrinhoHTML();
         return;
