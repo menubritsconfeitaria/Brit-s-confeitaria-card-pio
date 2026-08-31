@@ -31,15 +31,15 @@ exports.avisarProdutoAtualizado = functions.database
 
         if (!antes) {
             // Produto novo, criado agora
-            if (depois.disponivel) {
+            if (depois.disponivel && !depois.escondido) {
                 titulo = `🆕 Novidade na ${LOJA.nome}!`;
                 corpo = `${depois.nome} já está disponível no cardápio.`;
             }
-        } else if (!eraOferta && agoraOferta && depois.disponivel) {
+        } else if (!eraOferta && agoraOferta && depois.disponivel && !depois.escondido) {
             // Acabou de entrar em oferta
             titulo = `🔥 Oferta na ${LOJA.nome}!`;
             corpo = `${depois.nome}: de R$ ${precoOriginalDepois.toFixed(2).replace('.', ',')} por R$ ${precoDepois.toFixed(2).replace('.', ',')}.`;
-        } else if (antes.disponivel === false && depois.disponivel === true) {
+        } else if (antes.disponivel === false && depois.disponivel === true && !depois.escondido) {
             // Voltou a ficar disponível
             titulo = '✅ Voltou a ficar disponível!';
             corpo = `${depois.nome} já pode ser pedido de novo na ${LOJA.nomeCurto}.`;
@@ -181,6 +181,191 @@ async function enviarAvisoLojaAbriu() {
 
 // Usa uma transação pra garantir que o aviso só sai UMA vez por abertura, mesmo que o
 // gatilho manual e o automático detectem a mudança quase ao mesmo tempo
+/**
+ * Manda uma notificação push com título/texto livres, escritos na hora pelo painel —
+ * pra avisos que não se encaixam nos automáticos (loja abriu, produto novo, etc), tipo
+ * "Hoje o pedido mínimo caiu!" ou "Funcionamos até mais tarde hoje". Só quem estiver
+ * logado no painel (com o `auth` do Firebase) pode chamar essa função.
+ */
+// Manda a notificação de verdade pra todo mundo com token salvo, e limpa quem não
+// funciona mais. Reaproveitada tanto pelo envio imediato quanto pelo agendado.
+async function enviarNotificacaoParaTodos(titulo, corpo) {
+    const tokensSnap = await admin.database().ref('notificacaoTokens').once('value');
+    const tokensObj = tokensSnap.val() || {};
+    const tokens = Object.keys(tokensObj);
+    if (tokens.length === 0) {
+        return { destinatarios: 0, enviados: 0, falhas: 0 };
+    }
+
+    const resposta = await admin.messaging().sendEachForMulticast({
+        notification: { title: titulo, body: corpo },
+        tokens: tokens
+    });
+
+    // Mesma limpeza de sempre: remove tokens que não funcionaram mais (app desinstalado, etc)
+    const remocoes = [];
+    resposta.responses.forEach((r, i) => {
+        if (!r.success) remocoes.push(admin.database().ref('notificacaoTokens/' + tokens[i]).remove());
+    });
+    await Promise.all(remocoes);
+
+    return { destinatarios: tokens.length, enviados: resposta.successCount, falhas: tokens.length - resposta.successCount };
+}
+
+/**
+ * Verifica se uma data está disponível pra encomenda — olha se foi bloqueada manualmente
+ * pela loja, e se o limite de encomendas do dia (se configurado) já foi atingido. Roda no
+ * servidor porque o cliente não tem permissão de leitura da lista geral de pedidos (por
+ * privacidade) — só assim dá pra contar quantos pedidos já tem numa data sem expor dados.
+ * Não exige login — é chamada direto do cardápio, por qualquer visitante.
+ */
+exports.verificarDisponibilidadeData = functions.https.onCall(async (data, context) => {
+    const dataDesejada = data && data.data; // formato 'YYYY-MM-DD'
+    if (!dataDesejada || !/^\d{4}-\d{2}-\d{2}$/.test(dataDesejada)) {
+        throw new functions.https.HttpsError('invalid-argument', 'Data inválida.');
+    }
+    // Confere no servidor também (não confia só no "min" do campo de data no navegador,
+    // que dá pra burlar) — hoje, no fuso do servidor, comparando só a data (sem hora)
+    const hojeISO = new Date().toISOString().slice(0, 10);
+    if (dataDesejada < hojeISO) {
+        return { disponivel: false, motivo: 'passada' };
+    }
+
+    const configSnap = await admin.database().ref('configuracao/agenda').once('value');
+    const config = configSnap.val() || {};
+    const datasBloqueadas = config.datasBloqueadas || {};
+    const capacidadeMaxima = config.capacidadeMaximaDia || 0; // 0 = sem limite de quantidade
+
+    if (datasBloqueadas[dataDesejada]) {
+        return { disponivel: false, motivo: 'bloqueada' };
+    }
+
+    if (capacidadeMaxima > 0) {
+        const pedidosSnap = await admin.database().ref('pedidos').once('value');
+        const pedidos = pedidosSnap.val() || {};
+        const jaAgendados = Object.values(pedidos).filter(p =>
+            p.dataEncomenda === dataDesejada && p.status !== 'cancelado'
+        ).length;
+
+        if (jaAgendados >= capacidadeMaxima) {
+            return { disponivel: false, motivo: 'lotada' };
+        }
+        return { disponivel: true, vagasRestantes: capacidadeMaxima - jaAgendados };
+    }
+
+    return { disponivel: true };
+});
+
+exports.enviarNotificacaoPersonalizada = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Só o painel logado pode enviar notificações.');
+    }
+
+    const titulo = (data && data.titulo || '').trim();
+    const corpo = (data && data.corpo || '').trim();
+    if (!titulo || !corpo) {
+        throw new functions.https.HttpsError('invalid-argument', 'Preencha o título e a mensagem.');
+    }
+
+    const resultado = await enviarNotificacaoParaTodos(titulo, corpo);
+
+    // Guarda no histórico, pra aparecer no painel depois — mesmo que tenha tido alguma
+    // falha parcial, o envio em si aconteceu, então vale registrar
+    await admin.database().ref('notificacoesEnviadas').push({
+        titulo, corpo, tipo: 'imediata', status: 'enviada',
+        timestamp: admin.database.ServerValue.TIMESTAMP,
+        ...resultado
+    });
+
+    return resultado;
+});
+
+/**
+ * Agenda uma notificação pra ser enviada mais tarde — só grava no banco com status
+ * "agendada". Quem realmente manda é processarNotificacoesAgendadas, que roda de
+ * 5 em 5 minutos (mesmo padrão já usado pra abertura automática da loja).
+ */
+exports.agendarNotificacao = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Só o painel logado pode agendar notificações.');
+    }
+
+    const titulo = (data && data.titulo || '').trim();
+    const corpo = (data && data.corpo || '').trim();
+    const agendadoPara = data && data.agendadoPara;
+    if (!titulo || !corpo) {
+        throw new functions.https.HttpsError('invalid-argument', 'Preencha o título e a mensagem.');
+    }
+    if (!agendadoPara || typeof agendadoPara !== 'number' || agendadoPara <= Date.now()) {
+        throw new functions.https.HttpsError('invalid-argument', 'Escolha uma data e hora no futuro.');
+    }
+
+    const novaRef = await admin.database().ref('notificacoesEnviadas').push({
+        titulo, corpo, tipo: 'agendada', status: 'agendada',
+        agendadoPara,
+        criadoEm: admin.database.ServerValue.TIMESTAMP
+    });
+
+    return { id: novaRef.key };
+});
+
+/**
+ * Cancela uma notificação agendada — só funciona se ela ainda não tiver sido enviada
+ * (evita cancelar algo que já saiu, ou cancelar duas vezes por engano).
+ */
+exports.cancelarNotificacaoAgendada = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Só o painel logado pode cancelar.');
+    }
+    const id = data && data.id;
+    if (!id) {
+        throw new functions.https.HttpsError('invalid-argument', 'Faltou informar qual notificação cancelar.');
+    }
+
+    const ref = admin.database().ref('notificacoesEnviadas/' + id);
+    const snap = await ref.once('value');
+    const registro = snap.val();
+    if (!registro || registro.status !== 'agendada') {
+        throw new functions.https.HttpsError('failed-precondition', 'Essa notificação não pode mais ser cancelada.');
+    }
+
+    await ref.update({ status: 'cancelada' });
+    return { ok: true };
+});
+
+/**
+ * Roda a cada 5 minutos: procura notificações agendadas cuja hora já chegou, manda de
+ * verdade, e atualiza o status (enviada ou falhou). Precisão de +/- 5 minutos — mesmo
+ * padrão já usado pra abertura automática da loja.
+ */
+exports.processarNotificacoesAgendadas = functions.pubsub
+    .schedule('every 5 minutes')
+    .onRun(async (context) => {
+        const agora = Date.now();
+        const snap = await admin.database().ref('notificacoesEnviadas')
+            .orderByChild('status').equalTo('agendada').once('value');
+        const pendentes = snap.val() || {};
+
+        const tarefas = Object.entries(pendentes)
+            .filter(([id, n]) => n.agendadoPara && n.agendadoPara <= agora)
+            .map(async ([id, n]) => {
+                try {
+                    const resultado = await enviarNotificacaoParaTodos(n.titulo, n.corpo);
+                    await admin.database().ref('notificacoesEnviadas/' + id).update({
+                        status: 'enviada',
+                        enviadoEm: admin.database.ServerValue.TIMESTAMP,
+                        ...resultado
+                    });
+                } catch (err) {
+                    console.log('Falha ao enviar notificação agendada ' + id + ':', err.message);
+                    await admin.database().ref('notificacoesEnviadas/' + id).update({ status: 'falhou' });
+                }
+            });
+
+        await Promise.all(tarefas);
+        return null;
+    });
+
 async function avisarSeAcabouDeAbrir(estaAbertaAgora) {
     let valorAntes;
     const resultado = await admin.database().ref('notificacoesEstado/lojaAberta').transaction(atual => {
@@ -223,6 +408,15 @@ exports.verificarAberturaAutomaticaLoja = functions.pubsub
  * faz (mesma lógica usada no cardápio e no painel) — nunca confia em nenhum valor
  * que viesse do navegador do cliente, sempre recalcula aqui a partir dos itens.
  */
+// Busca a InfiniteTag configurada pelo painel primeiro (mais prático pra cliente novo,
+// não precisa editar functions/loja-config.js); se não tiver nada lá, usa o arquivo
+async function buscarInfiniteTagEfetiva() {
+    const snap = await admin.database().ref('configuracao/loja/infiniteTag').once('value');
+    const doPainel = snap.val();
+    if (doPainel) return doPainel;
+    return LOJA.infinitePayHandle;
+}
+
 function totalDoPedidoFn(pedido) {
     if (pedido.total != null) return pedido.total;
     const subtotal = pedido.subtotal || 0;
@@ -281,8 +475,9 @@ exports.criarCheckoutInfinitePay = functions.https.onCall(async (data, context) 
         throw new functions.https.HttpsError('invalid-argument', 'Faltou informar o pedidoId.');
     }
 
-    if (!LOJA.infinitePayHandle || LOJA.infinitePayHandle === 'COLE_AQUI_SUA_INFINITETAG') {
-        throw new functions.https.HttpsError('failed-precondition', 'A loja ainda não configurou a InfiniteTag (functions/loja-config.js).');
+    const infiniteTag = await buscarInfiniteTagEfetiva();
+    if (!infiniteTag || infiniteTag === 'COLE_AQUI_SUA_INFINITETAG') {
+        throw new functions.https.HttpsError('failed-precondition', 'A loja ainda não configurou a InfiniteTag (pelo painel ou em functions/loja-config.js).');
     }
 
     const pedidoRef = admin.database().ref('pedidos/' + pedidoId);
@@ -309,7 +504,7 @@ exports.criarCheckoutInfinitePay = functions.https.onCall(async (data, context) 
     const items = (pedido.itens || []).map(item => ({
         quantity: item.quantidade || 1,
         price: paraCentavos(item.preco),
-        description: (item.nome || 'Item').slice(0, 200) // a API tem limite de tamanho na descrição
+        description: `${item.nome || 'Item'}${item.adicionaisTexto ? ' - ' + item.adicionaisTexto : ''}`.slice(0, 200) // a API tem limite de tamanho na descrição
     }));
 
     if (pedido.frete && pedido.frete > 0) {
@@ -331,7 +526,7 @@ exports.criarCheckoutInfinitePay = functions.https.onCall(async (data, context) 
     const projectId = process.env.GCLOUD_PROJECT;
 
     const payload = {
-        handle: LOJA.infinitePayHandle,
+        handle: infiniteTag,
         redirect_url: `${baseUrl}pagamento-concluido.html?pedido=${pedidoId}`,
         webhook_url: `https://us-central1-${projectId}.cloudfunctions.net/webhookInfinitePay`,
         order_nsu: pedidoId,
@@ -366,6 +561,128 @@ exports.criarCheckoutInfinitePay = functions.https.onCall(async (data, context) 
 
     return { checkoutUrl: resposta.url };
 });
+
+/**
+ * Cria um checkout de pagamento só do SINAL (uma % do valor total) pra confirmar uma
+ * encomenda agendada — não cobra o pedido inteiro, só a parte configurada pela loja.
+ * Guarda um prazo de pagamento; se não pagar até lá, a função programada
+ * `cancelarEncomendasSemSinal` cancela o pedido sozinha.
+ */
+exports.criarCheckoutSinalEncomenda = functions.https.onCall(async (data, context) => {
+    const pedidoId = data && data.pedidoId;
+    if (!pedidoId) {
+        throw new functions.https.HttpsError('invalid-argument', 'Faltou informar o pedidoId.');
+    }
+    const infiniteTag = await buscarInfiniteTagEfetiva();
+    if (!infiniteTag || infiniteTag === 'COLE_AQUI_SUA_INFINITETAG') {
+        throw new functions.https.HttpsError('failed-precondition', 'A loja ainda não configurou a InfiniteTag (pelo painel ou em functions/loja-config.js).');
+    }
+
+    const configAgendaSnap = await admin.database().ref('configuracao/agenda').once('value');
+    const configAgenda = configAgendaSnap.val() || {};
+    const percentualSinal = configAgenda.percentualSinal || 0;
+    const prazoPagamentoHoras = configAgenda.prazoPagamentoHoras || 24;
+    if (percentualSinal <= 0) {
+        throw new functions.https.HttpsError('failed-precondition', 'Sinal de encomenda não está configurado.');
+    }
+
+    const pedidoRef = admin.database().ref('pedidos/' + pedidoId);
+    let pedido = null;
+    for (let tentativa = 0; tentativa < 4 && !pedido; tentativa++) {
+        if (tentativa > 0) await new Promise(resolve => setTimeout(resolve, 500));
+        const pedidoSnap = await pedidoRef.once('value');
+        pedido = pedidoSnap.val();
+    }
+    if (!pedido) {
+        throw new functions.https.HttpsError('not-found', 'Pedido não encontrado.');
+    }
+
+    const totalReais = totalDoPedidoFn(pedido);
+    const valorSinalReais = Math.round(totalReais * (percentualSinal / 100) * 100) / 100;
+    const valorSinalCentavos = paraCentavos(valorSinalReais);
+    if (valorSinalCentavos <= 0) {
+        throw new functions.https.HttpsError('failed-precondition', 'O valor do sinal precisa ser maior que zero.');
+    }
+
+    const baseUrl = LOJA.urlCardapio.endsWith('/') ? LOJA.urlCardapio : LOJA.urlCardapio + '/';
+    const projectId = process.env.GCLOUD_PROJECT;
+
+    const payload = {
+        handle: infiniteTag,
+        redirect_url: `${baseUrl}pagamento-concluido.html?pedido=${pedidoId}`,
+        webhook_url: `https://us-central1-${projectId}.cloudfunctions.net/webhookInfinitePay`,
+        order_nsu: pedidoId,
+        items: [{
+            quantity: 1,
+            price: valorSinalCentavos,
+            description: `Sinal (${percentualSinal}%) - Pedido #${pedido.numero || ''} - ${LOJA.nome}`.slice(0, 200)
+        }]
+    };
+    if (pedido.nome) {
+        payload.customer = { name: pedido.nome };
+        if (pedido.telefone) payload.customer.phone_number = pedido.telefone;
+    }
+
+    let resposta;
+    try {
+        const resultado = await postJson('https://api.checkout.infinitepay.io/links', payload);
+        resposta = resultado.corpo;
+        if (resultado.status < 200 || resultado.status >= 300 || !resposta.url) {
+            console.log('InfinitePay recusou o checkout de sinal. Status:', resultado.status, '| Payload:', JSON.stringify(payload), '| Resposta:', JSON.stringify(resposta));
+            throw new functions.https.HttpsError('internal', 'Não foi possível criar o link de pagamento do sinal.', resposta);
+        }
+    } catch (err) {
+        if (err instanceof functions.https.HttpsError) throw err;
+        console.log('Erro ao chamar a InfinitePay (sinal):', err.message);
+        throw new functions.https.HttpsError('internal', 'Não foi possível conectar com o InfinitePay agora.', { erroOriginal: err.message });
+    }
+
+    const prazoPagamento = Date.now() + (prazoPagamentoHoras * 60 * 60 * 1000);
+    await admin.database().ref('pedidos/' + pedidoId + '/pagamento').set({
+        status: 'aguardando',
+        provedor: 'infinitepay',
+        tipoPagamento: 'sinal',
+        valorSinal: valorSinalReais,
+        percentualSinal: percentualSinal,
+        prazoPagamento: prazoPagamento,
+        checkoutUrl: resposta.url,
+        criadoEm: admin.database.ServerValue.TIMESTAMP
+    });
+
+    return { checkoutUrl: resposta.url, valorSinal: valorSinalReais, prazoPagamento };
+});
+
+/**
+ * Roda periodicamente e cancela sozinha qualquer encomenda cujo sinal não foi pago
+ * dentro do prazo configurado — evita segurar uma vaga da agenda indefinidamente
+ * por um pedido que nunca vai ser confirmado.
+ */
+exports.cancelarEncomendasSemSinal = functions.pubsub
+    .schedule('every 60 minutes')
+    .onRun(async (context) => {
+        const agora = Date.now();
+        const pedidosSnap = await admin.database().ref('pedidos').once('value');
+        const pedidos = pedidosSnap.val() || {};
+
+        const cancelamentos = Object.entries(pedidos)
+            .filter(([id, p]) =>
+                p.dataEncomenda &&
+                p.pagamento && p.pagamento.tipoPagamento === 'sinal' &&
+                p.pagamento.status === 'aguardando' &&
+                p.pagamento.prazoPagamento && p.pagamento.prazoPagamento <= agora &&
+                // Só mexe em pedido ainda "em aberto" — nunca cancela algo que já foi
+                // entregue, recusado ou cancelado por outro motivo (proteção extra,
+                // mesmo sendo raro o pagamento ficar "aguardando" nesses casos)
+                p.status !== 'cancelado' && p.status !== 'entregue' && p.status !== 'recusado'
+            )
+            .map(([id]) => admin.database().ref('pedidos/' + id).update({
+                status: 'cancelado',
+                canceladoAutomaticamente: 'Sinal da encomenda não foi pago dentro do prazo'
+            }));
+
+        await Promise.all(cancelamentos);
+        return null;
+    });
 
 /**
  * Recebe a confirmação de pagamento da InfinitePay — chamada por ELES (servidor a
@@ -405,7 +722,12 @@ exports.webhookInfinitePay = functions.https.onRequest(async (req, res) => {
             return;
         }
 
-        const valorEsperadoCentavos = paraCentavos(totalDoPedidoFn(pedido));
+        // Se for pagamento de SINAL de uma encomenda, o valor esperado é só o valor do
+        // sinal (guardado quando o checkout foi criado), não o total do pedido inteiro
+        const ehPagamentoDeSinal = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal';
+        const valorEsperadoCentavos = ehPagamentoDeSinal
+            ? paraCentavos(pedido.pagamento.valorSinal)
+            : paraCentavos(totalDoPedidoFn(pedido));
         const valorPagoCentavos = (corpo.paid_amount != null) ? corpo.paid_amount : corpo.amount;
         // Só é "divergente" de verdade se o cliente pagou MENOS do que devia — pagar um
         // pouco a mais é normal no cartão (taxa da maquininha repassada pro cliente),
