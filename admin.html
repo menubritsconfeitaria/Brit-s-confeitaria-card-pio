@@ -382,6 +382,11 @@
                         <option value="frete_gratis">Frete grátis</option>
                     </select>
                     <input type="text" inputmode="decimal" id="novoCupomValor" placeholder="Valor">
+                    <input type="number" id="novoCupomLimiteUsos" placeholder="Limite de resgates (vazio = sem limite)" min="0">
+                    <div class="produto-admin-linha">
+                        <div class="campo-com-label"><label class="campo-label">Válido de</label><input type="date" id="novoCupomValidoDe"></div>
+                        <div class="campo-com-label"><label class="campo-label">Válido até</label><input type="date" id="novoCupomValidoAte"></div>
+                    </div>
                     <button onclick="adicionarCupom()">+ Adicionar cupom</button>
                 </div>
             </section>

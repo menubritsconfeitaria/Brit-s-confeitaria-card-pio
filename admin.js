@@ -1723,10 +1723,20 @@ function montarCupomLinha(codigo, cupom) {
     if (cupom.tipo === 'percentual') detalhe = `${cupom.valor}% de desconto`;
     else if (cupom.tipo === 'fixo') detalhe = `R$ ${Number(cupom.valor).toFixed(2).replace('.', ',')} de desconto`;
 
+    const partesExtra = [];
+    if (cupom.limiteUsos) partesExtra.push(`${cupom.usosContados || 0}/${cupom.limiteUsos} usado(s)`);
+    if (cupom.validoDe || cupom.validoAte) {
+        const de = cupom.validoDe ? cupom.validoDe.split('-').reverse().join('/') : '—';
+        const ate = cupom.validoAte ? cupom.validoAte.split('-').reverse().join('/') : '—';
+        partesExtra.push(`válido ${de} a ${ate}`);
+    }
+    const extraHtml = partesExtra.length > 0 ? `<small>${partesExtra.join(' · ')}</small>` : '';
+
     div.innerHTML = `
         <div class="cupom-admin-info">
             <strong>${codigo}</strong>
             <span>${detalhe}</span>
+            ${extraHtml}
         </div>
         <button class="btn-excluir-cupom" onclick="excluirCupom('${codigo}')">🗑️</button>
     `;
@@ -1756,19 +1766,38 @@ function adicionarCupom() {
     const codigo = document.getElementById('novoCupomCodigo').value.trim().toUpperCase();
     const tipo = document.getElementById('novoCupomTipo').value;
     const valorInput = paraNumero(document.getElementById('novoCupomValor').value);
+    const limiteUsosInput = document.getElementById('novoCupomLimiteUsos').value.trim();
+    const validoDe = document.getElementById('novoCupomValidoDe').value || null;
+    const validoAte = document.getElementById('novoCupomValidoAte').value || null;
 
     if (!codigo) { alert('Digite um código pro cupom.'); return; }
     if (tipo !== 'frete_gratis' && (isNaN(valorInput) || valorInput <= 0)) {
         alert('Digite um valor válido pro desconto.');
         return;
     }
+    if (validoDe && validoAte && validoAte < validoDe) {
+        alert('A data final não pode ser antes da inicial.');
+        return;
+    }
 
     const dadosCupom = tipo === 'frete_gratis' ? { tipo } : { tipo, valor: valorInput };
+    if (limiteUsosInput) dadosCupom.limiteUsos = parseInt(limiteUsosInput, 10);
+    if (validoDe) dadosCupom.validoDe = validoDe;
+    if (validoAte) dadosCupom.validoAte = validoAte;
 
-    db.ref('cupons/' + codigo).set(dadosCupom)
+    // Se já existir um cupom com esse código (editando de novo), preserva o contador de
+    // usos que já tinha — só zera de verdade quando o código é genuinamente novo
+    db.ref('cupons/' + codigo).once('value').then(snap => {
+        const existente = snap.val();
+        dadosCupom.usosContados = (existente && existente.usosContados) || 0;
+        return db.ref('cupons/' + codigo).set(dadosCupom);
+    })
         .then(() => {
             document.getElementById('novoCupomCodigo').value = '';
             document.getElementById('novoCupomValor').value = '';
+            document.getElementById('novoCupomLimiteUsos').value = '';
+            document.getElementById('novoCupomValidoDe').value = '';
+            document.getElementById('novoCupomValidoAte').value = '';
         })
         .catch(err => alert('Erro ao salvar cupom: ' + err.message));
 }

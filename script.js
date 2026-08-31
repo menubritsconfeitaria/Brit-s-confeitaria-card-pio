@@ -218,6 +218,32 @@ function aplicarCupom() {
         return;
     }
 
+    // Confere o período de validade, se configurado
+    const hojeISO = new Date().toISOString().slice(0, 10);
+    if (cupom.validoDe && hojeISO < cupom.validoDe) {
+        cupomAplicado = null;
+        msg.textContent = `Esse cupom só é válido a partir de ${cupom.validoDe.split('-').reverse().join('/')}.`;
+        msg.className = 'cupom-mensagem erro';
+        atualizarCarrinhoHTML();
+        return;
+    }
+    if (cupom.validoAte && hojeISO > cupom.validoAte) {
+        cupomAplicado = null;
+        msg.textContent = 'Esse cupom expirou.';
+        msg.className = 'cupom-mensagem erro';
+        atualizarCarrinhoHTML();
+        return;
+    }
+
+    // Confere o limite de resgates, se configurado
+    if (cupom.limiteUsos && (cupom.usosContados || 0) >= cupom.limiteUsos) {
+        cupomAplicado = null;
+        msg.textContent = 'Esse cupom já atingiu o limite de usos.';
+        msg.className = 'cupom-mensagem erro';
+        atualizarCarrinhoHTML();
+        return;
+    }
+
     cupomAplicado = { codigo, ...cupom };
     msg.textContent = '✅ Cupom aplicado!';
     msg.className = 'cupom-mensagem sucesso';
@@ -543,6 +569,15 @@ function salvarPedidoNoPainel(dadosPedido) {
                     status: 'pendente',
                     timestamp: firebase.database.ServerValue.TIMESTAMP
                 });
+            })
+            .then(() => {
+                // Conta o uso do cupom só depois que o pedido salvou com sucesso — usa
+                // transaction pra ser seguro mesmo com vários pedidos ao mesmo tempo
+                if (dadosPedido.cupom) {
+                    firebase.database().ref('cupons/' + dadosPedido.cupom + '/usosContados')
+                        .transaction(atual => (atual || 0) + 1)
+                        .catch(err => console.log('Não foi possível contar o uso do cupom:', err));
+                }
             })
             .catch(err2 => console.log('Não foi possível salvar o pedido no painel:', err2));
 
