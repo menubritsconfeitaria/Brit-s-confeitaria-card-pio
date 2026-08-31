@@ -934,6 +934,32 @@ function escutarRecursosLiberados() {
     });
 }
 
+// Envia a logo pro Firebase Storage (não pro GitHub) — assim não precisa mexer em
+// arquivo nenhum pra trocar a logo de um cliente. Sempre sobrescreve o mesmo arquivo
+// (nome fixo "logo-principal"), pra não ir acumulando logo antiga sem usar.
+async function enviarLogo() {
+    const arquivo = document.getElementById('arquivoLogoInput').files[0];
+    const msgEl = document.getElementById('logoUploadMsg');
+    if (!arquivo) { msgEl.textContent = 'Escolhe um arquivo de imagem primeiro.'; return; }
+    if (!arquivo.type.startsWith('image/')) { msgEl.textContent = 'Isso não parece ser uma imagem.'; return; }
+    if (arquivo.size > 2 * 1024 * 1024) { msgEl.textContent = 'Imagem muito grande — usa algo até 2MB.'; return; }
+
+    msgEl.textContent = 'Enviando...';
+    try {
+        const extensao = arquivo.name.split('.').pop();
+        const ref = firebase.storage().ref('logos/logo-principal.' + extensao);
+        await ref.put(arquivo);
+        const url = await ref.getDownloadURL();
+        await db.ref('configuracao/loja/logoUrl').set(url);
+        msgEl.textContent = 'Logo enviada com sucesso!';
+        document.getElementById('previewLogoAtual').src = url;
+        document.getElementById('previewLogoAtual').style.display = 'inline-block';
+        document.getElementById('arquivoLogoInput').value = '';
+    } catch (err) {
+        msgEl.textContent = 'Erro ao enviar: ' + err.message;
+    }
+}
+
 function salvarNomeECidadeLoja() {
     const dados = {
         nomeLoja: document.getElementById('nomeLojaConfig').value.trim() || null,
@@ -1377,6 +1403,18 @@ function escutarConfigLoja() {
         if (campoCorAccentLoja) campoCorAccentLoja.value = config.corAccentLoja || '#c9974c';
         const campoInfiniteTag = document.getElementById('infiniteTagConfig');
         if (campoInfiniteTag) campoInfiniteTag.value = config.infiniteTag || '';
+
+        const previewLogo = document.getElementById('previewLogoAtual');
+        if (previewLogo) {
+            if (config.logoUrl) {
+                previewLogo.src = config.logoUrl;
+                previewLogo.style.display = 'inline-block';
+            } else {
+                previewLogo.style.display = 'none';
+            }
+        }
+        const painelLogo = document.getElementById('painelLogo');
+        if (painelLogo && config.logoUrl) painelLogo.src = config.logoUrl;
 
         const campoPedidoMinimo = document.getElementById('valorPedidoMinimo');
         const campoFreteGratis = document.getElementById('valorFreteGratisAcima');

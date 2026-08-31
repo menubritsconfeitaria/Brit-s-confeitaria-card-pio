@@ -122,6 +122,14 @@
                         </div>
                     </div>
 
+                    <label class="campo-label" style="margin-top:14px;">Logo da loja</label>
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <img id="previewLogoAtual" src="" alt="Logo atual" style="width:60px; height:60px; object-fit:contain; border-radius:8px; border:1px solid var(--border); display:none;">
+                        <input type="file" id="arquivoLogoInput" accept="image/*" style="flex:1;">
+                    </div>
+                    <button class="btn-secondary" style="margin-top:8px;" onclick="enviarLogo()">📤 Enviar nova logo</button>
+                    <p id="logoUploadMsg" class="ordem-categorias-msg"></p>
+
                     <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="salvarNomeECidadeLoja()">💾 Salvar tudo</button>
                     <p id="nomeECidadeMsg" class="ordem-categorias-msg"></p>
                 </div>
@@ -489,6 +497,7 @@
     <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-functions-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-storage-compat.js"></script>
     <script src="loja-config.js"></script>
     <script src="firebase-config.js"></script>
     <script src="admin.js"></script>

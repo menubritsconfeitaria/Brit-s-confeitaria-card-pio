@@ -337,7 +337,8 @@ function atualizarStatusLoja(config) {
         whatsappPedidos: (config && config.whatsappLoja) || LOJA_CONFIG.whatsappPedidos,
         instagramUrl: (config && config.instagramLoja) || LOJA_CONFIG.instagramUrl,
         corPrimaria: (config && config.corPrimariaLoja) || LOJA_CONFIG.corPrimaria,
-        corAccent: (config && config.corAccentLoja) || LOJA_CONFIG.corAccent
+        corAccent: (config && config.corAccentLoja) || LOJA_CONFIG.corAccent,
+        logo: (config && config.logoUrl) || LOJA_CONFIG.logo
     };
     const assinaturaConfig = JSON.stringify(configMesclada);
     if (assinaturaConfig !== ultimaConfigAplicadaAssinatura) {
