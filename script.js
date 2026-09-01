@@ -9,16 +9,51 @@ let carrinho = JSON.parse(localStorage.getItem('carrinhoBritS')) || [];
 
 /* ===================================================================
    CONTROLE DE ROLAGEM AUTOMÁTICA (link de venda / link de produto)
-   Precisa ser declarado bem no topo do arquivo, ANTES de qualquer chamada
-   a escutarProdutos() — o Firebase pode responder rapidíssimo (às vezes
-   antes até do resto do script.js terminar de rodar), e se essas variáveis
-   ainda não existissem nesse momento, a tentativa de rolar se perdia sem
-   nunca mais tentar de novo. Bug corrigido: movido pra cá do final do arquivo.
+   Movido pra cá, bem no topo do arquivo — precisa existir ANTES de
+   escutarProdutos() ser chamado lá embaixo. O Firebase costuma disparar
+   o ".on('value')" muito rápido (às vezes antes do arquivo terminar de
+   rodar até o fim), e se essas variáveis/funções ainda não existissem
+   nesse momento, dava ReferenceError e travava a execução do callback
+   inteiro — foi exatamente esse o bug: "rolarParaVendaSePendente is not
+   defined", que impedia até a linha seguinte (rolarParaProdutoLinkado)
+   de rodar. "scrollParaProdutoPendente" também foi corrigido pra refletir
+   de verdade "veioPeloLinkDeProduto", em vez de ficar fixo em "true".
    =================================================================== */
 const veioPeloLinkDeVenda = new URLSearchParams(window.location.search).get('venda') === '1';
 const veioPeloLinkDeProduto = new URLSearchParams(window.location.search).get('produto') != null;
 let scrollParaVendaPendente = veioPeloLinkDeVenda; // vira false depois de rolar uma vez
 let scrollParaProdutoPendente = veioPeloLinkDeProduto; // vira false depois da primeira tentativa de rolar pro produto do link
+
+// Chamada assim que os produtos terminam de carregar/renderizar de verdade — só então a altura
+// da página fica estável, então é o momento certo de rolar (rolar antes disso rola pro lugar
+// errado, porque o carregamento dos produtos "empurra" a seção de venda pra baixo depois)
+function rolarParaVendaSePendente() {
+    if (!scrollParaVendaPendente) return;
+    scrollParaVendaPendente = false;
+    const conteudo = document.getElementById('personalizarConteudo');
+    if (conteudo) {
+        conteudo.style.display = 'block';
+        setTimeout(() => conteudo.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    }
+}
+
+// Se a pessoa abriu o cardápio por um link de produto específico (?produto=ID, gerado
+// pelo botão "Copiar link deste produto"), rola até ele e destaca por alguns segundos
+function rolarParaProdutoLinkado() {
+    if (!scrollParaProdutoPendente) return;
+    const idProduto = new URLSearchParams(window.location.search).get('produto');
+    if (!idProduto) { scrollParaProdutoPendente = false; return; }
+
+    const elemento = document.getElementById('produto-' + idProduto);
+    if (!elemento) return; // pode ser que os produtos ainda não tenham terminado de renderizar
+
+    scrollParaProdutoPendente = false;
+    setTimeout(() => {
+        elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        elemento.classList.add('produto-destacado-link');
+        setTimeout(() => elemento.classList.remove('produto-destacado-link'), 3000);
+    }, 300);
+}
 
 /* ===================================================================
    TABELA DE BAIRROS E DISTÂNCIA EM KM ATÉ A CONFEITARIA
@@ -2026,6 +2061,15 @@ function fecharBoasVindas() {
     setTimeout(() => { tela.style.display = 'none'; }, 300);
 }
 
+// Link direto pra divulgação: acessando o cardápio com "?venda=1" no final da URL,
+// pula a tela de boas-vindas e já abre a seção de personalização sozinha, expandida.
+// Ex: https://menubritsconfeitaria.github.io/Brit-s-confeitaria-card-pio/?venda=1
+if (veioPeloLinkDeVenda || veioPeloLinkDeProduto) {
+    try { sessionStorage.setItem('boasVindasBritS', '1'); } catch (e) { /* ignora */ } // pula a tela de boas-vindas
+} else {
+    mostrarBoasVindas();
+}
+
 /* ===================================================================
    NOTIFICAÇÕES PUSH
    Depois de gerar a chave VAPID no Firebase (Configurações do projeto >
@@ -2057,192 +2101,5 @@ async function ativarNotificacoes() {
     }
     if (VAPID_KEY === 'COLE_AQUI_A_SUA_CHAVE_VAPID') {
         console.log('Configure a VAPID_KEY no script.js antes de usar as notificações.');
-        return;
-    }
-    try {
-        const permissao = await Notification.requestPermission();
-        if (permissao !== 'granted') {
-            alert('Você optou por não receber notificações. Pode ativar depois nas permissões do navegador.');
-            return;
-        }
-        const registration = await navigator.serviceWorker.ready;
-        const messaging = firebase.messaging();
-        const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
-        if (token) {
-            await firebase.database().ref('notificacaoTokens/' + token).set({
-                criadoEm: firebase.database.ServerValue.TIMESTAMP
-            });
-            localStorage.setItem('notificacoesAtivasBritS', '1');
-            localStorage.setItem('notificacaoTokenBritS', token); // guarda o token pra anexar aos pedidos depois
-            atualizarBotaoNotificacao();
-        }
-    } catch (err) {
-        console.log('Erro ao ativar notificações:', err);
-        alert('Não foi possível ativar as notificações agora. Tente de novo mais tarde.');
-    }
-}
+        return
 
-// Mostra um aviso na tela quando a notificação chega com o site já aberto
-function mostrarToastNotificacao(titulo, corpo) {
-    const toast = document.getElementById('toastNotificacao');
-    const tituloEl = document.getElementById('toastNotificacaoTitulo');
-    const corpoEl = document.getElementById('toastNotificacaoCorpo');
-    if (!toast || !tituloEl || !corpoEl) return;
-    tituloEl.textContent = titulo || '';
-    corpoEl.textContent = corpo || '';
-    toast.style.display = 'flex';
-    setTimeout(() => { toast.style.display = 'none'; }, 6000);
-}
-
-atualizarBotaoNotificacao();
-
-/* ===================================================================
-   PERSONALIZAR CARDÁPIO — prévia ao vivo pra quem quer contratar um
-   cardápio digital com a própria marca (não salva nada, só mostra e
-   direciona o interesse pro WhatsApp de quem vende esse serviço)
-   =================================================================== */
-function inicializarPersonalizacaoPreview() {
-    const nomeInput = document.getElementById('pcNomeLoja');
-    const logoInput = document.getElementById('pcLogoInput');
-    const corInput = document.getElementById('pcCorPrincipal');
-    const previewNome = document.getElementById('pcPreviewNome');
-    const previewLogo = document.getElementById('pcPreviewLogo');
-    const previewCaixa = document.getElementById('pcPreviewCaixa');
-    if (!nomeInput || !previewNome) return; // protege caso a seção não exista nessa página
-
-    nomeInput.addEventListener('input', () => {
-        const nome = nomeInput.value.trim();
-        previewNome.textContent = nome ? `Bem-vindo à ${nome}!` : 'Bem-vindo à Sua Loja!';
-    });
-
-    if (logoInput) {
-        logoInput.addEventListener('change', () => {
-            const arquivo = logoInput.files[0];
-            if (!arquivo) return;
-            const leitor = new FileReader();
-            leitor.onload = (e) => { previewLogo.src = e.target.result; };
-            leitor.readAsDataURL(arquivo);
-        });
-    }
-
-    if (corInput && previewCaixa) {
-        corInput.addEventListener('input', () => {
-            previewCaixa.style.setProperty('--cor-preview', corInput.value);
-        });
-    }
-}
-inicializarPersonalizacaoPreview();
-
-// Número de WhatsApp de quem vende o serviço de cardápio digital personalizado
-// (diferente do WhatsApp da própria Brit's, que é só pra pedidos de doces)
-const numeroWhatsAppServicoCardapio = '5527997726901';
-
-// Abre/fecha o formulário de personalização, que começa escondido — só a chamada fica visível
-function alternarPersonalizarConteudo() {
-    const conteudo = document.getElementById('personalizarConteudo');
-    if (!conteudo) return;
-    const estaAberto = conteudo.style.display !== 'none';
-    conteudo.style.display = estaAberto ? 'none' : 'block';
-    if (!estaAberto) {
-        conteudo.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-}
-
-function ativarModoDemoCompleto() {
-    const nome = document.getElementById('pcNomeLoja').value.trim();
-    const cor = document.getElementById('pcCorPrincipal').value;
-    const logoInput = document.getElementById('pcLogoInput');
-
-    if (!nome) {
-        alert('Digita o nome da sua loja pra ver a prévia :)');
-        return;
-    }
-
-    const configDemo = { ...LOJA_CONFIG, nome, nomeCurto: nome, corPrimaria: cor };
-
-    const arquivo = logoInput ? logoInput.files[0] : null;
-    if (arquivo) {
-        const leitor = new FileReader();
-        leitor.onload = (e) => {
-            configDemo.logo = e.target.result;
-            aplicarConfigDaLoja(configDemo);
-        };
-        leitor.readAsDataURL(arquivo);
-    } else {
-        aplicarConfigDaLoja(configDemo);
-    }
-
-    // Força a loja aparecer "aberta" durante a prévia, não importa o horário real
-    modoDemoAtivo = true;
-    atualizarStatusLoja(null);
-
-    const banner = document.getElementById('bannerModoDemo');
-    if (banner) banner.style.display = 'flex';
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function restaurarCardapioOriginal() {
-    aplicarConfigDaLoja(LOJA_CONFIG);
-
-    // Volta a mostrar o status real da loja (aberta/fechada de verdade)
-    modoDemoAtivo = false;
-    atualizarStatusLoja(ultimaConfigLojaReal);
-
-    const banner = document.getElementById('bannerModoDemo');
-    if (banner) banner.style.display = 'none';
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function enviarInteressePersonalizado() {
-    const nome = document.getElementById('pcNomeLoja').value.trim();
-    const whatsapp = document.getElementById('pcWhatsapp').value.trim();
-    const instagram = document.getElementById('pcInstagram').value.trim();
-    const cor = document.getElementById('pcCorPrincipal').value;
-    const temLogoPropria = document.getElementById('pcLogoInput').files.length > 0;
-
-    if (!nome) {
-        alert('Digita o nome da sua loja pra gente continuar :)');
-        return;
-    }
-
-    let mensagem = `Olá! Vi o cardápio da Brit's Confeitaria e quero um cardápio digital assim pro meu negócio!\n\n`;
-    mensagem += `Nome da loja: ${nome}\n`;
-    if (whatsapp) mensagem += `WhatsApp: ${whatsapp}\n`;
-    if (instagram) mensagem += `Instagram: ${instagram}\n`;
-    mensagem += `Cor principal escolhida: ${cor}\n`;
-    if (temLogoPropria) mensagem += `(já tenho uma logo pronta pra usar)\n`;
-
-    const link = `https://api.whatsapp.com/send?phone=${numeroWhatsAppServicoCardapio}&text=${encodeURIComponent(mensagem)}`;
-    window.open(link, '_blank');
-}
-
-if (podeReceberNotificacoes() && VAPID_KEY !== 'COLE_AQUI_A_SUA_CHAVE_VAPID') {
-    try {
-        firebase.messaging().onMessage((payload) => {
-            const titulo = (payload.notification && payload.notification.title) || LOJA_CONFIG.nome;
-            const corpo = (payload.notification && payload.notification.body) || '';
-            mostrarToastNotificacao(titulo, corpo);
-        });
-    } catch (e) {
-        console.log('Não foi possível escutar notificações em primeiro plano:', e);
-    }
-}
-
-// Fecha o lightbox clicando fora da imagem, e permite navegar com o teclado (setas e Esc)
-document.addEventListener('DOMContentLoaded', () => {
-    const lb = document.getElementById('lightboxImagem');
-    if (lb) {
-        lb.addEventListener('click', (e) => {
-            if (e.target.id === 'lightboxImagem') fecharLightbox();
-        });
-    }
-});
-document.addEventListener('keydown', (e) => {
-    const lb = document.getElementById('lightboxImagem');
-    if (!lb || lb.style.display !== 'flex') return;
-    if (e.key === 'Escape') fecharLightbox();
-    if (e.key === 'ArrowLeft') lightboxNavegar(-1);
-    if (e.key === 'ArrowRight') lightboxNavegar(1);
-});
