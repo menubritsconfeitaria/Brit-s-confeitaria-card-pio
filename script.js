@@ -282,7 +282,7 @@ function aplicarConfigDaLoja(config) {
     if (headerP) headerP.textContent = config.subtitulo;
 
     const headerCidade = document.getElementById('headerCidade');
-    if (headerCidade) headerCidade.textContent = config.cidade ? `📍 Atendemos ${config.cidade}` : '';
+    if (headerCidade) headerCidade.textContent = config.cidade ? `📍 ATENDEMOS ${config.cidade}` : '';
 
     const headerLogo = document.querySelector('header .logo');
     if (headerLogo) { headerLogo.src = config.logo; headerLogo.alt = `Logo ${config.nome}`; }
