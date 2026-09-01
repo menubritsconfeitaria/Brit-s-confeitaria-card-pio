@@ -2020,11 +2020,10 @@ function fecharBoasVindas() {
 // Link direto pra divulgação: acessando o cardápio com "?venda=1" no final da URL,
 // pula a tela de boas-vindas e já abre a seção de personalização sozinha, expandida.
 // Ex: https://menubritsconfeitaria.github.io/Brit-s-confeitaria-card-pio/?venda=1
-if (veioPeloLinkDeVenda || veioPeloLinkDeProduto) {
-    try { sessionStorage.setItem('boasVindasBritS', '1'); } catch (e) { }
-} else {
-    mostrarBoasVindas();
-}
+const veioPeloLinkDeVenda = new URLSearchParams(window.location.search).get('venda') === '1';
+const veioPeloLinkDeProduto = new URLSearchParams(window.location.search).get('produto') != null;
+let scrollParaVendaPendente = veioPeloLinkDeVenda; // vira false depois de rolar uma vez
+let scrollParaProdutoPendente = true; // vira false depois da primeira tentativa de rolar pro produto do link
 
 if (veioPeloLinkDeVenda || veioPeloLinkDeProduto) {
     try { sessionStorage.setItem('boasVindasBritS', '1'); } catch (e) { /* ignora */ } // pula a tela de boas-vindas
