@@ -8,81 +8,95 @@ let produtos = [];
 let carrinho = JSON.parse(localStorage.getItem('carrinhoBritS')) || [];
 
 /* ===================================================================
-   CONTROLE DE ROLAGEM AUTOMÁTICA (link de venda / link de produto)
-   Precisa ficar aqui no topo, ANTES de escutarProdutos() ser chamado
-   lá embaixo — o Firebase responde muito rápido e chamava essas funções
-   antes delas existirem, perdendo a rolagem silenciosamente.
-   =================================================================== */
-const veioPeloLinkDeVenda = new URLSearchParams(window.location.search).get('venda') === '1';
-const veioPeloLinkDeProduto = new URLSearchParams(window.location.search).get('produto') != null;
-let scrollParaVendaPendente = veioPeloLinkDeVenda;
-let scrollParaProdutoPendente = veioPeloLinkDeProduto;
-
-function rolarParaVendaSePendente() {
-    if (!scrollParaVendaPendente) return;
-    scrollParaVendaPendente = false;
-    const conteudo = document.getElementById('personalizarConteudo');
-    if (conteudo) {
-        conteudo.style.display = 'block';
-        setTimeout(() => conteudo.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-    }
-}
-
-function rolarParaProdutoLinkado() {
-    if (!scrollParaProdutoPendente) return;
-    const idProduto = new URLSearchParams(window.location.search).get('produto');
-    if (!idProduto) { scrollParaProdutoPendente = false; return; }
-
-    const elemento = document.getElementById('produto-' + idProduto);
-    if (!elemento) return;
-
-    scrollParaProdutoPendente = false;
-    setTimeout(() => {
-        elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        elemento.classList.add('produto-destacado-link');
-        setTimeout(() => elemento.classList.remove('produto-destacado-link'), 3000);
-    }, 300);
-}
-
-/* ===================================================================
    TABELA DE BAIRROS E DISTÂNCIA EM KM ATÉ A CONFEITARIA
+   (mesma tabela usada no catálogo de referência)
    =================================================================== */
+// Lista de reserva (fallback) — usada só se a loja ainda não tiver configurado nada em
+// "Áreas de Entrega" no painel. Depois de configurado lá, os valores do Firebase que valem.
 const bairrosEntregaPadrao = {
-    "barbados": 0, "colatina velha": 8, "centro": 9, "lace": 10, "esplanada": 9.7,
-    "mario giurizatto": 6.2, "sao silvano": 11, "marista": 11, "fazenda vitali": 10.5,
-    "maria ismenia": 11, "maria esmenia": 11, "vila lenira": 11, "vila nova": 10,
-    "vila amelia": 12, "vila real": 12, "operario": 9, "bela vista": 9,
-    "residencial nobre": 10, "vista da serra": 10, "honorio fraga": 15, "castelo branco": 10,
-    "maria das gracas": 9, "morada do sol": 14, "perpetuo socorro": 10, "nossa senhora aparecida": 12,
-    "jardim planalto": 11, "moacir brotas": 11, "moacyr brotas": 11, "por do sol": 9,
-    "sao pedro": 15, "sao judas tadeu": 9, "sao braz": 10, "santo antonio": 12,
-    "santa helena": 7, "santa margarida": 7, "santa monica": 11, "riviera": 8,
-    "francisco simonassi": 12.3, "fioravante marino": 12, "cidade jardim": 14, "aeroporto": 12,
-    "ayrton senna": 20, "alto sao vicente": 10, "alto vila nova": 10, "adelia giuberti": 10,
-    "antonio damiani": 12, "benjamin carlos dos santos": 7, "carlos germano naumann": 14,
-    "industrial alves marques": 12, "novo horizonte": 14, "sao marcos": 14,
-    "vicente soella i": 25, "vicente soella ii": 27, "vicente soella iii": 29,
-    "vila verde": 15, "vista linda": 15, "santos dumont": 15, "raul giuberti": 12,
-    "olivio zanoteli": 13, "padre jose de anchieta": 12.3, "parque dos jacarandas": 12
+    "barbados": 0,
+    "colatina velha": 8,
+    "centro": 9,
+    "lace": 10,
+    "esplanada": 9.7,
+    "mario giurizatto": 6.2,
+    "sao silvano": 11,
+    "marista": 11,
+    "fazenda vitali": 10.5,
+    "maria ismenia": 11,
+    "maria esmenia": 11,
+    "vila lenira": 11,
+    "vila nova": 10,
+    "vila amelia": 12,
+    "vila real": 12,
+    "operario": 9,
+    "bela vista": 9,
+    "residencial nobre": 10,
+    "vista da serra": 10,
+    "honorio fraga": 15,
+    "castelo branco": 10,
+    "maria das gracas": 9,
+    "morada do sol": 14,
+    "perpetuo socorro": 10,
+    "nossa senhora aparecida": 12,
+    "jardim planalto": 11,
+    "moacir brotas": 11,
+    "moacyr brotas": 11,
+    "por do sol": 9,
+    "sao pedro": 15,
+    "sao judas tadeu": 9,
+    "sao braz": 10,
+    "santo antonio": 12,
+    "santa helena": 7,
+    "santa margarida": 7,
+    "santa monica": 11,
+    "riviera": 8,
+    "francisco simonassi": 12.3,
+    "fioravante marino": 12,
+    "cidade jardim": 14,
+    "aeroporto": 12,
+    "ayrton senna": 20,
+    "alto sao vicente": 10,
+    "alto vila nova": 10,
+    "adelia giuberti": 10,
+    "antonio damiani": 12,
+    "benjamin carlos dos santos": 7,
+    "carlos germano naumann": 14,
+    "industrial alves marques": 12,
+    "novo horizonte": 14,
+    "sao marcos": 14,
+    "vicente soella i": 25,
+    "vicente soella ii": 27,
+    "vicente soella iii": 29,
+    "vila verde": 15,
+    "vista linda": 15,
+    "santos dumont": 15,
+    "raul giuberti": 12,
+    "olivio zanoteli": 13,
+    "padre jose de anchieta": 12.3,
+    "parque dos jacarandas": 12
 };
 const valorPorKmPadrao = 0.70;
 let bairrosEntrega = bairrosEntregaPadrao;
 let valorPorKm = valorPorKmPadrao;
 
+// Estado atual do cálculo de frete (retirada é a opção padrão, então começa sem frete)
 let freteAtual = 0;
-let dataEncomendaVerificada = null;
-let dataEncomendaEscolhida = null;
+let dataEncomendaVerificada = null; // guarda a última data checada e se estava disponível, pra não deixar finalizar sem checar
+let dataEncomendaEscolhida = null; // data de encomenda escolhida na aba dedicada, null = pedido normal
 let freteConfirmado = true;
 
+// Referências aos elementos HTML
 const listaProdutosDiv = document.querySelector('.lista-produtos');
 const carrinhoItensDiv = document.querySelector('.carrinho-itens');
 const subtotalCarrinhoSpan = document.getElementById('subtotal-carrinho');
 const freteCarrinhoSpan = document.getElementById('frete-carrinho');
 const totalCarrinhoSpan = document.getElementById('total-carrinho');
 const botaoFinalizarCompra = document.querySelector('.finalizar-compra');
-const categoriasNav = document.getElementById('categorias-nav');
+const categoriasNav = document.getElementById('categorias-nav'); // NOVO: Referência para a navegação de categorias
 const infoFreteDiv = document.getElementById('infoFrete');
 
+// Referências aos campos do formulário de endereço
 const nomeClienteInput = document.getElementById('nomeCliente');
 const telefoneClienteInput = document.getElementById('telefoneCliente');
 const ruaClienteInput = document.getElementById('ruaCliente');
@@ -97,11 +111,17 @@ const clienteObsInput = document.getElementById('clienteObs');
 const areaEntregaDiv = document.getElementById('areaEntrega');
 const areaTrocoDiv = document.getElementById('areaTroco');
 
+// Variável para armazenar a categoria atualmente selecionada
 let categoriaAtual = 'Todos';
+
+// Estado de como o cliente quer receber o pedido e a forma de pagamento
 let tipoEntregaAtual = 'retirada';
 let formaPagamentoAtual = 'Pix';
+
+// Guarda a lista de imagens de cada carrossel (preenchido a cada renderizarProdutos())
 let carrosselImagensRegistro = {};
 
+// Visualizador de foto em tela cheia (lightbox)
 let lightboxImagens = [];
 let lightboxIndiceAtual = 0;
 
@@ -132,8 +152,10 @@ function fecharLightbox() {
     if (lb) lb.style.display = 'none';
 }
 
+// Ordem de categorias definida pelo dono da loja no painel (opcional)
 let ordemCategoriasSalva = [];
 
+// Coloca as categorias na ordem salva pelo painel; as que não foram listadas lá vão depois, na ordem natural
 function ordenarCategorias(categorias) {
     const comOrdem = [];
     const semOrdem = [];
@@ -155,8 +177,14 @@ function escutarOrdemCategorias() {
     });
 }
 
+/* ===================================================================
+   Os cupons de desconto agora são gerenciados pelo painel (admin.html),
+   dentro da seção "🎟️ Cupons de desconto". Aqui só carregamos o que
+   estiver cadastrado no Firebase.
+   =================================================================== */
 let cupons = {};
-let cupomAplicado = null;
+
+let cupomAplicado = null; // { codigo, tipo, valor }
 
 function calcularDesconto(subtotal) {
     let desconto = 0;
@@ -190,6 +218,7 @@ function aplicarCupom() {
         return;
     }
 
+    // Confere o período de validade, se configurado
     const hojeISO = new Date().toISOString().slice(0, 10);
     if (cupom.validoDe && hojeISO < cupom.validoDe) {
         cupomAplicado = null;
@@ -206,6 +235,7 @@ function aplicarCupom() {
         return;
     }
 
+    // Confere o limite de resgates, se configurado
     if (cupom.limiteUsos && (cupom.usosContados || 0) >= cupom.limiteUsos) {
         cupomAplicado = null;
         msg.textContent = 'Esse cupom já atingiu o limite de resgates disponíveis. 😊';
@@ -220,16 +250,25 @@ function aplicarCupom() {
     atualizarCarrinhoHTML();
 }
 
+// Salva o pedido no Firebase para aparecer em tempo real no painel da loja (admin.html)
+// Horário padrão de funcionamento, usado enquanto a loja não configura nada no painel.
+// Índice: 0=Domingo, 1=Segunda, 2=Terça, 3=Quarta, 4=Quinta, 5=Sexta, 6=Sábado
 const horariosPadrao = [
-    { aberto: true, abre: '09:00', fecha: '13:00' },
-    { aberto: true, abre: '10:00', fecha: '18:00' },
-    { aberto: true, abre: '09:00', fecha: '21:00' },
-    { aberto: true, abre: '09:00', fecha: '18:00' },
-    { aberto: true, abre: '09:00', fecha: '21:00' },
-    { aberto: true, abre: '09:00', fecha: '21:00' },
-    { aberto: true, abre: '09:00', fecha: '16:00' }
+    { aberto: true, abre: '09:00', fecha: '13:00' }, // Domingo
+    { aberto: true, abre: '10:00', fecha: '18:00' }, // Segunda
+    { aberto: true, abre: '09:00', fecha: '21:00' }, // Terça
+    { aberto: true, abre: '09:00', fecha: '18:00' }, // Quarta
+    { aberto: true, abre: '09:00', fecha: '21:00' }, // Quinta
+    { aberto: true, abre: '09:00', fecha: '21:00' }, // Sexta
+    { aberto: true, abre: '09:00', fecha: '16:00' }  // Sábado
 ];
 
+/**
+ * Aplica os dados de uma configuração de loja (nome, logo, cores, contatos) no site
+ * inteiro de uma vez. Usada tanto no carregamento normal da página (com os dados reais,
+ * vindos de loja-config.js) quanto na prévia personalizada (com os dados que a pessoa
+ * digitou) — assim as duas situações usam exatamente a mesma lógica, sem duplicar código.
+ */
 function aplicarConfigDaLoja(config) {
     document.documentElement.style.setProperty('--primary', config.corPrimaria);
     document.documentElement.style.setProperty('--accent', config.corAccent);
@@ -266,32 +305,33 @@ function aplicarConfigDaLoja(config) {
             linkInstagram.href = config.instagramUrl;
             linkInstagram.style.display = '';
         } else {
-            linkInstagram.style.display = 'none';
+            linkInstagram.style.display = 'none'; // esconde o ícone se a loja não tiver Instagram
         }
     }
 
     const linkWhatsapp = document.getElementById('linkWhatsappLoja');
     if (linkWhatsapp) linkWhatsapp.href = `https://wa.me/${config.whatsappPedidos}`;
 }
-aplicarConfigDaLoja(LOJA_CONFIG);
+aplicarConfigDaLoja(LOJA_CONFIG); // aplica a configuração real assim que a página carrega
 
 let lojaAbertaAtual = true;
-let pagamentoOnlineAtivo = false;
-let adicionaisAtivo = false;
-let agendamentoAtivo = false;
-let ultimaConfigAplicadaAssinatura = null;
-let whatsappPedidosEfetivo = null;
-let percentualSinalEncomenda = 0;
-let pedidoMinimoValor = 0;
-let freteGratisAcimaValor = 0;
-let modoDemoAtivo = false;
-let ultimaConfigLojaReal = null;
+let pagamentoOnlineAtivo = false; // só vira true se a loja ativou isso no painel
+let adicionaisAtivo = false; // idem, pro recurso de adicionais por produto
+let agendamentoAtivo = false; // idem, pro recurso de encomenda com data agendada
+let ultimaConfigAplicadaAssinatura = null; // evita reaplicar a identidade da loja à toa
+let whatsappPedidosEfetivo = null; // reflete o WhatsApp real em uso (painel ou arquivo)
+let percentualSinalEncomenda = 0; // 0 = não exige sinal, encomenda segue o fluxo combinado normal
+let pedidoMinimoValor = 0; // 0 = sem pedido mínimo configurado
+let freteGratisAcimaValor = 0; // 0 = sem frete grátis por valor configurado
+let modoDemoAtivo = false; // true enquanto a prévia personalizada está ativa
+let ultimaConfigLojaReal = null; // guarda a última config de verdade, pra restaurar depois do modo demo
 
 function horarioParaMinutos(hhmm) {
     const [h, m] = (hhmm || '00:00').split(':').map(Number);
     return (h || 0) * 60 + (m || 0);
 }
 
+// Calcula se a loja está aberta agora, considerando o horário do dia da semana atual
 function calcularAbertoPorHorario(horarios) {
     const agora = new Date();
     const diaSemana = agora.getDay();
@@ -305,11 +345,15 @@ function calcularAbertoPorHorario(horarios) {
     return minutosAgora >= abre && minutosAgora < fecha;
 }
 
+// Atualiza a faixa de status da loja e bloqueia/libera o botão de finalizar compra
 function atualizarStatusLoja(config) {
     const banner = document.getElementById('statusLojaBanner');
     const texto = document.getElementById('statusLojaTexto');
     if (!banner || !texto) return;
 
+    // Se a loja configurou algo pelo painel (nome, cores, contatos...), usa isso — senão,
+    // continua com o padrão do loja-config.js. Só reaplica quando algo realmente muda,
+    // pra não ficar reescrevendo a tela à toa a cada atualização de status
     const configMesclada = {
         ...LOJA_CONFIG,
         nome: (config && config.nomeLoja) || LOJA_CONFIG.nome,
@@ -329,15 +373,19 @@ function atualizarStatusLoja(config) {
     }
     whatsappPedidosEfetivo = configMesclada.whatsappPedidos;
 
+    // Guarda se a loja já ativou o pagamento online — usado por selecionarPagamento()
+    // pra decidir se Pix/Cartão exigem pagar na hora ou continuam combinados como sempre
     pagamentoOnlineAtivo = !!(config && config.pagamentoOnlineAtivo);
     adicionaisAtivo = !!(config && config.adicionaisAtivo);
 
     const agendamentoAtivoAntes = agendamentoAtivo;
     agendamentoAtivo = !!(config && config.agendamentoAtivo);
+    // Se desativou o recurso, esquece qualquer data que tivesse sido escolhida antes
     if (!agendamentoAtivo) {
         dataEncomendaEscolhida = null;
         dataEncomendaVerificada = null;
     }
+    // Se o interruptor mudou de estado, re-renderiza pra mostrar/esconder a aba Encomendas
     if (agendamentoAtivoAntes !== agendamentoAtivo && typeof renderizarProdutos === 'function' && produtos.length > 0) {
         renderizarProdutos();
         renderizarCategorias();
@@ -345,6 +393,8 @@ function atualizarStatusLoja(config) {
     pedidoMinimoValor = (config && config.pedidoMinimo) || 0;
     freteGratisAcimaValor = (config && config.freteGratisAcima) || 0;
 
+    // Durante a prévia personalizada, sempre mostra "aberta" — não importa o horário
+    // real da Brit's, a pessoa vendo a prévia precisa ver o site "no seu melhor momento"
     if (modoDemoAtivo) {
         lojaAbertaAtual = true;
         banner.classList.remove('loja-fechada');
@@ -379,6 +429,8 @@ function atualizarStatusLoja(config) {
         banner.classList.add('loja-fechada');
         texto.textContent = '🔴 Estamos fechados no momento. Você pode ver o cardápio, mas os pedidos abrem no nosso próximo horário de funcionamento.';
         if (botaoFinalizarCompra) {
+            // Encomenda agendada é pra uma data futura — não depende da loja estar
+            // aberta agora, então o botão continua liberado nesse caso específico
             if (dataEncomendaEscolhida) {
                 botaoFinalizarCompra.disabled = false;
                 botaoFinalizarCompra.textContent = 'Finalizar Compra';
@@ -392,6 +444,8 @@ function atualizarStatusLoja(config) {
     ajustarPosicaoCategorias();
 }
 
+// Empurra a barra de categorias pra baixo da faixa "Aberto/Fechado", já que as duas ficam grudadas no topo.
+// Mede a altura de verdade (o texto pode quebrar em 2 linhas em telas menores) em vez de usar um valor fixo.
 function ajustarPosicaoCategorias() {
     const banner = document.getElementById('statusLojaBanner');
     const nav = document.querySelector('.categorias');
@@ -401,8 +455,9 @@ function ajustarPosicaoCategorias() {
 
 window.addEventListener('resize', ajustarPosicaoCategorias);
 
+// Escuta o status da loja em tempo real e reavalia a cada minuto (pra fechar/abrir sozinho no horário)
 function escutarStatusLoja() {
-    ajustarPosicaoCategorias();
+    ajustarPosicaoCategorias(); // já deixa encaixado certo com o texto "Verificando..." inicial
     if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) {
         atualizarStatusLoja(null);
         return;
@@ -415,11 +470,16 @@ function escutarStatusLoja() {
         firebase.database().ref('configuracao/loja').once('value').then(snap => atualizarStatusLoja(snap.val()));
     }, 60000);
 
+    // Escuta a configuração do sinal de encomenda separadamente (nó diferente)
     firebase.database().ref('configuracao/agenda/percentualSinal').on('value', snap => {
         percentualSinalEncomenda = snap.val() || 0;
     });
 }
 
+// Carrega o cardápio do Firebase e re-renderiza sozinho sempre que algo mudar no painel
+// Escuta a configuração de "Áreas de Entrega" do painel — se a loja já cadastrou algo
+// lá, usa isso; se ainda estiver vazio (cliente novo, nunca configurou), continua usando
+// a lista de reserva (bairrosEntregaPadrao) sem quebrar nada
 function escutarConfigFrete() {
     if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
     firebase.database().ref('configuracao/frete').on('value', snap => {
@@ -450,11 +510,12 @@ function escutarProdutos() {
         renderizarProdutos();
         atualizarCarrinhoHTML();
         atualizarAvisoOferta();
-        rolarParaVendaSePendente();
-        rolarParaProdutoLinkado();
+        rolarParaVendaSePendente(); // só rola pra seção de venda depois que a página já "assentou"
+        rolarParaProdutoLinkado(); // idem, pro link de produto específico
     });
 }
 
+// Mostra um aviso chamativo quando algum produto disponível está em oferta
 function atualizarAvisoOferta() {
     const banner = document.getElementById('ofertaBanner');
     if (!banner) return;
@@ -470,6 +531,7 @@ function fecharAvisoOferta() {
     if (banner) banner.style.display = 'none';
 }
 
+// Carrega os cupons de desconto cadastrados no painel
 function escutarCupons() {
     if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
     firebase.database().ref('cupons').on('value', snap => {
@@ -485,6 +547,11 @@ function salvarPedidoNoPainel(dadosPedido) {
         }
         const novoPedidoRef = firebase.database().ref('pedidos').push();
 
+        // Gera um número sequencial pro pedido (nunca reinicia, nem no dia seguinte) usando uma
+        // transação atômica — garante que dois pedidos nunca recebam o mesmo número por coincidência.
+        // "promessaSalvo" só resolve quando o pedido REALMENTE terminou de ser escrito no banco —
+        // importante pro fluxo de pagamento online, que precisa ter certeza que o pedido já existe
+        // antes de pedir pra Cloud Function ler ele (senão corre o risco de "pedido não encontrado")
         const promessaSalvo = firebase.database().ref('contadores/proximoPedido').transaction(atual => (atual || 0) + 1)
             .then(resultado => {
                 const numeroAtribuido = resultado.committed ? resultado.snapshot.val() : null;
@@ -504,6 +571,8 @@ function salvarPedidoNoPainel(dadosPedido) {
                 });
             })
             .then(() => {
+                // Conta o uso do cupom só depois que o pedido salvou com sucesso — usa
+                // transaction pra ser seguro mesmo com vários pedidos ao mesmo tempo
                 if (dadosPedido.cupom) {
                     firebase.database().ref('cupons/' + dadosPedido.cupom + '/usosContados')
                         .transaction(atual => (atual || 0) + 1)
@@ -519,6 +588,7 @@ function salvarPedidoNoPainel(dadosPedido) {
     }
 }
 
+// Acompanha em tempo real o status (pendente/aceito/recusado) de um pedido pro cliente
 let refStatusPedidoAtual = null;
 
 function mostrarStatusPedido(pedidoId) {
@@ -568,6 +638,7 @@ function fecharStatusPedido() {
     localStorage.removeItem('ultimoPedidoBritS');
 }
 
+// Se o cliente tem um pedido recente rastreado (últimas 48h), volta a mostrar o status dele
 function verificarPedidoSalvo() {
     try {
         const dados = JSON.parse(localStorage.getItem('ultimoPedidoBritS'));
@@ -579,9 +650,12 @@ function verificarPedidoSalvo() {
                 localStorage.removeItem('ultimoPedidoBritS');
             }
         }
-    } catch (e) { }
+    } catch (e) {
+        // localStorage vazio ou inválido, ignora
+    }
 }
 
+// Preenche o formulário com os dados salvos da última compra (nome, telefone, endereço)
 function carregarDadosClienteSalvos() {
     try {
         const dados = JSON.parse(localStorage.getItem('dadosClienteBritS'));
@@ -597,15 +671,20 @@ function carregarDadosClienteSalvos() {
         if (dados.cep) cepClienteInput.value = dados.cep;
         if (dados.tipoEntrega === 'entrega') {
             selecionarTipoEntrega('entrega');
-            if (dados.cep) calcularFrete();
+            if (dados.cep) calcularFrete(); // recalcula o frete, o valor pode ter mudado
         }
-    } catch (e) { }
+    } catch (e) {
+        // localStorage vazio ou inválido, ignora
+    }
 }
 
+
+// Função para salvar o carrinho no Local Storage
 function salvarCarrinho() {
     localStorage.setItem('carrinhoBritS', JSON.stringify(carrinho));
 }
 
+// Alterna entre "Retirar no local" e "Entrega", mostrando/escondendo o endereço
 function selecionarTipoEntrega(tipo) {
     tipoEntregaAtual = tipo;
     document.getElementById('btnRetirada').classList.toggle('selecionado', tipo === 'retirada');
@@ -614,7 +693,7 @@ function selecionarTipoEntrega(tipo) {
 
     if (tipo === 'retirada') {
         freteAtual = 0;
-        freteConfirmado = true;
+        freteConfirmado = true; // não há entrega, então não há valor "a confirmar"
         infoFreteDiv.style.display = 'none';
     } else if (!cepClienteInput.value) {
         freteConfirmado = false;
@@ -622,22 +701,32 @@ function selecionarTipoEntrega(tipo) {
     atualizarCarrinhoHTML();
 }
 
+// Alterna a forma de pagamento e mostra o campo de troco quando for "Dinheiro"
 function selecionarPagamento(forma) {
     formaPagamentoAtual = forma;
     document.getElementById('btnPix').classList.toggle('selecionado', forma === 'Pix');
     document.getElementById('btnCartao').classList.toggle('selecionado', forma === 'Cartão');
     document.getElementById('btnDinheiro').classList.toggle('selecionado', forma === 'Dinheiro');
     areaTrocoDiv.style.display = forma === 'Dinheiro' ? 'block' : 'none';
+    // Pix e Cartão só exigem pagamento na hora se a loja já tiver ativado o pagamento
+    // online (aba Loja, no painel) — senão, funcionam do jeito de sempre (combinado)
     const vaiPagarAgora = pagamentoOnlineAtivo && (forma === 'Pix' || forma === 'Cartão');
     if (botaoFinalizarCompra && lojaAbertaAtual) {
         botaoFinalizarCompra.textContent = vaiPagarAgora ? '🌐 Pagar Agora' : 'Finalizar Compra';
     }
 }
 
+// Atualiza o resumo de encomenda mostrado pro cliente no checkout — mostra o valor
+// estimado do sinal quando configurado, ou o aviso de "vamos confirmar" quando não tem
+// sinal. Chamada tanto ao verificar a data quanto sempre que o carrinho muda (o valor
+// do sinal depende do total, que pode mudar se a pessoa adicionar mais itens depois)
 function atualizarResumoEncomendaCheckout() {
     const resumoDiv = document.getElementById('resumoEncomendaCheckout');
     const resumoTexto = document.getElementById('resumoTextoEncomenda');
 
+    // Reage na hora se a loja estiver fechada: escolher (ou desmarcar) uma encomenda
+    // libera ou trava o botão de finalizar na hora, sem esperar a próxima atualização
+    // de status da loja (que só roda a cada 1 minuto)
     if (!lojaAbertaAtual && botaoFinalizarCompra && !modoDemoAtivo) {
         if (dataEncomendaEscolhida) {
             botaoFinalizarCompra.disabled = false;
@@ -667,6 +756,8 @@ function atualizarResumoEncomendaCheckout() {
     resumoDiv.style.display = 'block';
 }
 
+// Consulta o servidor pra saber se a data escolhida pra encomenda está disponível
+// (não bloqueada manualmente, e ainda tem vaga dentro do limite do dia, se houver)
 async function verificarDisponibilidadeAgenda() {
     const data = document.getElementById('encomendaDataInput').value;
     const msgEl = document.getElementById('encomendaDisponibilidadeMsg');
@@ -706,10 +797,12 @@ async function verificarDisponibilidadeAgenda() {
     }
 }
 
+// Remove acentos e padroniza texto para comparar nomes de bairro
 function normalizar(txt) {
     return (txt || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 }
 
+// Consulta o ViaCEP, calcula o valor da entrega pelo bairro e auto-preenche o endereço
 async function calcularFrete() {
     const cep = cepClienteInput.value.replace(/\D/g, '');
 
@@ -729,6 +822,7 @@ async function calcularFrete() {
             freteAtual = 0;
             freteConfirmado = false;
         } else {
+            // Auto-preenche os campos de endereço com o retorno do ViaCEP
             if (dados.logradouro) ruaClienteInput.value = dados.logradouro;
             if (dados.bairro) bairroClienteInput.value = dados.bairro;
             if (dados.localidade) cidadeClienteInput.value = dados.localidade;
@@ -755,6 +849,8 @@ async function calcularFrete() {
     atualizarCarrinhoHTML();
 }
 
+// Função para renderizar os produtos na página
+// Transforma o nome de uma categoria num id seguro pra usar como âncora (ex: "Bolo no Pote" -> "bolo-no-pote")
 function categoriaParaId(categoria) {
     return 'categoria-' + (categoria || '')
         .toLowerCase()
@@ -763,6 +859,11 @@ function categoriaParaId(categoria) {
         .replace(/^-+|-+$/g, '');
 }
 
+// ---------- Modal de escolha de adicionais (recheio, extras, etc.) ----------
+
+// Guarda o contexto (produto, quantidade, observação da variante) enquanto o modal está
+// aberto, e as escolhas feitas em cada grupo — obrigatório guarda 1 índice, opcional guarda
+// um Set (pode escolher vários, ou nenhum)
 let produtoNoModalAdicionais = null;
 let selecoesAdicionais = {};
 
@@ -846,7 +947,11 @@ function atualizarPrecoModalAdicionais() {
     document.getElementById('modalAdicionaisBtnConfirmar').textContent = `Adicionar · ${formatarPrecoTexto(total)}`;
 }
 
+// Adiciona o item de verdade no carrinho — usada tanto pelo caminho direto (produto sem
+// adicionais) quanto pelo modal de adicionais, depois que a pessoa confirma as escolhas
 function finalizarAdicaoAoCarrinho(nomeProduto, precoEfetivo, quantidade, observacao, adicionaisTexto) {
+    // Só agrupa como "mesmo item" se nome, observação E adicionais escolhidos forem
+    // idênticos — senão, dois bolos com recheios diferentes viram uma linha só, errado
     const produtoExistente = carrinho.find(item =>
         item.nome === nomeProduto &&
         (item.observacao || '') === (observacao || '') &&
@@ -855,7 +960,7 @@ function finalizarAdicaoAoCarrinho(nomeProduto, precoEfetivo, quantidade, observ
 
     if (produtoExistente) {
         produtoExistente.quantidade += quantidade;
-        produtoExistente.preco = precoEfetivo;
+        produtoExistente.preco = precoEfetivo; // Garante que o preço fica sempre atualizado (ex: entrou em oferta)
     } else {
         carrinho.push({
             nome: nomeProduto,
@@ -875,6 +980,7 @@ function finalizarAdicaoAoCarrinho(nomeProduto, precoEfetivo, quantidade, observ
 function confirmarAdicionaisEAdicionar() {
     const { produto, quantidade, observacao } = produtoNoModalAdicionais;
 
+    // Confere se todo grupo obrigatório tem uma escolha feita antes de deixar adicionar
     for (let gi = 0; gi < produto.grupoAdicionais.length; gi++) {
         const grupo = produto.grupoAdicionais[gi];
         if (grupo.obrigatorio && selecoesAdicionais[gi] == null) {
@@ -885,6 +991,7 @@ function confirmarAdicionaisEAdicionar() {
 
     const precoEfetivo = produto.preco + calcularPrecoExtrasSelecionados();
 
+    // Monta o texto legível do que foi escolhido, pra mostrar no carrinho/pedido/painel
     const partesTexto = [];
     produto.grupoAdicionais.forEach((grupo, gi) => {
         if (grupo.obrigatorio) {
@@ -902,13 +1009,19 @@ function confirmarAdicionaisEAdicionar() {
 function renderizarProdutos() {
     listaProdutosDiv.innerHTML = '';
 
+    // Não mostra produtos marcados como "escondido" no cardápio — diferente de "esgotado"
+    // (que ainda aparece, só sem poder comprar), esse nem entra na vitrine. A lista original
+    // "produtos" continua intacta, usada em outros lugares (tipo o modal de adicionais)
     const produtosVisiveis = produtos.filter(p => !p.escondido);
 
+    // Agrupa os produtos por categoria, respeitando a ordem definida no painel
     const categoriasNaOrdem = ordenarCategorias([...new Set(produtosVisiveis.map(produto => produto.categoria))]);
 
+    // Guarda a lista de imagens de cada carrossel, pra usar nos cliques (setas e lightbox)
     carrosselImagensRegistro = {};
     let contadorCarrossel = 0;
 
+    // Monta o card de um produto (reaproveitado tanto na seção de Ofertas quanto na categoria normal dele)
     function construirCardProduto(produto) {
         const produtoItemDiv = document.createElement('div');
         produtoItemDiv.classList.add('produto-item');
@@ -963,6 +1076,8 @@ function renderizarProdutos() {
         return produtoItemDiv;
     }
 
+    // Seção especial "🎂 Encomendas" — só aparece se o recurso estiver ativado E tiver
+    // pelo menos 1 produto marcado como disponível pra encomenda
     const produtosParaEncomenda = produtosVisiveis.filter(p => p.disponivelParaEncomenda);
     if (agendamentoAtivo && produtosParaEncomenda.length > 0) {
         const tituloEncomenda = document.createElement('h3');
@@ -980,6 +1095,7 @@ function renderizarProdutos() {
             <p id="encomendaDisponibilidadeMsg" class="dica-encomenda"></p>
         `;
         listaProdutosDiv.appendChild(introEncomenda);
+        // Impede escolher uma data que já passou
         document.getElementById('encomendaDataInput').min = new Date().toISOString().slice(0, 10);
 
         const gridEncomenda = document.createElement('div');
@@ -988,6 +1104,7 @@ function renderizarProdutos() {
         listaProdutosDiv.appendChild(gridEncomenda);
     }
 
+    // Seção especial "🔥 Ofertas do Dia" (só aparece se tiver algum produto em oferta disponível)
     const produtosEmOferta = produtosVisiveis.filter(p => p.disponivel && p.precoOriginal && p.precoOriginal > p.preco);
     if (produtosEmOferta.length > 0) {
         const tituloOferta = document.createElement('h3');
@@ -1020,6 +1137,7 @@ function renderizarProdutos() {
         listaProdutosDiv.appendChild(gridEl);
     });
 
+    // Interatividade do carrossel de fotos: setas trocam a imagem, clicar na foto abre o lightbox
     document.querySelectorAll('.produto-imagem-wrap').forEach(wrap => {
         const imagens = carrosselImagensRegistro[wrap.id] || [];
         const imgEl = wrap.querySelector('.produto-imagem-atual');
@@ -1055,6 +1173,7 @@ function renderizarProdutos() {
         }
     });
 
+    // Clique num "sabor" seleciona ele e desmarca os outros do mesmo produto
     document.querySelectorAll('.variante-pill').forEach(pill => {
         pill.addEventListener('click', () => {
             pill.closest('.variantes-lista').querySelectorAll('.variante-pill').forEach(p => p.classList.remove('selecionada'));
@@ -1062,6 +1181,8 @@ function renderizarProdutos() {
         });
     });
 
+    // Adiciona event listeners apenas para botões de produtos disponíveis
+    // Clique nos botões +/− do seletor de quantidade de cada produto
     document.querySelectorAll('.produto-quantidade-stepper').forEach(stepper => {
         const valorEl = stepper.querySelector('.qtd-valor');
         stepper.querySelector('.qtd-menos').addEventListener('click', () => {
@@ -1074,6 +1195,7 @@ function renderizarProdutos() {
         });
     });
 
+    // Copia um link direto pra esse produto específico (útil pra mandar pra alguém)
     document.querySelectorAll('.btn-copiar-link-produto').forEach(botao => {
         botao.addEventListener('click', async (evento) => {
             const idProduto = evento.target.dataset.id;
@@ -1083,6 +1205,7 @@ function renderizarProdutos() {
                 await navigator.clipboard.writeText(url);
                 evento.target.textContent = '✅ Link copiado!';
             } catch (err) {
+                // Alguns navegadores/contextos bloqueiam o clipboard — mostra o link pra copiar na mão
                 prompt('Copia esse link manualmente:', url);
             }
             setTimeout(() => { evento.target.textContent = textoOriginal; }, 2000);
@@ -1099,6 +1222,7 @@ function renderizarProdutos() {
             const varianteSelecionada = cardProduto.querySelector('.variante-pill.selecionada');
             const inputObs = cardProduto.querySelector('.observacao-item');
 
+            // Se o produto tem sabores/opções, é obrigatório escolher um antes de adicionar
             if (listaVariantes.length > 0 && !varianteSelecionada) {
                 alert('Escolha um sabor/opção antes de adicionar ao carrinho.');
                 return;
@@ -1108,8 +1232,13 @@ function renderizarProdutos() {
             const stepperValor = cardProduto.querySelector('.qtd-valor');
             const quantidadeEscolhida = stepperValor ? (parseInt(stepperValor.textContent, 10) || 1) : 1;
 
+            // Se o produto tem grupos de adicionais configurados (recheio, extras, etc.),
+            // abre o modal de escolha em vez de adicionar direto — quem finaliza a adição
+            // nesse caso é confirmarAdicionaisEAdicionar(), depois que a pessoa escolher
             const produtoCompleto = produtos.find(p => p.nome === nomeProduto);
 
+            // Produto de encomenda exige que a data já tenha sido escolhida e verificada
+            // como disponível antes de deixar adicionar ao carrinho
             if (produtoCompleto && produtoCompleto.disponivelParaEncomenda && !dataEncomendaEscolhida) {
                 alert('Escolha e confirme a data desejada, ali em cima na seção "🎂 Encomendas", antes de adicionar esse produto.');
                 return;
@@ -1124,21 +1253,27 @@ function renderizarProdutos() {
             }
 
             if (inputObs) inputObs.value = '';
-            if (stepperValor) stepperValor.textContent = '1';
+            if (stepperValor) stepperValor.textContent = '1'; // reseta o seletor de quantidade pro próximo uso
             cardProduto.querySelectorAll('.variante-pill').forEach(p => p.classList.remove('selecionada'));
         });
     });
 
+
     iniciarObservadorCategorias();
 }
 
+// NOVO: Função para renderizar as categorias
 function renderizarCategorias() {
+    // Não conta produtos escondidos pra montar as categorias — senão uma categoria que só
+    // tinha produto escondido continuava aparecendo no menu, mesmo sem nada pra mostrar
     const produtosVisiveis = produtos.filter(p => !p.escondido);
 
+    // Pega todas as categorias únicas dos produtos, na ordem definida no painel
     const categorias = ['Todos', ...ordenarCategorias([...new Set(produtosVisiveis.map(produto => produto.categoria))])];
 
-    categoriasNav.innerHTML = '';
+    categoriasNav.innerHTML = ''; // Limpa a navegação de categorias
 
+    // Botão especial de Encomendas, só aparece se o recurso estiver ativado e tiver produto
     const produtosParaEncomendaNav = produtosVisiveis.filter(p => p.disponivelParaEncomenda);
     if (agendamentoAtivo && produtosParaEncomendaNav.length > 0) {
         const liEncomenda = document.createElement('li');
@@ -1153,6 +1288,7 @@ function renderizarCategorias() {
         categoriasNav.appendChild(liEncomenda);
     }
 
+    // Botão especial de Ofertas, só aparece se tiver produto em oferta disponível
     const temOfertaAtiva = produtosVisiveis.some(p => p.disponivel && p.precoOriginal && p.precoOriginal > p.preco);
     if (temOfertaAtiva) {
         const liOferta = document.createElement('li');
@@ -1170,7 +1306,7 @@ function renderizarCategorias() {
         button.textContent = categoria;
         button.classList.add('categoria-btn');
         if (categoria === categoriaAtual) {
-            button.classList.add('active');
+            button.classList.add('active'); // Adiciona classe 'active' para a categoria selecionada
         }
         button.addEventListener('click', () => {
             document.querySelectorAll('.categoria-btn').forEach(btn => btn.classList.remove('active'));
@@ -1187,11 +1323,13 @@ function renderizarCategorias() {
     });
 }
 
+// Rola a página até a seção "🔥 Ofertas do Dia" — usado pelo botão da barra de categorias e pelo aviso de oferta
 function irParaOfertas() {
     const alvo = document.getElementById('secao-ofertas');
     if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+// Acompanha o scroll e destaca sozinho a categoria que está aparecendo na tela
 let categoriaObserver = null;
 
 function iniciarObservadorCategorias() {
@@ -1212,10 +1350,13 @@ function iniciarObservadorCategorias() {
     document.querySelectorAll('.categoria-titulo').forEach(titulo => categoriaObserver.observe(titulo));
 }
 
+
+// Função para atualizar a exibição do carrinho na página
 function atualizarCarrinhoHTML() {
     carrinhoItensDiv.innerHTML = '';
-    atualizarResumoEncomendaCheckout();
+    atualizarResumoEncomendaCheckout(); // mantém o valor estimado do sinal sempre atualizado
 
+    // Atualiza a barrinha flutuante — só aparece quando tem algo no carrinho
     const flutuante = document.getElementById('carrinhoFlutuante');
     if (flutuante) {
         if (carrinho.length === 0) {
@@ -1277,6 +1418,8 @@ function atualizarCarrinhoHTML() {
         totalCarrinhoSpan.textContent = `R$ ${subtotalComDesconto.toFixed(2).replace('.', ',')} + entrega`;
     }
 
+    // Mensagem de incentivo: avisa quanto falta pro pedido mínimo, ou pro frete grátis
+    // (só mostra uma de cada vez — pedido mínimo primeiro, por ser mais importante)
     const incentivoEl = document.getElementById('incentivoCarrinhoMsg');
     if (incentivoEl) {
         if (carrinho.length === 0) {
@@ -1306,6 +1449,7 @@ function atualizarCarrinhoHTML() {
     });
 }
 
+// Função para gerenciar a quantidade de um item no carrinho
 function gerenciarQuantidade(index, acao) {
     if (acao === 'aumentar') {
         carrinho[index].quantidade++;
@@ -1324,6 +1468,7 @@ function gerenciarQuantidade(index, acao) {
     console.log('Carrinho atual:', carrinho);
 }
 
+// Função para limpar os campos do formulário de endereço
 function limparFormularioEndereco() {
     nomeClienteInput.value = '';
     telefoneClienteInput.value = '';
@@ -1347,12 +1492,17 @@ function limparFormularioEndereco() {
     if (cupomMsg) { cupomMsg.textContent = ''; cupomMsg.className = 'cupom-mensagem'; }
 }
 
-let clubeIdentificado = null;
+
+// Funcionalidade para o botão Finalizar Compra
+/* ===================================================================
+   CLUBE BRIT'S (Fidelidade)
+   =================================================================== */
+let clubeIdentificado = null; // { nome, telefone }
 let configFidelidade = {};
 let recompensasFidelidade = [];
 let dadosFidelidadeCliente = { pontos: 0, totalGasto: 0 };
 let refFidelidadeCliente = null;
-let recompensaSelecionada = null;
+let recompensaSelecionada = null; // { pontos, tipo, valor|produtoNome, descricao, _index }
 
 function normalizarTelefone(tel) {
     return (tel || '').replace(/\D/g, '');
@@ -1375,6 +1525,7 @@ function escutarConfigClube() {
 function abrirFormClube() {
     document.getElementById('clubeNaoIdentificado').style.display = 'none';
     document.getElementById('clubeFormIdentificacao').style.display = 'block';
+    // Já aproveita nome/telefone se o cliente já preencheu no formulário de entrega
     if (nomeClienteInput.value) document.getElementById('clubeNomeInput').value = nomeClienteInput.value;
     if (telefoneClienteInput.value) document.getElementById('clubeTelefoneInput').value = telefoneClienteInput.value;
 }
@@ -1452,6 +1603,7 @@ function atualizarUIClube() {
     document.getElementById('clubeNivelNome').textContent = nivel.nome;
     document.getElementById('clubePontosExibido').textContent = pontos;
 
+    // Barra de progresso até a PRÓXIMA recompensa que o cliente ainda não alcançou
     const comIndice = recompensasFidelidade.map((r, i) => r ? { ...r, _index: i } : null).filter(Boolean);
     const ordenadas = [...comIndice].sort((a, b) => a.pontos - b.pontos);
     const proxima = ordenadas.find(r => r.pontos > pontos);
@@ -1466,7 +1618,7 @@ function atualizarUIClube() {
         barra.style.width = pct + '%';
 
         const faltam = proxima.pontos - pontos;
-        const perto = faixa > 0 && (faltam / faixa) <= 0.2;
+        const perto = faixa > 0 && (faltam / faixa) <= 0.2; // faltando 20% ou menos da faixa, fica animado
         const prefixo = perto ? '🔥 Faltam apenas' : 'Faltam';
         progressoTexto.innerHTML = `⭐ <strong>${pontos} / ${proxima.pontos}</strong> pontos<br>${prefixo} ${faltam} ${faltam === 1 ? 'ponto' : 'pontos'} para ganhar: <strong>${proxima.descricao}</strong>!`;
     } else if (ordenadas.length > 0) {
@@ -1539,6 +1691,8 @@ function repetirUltimoPedido() {
 }
 
 botaoFinalizarCompra.addEventListener('click', async () => {
+    // Encomenda agendada é pra uma data futura — não faz sentido bloquear só porque a
+    // loja está fechada agora, nesse exato momento (diferente de um pedido pro dia)
     if (!lojaAbertaAtual && !dataEncomendaEscolhida) {
         alert('Estamos fechados no momento. Assim que reabrirmos, você já pode finalizar seu pedido!');
         return;
@@ -1548,6 +1702,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         return;
     }
 
+    // Confere o pedido mínimo (se configurado) antes de deixar finalizar
     if (pedidoMinimoValor > 0) {
         const subtotalAtual = carrinho.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
         const descontoAtual = calcularDesconto(subtotalAtual);
@@ -1559,6 +1714,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         }
     }
 
+    // Coleta os dados do formulário
     const nome = nomeClienteInput.value.trim();
     const telefone = telefoneClienteInput.value.trim();
     const rua = ruaClienteInput.value.trim();
@@ -1573,11 +1729,14 @@ botaoFinalizarCompra.addEventListener('click', async () => {
     const querAgendar = agendamentoAtivo && !!dataEncomendaEscolhida;
     const dataEncomenda = dataEncomendaEscolhida;
 
+    // A verificação já é exigida na própria aba Encomendas antes de liberar o produto
+    // pro carrinho — aqui só uma última conferência de segurança, caso algo tenha mudado
     if (querAgendar && dataEncomendaVerificada !== dataEncomenda) {
         alert('A disponibilidade da data da sua encomenda precisa ser verificada de novo — volta na aba Encomendas e confirma a data.');
         return;
     }
 
+    // Validação simples dos campos obrigatórios
     if (!nome || !telefone) {
         alert('Por favor, preencha seu nome e telefone.');
         return;
@@ -1587,6 +1746,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         return;
     }
 
+    // Formata os itens do carrinho para a mensagem
     let itensPedido = '';
     let subtotalPedido = 0;
     carrinho.forEach(item => {
@@ -1608,6 +1768,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         ? `R$ ${(subtotalPedido - desconto + frete).toFixed(2).replace('.', ',')}`
         : `${subtotalTexto} + entrega (a confirmar)`;
 
+    // Monta a mensagem final
     let mensagemPedido = `🍰 *Novo Pedido - ${LOJA_CONFIG.nome}* 🍰\n\n`;
     mensagemPedido += `*Cliente:* ${nome}\n`;
     mensagemPedido += `*Telefone:* ${telefone}\n`;
@@ -1633,6 +1794,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
     if (obs) mensagemPedido += `\n*Observações:* ${obs}\n`;
     mensagemPedido += `\nAguardando a confirmação!`;
 
+    // Salva o pedido no painel da loja (Firebase), sem travar o fluxo caso falhe
     const { id: pedidoId, promessaSalvo } = salvarPedidoNoPainel({
         nome, telefone,
         tipoEntrega: tipoEntregaAtual,
@@ -1647,27 +1809,38 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         desconto: desconto > 0 ? desconto : 0,
         frete: tipoEntregaAtual === 'entrega' ? (freteConfirmado ? frete : null) : 0,
         total: (tipoEntregaAtual === 'retirada' || freteConfirmado) ? (subtotalPedido - desconto + frete) : null,
+        // Guarda a recompensa resgatada (se houver) — os pontos só são efetivamente creditados/descontados
+        // quando a loja marcar o pedido como "Entregue" no painel, não na hora do pedido
         recompensaResgatada: recompensaSelecionada ? {
             pontos: recompensaSelecionada.pontos,
             descricao: recompensaSelecionada.descricao
         } : null,
+        // Se o cliente já ativou notificações nesse aparelho, guarda o token junto do pedido,
+        // pra poder avisar ele (só ele, não todo mundo) quando o status do pedido mudar
         notificacaoToken: (localStorage.getItem('notificacoesAtivasBritS') === '1')
             ? localStorage.getItem('notificacaoTokenBritS')
             : null
     });
 
+    // Guarda esse pedido pra mostrar o status (pendente/aceito/em rota/entregue/recusado) pro cliente
     if (pedidoId) {
         localStorage.setItem('ultimoPedidoBritS', JSON.stringify({ id: pedidoId, criadoEm: Date.now() }));
         mostrarStatusPedido(pedidoId);
     }
 
+    // Importante: os pontos de fidelidade NÃO são creditados aqui — só quando a loja confirmar
+    // que o pedido foi entregue, lá no painel. Isso evita creditar pontos de pedidos recusados.
     recompensaSelecionada = null;
 
+    // Guarda os dados do cliente pra já vir preenchido na próxima compra
     localStorage.setItem('dadosClienteBritS', JSON.stringify({
         nome, telefone, rua, numero, complemento, bairro, cidade, estado, cep,
         tipoEntrega: tipoEntregaAtual
     }));
 
+    // Se é uma encomenda agendada E a loja exige sinal de confirmação, o fluxo cobra só
+    // uma % do valor (nunca o pedido inteiro) — funciona independente da forma de
+    // pagamento escolhida, já que o sinal é sempre via Pix/Cartão pra confirmar de verdade
     if (querAgendar && percentualSinalEncomenda > 0) {
         if (!pedidoId) {
             alert('Não foi possível criar o pedido agora. Tente novamente em instantes.');
@@ -1693,6 +1866,9 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         return;
     }
 
+    // Se o cliente escolheu pagar online, o fluxo é diferente: em vez de ir pro WhatsApp,
+    // manda pro checkout da InfinitePay (Pix ou Cartão), e só confirma o pedido de verdade
+    // quando o pagamento realmente cair (isso quem confirma é o Webhook, não essa tela)
     if (pagamentoOnlineAtivo && !querAgendar && (formaPagamentoAtual === 'Pix' || formaPagamentoAtual === 'Cartão')) {
         if (!pedidoId) {
             alert('Não foi possível criar o pedido agora. Tente novamente em instantes.');
@@ -1701,6 +1877,8 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         botaoFinalizarCompra.disabled = true;
         botaoFinalizarCompra.textContent = 'Preparando pagamento...';
         try {
+            // Espera o pedido REALMENTE terminar de ser escrito no banco antes de pedir
+            // pra Cloud Function ler ele — senão, ela pode chegar cedo demais e não achar nada
             await promessaSalvo;
             const criarCheckout = firebase.functions().httpsCallable('criarCheckoutInfinitePay');
             const resultado = await criarCheckout({ pedidoId });
@@ -1718,16 +1896,21 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         return;
     }
 
+    // Configuração e abertura do WhatsApp
     const numeroWhatsApp = whatsappPedidosEfetivo || LOJA_CONFIG.whatsappPedidos;
     const linkWhatsApp = `https://api.whatsapp.com/send?phone=${numeroWhatsApp}&text=${encodeURIComponent(mensagemPedido)}`;
 
+    // Abre o WhatsApp em uma nova aba
     window.open(linkWhatsApp, '_blank');
 
+    // Se foi marcado como encomenda com data, mostra um aviso extra de que
+    // não é confirmação automática — a loja ainda precisa confirmar por fora
     if (querAgendar && dataEncomenda) {
         const [ano, mes, dia] = dataEncomenda.split('-');
         alert(`📅 Pedido de encomenda enviado!\n\nA ${LOJA_CONFIG.nome} vai entrar em contato pra confirmar a disponibilidade da data solicitada (${dia}/${mes}/${ano}).`);
     }
 
+    // Limpa o carrinho e o formulário após o envio para o WhatsApp
     carrinho = [];
     salvarCarrinho();
     atualizarCarrinhoHTML();
@@ -1735,6 +1918,8 @@ botaoFinalizarCompra.addEventListener('click', async () => {
     console.log('Pedido enviado para o WhatsApp. Carrinho e formulário limpos.');
 });
 
+// Atualiza os preços de itens que já estavam salvos no carrinho do navegador,
+// caso o preço do produto tenha mudado (ex: entrou ou saiu de oferta) desde a última visita
 function sincronizarPrecosCarrinho() {
     let mudou = false;
     carrinho.forEach(item => {
@@ -1749,22 +1934,28 @@ function sincronizarPrecosCarrinho() {
     }
 }
 
-escutarProdutos();
-escutarConfigFrete();
-escutarOrdemCategorias();
+// Chama as funções iniciais ao carregar a página
+escutarProdutos(); // Carrega o cardápio do Firebase (e re-renderiza sozinho quando o painel mudar algo)
+escutarConfigFrete(); // Carrega a configuração de bairros/valor por km do painel
+escutarOrdemCategorias(); // Carrega a ordem de categorias definida no painel
 
+// Clube Brit's: recupera o cliente já identificado nesse navegador (se houver) e escuta a configuração
 try {
     const salvo = JSON.parse(localStorage.getItem('clubeBritS'));
     if (salvo && salvo.telefone) {
         clubeIdentificado = salvo;
         escutarDadosFidelidadeCliente();
     }
-} catch (e) { }
+} catch (e) { /* localStorage vazio ou inválido, ignora */ }
 escutarConfigClube();
 
+/* ===================================================================
+   VISITANTES (contador online em tempo real + histórico de visitas por dia)
+   =================================================================== */
 function iniciarRastreioVisitantes() {
     if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
 
+    // Cada aba/sessão do navegador tem um ID único, criado uma vez e reaproveitado
     let sessionId = sessionStorage.getItem('sessaoVisitanteBritS');
     if (!sessionId) {
         sessionId = 'v_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
@@ -1774,6 +1965,8 @@ function iniciarRastreioVisitantes() {
     const presencaRef = firebase.database().ref('presenca/' + sessionId);
     const conectadoRef = firebase.database().ref('.info/connected');
 
+    // Toda vez que a conexão com o Firebase (re)conecta, registra presença e programa
+    // a remoção automática pro momento em que o visitante sair/fechar a aba
     conectadoRef.on('value', snap => {
         if (snap.val() === true) {
             presencaRef.onDisconnect().remove();
@@ -1781,6 +1974,7 @@ function iniciarRastreioVisitantes() {
         }
     });
 
+    // Conta essa visita no histórico do dia, só uma vez por sessão (não infla recarregando a página)
     if (!sessionStorage.getItem('visitaContadaBritS')) {
         sessionStorage.setItem('visitaContadaBritS', '1');
         const hoje = new Date();
@@ -1789,12 +1983,13 @@ function iniciarRastreioVisitantes() {
     }
 }
 iniciarRastreioVisitantes();
-escutarCupons();
+escutarCupons(); // Carrega os cupons de desconto cadastrados no painel
 atualizarCarrinhoHTML();
-carregarDadosClienteSalvos();
-verificarPedidoSalvo();
-escutarStatusLoja();
+carregarDadosClienteSalvos(); // Preenche nome/telefone/endereço da última compra
+verificarPedidoSalvo(); // Mostra o status do último pedido, se ainda for recente
+escutarStatusLoja(); // Mostra se a loja está aberta ou fechada agora
 
+// Registra o Service Worker (pra permitir instalar como app / carregar mais rápido)
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('service-worker.js').catch(err => {
@@ -1803,11 +1998,12 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+// Tela de boas-vindas: aparece só na primeira vez que o cliente abre o site nessa visita
 function mostrarBoasVindas() {
     try {
         if (sessionStorage.getItem('boasVindasBritS')) return;
     } catch (e) {
-        return;
+        return; // sessionStorage bloqueado (ex: navegação privada restrita) — não mostra pra não travar
     }
     const tela = document.getElementById('telaBoasVindas');
     if (tela) tela.style.display = 'flex';
@@ -1817,16 +2013,61 @@ function fecharBoasVindas() {
     const tela = document.getElementById('telaBoasVindas');
     if (!tela) return;
     tela.classList.add('fechando');
-    try { sessionStorage.setItem('boasVindasBritS', '1'); } catch (e) { }
+    try { sessionStorage.setItem('boasVindasBritS', '1'); } catch (e) { /* ignora */ }
     setTimeout(() => { tela.style.display = 'none'; }, 300);
 }
 
+// Link direto pra divulgação: acessando o cardápio com "?venda=1" no final da URL,
+// pula a tela de boas-vindas e já abre a seção de personalização sozinha, expandida.
+// Ex: https://menubritsconfeitaria.github.io/Brit-s-confeitaria-card-pio/?venda=1
 if (veioPeloLinkDeVenda || veioPeloLinkDeProduto) {
     try { sessionStorage.setItem('boasVindasBritS', '1'); } catch (e) { }
 } else {
     mostrarBoasVindas();
 }
 
+if (veioPeloLinkDeVenda || veioPeloLinkDeProduto) {
+    try { sessionStorage.setItem('boasVindasBritS', '1'); } catch (e) { /* ignora */ } // pula a tela de boas-vindas
+} else {
+    mostrarBoasVindas();
+}
+
+// Chamada assim que os produtos terminam de carregar/renderizar de verdade — só então a altura
+// da página fica estável, então é o momento certo de rolar (rolar antes disso rola pro lugar
+// errado, porque o carregamento dos produtos "empurra" a seção de venda pra baixo depois)
+function rolarParaVendaSePendente() {
+    if (!scrollParaVendaPendente) return;
+    scrollParaVendaPendente = false;
+    const conteudo = document.getElementById('personalizarConteudo');
+    if (conteudo) {
+        conteudo.style.display = 'block';
+        setTimeout(() => conteudo.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    }
+}
+
+// Se a pessoa abriu o cardápio por um link de produto específico (?produto=ID, gerado
+// pelo botão "Copiar link deste produto"), rola até ele e destaca por alguns segundos
+function rolarParaProdutoLinkado() {
+    if (!scrollParaProdutoPendente) return;
+    const idProduto = new URLSearchParams(window.location.search).get('produto');
+    if (!idProduto) { scrollParaProdutoPendente = false; return; }
+
+    const elemento = document.getElementById('produto-' + idProduto);
+    if (!elemento) return; // pode ser que os produtos ainda não tenham terminado de renderizar
+
+    scrollParaProdutoPendente = false;
+    setTimeout(() => {
+        elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        elemento.classList.add('produto-destacado-link');
+        setTimeout(() => elemento.classList.remove('produto-destacado-link'), 3000);
+    }, 300);
+}
+
+/* ===================================================================
+   NOTIFICAÇÕES PUSH
+   Depois de gerar a chave VAPID no Firebase (Configurações do projeto >
+   Cloud Messaging > Certificados push da Web), cole ela aqui embaixo.
+   =================================================================== */
 const VAPID_KEY = 'BLzgcYQb9-2BFMX9J9W8wKW0VaTssEA28cqKzh1diBk2_BCXcC0ekeqcWFyFkdtn2UowufLCOK6G82-vP_oMAdE';
 
 function podeReceberNotificacoes() {
@@ -1869,7 +2110,7 @@ async function ativarNotificacoes() {
                 criadoEm: firebase.database.ServerValue.TIMESTAMP
             });
             localStorage.setItem('notificacoesAtivasBritS', '1');
-            localStorage.setItem('notificacaoTokenBritS', token);
+            localStorage.setItem('notificacaoTokenBritS', token); // guarda o token pra anexar aos pedidos depois
             atualizarBotaoNotificacao();
         }
     } catch (err) {
@@ -1878,6 +2119,7 @@ async function ativarNotificacoes() {
     }
 }
 
+// Mostra um aviso na tela quando a notificação chega com o site já aberto
 function mostrarToastNotificacao(titulo, corpo) {
     const toast = document.getElementById('toastNotificacao');
     const tituloEl = document.getElementById('toastNotificacaoTitulo');
@@ -1891,6 +2133,11 @@ function mostrarToastNotificacao(titulo, corpo) {
 
 atualizarBotaoNotificacao();
 
+/* ===================================================================
+   PERSONALIZAR CARDÁPIO — prévia ao vivo pra quem quer contratar um
+   cardápio digital com a própria marca (não salva nada, só mostra e
+   direciona o interesse pro WhatsApp de quem vende esse serviço)
+   =================================================================== */
 function inicializarPersonalizacaoPreview() {
     const nomeInput = document.getElementById('pcNomeLoja');
     const logoInput = document.getElementById('pcLogoInput');
@@ -1898,7 +2145,7 @@ function inicializarPersonalizacaoPreview() {
     const previewNome = document.getElementById('pcPreviewNome');
     const previewLogo = document.getElementById('pcPreviewLogo');
     const previewCaixa = document.getElementById('pcPreviewCaixa');
-    if (!nomeInput || !previewNome) return;
+    if (!nomeInput || !previewNome) return; // protege caso a seção não exista nessa página
 
     nomeInput.addEventListener('input', () => {
         const nome = nomeInput.value.trim();
@@ -1923,8 +2170,11 @@ function inicializarPersonalizacaoPreview() {
 }
 inicializarPersonalizacaoPreview();
 
+// Número de WhatsApp de quem vende o serviço de cardápio digital personalizado
+// (diferente do WhatsApp da própria Brit's, que é só pra pedidos de doces)
 const numeroWhatsAppServicoCardapio = '5527997726901';
 
+// Abre/fecha o formulário de personalização, que começa escondido — só a chamada fica visível
 function alternarPersonalizarConteudo() {
     const conteudo = document.getElementById('personalizarConteudo');
     if (!conteudo) return;
@@ -1959,6 +2209,7 @@ function ativarModoDemoCompleto() {
         aplicarConfigDaLoja(configDemo);
     }
 
+    // Força a loja aparecer "aberta" durante a prévia, não importa o horário real
     modoDemoAtivo = true;
     atualizarStatusLoja(null);
 
@@ -1971,6 +2222,7 @@ function ativarModoDemoCompleto() {
 function restaurarCardapioOriginal() {
     aplicarConfigDaLoja(LOJA_CONFIG);
 
+    // Volta a mostrar o status real da loja (aberta/fechada de verdade)
     modoDemoAtivo = false;
     atualizarStatusLoja(ultimaConfigLojaReal);
 
@@ -2015,6 +2267,7 @@ if (podeReceberNotificacoes() && VAPID_KEY !== 'COLE_AQUI_A_SUA_CHAVE_VAPID') {
     }
 }
 
+// Fecha o lightbox clicando fora da imagem, e permite navegar com o teclado (setas e Esc)
 document.addEventListener('DOMContentLoaded', () => {
     const lb = document.getElementById('lightboxImagem');
     if (lb) {
