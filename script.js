@@ -8,6 +8,19 @@ let produtos = [];
 let carrinho = JSON.parse(localStorage.getItem('carrinhoBritS')) || [];
 
 /* ===================================================================
+   CONTROLE DE ROLAGEM AUTOMÁTICA (link de venda / link de produto)
+   Precisa ser declarado bem no topo do arquivo, ANTES de qualquer chamada
+   a escutarProdutos() — o Firebase pode responder rapidíssimo (às vezes
+   antes até do resto do script.js terminar de rodar), e se essas variáveis
+   ainda não existissem nesse momento, a tentativa de rolar se perdia sem
+   nunca mais tentar de novo. Bug corrigido: movido pra cá do final do arquivo.
+   =================================================================== */
+const veioPeloLinkDeVenda = new URLSearchParams(window.location.search).get('venda') === '1';
+const veioPeloLinkDeProduto = new URLSearchParams(window.location.search).get('produto') != null;
+let scrollParaVendaPendente = veioPeloLinkDeVenda; // vira false depois de rolar uma vez
+let scrollParaProdutoPendente = veioPeloLinkDeProduto; // vira false depois da primeira tentativa de rolar pro produto do link
+
+/* ===================================================================
    TABELA DE BAIRROS E DISTÂNCIA EM KM ATÉ A CONFEITARIA
    (mesma tabela usada no catálogo de referência)
    =================================================================== */
@@ -678,7 +691,6 @@ function carregarDadosClienteSalvos() {
     }
 }
 
-
 // Função para salvar o carrinho no Local Storage
 function salvarCarrinho() {
     localStorage.setItem('carrinhoBritS', JSON.stringify(carrinho));
@@ -1258,7 +1270,6 @@ function renderizarProdutos() {
         });
     });
 
-
     iniciarObservadorCategorias();
 }
 
@@ -1349,7 +1360,6 @@ function iniciarObservadorCategorias() {
 
     document.querySelectorAll('.categoria-titulo').forEach(titulo => categoriaObserver.observe(titulo));
 }
-
 
 // Função para atualizar a exibição do carrinho na página
 function atualizarCarrinhoHTML() {
@@ -1491,7 +1501,6 @@ function limparFormularioEndereco() {
     if (cupomInput) cupomInput.value = '';
     if (cupomMsg) { cupomMsg.textContent = ''; cupomMsg.className = 'cupom-mensagem'; }
 }
-
 
 // Funcionalidade para o botão Finalizar Compra
 /* ===================================================================
@@ -2015,51 +2024,6 @@ function fecharBoasVindas() {
     tela.classList.add('fechando');
     try { sessionStorage.setItem('boasVindasBritS', '1'); } catch (e) { /* ignora */ }
     setTimeout(() => { tela.style.display = 'none'; }, 300);
-}
-
-// Link direto pra divulgação: acessando o cardápio com "?venda=1" no final da URL,
-// pula a tela de boas-vindas e já abre a seção de personalização sozinha, expandida.
-// Ex: https://menubritsconfeitaria.github.io/Brit-s-confeitaria-card-pio/?venda=1
-const veioPeloLinkDeVenda = new URLSearchParams(window.location.search).get('venda') === '1';
-const veioPeloLinkDeProduto = new URLSearchParams(window.location.search).get('produto') != null;
-let scrollParaVendaPendente = veioPeloLinkDeVenda; // vira false depois de rolar uma vez
-let scrollParaProdutoPendente = true; // vira false depois da primeira tentativa de rolar pro produto do link
-
-if (veioPeloLinkDeVenda || veioPeloLinkDeProduto) {
-    try { sessionStorage.setItem('boasVindasBritS', '1'); } catch (e) { /* ignora */ } // pula a tela de boas-vindas
-} else {
-    mostrarBoasVindas();
-}
-
-// Chamada assim que os produtos terminam de carregar/renderizar de verdade — só então a altura
-// da página fica estável, então é o momento certo de rolar (rolar antes disso rola pro lugar
-// errado, porque o carregamento dos produtos "empurra" a seção de venda pra baixo depois)
-function rolarParaVendaSePendente() {
-    if (!scrollParaVendaPendente) return;
-    scrollParaVendaPendente = false;
-    const conteudo = document.getElementById('personalizarConteudo');
-    if (conteudo) {
-        conteudo.style.display = 'block';
-        setTimeout(() => conteudo.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-    }
-}
-
-// Se a pessoa abriu o cardápio por um link de produto específico (?produto=ID, gerado
-// pelo botão "Copiar link deste produto"), rola até ele e destaca por alguns segundos
-function rolarParaProdutoLinkado() {
-    if (!scrollParaProdutoPendente) return;
-    const idProduto = new URLSearchParams(window.location.search).get('produto');
-    if (!idProduto) { scrollParaProdutoPendente = false; return; }
-
-    const elemento = document.getElementById('produto-' + idProduto);
-    if (!elemento) return; // pode ser que os produtos ainda não tenham terminado de renderizar
-
-    scrollParaProdutoPendente = false;
-    setTimeout(() => {
-        elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        elemento.classList.add('produto-destacado-link');
-        setTimeout(() => elemento.classList.remove('produto-destacado-link'), 3000);
-    }, 300);
 }
 
 /* ===================================================================
