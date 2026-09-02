@@ -1225,7 +1225,7 @@ function renderizarProdutos() {
     document.querySelectorAll('.btn-copiar-link-produto').forEach(botao => {
         botao.addEventListener('click', async (evento) => {
             const idProduto = evento.target.dataset.id;
-            const url = `${window.location.origin}${window.location.pathname}?produto=${idProduto}`;
+            const url = `${window.location.origin}${window.location.pathname}#produto-${idProduto}`;
             const textoOriginal = evento.target.textContent;
             try {
                 await navigator.clipboard.writeText(url);
@@ -2047,7 +2047,7 @@ function fecharBoasVindas() {
 // pula a tela de boas-vindas e já abre a seção de personalização sozinha, expandida.
 // Ex: https://menubritsconfeitaria.github.io/Brit-s-confeitaria-card-pio/?venda=1
 const veioPeloLinkDeVenda = new URLSearchParams(window.location.search).get('venda') === '1';
-const veioPeloLinkDeProduto = new URLSearchParams(window.location.search).get('produto') != null;
+const veioPeloLinkDeProduto = window.location.hash.startsWith('#produto-');
 let scrollParaVendaPendente = veioPeloLinkDeVenda; // vira false depois de rolar uma vez
 let scrollParaProdutoPendente = true; // vira false depois da primeira tentativa de rolar pro produto do link
 
@@ -2072,37 +2072,29 @@ function rolarParaVendaSePendente() {
 
 // Se a pessoa abriu o cardápio por um link de produto específico (?produto=ID, gerado
 // pelo botão "Copiar link deste produto"), rola até ele e destaca por alguns segundos
+// A rolagem em si é feita pelo próprio navegador (é assim que "#âncora" funciona
+// nativamente em qualquer link) — essa função só cuida de adicionar o brilho de
+// destaque ao redor do produto, tentando algumas vezes até o card existir na tela
 function rolarParaProdutoLinkado(tentativa) {
     tentativa = tentativa || 0;
-    if (!scrollParaProdutoPendente) { console.log('[TESTE link produto] já não está mais pendente, não faz nada.'); return; }
-    const idProduto = new URLSearchParams(window.location.search).get('produto');
-    if (!idProduto) { scrollParaProdutoPendente = false; console.log('[TESTE link produto] não achei "?produto=" na URL.'); return; }
+    if (!scrollParaProdutoPendente) return;
+    if (!window.location.hash.startsWith('#produto-')) { scrollParaProdutoPendente = false; return; }
 
-    const elemento = document.getElementById('produto-' + idProduto);
-    console.log('[TESTE link produto] tentativa', tentativa, '| procurando id:', 'produto-' + idProduto, '| achou?', !!elemento);
+    const idAlvo = window.location.hash.slice(1); // tira o "#" do começo
+    const elemento = document.getElementById(idAlvo);
     if (!elemento) {
-        // Tenta de novo por alguns segundos — pode ser que os produtos ainda estejam
-        // sendo desenhados na tela no exato momento em que essa função rodou
         if (tentativa < 10) {
             setTimeout(() => rolarParaProdutoLinkado(tentativa + 1), 300);
         } else {
-            scrollParaProdutoPendente = false; // desiste de vez depois de ~3 segundos tentando
-            console.log('[TESTE link produto] desisti depois de 10 tentativas, elemento nunca apareceu.');
+            scrollParaProdutoPendente = false;
         }
         return;
     }
 
     scrollParaProdutoPendente = false;
-    console.log('[TESTE link produto] achei o elemento, vou rolar até ele agora.');
-    const rolarAteElemento = () => {
-        elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        elemento.classList.add('produto-destacado-link');
-        setTimeout(() => elemento.classList.remove('produto-destacado-link'), 3000);
-    };
-    setTimeout(rolarAteElemento, 300);
-    // Rola de novo depois de mais tempo — as imagens dos produtos ainda podem estar
-    // carregando e mudando a altura da página, o que "desfaz" a primeira rolagem
-    setTimeout(rolarAteElemento, 1500);
+    elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    elemento.classList.add('produto-destacado-link');
+    setTimeout(() => elemento.classList.remove('produto-destacado-link'), 3000);
 }
 
 /* ===================================================================
