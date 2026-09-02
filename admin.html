@@ -414,7 +414,14 @@
                 <h2>🎛️ Administração de Clientes</h2>
                 <p class="dica-secao">Essa aba só aparece pra você — controla os recursos liberados de qualquer cliente sem sair do painel.</p>
 
-                <div class="loja-status-card">
+                <div class="loja-status-card" id="cardLoginMestre">
+                    <label class="campo-label">Entrar no Firebase Mestre</label>
+                    <input type="password" id="senhaLoginMestre" placeholder="Sua senha do Firebase Mestre">
+                    <button class="btn-salvar-ordem" style="margin-top:8px;" onclick="fazerLoginNoMestre()">Entrar</button>
+                    <p id="msgLoginMestre" class="ordem-categorias-msg"></p>
+                </div>
+
+                <div class="loja-status-card" id="cardConteudoMestre" style="display:none;">
                     <label class="campo-label">Escolher cliente</label>
                     <select id="seletorClienteMestre" onchange="selecionarClienteMestre()">
                         <option value="">— Selecione —</option>
@@ -434,7 +441,7 @@
                     </div>
                 </div>
 
-                <div class="loja-status-card" style="margin-top:16px;">
+                <div class="loja-status-card" id="cardAdicionarClienteMestre" style="margin-top:16px; display:none;">
                     <h3>➕ Adicionar cliente ao registro</h3>
                     <p class="dica-secao">Copia o firebaseConfig do cliente (arquivo firebase-config.js dele) e cola aqui.</p>
                     <input type="text" id="novoClienteNomeMestre" placeholder="Nome do cliente (ex: Doces da Ana)">

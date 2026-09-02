@@ -173,32 +173,51 @@ const FIREBASE_MESTRE_CONFIG = {
     appId: "1:190805206633:web:36d1f40aa56511d358a4f8"
 };
 
+// E-mail do dono do serviço — só usado pra decidir se MOSTRA a aba especial (não dá
+// acesso a nada sozinho, é só um e-mail). A senha continua sendo pedida de verdade na
+// hora de abrir a aba, não é possível ver/mexer em nada sem ela.
+const EMAIL_DONO_SERVICO = "georgevb89@gmail.com";
+
 let appMestre = null;
 let dbMestre = null;
 let souOAdminMestre = false;
 
-// Depois de logar com sucesso no painel de QUALQUER cliente, tenta (em segundo plano)
-// entrar no Firebase Mestre com esse mesmo e-mail/senha. Se der certo, é o dono do
-// serviço — mostra a aba especial. Se não der, é só o dono normal da loja, e nada
-// muda pra ele (o erro é silencioso, nunca aparece pro usuário comum).
-async function tentarLoginNoFirebaseMestre(email, senha) {
-    try {
-        if (!appMestre) {
-            appMestre = firebase.initializeApp(FIREBASE_MESTRE_CONFIG, 'mestre');
-            dbMestre = appMestre.database();
-        }
-        await appMestre.auth().signInWithEmailAndPassword(email, senha);
-        souOAdminMestre = true;
-        mostrarAbaAdministracaoMestre();
-    } catch (err) {
-        souOAdminMestre = false; // silencioso — dono normal da loja nunca vê nenhum erro disso
-    }
+// Roda toda vez que o estado de login muda — inclusive quando a sessão já estava salva
+// (página recarregada, sem digitar senha de novo) — por isso decide só pelo e-mail,
+// não pela senha (que só existe no momento exato do login manual)
+function verificarSeEhDonoDoServico(email) {
+    const botaoAba = document.querySelector('.painel-tab-btn[data-tab="administracao-mestre"]');
+    if (botaoAba) botaoAba.style.display = (email === EMAIL_DONO_SERVICO) ? '' : 'none';
 }
 
-function mostrarAbaAdministracaoMestre() {
-    const botaoAba = document.querySelector('.painel-tab-btn[data-tab="administracao-mestre"]');
-    if (botaoAba) botaoAba.style.display = '';
-    carregarClientesMestre();
+// Chamado quando a pessoa clica na aba "Administração" — só nesse momento pede a
+// senha de verdade do Firebase Mestre (se ainda não tiver logado nessa sessão)
+async function entrarNoFirebaseMestre(email, senha) {
+    if (!appMestre) {
+        appMestre = firebase.initializeApp(FIREBASE_MESTRE_CONFIG, 'mestre');
+        dbMestre = appMestre.database();
+    }
+    await appMestre.auth().signInWithEmailAndPassword(email, senha);
+    souOAdminMestre = true;
+}
+
+// Chamado ao clicar em "Entrar" no card de login do Firebase Mestre
+async function fazerLoginNoMestre() {
+    const senha = document.getElementById('senhaLoginMestre').value;
+    const msgEl = document.getElementById('msgLoginMestre');
+    if (!senha) { msgEl.textContent = 'Digita sua senha do Firebase Mestre.'; return; }
+
+    msgEl.textContent = 'Entrando...';
+    try {
+        await entrarNoFirebaseMestre(EMAIL_DONO_SERVICO, senha);
+        document.getElementById('senhaLoginMestre').value = '';
+        document.getElementById('cardLoginMestre').style.display = 'none';
+        document.getElementById('cardConteudoMestre').style.display = 'block';
+        document.getElementById('cardAdicionarClienteMestre').style.display = 'block';
+        carregarClientesMestre();
+    } catch (err) {
+        msgEl.textContent = 'Senha incorreta ou erro de conexão: ' + err.message;
+    }
 }
 
 const RECURSOS_MESTRE = [
@@ -351,9 +370,6 @@ function fazerLogin() {
     }
 
     auth.signInWithEmailAndPassword(email, senha)
-        .then(() => {
-            tentarLoginNoFirebaseMestre(email, senha); // silencioso, não afeta o fluxo normal
-        })
         .catch(() => {
             erroEl.textContent = 'E-mail ou senha incorretos.';
         });
@@ -416,6 +432,7 @@ auth.onAuthStateChanged(user => {
         document.getElementById('telaLogin').style.display = 'none';
         document.getElementById('painel').style.display = 'block';
         iniciarEscutaPedidos();
+        verificarSeEhDonoDoServico(user.email); // roda sempre, inclusive com sessão já salva
     } else {
         document.getElementById('telaLogin').style.display = 'flex';
         document.getElementById('painel').style.display = 'none';
