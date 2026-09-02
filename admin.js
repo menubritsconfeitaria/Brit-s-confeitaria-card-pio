@@ -81,7 +81,13 @@ function inicializarAbasPainel() {
     }
 
     botoes.forEach(btn => {
-        btn.addEventListener('click', () => mostrarAba(btn.dataset.tab, true));
+        btn.addEventListener('click', () => {
+            mostrarAba(btn.dataset.tab, true);
+            // Ao clicar na aba de Administração, sempre reconfere se já está logado
+            // no Firebase Mestre de verdade (evita pedir login de novo à toa, caso
+            // algo tenha "escondido" visualmente o conteúdo sem realmente deslogar)
+            if (btn.dataset.tab === 'administracao-mestre') sincronizarTelaDoMestre();
+        });
     });
 
     // Abre na mesma aba que estava da última vez (ou "pedidos" se for a primeira vez)
@@ -202,6 +208,28 @@ async function entrarNoFirebaseMestre(email, senha) {
 }
 
 // Chamado ao clicar em "Entrar" no card de login do Firebase Mestre
+// Confere o estado real de login no Firebase Mestre, e ajusta a tela pra bater com
+// ele — chamada sempre que a aba é clicada, pra nunca ficar "travada" pedindo login
+// de novo quando na verdade a sessão continua válida
+function sincronizarTelaDoMestre() {
+    const logado = !!(appMestre && appMestre.auth().currentUser);
+    souOAdminMestre = logado;
+    document.getElementById('cardLoginMestre').style.display = logado ? 'none' : 'block';
+    document.getElementById('cardConteudoMestre').style.display = logado ? 'block' : 'none';
+    document.getElementById('cardAdicionarClienteMestre').style.display = logado ? 'block' : 'none';
+    if (logado && clientesRegistroMestre.length === 0) carregarClientesMestre();
+
+    // Se já tinha um cliente selecionado e logado antes, mantém a tela dele visível —
+    // sem isso, voltar pra essa aba mostraria o login do cliente de novo à toa
+    if (logado && clienteMestreSelecionadoIndice !== null) {
+        const registroCliente = appsClientesMestre[nomeAppClienteMestre(clienteMestreSelecionadoIndice)];
+        if (registroCliente && registroCliente.autenticado) {
+            document.getElementById('areaLoginClienteMestre').style.display = 'none';
+            document.getElementById('areaRecursosClienteMestre').style.display = 'block';
+        }
+    }
+}
+
 async function fazerLoginNoMestre() {
     const senha = document.getElementById('senhaLoginMestre').value;
     const msgEl = document.getElementById('msgLoginMestre');
