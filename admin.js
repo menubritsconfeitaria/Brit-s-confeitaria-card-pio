@@ -223,10 +223,14 @@ async function fazerLoginNoMestre() {
 const RECURSOS_MESTRE = [
     { chave: 'cupons', nome: '🎟️ Cupons' },
     { chave: 'fidelidade', nome: '⭐ Fidelidade (Clube)' },
-    { chave: 'agenda', nome: '📅 Agenda de Encomendas' },
+    { chave: 'agenda', nome: '📅 Agenda de Encomendas (+ 🎂 Disponível pra Encomenda no produto)' },
     { chave: 'notificacoes', nome: '📢 Notificações Push' },
     { chave: 'pagamentoOnline', nome: '💳 Pagamento Online' },
-    { chave: 'visitantes', nome: '👀 Visitantes' }
+    { chave: 'visitantes', nome: '👀 Visitantes' },
+    { chave: 'adicionais', nome: '➕ Adicionais por Produto' },
+    { chave: 'pedidoMinimo', nome: '🛒 Pedido Mínimo e Frete Grátis' },
+    { chave: 'areasDeEntrega', nome: '🚚 Áreas de Entrega' },
+    { chave: 'esconderProduto', nome: '🙈 Esconder Produto do cardápio' }
 ];
 
 const appsClientesMestre = {}; // indice -> { app, auth, db, autenticado }
@@ -315,6 +319,64 @@ async function carregarRecursosClienteMestre() {
         </label>
     `).join('');
     document.getElementById('areaRecursosClienteMestre').style.display = 'block';
+
+    carregarIdentidadeEStatusClienteMestre(registro);
+}
+
+async function carregarIdentidadeEStatusClienteMestre(registro) {
+    const snap = await registro.db.ref('configuracao/loja').once('value');
+    const config = snap.val() || {};
+
+    document.getElementById('nomeLojaConfigMestre').value = config.nomeLoja || '';
+    document.getElementById('nomeCurtoLojaConfigMestre').value = config.nomeCurtoLoja || '';
+    document.getElementById('subtituloLojaConfigMestre').value = config.subtituloLoja || '';
+    document.getElementById('cidadeLojaConfigMestre').value = config.cidadeLoja || '';
+    document.getElementById('whatsappLojaConfigMestre').value = config.whatsappLoja || '';
+    document.getElementById('instagramLojaConfigMestre').value = config.instagramLoja || '';
+    document.getElementById('corPrimariaLojaConfigMestre').value = config.corPrimariaLoja || '#a0522d';
+    document.getElementById('corAccentLojaConfigMestre').value = config.corAccentLoja || '#c9974c';
+
+    const rotulosModo = { auto: '⏰ Automático', aberto: '🟢 Forçado Aberto', fechado: '🔴 Forçado Fechado' };
+    document.getElementById('statusLojaAtualMestre').textContent = rotulosModo[config.modoManual] || '⏰ Automático';
+}
+
+async function salvarIdentidadeClienteMestre() {
+    const registro = appsClientesMestre[nomeAppClienteMestre(clienteMestreSelecionadoIndice)];
+    const msgEl = document.getElementById('msgIdentidadeMestre');
+    if (!registro || !registro.autenticado) { msgEl.textContent = 'Faz login nesse cliente primeiro.'; return; }
+
+    const dados = {
+        nomeLoja: document.getElementById('nomeLojaConfigMestre').value.trim() || null,
+        nomeCurtoLoja: document.getElementById('nomeCurtoLojaConfigMestre').value.trim() || null,
+        subtituloLoja: document.getElementById('subtituloLojaConfigMestre').value.trim() || null,
+        cidadeLoja: document.getElementById('cidadeLojaConfigMestre').value.trim() || null,
+        whatsappLoja: document.getElementById('whatsappLojaConfigMestre').value.trim() || null,
+        instagramLoja: document.getElementById('instagramLojaConfigMestre').value.trim() || null,
+        corPrimariaLoja: document.getElementById('corPrimariaLojaConfigMestre').value || null,
+        corAccentLoja: document.getElementById('corAccentLojaConfigMestre').value || null
+    };
+    msgEl.textContent = 'Salvando...';
+    try {
+        await registro.db.ref('configuracao/loja').update(dados);
+        msgEl.textContent = 'Salvo com sucesso!';
+    } catch (err) {
+        msgEl.textContent = 'Erro ao salvar: ' + err.message;
+    }
+}
+
+async function definirModoLojaMestre(modo) {
+    const registro = appsClientesMestre[nomeAppClienteMestre(clienteMestreSelecionadoIndice)];
+    const msgEl = document.getElementById('msgStatusMestre');
+    if (!registro || !registro.autenticado) { msgEl.textContent = 'Faz login nesse cliente primeiro.'; return; }
+
+    try {
+        await registro.db.ref('configuracao/loja/modoManual').set(modo);
+        const rotulosModo = { auto: '⏰ Automático', aberto: '🟢 Forçado Aberto', fechado: '🔴 Forçado Fechado' };
+        document.getElementById('statusLojaAtualMestre').textContent = rotulosModo[modo];
+        msgEl.textContent = 'Atualizado!';
+    } catch (err) {
+        msgEl.textContent = 'Erro: ' + err.message;
+    }
 }
 
 async function aplicarRecursosClienteMestre() {
@@ -1105,10 +1167,14 @@ function salvarConfigSinal() {
 const MAPA_RECURSOS = {
     cupons: { abas: ['cupons'] },
     fidelidade: { abas: ['fidelidade'] },
-    agenda: { abas: ['agenda'] },
+    agenda: { abas: ['agenda'], classesCorpo: ['ocultar-campo-encomenda-produto'] },
     notificacoes: { cards: ['cardNotificacoes'] },
     pagamentoOnline: { cards: ['cardInfiniteTag', 'cardAtivarPagamentoOnline'] },
-    visitantes: { abas: ['visitantes'] }
+    visitantes: { abas: ['visitantes'] },
+    adicionais: { cards: ['cardAdicionaisPorProduto'] },
+    pedidoMinimo: { cards: ['cardPedidoMinimoFreteGratis'] },
+    areasDeEntrega: { cards: ['cardAreasDeEntrega'] },
+    esconderProduto: { classesCorpo: ['ocultar-campo-esconder-produto'] }
 };
 
 function aplicarRecursosLiberados(recursos) {
@@ -1128,6 +1194,9 @@ function aplicarRecursosLiberados(recursos) {
         (alvos.cards || []).forEach(id => {
             const card = document.getElementById(id);
             if (card) card.style.display = liberado ? '' : 'none';
+        });
+        (alvos.classesCorpo || []).forEach(classe => {
+            document.body.classList.toggle(classe, !liberado);
         });
     });
 }
@@ -1672,10 +1741,10 @@ function montarLinhaProduto(id, produto) {
             <label class="produto-disponivel-check">
                 <input type="checkbox" id="prodDisp_${id}" ${produto.disponivel !== false ? 'checked' : ''}> Disponível
             </label>
-            <label class="produto-disponivel-check">
+            <label class="produto-disponivel-check campo-esconder-produto">
                 <input type="checkbox" id="prodEscondido_${id}" ${produto.escondido ? 'checked' : ''}> Esconder do cardápio
             </label>
-            <label class="produto-disponivel-check">
+            <label class="produto-disponivel-check campo-encomenda-produto">
                 <input type="checkbox" id="prodEncomenda_${id}" ${produto.disponivelParaEncomenda ? 'checked' : ''}> 🎂 Disponível pra Encomenda
             </label>
         </div>
@@ -1920,6 +1989,8 @@ function adicionarNovoProduto() {
 
 // ---------- CUPONS ----------
 
+let cuponsCache = {}; // guarda os cupons carregados, pra "Editar" conseguir preencher o formulário
+
 function montarCupomLinha(codigo, cupom) {
     const div = document.createElement('div');
     div.classList.add('cupom-admin-item');
@@ -1942,14 +2013,31 @@ function montarCupomLinha(codigo, cupom) {
             <span>${detalhe}</span>
             ${extraHtml}
         </div>
+        <button class="btn-secondary" onclick="editarCupom('${codigo}')" title="Editar">✏️</button>
         <button class="btn-excluir-cupom" onclick="excluirCupom('${codigo}')">🗑️</button>
     `;
     return div;
 }
 
+// Preenche o formulário com os valores atuais do cupom, pra editar sem precisar
+// lembrar/adivinhar o que já estava configurado antes
+function editarCupom(codigo) {
+    const cupom = cuponsCache[codigo];
+    if (!cupom) return;
+    document.getElementById('novoCupomCodigo').value = codigo;
+    document.getElementById('novoCupomTipo').value = cupom.tipo;
+    document.getElementById('novoCupomValor').value = cupom.valor || '';
+    document.getElementById('novoCupomLimiteUsos').value = cupom.limiteUsos || '';
+    document.getElementById('novoCupomValidoDe').value = cupom.validoDe || '';
+    document.getElementById('novoCupomValidoAte').value = cupom.validoAte || '';
+    atualizarCampoValorCupom();
+    document.getElementById('novoCupomCodigo').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 function escutarCupons() {
     db.ref('cupons').on('value', snap => {
         const val = snap.val() || {};
+        cuponsCache = val;
         const codigos = Object.keys(val);
         const lista = document.getElementById('cuponsAdminList');
         lista.innerHTML = '';
