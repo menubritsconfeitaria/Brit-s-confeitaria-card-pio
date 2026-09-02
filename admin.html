@@ -209,7 +209,9 @@
 
                     <label class="campo-label">Valor por km (R$)</label>
                     <input type="text" inputmode="decimal" id="valorPorKmConfig" placeholder="Ex: 0.70">
-                    <button class="btn-salvar-ordem" style="margin-top:8px;" onclick="salvarValorPorKm()">💾 Salvar valor por km</button>
+                    <label class="campo-label" style="margin-top:10px;">Valor por km pra ENCOMENDA (R$) — geralmente maior, se for de carro</label>
+                    <input type="text" inputmode="decimal" id="valorPorKmEncomendaConfig" placeholder="Ex: 2.30">
+                    <button class="btn-salvar-ordem" style="margin-top:8px;" onclick="salvarValorPorKm()">💾 Salvar valores por km</button>
                     <p id="valorPorKmMsg" class="ordem-categorias-msg"></p>
 
                     <div id="avisoImportarBairros" style="display:none; margin-top:14px;">

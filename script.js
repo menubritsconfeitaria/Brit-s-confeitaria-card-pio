@@ -77,8 +77,10 @@ const bairrosEntregaPadrao = {
     "parque dos jacarandas": 12
 };
 const valorPorKmPadrao = 0.70;
+const valorPorKmEncomendaPadrao = 2.30; // entrega de encomenda costuma ser de carro, custo por km maior
 let bairrosEntrega = bairrosEntregaPadrao;
 let valorPorKm = valorPorKmPadrao;
+let valorPorKmEncomenda = valorPorKmEncomendaPadrao;
 
 // Estado atual do cálculo de frete (retirada é a opção padrão, então começa sem frete)
 let freteAtual = 0;
@@ -321,6 +323,7 @@ let agendamentoAtivo = false; // idem, pro recurso de encomenda com data agendad
 let ultimaConfigAplicadaAssinatura = null; // evita reaplicar a identidade da loja à toa
 let whatsappPedidosEfetivo = null; // reflete o WhatsApp real em uso (painel ou arquivo)
 let percentualSinalEncomenda = 0; // 0 = não exige sinal, encomenda segue o fluxo combinado normal
+let prazoPagamentoHorasEfetivo = 24; // prazo padrão, sobrescrito pela config do painel
 let pedidoMinimoValor = 0; // 0 = sem pedido mínimo configurado
 let freteGratisAcimaValor = 0; // 0 = sem frete grátis por valor configurado
 let modoDemoAtivo = false; // true enquanto a prévia personalizada está ativa
@@ -474,6 +477,9 @@ function escutarStatusLoja() {
     firebase.database().ref('configuracao/agenda/percentualSinal').on('value', snap => {
         percentualSinalEncomenda = snap.val() || 0;
     });
+    firebase.database().ref('configuracao/agenda/prazoPagamentoHoras').on('value', snap => {
+        prazoPagamentoHorasEfetivo = snap.val() || 24;
+    });
 }
 
 // Carrega o cardápio do Firebase e re-renderiza sozinho sempre que algo mudar no painel
@@ -490,6 +496,7 @@ function escutarConfigFrete() {
             bairrosEntrega = bairrosEntregaPadrao;
         }
         valorPorKm = (config && config.valorPorKm) || valorPorKmPadrao;
+        valorPorKmEncomenda = (config && config.valorPorKmEncomenda) || valorPorKmEncomendaPadrao;
     });
 }
 
@@ -749,7 +756,7 @@ function atualizarResumoEncomendaCheckout() {
         const subtotalAtual = carrinho.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
         const valorSinalEstimado = subtotalAtual * (percentualSinalEncomenda / 100);
         const valorTexto = `R$ ${valorSinalEstimado.toFixed(2).replace('.', ',')}`;
-        resumoTexto.innerHTML = `📅 <strong>Encomenda pra ${dataFormatada}</strong> — pra confirmar a reserva, você vai pagar um sinal de <strong>${percentualSinalEncomenda}%</strong> (aprox. ${valorTexto}) na próxima etapa. O restante fica combinado pra hora da entrega. A loja irá entrar em contato pra confirmação.`;
+        resumoTexto.innerHTML = `📅 <strong>Encomenda pra ${dataFormatada}</strong> — pra confirmar a reserva, você vai pagar um sinal de <strong>${percentualSinalEncomenda}%</strong> (aprox. ${valorTexto}) na próxima etapa. ⏰ <strong>Você tem ${prazoPagamentoHorasEfetivo}h pra concluir esse pagamento</strong>, senão a reserva é cancelada automaticamente. O restante fica combinado pra hora da entrega. A loja irá entrar em contato pra confirmação.`;
     } else {
         resumoTexto.innerHTML = `📅 <strong>Esse pedido inclui uma encomenda</strong> pra <strong>${dataFormatada}</strong> — não é confirmação automática, a loja vai entrar em contato pra confirmar disponibilidade.`;
     }
@@ -767,6 +774,7 @@ async function verificarDisponibilidadeAgenda() {
         dataEncomendaVerificada = null;
         dataEncomendaEscolhida = null;
         atualizarResumoEncomendaCheckout();
+        if (cepClienteInput.value.replace(/\D/g, '').length === 8) calcularFrete(); // recalcula com a taxa normal
         return;
     }
 
@@ -785,6 +793,7 @@ async function verificarDisponibilidadeAgenda() {
             dataEncomendaVerificada = data;
             dataEncomendaEscolhida = data;
             atualizarResumoEncomendaCheckout();
+            if (cepClienteInput.value.replace(/\D/g, '').length === 8) calcularFrete(); // recalcula com a taxa de encomenda
         } else if (resultado.data.motivo === 'passada') {
             msgEl.textContent = '📅 Escolha uma data a partir de hoje, por favor.';
         } else if (resultado.data.motivo === 'bloqueada') {
@@ -831,9 +840,11 @@ async function calcularFrete() {
             const bairroNormalizado = normalizar(dados.bairro || '');
             if (bairrosEntrega.hasOwnProperty(bairroNormalizado)) {
                 const km = bairrosEntrega[bairroNormalizado];
-                freteAtual = km * valorPorKm;
+                const kmRateAplicavel = dataEncomendaEscolhida ? valorPorKmEncomenda : valorPorKm;
+                freteAtual = km * kmRateAplicavel;
                 freteConfirmado = true;
-                infoFreteDiv.textContent = `Entrega em ${dados.bairro}: R$ ${freteAtual.toFixed(2).replace('.', ',')}`;
+                const rotuloEncomenda = dataEncomendaEscolhida ? ' (taxa de encomenda)' : '';
+                infoFreteDiv.textContent = `Entrega em ${dados.bairro}: R$ ${freteAtual.toFixed(2).replace('.', ',')}${rotuloEncomenda}`;
             } else {
                 freteAtual = 0;
                 freteConfirmado = false;

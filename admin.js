@@ -722,6 +722,8 @@ function escutarConfigFrete() {
 
         const campoValorKm = document.getElementById('valorPorKmConfig');
         if (campoValorKm) campoValorKm.value = config.valorPorKm != null ? config.valorPorKm : '';
+        const campoValorKmEncomenda = document.getElementById('valorPorKmEncomendaConfig');
+        if (campoValorKmEncomenda) campoValorKmEncomenda.value = config.valorPorKmEncomenda != null ? config.valorPorKmEncomenda : '';
 
         const avisoImportar = document.getElementById('avisoImportarBairros');
         const temBairros = config.bairros && Object.keys(config.bairros).length > 0;
@@ -733,9 +735,11 @@ function escutarConfigFrete() {
 
 function salvarValorPorKm() {
     const valor = parseFloat(String(document.getElementById('valorPorKmConfig').value).replace(',', '.'));
+    const valorEncomenda = parseFloat(String(document.getElementById('valorPorKmEncomendaConfig').value).replace(',', '.'));
     const msgEl = document.getElementById('valorPorKmMsg');
-    if (isNaN(valor) || valor < 0) { msgEl.textContent = 'Digita um valor válido.'; return; }
-    db.ref('configuracao/frete/valorPorKm').set(valor)
+    if (isNaN(valor) || valor < 0) { msgEl.textContent = 'Digita um valor válido pro km normal.'; return; }
+    if (isNaN(valorEncomenda) || valorEncomenda < 0) { msgEl.textContent = 'Digita um valor válido pro km de encomenda.'; return; }
+    db.ref('configuracao/frete').update({ valorPorKm: valor, valorPorKmEncomenda: valorEncomenda })
         .then(() => { msgEl.textContent = 'Salvo!'; })
         .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
 }
