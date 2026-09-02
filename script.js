@@ -2072,15 +2072,28 @@ function rolarParaVendaSePendente() {
 
 // Se a pessoa abriu o cardápio por um link de produto específico (?produto=ID, gerado
 // pelo botão "Copiar link deste produto"), rola até ele e destaca por alguns segundos
-function rolarParaProdutoLinkado() {
-    if (!scrollParaProdutoPendente) return;
+function rolarParaProdutoLinkado(tentativa) {
+    tentativa = tentativa || 0;
+    if (!scrollParaProdutoPendente) { console.log('[TESTE link produto] já não está mais pendente, não faz nada.'); return; }
     const idProduto = new URLSearchParams(window.location.search).get('produto');
-    if (!idProduto) { scrollParaProdutoPendente = false; return; }
+    if (!idProduto) { scrollParaProdutoPendente = false; console.log('[TESTE link produto] não achei "?produto=" na URL.'); return; }
 
     const elemento = document.getElementById('produto-' + idProduto);
-    if (!elemento) return; // pode ser que os produtos ainda não tenham terminado de renderizar
+    console.log('[TESTE link produto] tentativa', tentativa, '| procurando id:', 'produto-' + idProduto, '| achou?', !!elemento);
+    if (!elemento) {
+        // Tenta de novo por alguns segundos — pode ser que os produtos ainda estejam
+        // sendo desenhados na tela no exato momento em que essa função rodou
+        if (tentativa < 10) {
+            setTimeout(() => rolarParaProdutoLinkado(tentativa + 1), 300);
+        } else {
+            scrollParaProdutoPendente = false; // desiste de vez depois de ~3 segundos tentando
+            console.log('[TESTE link produto] desisti depois de 10 tentativas, elemento nunca apareceu.');
+        }
+        return;
+    }
 
     scrollParaProdutoPendente = false;
+    console.log('[TESTE link produto] achei o elemento, vou rolar até ele agora.');
     setTimeout(() => {
         elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
         elemento.classList.add('produto-destacado-link');
