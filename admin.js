@@ -348,10 +348,10 @@ async function carregarRecursosClienteMestre() {
     `).join('');
     document.getElementById('areaRecursosClienteMestre').style.display = 'block';
 
-    carregarIdentidadeEStatusClienteMestre(registro);
+    carregarIdentidadeClienteMestre(registro);
 }
 
-async function carregarIdentidadeEStatusClienteMestre(registro) {
+async function carregarIdentidadeClienteMestre(registro) {
     const snap = await registro.db.ref('configuracao/loja').once('value');
     const config = snap.val() || {};
 
@@ -364,8 +364,41 @@ async function carregarIdentidadeEStatusClienteMestre(registro) {
     document.getElementById('corPrimariaLojaConfigMestre').value = config.corPrimariaLoja || '#a0522d';
     document.getElementById('corAccentLojaConfigMestre').value = config.corAccentLoja || '#c9974c';
 
-    const rotulosModo = { auto: '⏰ Automático', aberto: '🟢 Forçado Aberto', fechado: '🔴 Forçado Fechado' };
-    document.getElementById('statusLojaAtualMestre').textContent = rotulosModo[config.modoManual] || '⏰ Automático';
+    const previewLogo = document.getElementById('previewLogoMestre');
+    if (config.logoUrl) {
+        previewLogo.src = config.logoUrl;
+        previewLogo.style.display = 'inline-block';
+    } else {
+        previewLogo.style.display = 'none';
+    }
+}
+
+// Envia a logo pro Storage do CLIENTE selecionado (não o Mestre) — cada cliente
+// guarda a própria logo no Storage do projeto Firebase dele
+async function enviarLogoClienteMestre() {
+    const registro = appsClientesMestre[nomeAppClienteMestre(clienteMestreSelecionadoIndice)];
+    const msgEl = document.getElementById('msgLogoMestre');
+    if (!registro || !registro.autenticado) { msgEl.textContent = 'Faz login nesse cliente primeiro.'; return; }
+
+    const arquivo = document.getElementById('arquivoLogoMestre').files[0];
+    if (!arquivo) { msgEl.textContent = 'Escolhe um arquivo de imagem primeiro.'; return; }
+    if (!arquivo.type.startsWith('image/')) { msgEl.textContent = 'Isso não parece ser uma imagem.'; return; }
+    if (arquivo.size > 2 * 1024 * 1024) { msgEl.textContent = 'Imagem muito grande — usa algo até 2MB.'; return; }
+
+    msgEl.textContent = 'Enviando...';
+    try {
+        const extensao = arquivo.name.split('.').pop();
+        const ref = registro.app.storage().ref('logos/logo-principal.' + extensao);
+        await ref.put(arquivo);
+        const url = await ref.getDownloadURL();
+        await registro.db.ref('configuracao/loja/logoUrl').set(url);
+        msgEl.textContent = 'Logo enviada com sucesso!';
+        document.getElementById('previewLogoMestre').src = url;
+        document.getElementById('previewLogoMestre').style.display = 'inline-block';
+        document.getElementById('arquivoLogoMestre').value = '';
+    } catch (err) {
+        msgEl.textContent = 'Erro ao enviar: ' + err.message;
+    }
 }
 
 async function salvarIdentidadeClienteMestre() {
@@ -389,21 +422,6 @@ async function salvarIdentidadeClienteMestre() {
         msgEl.textContent = 'Salvo com sucesso!';
     } catch (err) {
         msgEl.textContent = 'Erro ao salvar: ' + err.message;
-    }
-}
-
-async function definirModoLojaMestre(modo) {
-    const registro = appsClientesMestre[nomeAppClienteMestre(clienteMestreSelecionadoIndice)];
-    const msgEl = document.getElementById('msgStatusMestre');
-    if (!registro || !registro.autenticado) { msgEl.textContent = 'Faz login nesse cliente primeiro.'; return; }
-
-    try {
-        await registro.db.ref('configuracao/loja/modoManual').set(modo);
-        const rotulosModo = { auto: '⏰ Automático', aberto: '🟢 Forçado Aberto', fechado: '🔴 Forçado Fechado' };
-        document.getElementById('statusLojaAtualMestre').textContent = rotulosModo[modo];
-        msgEl.textContent = 'Atualizado!';
-    } catch (err) {
-        msgEl.textContent = 'Erro: ' + err.message;
     }
 }
 
@@ -1238,46 +1256,6 @@ function escutarRecursosLiberados() {
 // Envia a logo pro Firebase Storage (não pro GitHub) — assim não precisa mexer em
 // arquivo nenhum pra trocar a logo de um cliente. Sempre sobrescreve o mesmo arquivo
 // (nome fixo "logo-principal"), pra não ir acumulando logo antiga sem usar.
-async function enviarLogo() {
-    const arquivo = document.getElementById('arquivoLogoInput').files[0];
-    const msgEl = document.getElementById('logoUploadMsg');
-    if (!arquivo) { msgEl.textContent = 'Escolhe um arquivo de imagem primeiro.'; return; }
-    if (!arquivo.type.startsWith('image/')) { msgEl.textContent = 'Isso não parece ser uma imagem.'; return; }
-    if (arquivo.size > 2 * 1024 * 1024) { msgEl.textContent = 'Imagem muito grande — usa algo até 2MB.'; return; }
-
-    msgEl.textContent = 'Enviando...';
-    try {
-        const extensao = arquivo.name.split('.').pop();
-        const ref = firebase.storage().ref('logos/logo-principal.' + extensao);
-        await ref.put(arquivo);
-        const url = await ref.getDownloadURL();
-        await db.ref('configuracao/loja/logoUrl').set(url);
-        msgEl.textContent = 'Logo enviada com sucesso!';
-        document.getElementById('previewLogoAtual').src = url;
-        document.getElementById('previewLogoAtual').style.display = 'inline-block';
-        document.getElementById('arquivoLogoInput').value = '';
-    } catch (err) {
-        msgEl.textContent = 'Erro ao enviar: ' + err.message;
-    }
-}
-
-function salvarNomeECidadeLoja() {
-    const dados = {
-        nomeLoja: document.getElementById('nomeLojaConfig').value.trim() || null,
-        nomeCurtoLoja: document.getElementById('nomeCurtoLojaConfig').value.trim() || null,
-        subtituloLoja: document.getElementById('subtituloLojaConfig').value.trim() || null,
-        cidadeLoja: document.getElementById('cidadeLojaConfig').value.trim() || null,
-        whatsappLoja: document.getElementById('whatsappLojaConfig').value.trim() || null,
-        instagramLoja: document.getElementById('instagramLojaConfig').value.trim() || null,
-        corPrimariaLoja: document.getElementById('corPrimariaLojaConfig').value || null,
-        corAccentLoja: document.getElementById('corAccentLojaConfig').value || null
-    };
-    const msgEl = document.getElementById('nomeECidadeMsg');
-    db.ref('configuracao/loja').update(dados)
-        .then(() => { msgEl.textContent = 'Salvo!'; })
-        .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
-}
-
 // Salva a InfiniteTag — usada pelas Cloud Functions de pagamento. Elas checam esse valor
 // primeiro, e só usam o que está fixo em functions/loja-config.js se não tiver nada aqui.
 function salvarInfiniteTag() {
@@ -1686,34 +1664,9 @@ function escutarConfigLoja() {
         const chkAgendamento = document.getElementById('chkAgendamentoAtivo');
         if (chkAgendamento) chkAgendamento.checked = !!config.agendamentoAtivo;
 
-        const campoNomeLoja = document.getElementById('nomeLojaConfig');
-        if (campoNomeLoja) campoNomeLoja.value = config.nomeLoja || '';
-        const campoCidadeLoja = document.getElementById('cidadeLojaConfig');
-        if (campoCidadeLoja) campoCidadeLoja.value = config.cidadeLoja || '';
-        const campoNomeCurtoLoja = document.getElementById('nomeCurtoLojaConfig');
-        if (campoNomeCurtoLoja) campoNomeCurtoLoja.value = config.nomeCurtoLoja || '';
-        const campoSubtituloLoja = document.getElementById('subtituloLojaConfig');
-        if (campoSubtituloLoja) campoSubtituloLoja.value = config.subtituloLoja || '';
-        const campoWhatsappLoja = document.getElementById('whatsappLojaConfig');
-        if (campoWhatsappLoja) campoWhatsappLoja.value = config.whatsappLoja || '';
-        const campoInstagramLoja = document.getElementById('instagramLojaConfig');
-        if (campoInstagramLoja) campoInstagramLoja.value = config.instagramLoja || '';
-        const campoCorPrimariaLoja = document.getElementById('corPrimariaLojaConfig');
-        if (campoCorPrimariaLoja) campoCorPrimariaLoja.value = config.corPrimariaLoja || '#a0522d';
-        const campoCorAccentLoja = document.getElementById('corAccentLojaConfig');
-        if (campoCorAccentLoja) campoCorAccentLoja.value = config.corAccentLoja || '#c9974c';
         const campoInfiniteTag = document.getElementById('infiniteTagConfig');
         if (campoInfiniteTag) campoInfiniteTag.value = config.infiniteTag || '';
 
-        const previewLogo = document.getElementById('previewLogoAtual');
-        if (previewLogo) {
-            if (config.logoUrl) {
-                previewLogo.src = config.logoUrl;
-                previewLogo.style.display = 'inline-block';
-            } else {
-                previewLogo.style.display = 'none';
-            }
-        }
         const painelLogo = document.getElementById('painelLogo');
         if (painelLogo && config.logoUrl) painelLogo.src = config.logoUrl;
 

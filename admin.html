@@ -95,46 +95,6 @@
             <section data-tab="loja">
                 <h2>🏪 Status da loja</h2>
 
-                <div class="loja-status-card">
-                    <h3>🏷️ Identidade e Marca</h3>
-                    <p class="dica-secao">Deixa em branco pra usar o padrão configurado no arquivo do site — só preenche aqui se quiser mudar sem precisar editar código. Pra um cliente novo, essa é a área principal pra deixar tudo com a cara da loja dele, sem tocar em nenhum arquivo.</p>
-
-                    <label class="campo-label">Nome completo da loja</label>
-                    <input type="text" id="nomeLojaConfig" placeholder="Ex: Brit's Confeitaria">
-                    <label class="campo-label" style="margin-top:10px;">Nome curto (usado em textos menores)</label>
-                    <input type="text" id="nomeCurtoLojaConfig" placeholder="Ex: Brit's">
-                    <label class="campo-label" style="margin-top:10px;">Subtítulo (frase embaixo do nome)</label>
-                    <input type="text" id="subtituloLojaConfig" placeholder="Ex: Seu cardápio diário de delícias frescas.">
-                    <label class="campo-label" style="margin-top:10px;">Cidade atendida</label>
-                    <input type="text" id="cidadeLojaConfig" placeholder="Ex: Colatina/ES">
-                    <label class="campo-label" style="margin-top:10px;">WhatsApp pra pedidos (só números, com DDD)</label>
-                    <input type="text" inputmode="numeric" id="whatsappLojaConfig" placeholder="Ex: 5527999999999">
-                    <label class="campo-label" style="margin-top:10px;">Link do Instagram</label>
-                    <input type="text" id="instagramLojaConfig" placeholder="Ex: https://www.instagram.com/sualoja/">
-
-                    <div class="produto-admin-linha" style="margin-top:10px;">
-                        <div class="campo-com-label">
-                            <label class="campo-label">Cor principal</label>
-                            <input type="color" id="corPrimariaLojaConfig">
-                        </div>
-                        <div class="campo-com-label">
-                            <label class="campo-label">Cor de destaque</label>
-                            <input type="color" id="corAccentLojaConfig">
-                        </div>
-                    </div>
-
-                    <label class="campo-label" style="margin-top:14px;">Logo da loja</label>
-                    <div style="display:flex; align-items:center; gap:12px;">
-                        <img id="previewLogoAtual" src="" alt="Logo atual" style="width:60px; height:60px; object-fit:contain; border-radius:8px; border:1px solid var(--border); display:none;">
-                        <input type="file" id="arquivoLogoInput" accept="image/*" style="flex:1;">
-                    </div>
-                    <button class="btn-secondary" style="margin-top:8px;" onclick="enviarLogo()">📤 Enviar nova logo</button>
-                    <p id="logoUploadMsg" class="ordem-categorias-msg"></p>
-
-                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="salvarNomeECidadeLoja()">💾 Salvar tudo</button>
-                    <p id="nomeECidadeMsg" class="ordem-categorias-msg"></p>
-                </div>
-
                 <div class="loja-status-card" id="cardInfiniteTag">
                     <h3>💳 InfiniteTag (pagamento online)</h3>
                     <p class="dica-secao">
@@ -458,20 +418,17 @@
                             <div class="campo-com-label"><label class="campo-label">Cor principal</label><input type="color" id="corPrimariaLojaConfigMestre"></div>
                             <div class="campo-com-label"><label class="campo-label">Cor de destaque</label><input type="color" id="corAccentLojaConfigMestre"></div>
                         </div>
+
+                        <label class="campo-label" style="margin-top:14px;">Logo da loja</label>
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <img id="previewLogoMestre" src="" alt="Logo atual" style="width:60px; height:60px; object-fit:contain; border-radius:8px; border:1px solid var(--border); display:none;">
+                            <input type="file" id="arquivoLogoMestre" accept="image/*" style="flex:1;">
+                        </div>
+                        <button class="btn-secondary" style="margin-top:8px;" onclick="enviarLogoClienteMestre()">📤 Enviar nova logo</button>
+                        <p id="msgLogoMestre" class="ordem-categorias-msg"></p>
+
                         <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="salvarIdentidadeClienteMestre()">💾 Salvar identidade</button>
                         <p id="msgIdentidadeMestre" class="ordem-categorias-msg"></p>
-
-                        <hr style="margin:18px 0; border:none; border-top:1px solid var(--border);">
-
-                        <h3>🏪 Status da loja</h3>
-                        <p class="dica-secao">Status agora: <strong id="statusLojaAtualMestre">—</strong></p>
-                        <p class="dica-secao">⚠️ O horário de funcionamento detalhado (dia a dia) ainda só pode ser editado logando direto no painel desse cliente — aqui só dá pra forçar aberto/fechado na mão.</p>
-                        <div class="opcoes-radio">
-                            <div class="opcao-btn" onclick="definirModoLojaMestre('auto')">⏰ Automático</div>
-                            <div class="opcao-btn" onclick="definirModoLojaMestre('aberto')">🟢 Forçar Aberto</div>
-                            <div class="opcao-btn" onclick="definirModoLojaMestre('fechado')">🔴 Forçar Fechado</div>
-                        </div>
-                        <p id="msgStatusMestre" class="ordem-categorias-msg"></p>
                     </div>
                 </div>
 
