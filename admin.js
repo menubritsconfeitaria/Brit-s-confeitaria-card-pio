@@ -192,6 +192,7 @@ async function tentarLoginNoFirebaseMestre(email, senha) {
         mostrarAbaAdministracaoMestre();
     } catch (err) {
         souOAdminMestre = false; // silencioso — dono normal da loja nunca vê nenhum erro disso
+        console.log('[Firebase Mestre] Login não reconhecido (normal pro dono da loja):', err.code, err.message);
     }
 }
 
