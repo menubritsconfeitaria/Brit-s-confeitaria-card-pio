@@ -371,6 +371,8 @@ async function carregarIdentidadeClienteMestre(registro) {
     } else {
         previewLogo.style.display = 'none';
     }
+
+    document.getElementById('infiniteTagConfigMestre').value = config.infiniteTag || '';
 }
 
 // Envia a logo pro Storage do CLIENTE selecionado (não o Mestre) — cada cliente
@@ -398,6 +400,21 @@ async function enviarLogoClienteMestre() {
         document.getElementById('arquivoLogoMestre').value = '';
     } catch (err) {
         msgEl.textContent = 'Erro ao enviar: ' + err.message;
+    }
+}
+
+async function salvarInfiniteTagClienteMestre() {
+    const registro = appsClientesMestre[nomeAppClienteMestre(clienteMestreSelecionadoIndice)];
+    const msgEl = document.getElementById('msgInfiniteTagMestre');
+    if (!registro || !registro.autenticado) { msgEl.textContent = 'Faz login nesse cliente primeiro.'; return; }
+
+    const valor = document.getElementById('infiniteTagConfigMestre').value.trim();
+    msgEl.textContent = 'Salvando...';
+    try {
+        await registro.db.ref('configuracao/loja/infiniteTag').set(valor || null);
+        msgEl.textContent = 'Salvo!';
+    } catch (err) {
+        msgEl.textContent = 'Erro ao salvar: ' + err.message;
     }
 }
 
@@ -1215,7 +1232,7 @@ const MAPA_RECURSOS = {
     fidelidade: { abas: ['fidelidade'] },
     agenda: { abas: ['agenda'], classesCorpo: ['ocultar-campo-encomenda-produto'] },
     notificacoes: { cards: ['cardNotificacoes'] },
-    pagamentoOnline: { cards: ['cardInfiniteTag', 'cardAtivarPagamentoOnline'] },
+    pagamentoOnline: { cards: ['cardAtivarPagamentoOnline'] },
     visitantes: { abas: ['visitantes'] },
     adicionais: { cards: ['cardAdicionaisPorProduto'] },
     pedidoMinimo: { cards: ['cardPedidoMinimoFreteGratis'] },
@@ -1256,16 +1273,6 @@ function escutarRecursosLiberados() {
 // Envia a logo pro Firebase Storage (não pro GitHub) — assim não precisa mexer em
 // arquivo nenhum pra trocar a logo de um cliente. Sempre sobrescreve o mesmo arquivo
 // (nome fixo "logo-principal"), pra não ir acumulando logo antiga sem usar.
-// Salva a InfiniteTag — usada pelas Cloud Functions de pagamento. Elas checam esse valor
-// primeiro, e só usam o que está fixo em functions/loja-config.js se não tiver nada aqui.
-function salvarInfiniteTag() {
-    const valor = document.getElementById('infiniteTagConfig').value.trim();
-    const msgEl = document.getElementById('infiniteTagMsg');
-    db.ref('configuracao/loja/infiniteTag').set(valor || null)
-        .then(() => { msgEl.textContent = 'Salvo!'; })
-        .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
-}
-
 function salvarCapacidadeAgenda() {
     const valor = parseInt(document.getElementById('capacidadeMaximaDia').value, 10) || 0;
     const msgEl = document.getElementById('capacidadeAgendaMsg');
@@ -1663,9 +1670,6 @@ function escutarConfigLoja() {
 
         const chkAgendamento = document.getElementById('chkAgendamentoAtivo');
         if (chkAgendamento) chkAgendamento.checked = !!config.agendamentoAtivo;
-
-        const campoInfiniteTag = document.getElementById('infiniteTagConfig');
-        if (campoInfiniteTag) campoInfiniteTag.value = config.infiniteTag || '';
 
         const painelLogo = document.getElementById('painelLogo');
         if (painelLogo && config.logoUrl) painelLogo.src = config.logoUrl;

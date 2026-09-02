@@ -95,19 +95,6 @@
             <section data-tab="loja">
                 <h2>🏪 Status da loja</h2>
 
-                <div class="loja-status-card" id="cardInfiniteTag">
-                    <h3>💳 InfiniteTag (pagamento online)</h3>
-                    <p class="dica-secao">
-                        A "etiqueta" da conta InfinitePay da loja (sem o "$" na frente).
-                        Preenchendo aqui, não precisa mais editar o arquivo
-                        <code>functions/loja-config.js</code> pra configurar pagamento
-                        de um cliente novo.
-                    </p>
-                    <input type="text" id="infiniteTagConfig" placeholder="Ex: nomedaloja">
-                    <button class="btn-salvar-ordem" style="margin-top:8px;" onclick="salvarInfiniteTag()">💾 Salvar</button>
-                    <p id="infiniteTagMsg" class="ordem-categorias-msg"></p>
-                </div>
-
                 <div class="loja-status-card">
                     <p class="loja-status-atual">Status agora: <strong id="lojaStatusAtual">Carregando...</strong></p>
 
@@ -426,6 +413,11 @@
                         </div>
                         <button class="btn-secondary" style="margin-top:8px;" onclick="enviarLogoClienteMestre()">📤 Enviar nova logo</button>
                         <p id="msgLogoMestre" class="ordem-categorias-msg"></p>
+
+                        <label class="campo-label" style="margin-top:14px;">💳 InfiniteTag (pagamento online)</label>
+                        <input type="text" id="infiniteTagConfigMestre" placeholder="Ex: nomedaloja (sem o $ na frente)">
+                        <button class="btn-secondary" style="margin-top:8px;" onclick="salvarInfiniteTagClienteMestre()">💾 Salvar InfiniteTag</button>
+                        <p id="msgInfiniteTagMestre" class="ordem-categorias-msg"></p>
 
                         <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="salvarIdentidadeClienteMestre()">💾 Salvar identidade</button>
                         <p id="msgIdentidadeMestre" class="ordem-categorias-msg"></p>
