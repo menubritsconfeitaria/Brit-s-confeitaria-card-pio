@@ -160,6 +160,185 @@ function restaurarPosicaoRolagem() {
 
 // ---------- LOGIN / LOGOUT ----------
 
+// Configuração do Firebase Mestre — projeto separado, só do dono do serviço, guarda o
+// registro de todos os clientes. Essa chave sozinha não abre porta nenhuma: o Firebase
+// Mestre também exige login (só o dono do serviço tem usuário cadastrado lá).
+const FIREBASE_MESTRE_CONFIG = {
+    apiKey: "AIzaSyCMr33r_7zBb8A-WlVQcxxZB4f-FsSQiDg",
+    authDomain: "painel-admin-mestre.firebaseapp.com",
+    databaseURL: "https://painel-admin-mestre-default-rtdb.firebaseio.com",
+    projectId: "painel-admin-mestre",
+    storageBucket: "painel-admin-mestre.firebasestorage.app",
+    messagingSenderId: "190805206633",
+    appId: "1:190805206633:web:36d1f40aa56511d358a4f8"
+};
+
+let appMestre = null;
+let dbMestre = null;
+let souOAdminMestre = false;
+
+// Depois de logar com sucesso no painel de QUALQUER cliente, tenta (em segundo plano)
+// entrar no Firebase Mestre com esse mesmo e-mail/senha. Se der certo, é o dono do
+// serviço — mostra a aba especial. Se não der, é só o dono normal da loja, e nada
+// muda pra ele (o erro é silencioso, nunca aparece pro usuário comum).
+async function tentarLoginNoFirebaseMestre(email, senha) {
+    try {
+        if (!appMestre) {
+            appMestre = firebase.initializeApp(FIREBASE_MESTRE_CONFIG, 'mestre');
+            dbMestre = appMestre.database();
+        }
+        await appMestre.auth().signInWithEmailAndPassword(email, senha);
+        souOAdminMestre = true;
+        mostrarAbaAdministracaoMestre();
+    } catch (err) {
+        souOAdminMestre = false; // silencioso — dono normal da loja nunca vê nenhum erro disso
+    }
+}
+
+function mostrarAbaAdministracaoMestre() {
+    const botaoAba = document.querySelector('.painel-tab-btn[data-tab="administracao-mestre"]');
+    if (botaoAba) botaoAba.style.display = '';
+    carregarClientesMestre();
+}
+
+const RECURSOS_MESTRE = [
+    { chave: 'cupons', nome: '🎟️ Cupons' },
+    { chave: 'fidelidade', nome: '⭐ Fidelidade (Clube)' },
+    { chave: 'agenda', nome: '📅 Agenda de Encomendas' },
+    { chave: 'notificacoes', nome: '📢 Notificações Push' },
+    { chave: 'pagamentoOnline', nome: '💳 Pagamento Online' },
+    { chave: 'visitantes', nome: '👀 Visitantes' }
+];
+
+const appsClientesMestre = {}; // indice -> { app, auth, db, autenticado }
+let clientesRegistroMestre = [];
+let clienteMestreSelecionadoIndice = null;
+
+function carregarClientesMestre() {
+    dbMestre.ref('clientes').once('value').then(snap => {
+        const dados = snap.val() || {};
+        clientesRegistroMestre = Object.entries(dados).map(([id, c]) => ({ id, ...c }));
+        const seletor = document.getElementById('seletorClienteMestre');
+        seletor.innerHTML = '<option value="">— Selecione —</option>' +
+            clientesRegistroMestre.map((c, i) => `<option value="${i}">${c.nome}</option>`).join('');
+    });
+}
+
+function nomeAppClienteMestre(indice) {
+    return 'clienteMestre_' + indice;
+}
+
+function garantirAppClienteMestre(indice) {
+    const nomeApp = nomeAppClienteMestre(indice);
+    if (appsClientesMestre[nomeApp]) return appsClientesMestre[nomeApp];
+    const cliente = clientesRegistroMestre[indice];
+    const app = firebase.initializeApp(cliente.firebaseConfig, nomeApp);
+    const registro = { app, auth: app.auth(), db: app.database(), autenticado: false };
+    appsClientesMestre[nomeApp] = registro;
+    return registro;
+}
+
+function selecionarClienteMestre() {
+    const valor = document.getElementById('seletorClienteMestre').value;
+    document.getElementById('areaLoginClienteMestre').style.display = 'none';
+    document.getElementById('areaRecursosClienteMestre').style.display = 'none';
+    document.getElementById('msgLoginClienteMestre').textContent = '';
+    document.getElementById('msgAplicarRecursosMestre').textContent = '';
+    if (!valor) { clienteMestreSelecionadoIndice = null; return; }
+
+    clienteMestreSelecionadoIndice = parseInt(valor, 10);
+    const cliente = clientesRegistroMestre[clienteMestreSelecionadoIndice];
+    const registro = garantirAppClienteMestre(clienteMestreSelecionadoIndice);
+
+    if (registro.autenticado) {
+        carregarRecursosClienteMestre();
+    } else {
+        document.getElementById('labelLoginClienteMestre').textContent = 'Login — ' + cliente.nome;
+        document.getElementById('emailLoginClienteMestre').value = cliente.emailAdmin || '';
+        document.getElementById('areaLoginClienteMestre').style.display = 'block';
+    }
+}
+
+async function fazerLoginClienteMestre() {
+    const email = document.getElementById('emailLoginClienteMestre').value.trim();
+    const senha = document.getElementById('senhaLoginClienteMestre').value;
+    const msgEl = document.getElementById('msgLoginClienteMestre');
+    if (!email || !senha) { msgEl.textContent = 'Preenche e-mail e senha.'; return; }
+
+    const registro = appsClientesMestre[nomeAppClienteMestre(clienteMestreSelecionadoIndice)];
+    msgEl.textContent = 'Entrando...';
+    try {
+        await registro.auth.signInWithEmailAndPassword(email, senha);
+        registro.autenticado = true;
+        document.getElementById('areaLoginClienteMestre').style.display = 'none';
+        document.getElementById('senhaLoginClienteMestre').value = '';
+        carregarRecursosClienteMestre();
+    } catch (err) {
+        msgEl.textContent = 'Erro no login: ' + err.message;
+    }
+}
+
+async function carregarRecursosClienteMestre() {
+    const registro = appsClientesMestre[nomeAppClienteMestre(clienteMestreSelecionadoIndice)];
+    const snap = await registro.db.ref('configuracao/recursosLiberados').once('value');
+    const valor = snap.val();
+    const nuncaConfigurado = valor == null;
+
+    document.getElementById('avisoNuncaConfiguradoMestre').style.display = nuncaConfigurado ? 'block' : 'none';
+
+    const estado = {};
+    RECURSOS_MESTRE.forEach(r => { estado[r.chave] = nuncaConfigurado ? true : !!valor[r.chave]; });
+
+    document.getElementById('listaRecursosClienteMestre').innerHTML = RECURSOS_MESTRE.map(r => `
+        <label class="switch-linha" style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border);">
+            ${r.nome}
+            <input type="checkbox" id="recursoMestre_${r.chave}" ${estado[r.chave] ? 'checked' : ''}>
+        </label>
+    `).join('');
+    document.getElementById('areaRecursosClienteMestre').style.display = 'block';
+}
+
+async function aplicarRecursosClienteMestre() {
+    const msgEl = document.getElementById('msgAplicarRecursosMestre');
+    const registro = appsClientesMestre[nomeAppClienteMestre(clienteMestreSelecionadoIndice)];
+    if (!registro || !registro.autenticado) { msgEl.textContent = 'Faz login nesse cliente primeiro.'; return; }
+
+    const dados = {};
+    RECURSOS_MESTRE.forEach(r => { dados[r.chave] = document.getElementById('recursoMestre_' + r.chave).checked; });
+
+    msgEl.textContent = 'Salvando...';
+    try {
+        await registro.db.ref('configuracao/recursosLiberados').update(dados);
+        msgEl.textContent = 'Salvo com sucesso!';
+    } catch (err) {
+        msgEl.textContent = 'Erro ao salvar: ' + err.message;
+    }
+}
+
+function adicionarClienteMestre() {
+    const nome = document.getElementById('novoClienteNomeMestre').value.trim();
+    const configTexto = document.getElementById('novoClienteConfigMestre').value.trim();
+    const msgEl = document.getElementById('msgAdicionarClienteMestre');
+    if (!nome) { msgEl.textContent = 'Digita o nome do cliente.'; return; }
+
+    let firebaseConfig;
+    try {
+        firebaseConfig = JSON.parse(configTexto);
+    } catch (err) {
+        msgEl.textContent = 'O firebaseConfig colado não é um JSON válido — confere se copiou certinho.';
+        return;
+    }
+
+    dbMestre.ref('clientes').push({ nome, firebaseConfig })
+        .then(() => {
+            msgEl.textContent = 'Cliente adicionado!';
+            document.getElementById('novoClienteNomeMestre').value = '';
+            document.getElementById('novoClienteConfigMestre').value = '';
+            carregarClientesMestre();
+        })
+        .catch(err => { msgEl.textContent = 'Erro ao adicionar: ' + err.message; });
+}
+
 function fazerLogin() {
     const email = document.getElementById('loginEmail').value.trim();
     const senha = document.getElementById('loginSenha').value;
@@ -172,6 +351,9 @@ function fazerLogin() {
     }
 
     auth.signInWithEmailAndPassword(email, senha)
+        .then(() => {
+            tentarLoginNoFirebaseMestre(email, senha); // silencioso, não afeta o fluxo normal
+        })
         .catch(() => {
             erroEl.textContent = 'E-mail ou senha incorretos.';
         });

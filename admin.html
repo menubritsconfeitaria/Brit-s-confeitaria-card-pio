@@ -64,6 +64,7 @@
             <button class="painel-tab-btn" data-tab="loja">🏪 Loja</button>
             <button class="painel-tab-btn" data-tab="agenda">📅 Agenda</button>
             <button class="painel-tab-btn" data-tab="visitantes">👀 Visitantes</button>
+            <button class="painel-tab-btn" data-tab="administracao-mestre" style="display:none;">🎛️ Administração</button>
         </nav>
 
         <main class="painel-main">
@@ -406,6 +407,40 @@
                     </div>
                     <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="carregarVisitasPeriodo()">Ver visitas do período</button>
                     <p id="visitasPeriodoResultado" class="ordem-categorias-msg"></p>
+                </div>
+            </section>
+
+            <section data-tab="administracao-mestre">
+                <h2>🎛️ Administração de Clientes</h2>
+                <p class="dica-secao">Essa aba só aparece pra você — controla os recursos liberados de qualquer cliente sem sair do painel.</p>
+
+                <div class="loja-status-card">
+                    <label class="campo-label">Escolher cliente</label>
+                    <select id="seletorClienteMestre" onchange="selecionarClienteMestre()">
+                        <option value="">— Selecione —</option>
+                    </select>
+                    <div id="areaLoginClienteMestre" style="display:none; margin-top:12px;">
+                        <label class="campo-label" id="labelLoginClienteMestre">Login desse cliente</label>
+                        <input type="email" id="emailLoginClienteMestre" placeholder="E-mail de admin desse cliente">
+                        <input type="password" id="senhaLoginClienteMestre" placeholder="Senha" style="margin-top:8px;">
+                        <button class="btn-salvar-ordem" style="margin-top:8px;" onclick="fazerLoginClienteMestre()">Entrar</button>
+                        <p id="msgLoginClienteMestre" class="ordem-categorias-msg"></p>
+                    </div>
+                    <div id="areaRecursosClienteMestre" style="display:none; margin-top:14px;">
+                        <p id="avisoNuncaConfiguradoMestre" class="dica-secao" style="display:none;">ℹ️ Esse cliente nunca teve nada configurado aqui — hoje ele tem tudo liberado (padrão). Os interruptores já refletem isso.</p>
+                        <div id="listaRecursosClienteMestre"></div>
+                        <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="aplicarRecursosClienteMestre()">💾 Aplicar nesse cliente</button>
+                        <p id="msgAplicarRecursosMestre" class="ordem-categorias-msg"></p>
+                    </div>
+                </div>
+
+                <div class="loja-status-card" style="margin-top:16px;">
+                    <h3>➕ Adicionar cliente ao registro</h3>
+                    <p class="dica-secao">Copia o firebaseConfig do cliente (arquivo firebase-config.js dele) e cola aqui.</p>
+                    <input type="text" id="novoClienteNomeMestre" placeholder="Nome do cliente (ex: Doces da Ana)">
+                    <textarea id="novoClienteConfigMestre" rows="6" placeholder='Cole aqui o conteúdo do firebaseConfig, ex: {"apiKey":"...", "authDomain":"...", ...}' style="width:100%; margin-top:8px; font-family:monospace; font-size:0.85em;"></textarea>
+                    <button class="btn-salvar-ordem" style="margin-top:8px;" onclick="adicionarClienteMestre()">💾 Adicionar cliente</button>
+                    <p id="msgAdicionarClienteMestre" class="ordem-categorias-msg"></p>
                 </div>
             </section>
 
