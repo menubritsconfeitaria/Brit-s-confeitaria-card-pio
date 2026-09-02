@@ -18,31 +18,100 @@ function aplicarConfigDaLojaNoAdmin() {
     const clubeTituloAdmin = document.getElementById('clubeTituloAdmin');
     if (clubeTituloAdmin) clubeTituloAdmin.textContent = `⭐ Clube ${LOJA_CONFIG.nomeCurto} (Fidelidade)`;
 
-    // Gera o QR Code apontando pro cardápio, usando um serviço público gratuito —
-    // não precisa de nenhuma biblioteca nem gerar a imagem na mão
-    const imgQrCode = document.getElementById('imagemQrCode');
-    if (imgQrCode) {
-        imgQrCode.src = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(LOJA_CONFIG.urlCardapio)}`;
-    }
+    montarCartazQrCode();
 }
 aplicarConfigDaLojaNoAdmin();
 
-// Baixa o QR Code como arquivo de imagem, pronto pra imprimir
-async function baixarQrCode() {
+// Monta um cartaz completo (logo + nome + chamada + QR Code) numa imagem só, pronta
+// pra imprimir — desenhado num canvas, pra não depender de nenhuma ferramenta externa
+async function montarCartazQrCode() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 800;
+    canvas.height = 1100;
+    const ctx = canvas.getContext('2d');
+
+    // Fundo branco
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Faixa colorida no topo, com a cor principal da marca
+    ctx.fillStyle = LOJA_CONFIG.corPrimaria || '#a0522d';
+    ctx.fillRect(0, 0, canvas.width, 260);
+
+    // Carrega a logo e o QR Code em paralelo antes de desenhar
+    const carregarImagem = (src, comCors) => new Promise((resolve, reject) => {
+        const img = new Image();
+        if (comCors) img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+    });
+
     try {
-        const resposta = await fetch(document.getElementById('imagemQrCode').src);
-        const blob = await resposta.blob();
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `qrcode-${LOJA_CONFIG.nomeCurto || 'cardapio'}.png`.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-.]/g, '');
-        link.click();
-        URL.revokeObjectURL(url);
+        const [logoImg, qrImg] = await Promise.all([
+            carregarImagem(LOJA_CONFIG.logo, false).catch(() => null), // segue sem logo se falhar
+            carregarImagem(`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(LOJA_CONFIG.urlCardapio)}`, true)
+        ]);
+
+        // Logo circular, centralizada na faixa colorida
+        if (logoImg) {
+            const tamLogo = 140;
+            const xLogo = (canvas.width - tamLogo) / 2;
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, 60 + tamLogo / 2, tamLogo / 2, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+            ctx.drawImage(logoImg, xLogo, 60, tamLogo, tamLogo);
+            ctx.restore();
+        }
+
+        // Nome da loja
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 42px Arial, sans-serif';
+        ctx.fillText(LOJA_CONFIG.nome, canvas.width / 2, 235);
+
+        // Chamada pra ação
+        ctx.fillStyle = LOJA_CONFIG.corPrimaria || '#a0522d';
+        ctx.font = 'bold 34px Arial, sans-serif';
+        ctx.fillText('📱 Aponte a câmera e peça já!', canvas.width / 2, 340);
+
+        // QR Code, dentro de uma caixa branca com borda
+        const tamQr = 500;
+        const xQr = (canvas.width - tamQr) / 2;
+        const yQr = 390;
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = LOJA_CONFIG.corAccent || '#c9974c';
+        ctx.lineWidth = 4;
+        ctx.fillRect(xQr - 15, yQr - 15, tamQr + 30, tamQr + 30);
+        ctx.strokeRect(xQr - 15, yQr - 15, tamQr + 30, tamQr + 30);
+        ctx.drawImage(qrImg, xQr, yQr, tamQr, tamQr);
+
+        // Frase final embaixo
+        ctx.fillStyle = '#3a2b20';
+        ctx.font = '28px Arial, sans-serif';
+        ctx.fillText('Peça pelo nosso cardápio digital', canvas.width / 2, yQr + tamQr + 60);
+        if (LOJA_CONFIG.cidade) {
+            ctx.font = '22px Arial, sans-serif';
+            ctx.fillStyle = '#8a7562';
+            ctx.fillText(`📍 Atendemos ${LOJA_CONFIG.cidade}`, canvas.width / 2, yQr + tamQr + 100);
+        }
+
+        document.getElementById('imagemQrCode').src = canvas.toDataURL('image/png');
+        window._cartazQrCodeCanvas = canvas; // guarda pro botão de baixar reaproveitar
     } catch (err) {
-        // Se o download automático falhar (bloqueio de CORS, por exemplo), abre a
-        // imagem numa aba nova — a pessoa consegue salvar clicando com o botão direito
-        window.open(document.getElementById('imagemQrCode').src, '_blank');
+        console.log('Não foi possível montar o cartaz do QR Code:', err.message);
     }
+}
+
+// Baixa o cartaz completo (canvas já montado) como arquivo de imagem
+function baixarQrCode() {
+    if (!window._cartazQrCodeCanvas) { alert('O cartaz ainda está sendo montado, tenta de novo em instantes.'); return; }
+    const link = document.createElement('a');
+    link.href = window._cartazQrCodeCanvas.toDataURL('image/png');
+    link.download = `qrcode-${LOJA_CONFIG.nomeCurto || 'cardapio'}.png`.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-.]/g, '');
+    link.click();
 }
 
 let idsRenderizados = new Set();
