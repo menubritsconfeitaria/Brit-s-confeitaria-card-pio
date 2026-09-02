@@ -2094,11 +2094,15 @@ function rolarParaProdutoLinkado(tentativa) {
 
     scrollParaProdutoPendente = false;
     console.log('[TESTE link produto] achei o elemento, vou rolar até ele agora.');
-    setTimeout(() => {
+    const rolarAteElemento = () => {
         elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
         elemento.classList.add('produto-destacado-link');
         setTimeout(() => elemento.classList.remove('produto-destacado-link'), 3000);
-    }, 300);
+    };
+    setTimeout(rolarAteElemento, 300);
+    // Rola de novo depois de mais tempo — as imagens dos produtos ainda podem estar
+    // carregando e mudando a altura da página, o que "desfaz" a primeira rolagem
+    setTimeout(rolarAteElemento, 1500);
 }
 
 /* ===================================================================
