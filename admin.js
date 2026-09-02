@@ -189,10 +189,11 @@ async function tentarLoginNoFirebaseMestre(email, senha) {
         }
         await appMestre.auth().signInWithEmailAndPassword(email, senha);
         souOAdminMestre = true;
+        alert('[TESTE] Login no Firebase Mestre funcionou! A aba deveria aparecer agora.');
         mostrarAbaAdministracaoMestre();
     } catch (err) {
         souOAdminMestre = false; // silencioso — dono normal da loja nunca vê nenhum erro disso
-        console.log('[Firebase Mestre] Login não reconhecido (normal pro dono da loja):', err.code, err.message);
+        alert('[TESTE] Firebase Mestre não reconheceu esse login: ' + err.code + ' | ' + err.message);
     }
 }
 
