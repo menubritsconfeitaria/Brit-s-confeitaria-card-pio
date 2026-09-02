@@ -753,10 +753,25 @@ function atualizarResumoEncomendaCheckout() {
 
     const dataFormatada = dataEncomendaEscolhida.split('-').reverse().join('/');
     if (percentualSinalEncomenda > 0) {
-        const subtotalAtual = carrinho.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
-        const valorSinalEstimado = subtotalAtual * (percentualSinalEncomenda / 100);
+        // O sinal cobre só o valor do produto — o frete NUNCA entra nessa conta, fica
+        // sempre separado e avisado à parte, pra não ser injusto cobrar antecipado em
+        // cima de um valor de entrega que ainda pode nem estar confirmado
+        const subtotalProdutos = carrinho.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
+        const descontoAtual = calcularDesconto(subtotalProdutos);
+        const baseParaSinal = subtotalProdutos - descontoAtual;
+        const valorSinalEstimado = baseParaSinal * (percentualSinalEncomenda / 100);
         const valorTexto = `R$ ${valorSinalEstimado.toFixed(2).replace('.', ',')}`;
-        resumoTexto.innerHTML = `📅 <strong>Encomenda pra ${dataFormatada}</strong> — pra confirmar a reserva, você vai pagar um sinal de <strong>${percentualSinalEncomenda}%</strong> (aprox. ${valorTexto}) na próxima etapa. ⏰ <strong>Você tem ${prazoPagamentoHorasEfetivo}h pra concluir esse pagamento</strong>, senão a reserva é cancelada automaticamente. O restante fica combinado pra hora da entrega. A loja irá entrar em contato pra confirmação.`;
+
+        let avisoFrete = '';
+        if (tipoEntregaAtual === 'entrega') {
+            if (freteConfirmado && freteAtual > 0) {
+                avisoFrete = ` O frete (R$ ${freteAtual.toFixed(2).replace('.', ',')}) é separado do sinal e fica pra pagar na entrega, junto com o restante.`;
+            } else {
+                avisoFrete = ' O frete é separado do sinal, calculado à parte, e fica pra pagar na entrega.';
+            }
+        }
+
+        resumoTexto.innerHTML = `📅 <strong>Encomenda pra ${dataFormatada}</strong> — pra confirmar a reserva, você vai pagar um sinal de <strong>${percentualSinalEncomenda}% sobre o valor do produto</strong> (${valorTexto}) na próxima etapa.${avisoFrete} ⏰ <strong>Você tem ${prazoPagamentoHorasEfetivo}h pra concluir esse pagamento</strong>, senão a reserva é cancelada automaticamente. O restante fica combinado pra hora da entrega. A loja irá entrar em contato pra confirmação.`;
     } else {
         resumoTexto.innerHTML = `📅 <strong>Esse pedido inclui uma encomenda</strong> pra <strong>${dataFormatada}</strong> — não é confirmação automática, a loja vai entrar em contato pra confirmar disponibilidade.`;
     }

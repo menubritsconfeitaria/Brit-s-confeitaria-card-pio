@@ -398,7 +398,7 @@ function montarHtmlTicketImpressao(pedido, numeroPedido) {
         ${pedido.observacoes ? `<p><strong>Observações:</strong> ${pedido.observacoes}</p>` : ''}
         ${pedido.recompensaResgatada ? `<p><strong>🎁 RESGATE DO CLUBE:</strong> ${pedido.recompensaResgatada.descricao}</p>` : ''}
         ${pedido.dataEncomenda ? `<p><strong>📅 ENCOMENDA PRA:</strong> ${pedido.dataEncomenda.split('-').reverse().join('/')}</p>` : ''}
-        ${pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' ? `<p><strong>💰 SINAL:</strong> ${pedido.pagamento.percentualSinal}% pago (${formatarPreco(pedido.pagamento.valorSinal)}) — falta ${formatarPreco(totalDoPedido(pedido) - pedido.pagamento.valorSinal)} na entrega</p>` : ''}
+        ${pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' ? `<p><strong>💰 SINAL:</strong> ${pedido.pagamento.percentualSinal}% do produto pago (${formatarPreco(pedido.pagamento.valorSinal)}) — falta ${formatarPreco(totalDoPedido(pedido) - pedido.pagamento.valorSinal)} na entrega${pedido.pagamento.freteInformado > 0 ? ` (esse valor já inclui o frete de ${formatarPreco(pedido.pagamento.freteInformado)})` : ''}</p>` : ''}
         <hr>
         <p class="ticket-total"><strong>Total: ${formatarPreco(totalDoPedido(pedido))}</strong></p>
     `;
@@ -439,13 +439,14 @@ function montarTagPagamento(pedido) {
     const ehSinal = p.tipoPagamento === 'sinal';
     const totalPedido = totalDoPedido(pedido);
     const restante = ehSinal && p.valorSinal != null ? formatarPreco(totalPedido - p.valorSinal) : null;
+    const freteTexto = ehSinal && p.freteInformado > 0 ? ` (esse valor já inclui o frete de ${formatarPreco(p.freteInformado)})` : '';
 
     const tags = {
         aguardando: ehSinal
-            ? `<span class="pedido-tag tag-pagamento-aguardando">🟡 Aguardando sinal (${p.percentualSinal}% = ${formatarPreco(p.valorSinal)})</span>`
+            ? `<span class="pedido-tag tag-pagamento-aguardando">🟡 Aguardando sinal (${p.percentualSinal}% do produto = ${formatarPreco(p.valorSinal)})${p.freteInformado > 0 ? ` — frete de ${formatarPreco(p.freteInformado)} fica separado, pago na entrega` : ''}</span>`
             : '<span class="pedido-tag tag-pagamento-aguardando">🟡 Aguardando pagamento</span>',
         pago: ehSinal
-            ? `<span class="pedido-tag tag-pagamento-pago">🟢 Sinal pago (${formatarPreco(p.valorSinal)}) — falta ${restante} na entrega</span>`
+            ? `<span class="pedido-tag tag-pagamento-pago">🟢 Sinal pago (${formatarPreco(p.valorSinal)}, só do produto) — falta ${restante} na entrega${freteTexto}</span>`
             : `<span class="pedido-tag tag-pagamento-pago">🟢 Pago (${p.metodo || 'Online'})</span>`,
         divergente: '<span class="pedido-tag tag-pagamento-divergente">⚠️ Valor divergente — confira</span>'
     };
