@@ -179,7 +179,7 @@
                     </label>
                 </div>
 
-                <div class="loja-status-card" style="margin-top:16px;">
+                <div class="loja-status-card" id="cardAdicionaisPorProduto" style="margin-top:16px;">
                     <h3>➕ Adicionais por Produto</h3>
                     <p class="dica-secao">
                         Útil pra negócios como açaiteria, sorveteria, hamburgueria — onde o
@@ -193,7 +193,7 @@
                     </label>
                 </div>
 
-                <div class="loja-status-card" style="margin-top:16px;">
+                <div class="loja-status-card" id="cardPedidoMinimoFreteGratis" style="margin-top:16px;">
                     <h3>🛒 Pedido Mínimo e Frete Grátis</h3>
                     <p class="dica-secao">Deixa em branco ou zero pra desativar qualquer um dos dois.</p>
                     <label class="campo-label">Valor mínimo do pedido (R$)</label>
@@ -204,7 +204,7 @@
                     <p id="pedidoMinimoMsg" class="ordem-categorias-msg"></p>
                 </div>
 
-                <div class="loja-status-card" style="margin-top:16px;">
+                <div class="loja-status-card" id="cardAreasDeEntrega" style="margin-top:16px;">
                     <h3>🚚 Áreas de Entrega</h3>
                     <p class="dica-secao">Bairros atendidos, a distância de cada um (em km), e o valor cobrado por km. Se um bairro não estiver na lista, o cliente vê um aviso de que a região não é atendida no momento.</p>
 
@@ -438,6 +438,40 @@
                         <div id="listaRecursosClienteMestre"></div>
                         <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="aplicarRecursosClienteMestre()">💾 Aplicar nesse cliente</button>
                         <p id="msgAplicarRecursosMestre" class="ordem-categorias-msg"></p>
+
+                        <hr style="margin:18px 0; border:none; border-top:1px solid var(--border);">
+
+                        <h3>🏷️ Identidade e Marca desse cliente</h3>
+                        <label class="campo-label">Nome completo</label>
+                        <input type="text" id="nomeLojaConfigMestre" placeholder="Ex: Doces da Ana">
+                        <label class="campo-label" style="margin-top:10px;">Nome curto</label>
+                        <input type="text" id="nomeCurtoLojaConfigMestre" placeholder="Ex: Ana">
+                        <label class="campo-label" style="margin-top:10px;">Subtítulo</label>
+                        <input type="text" id="subtituloLojaConfigMestre">
+                        <label class="campo-label" style="margin-top:10px;">Cidade atendida</label>
+                        <input type="text" id="cidadeLojaConfigMestre">
+                        <label class="campo-label" style="margin-top:10px;">WhatsApp pra pedidos</label>
+                        <input type="text" inputmode="numeric" id="whatsappLojaConfigMestre">
+                        <label class="campo-label" style="margin-top:10px;">Link do Instagram</label>
+                        <input type="text" id="instagramLojaConfigMestre">
+                        <div class="produto-admin-linha" style="margin-top:10px;">
+                            <div class="campo-com-label"><label class="campo-label">Cor principal</label><input type="color" id="corPrimariaLojaConfigMestre"></div>
+                            <div class="campo-com-label"><label class="campo-label">Cor de destaque</label><input type="color" id="corAccentLojaConfigMestre"></div>
+                        </div>
+                        <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="salvarIdentidadeClienteMestre()">💾 Salvar identidade</button>
+                        <p id="msgIdentidadeMestre" class="ordem-categorias-msg"></p>
+
+                        <hr style="margin:18px 0; border:none; border-top:1px solid var(--border);">
+
+                        <h3>🏪 Status da loja</h3>
+                        <p class="dica-secao">Status agora: <strong id="statusLojaAtualMestre">—</strong></p>
+                        <p class="dica-secao">⚠️ O horário de funcionamento detalhado (dia a dia) ainda só pode ser editado logando direto no painel desse cliente — aqui só dá pra forçar aberto/fechado na mão.</p>
+                        <div class="opcoes-radio">
+                            <div class="opcao-btn" onclick="definirModoLojaMestre('auto')">⏰ Automático</div>
+                            <div class="opcao-btn" onclick="definirModoLojaMestre('aberto')">🟢 Forçar Aberto</div>
+                            <div class="opcao-btn" onclick="definirModoLojaMestre('fechado')">🔴 Forçar Fechado</div>
+                        </div>
+                        <p id="msgStatusMestre" class="ordem-categorias-msg"></p>
                     </div>
                 </div>
 

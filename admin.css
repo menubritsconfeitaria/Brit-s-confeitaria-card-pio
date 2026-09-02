@@ -948,3 +948,8 @@ body {
     padding: 0;
     line-height: 1;
 }
+
+/* Esconde os campos "Esconder do cardápio" / "Disponível pra Encomenda" de cada
+   produto quando o recurso correspondente não estiver liberado pro cliente */
+body.ocultar-campo-esconder-produto .campo-esconder-produto { display: none; }
+body.ocultar-campo-encomenda-produto .campo-encomenda-produto { display: none; }
