@@ -17,8 +17,33 @@ function aplicarConfigDaLojaNoAdmin() {
 
     const clubeTituloAdmin = document.getElementById('clubeTituloAdmin');
     if (clubeTituloAdmin) clubeTituloAdmin.textContent = `⭐ Clube ${LOJA_CONFIG.nomeCurto} (Fidelidade)`;
+
+    // Gera o QR Code apontando pro cardápio, usando um serviço público gratuito —
+    // não precisa de nenhuma biblioteca nem gerar a imagem na mão
+    const imgQrCode = document.getElementById('imagemQrCode');
+    if (imgQrCode) {
+        imgQrCode.src = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(LOJA_CONFIG.urlCardapio)}`;
+    }
 }
 aplicarConfigDaLojaNoAdmin();
+
+// Baixa o QR Code como arquivo de imagem, pronto pra imprimir
+async function baixarQrCode() {
+    try {
+        const resposta = await fetch(document.getElementById('imagemQrCode').src);
+        const blob = await resposta.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `qrcode-${LOJA_CONFIG.nomeCurto || 'cardapio'}.png`.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-.]/g, '');
+        link.click();
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        // Se o download automático falhar (bloqueio de CORS, por exemplo), abre a
+        // imagem numa aba nova — a pessoa consegue salvar clicando com o botão direito
+        window.open(document.getElementById('imagemQrCode').src, '_blank');
+    }
+}
 
 let idsRenderizados = new Set();
 let primeiraCargaConcluida = false;
