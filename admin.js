@@ -95,7 +95,7 @@ async function montarCartazQrCode() {
         if (LOJA_CONFIG.cidade) {
             ctx.font = '22px Arial, sans-serif';
             ctx.fillStyle = '#8a7562';
-            ctx.fillText(`📍 Atendemos ${LOJA_CONFIG.cidade}`, canvas.width / 2, yQr + tamQr + 100);
+            ctx.fillText(`📍 ATENDEMOS ${LOJA_CONFIG.cidade}`.toUpperCase(), canvas.width / 2, yQr + tamQr + 100);
         }
 
         document.getElementById('imagemQrCode').src = canvas.toDataURL('image/png');
