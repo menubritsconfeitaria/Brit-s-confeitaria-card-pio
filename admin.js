@@ -409,6 +409,10 @@ async function salvarInfiniteTagClienteMestre() {
     if (!registro || !registro.autenticado) { msgEl.textContent = 'Faz login nesse cliente primeiro.'; return; }
 
     const valor = document.getElementById('infiniteTagConfigMestre').value.trim();
+    if (!valor) {
+        const confirmar = confirm('O campo está vazio — isso vai APAGAR a InfiniteTag desse cliente, desativando o pagamento online dele. Tem certeza?');
+        if (!confirmar) { msgEl.textContent = 'Cancelado, nada foi alterado.'; return; }
+    }
     msgEl.textContent = 'Salvando...';
     try {
         await registro.db.ref('configuracao/loja/infiniteTag').set(valor || null);
