@@ -546,6 +546,7 @@
                     <button class="gestao-subtab-btn" data-subtab="sub-bases" onclick="mostrarSubabaGestao('sub-bases')">🍰 Bases</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-ficha-tecnica" onclick="mostrarSubabaGestao('sub-ficha-tecnica')">📋 Ficha Técnica</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-estoque" onclick="mostrarSubabaGestao('sub-estoque')">📦 Estoque</button>
+                    <button class="gestao-subtab-btn" data-subtab="sub-clientes-gestao" onclick="mostrarSubabaGestao('sub-clientes-gestao')">👥 Clientes</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-importar" onclick="mostrarSubabaGestao('sub-importar')">📥 Importar Backup</button>
                 </div>
 
@@ -755,6 +756,39 @@
 
                     <div class="loja-status-card" style="margin-top:16px;">
                         <div id="listaEstoque"></div>
+                    </div>
+                </div>
+
+                <div class="gestao-subconteudo" data-subtab-content="sub-clientes-gestao" style="display:none;">
+                    <div class="loja-status-card">
+                        <h3 id="tituloCadastroClienteGestao">Cadastro de Cliente</h3>
+                        <div class="produto-admin-linha">
+                            <div class="campo-com-label">
+                                <label class="campo-label">Nome</label>
+                                <input type="text" id="cgNome">
+                            </div>
+                            <div class="campo-com-label">
+                                <label class="campo-label">Telefone (com DDD)</label>
+                                <input type="text" id="cgTelefone" placeholder="Ex: 27997633871">
+                            </div>
+                        </div>
+                        <div class="produto-admin-linha" style="margin-top:10px;">
+                            <div class="campo-com-label">
+                                <label class="campo-label">E-mail</label>
+                                <input type="text" id="cgEmail">
+                            </div>
+                            <div class="campo-com-label">
+                                <label class="campo-label">Endereço</label>
+                                <input type="text" id="cgEndereco">
+                            </div>
+                        </div>
+                        <button class="btn-salvar-ordem" id="btnSalvarClienteGestao" style="margin-top:10px;" onclick="salvarClienteGestao()">+ Adicionar Cliente</button>
+                        <p id="msgClienteGestao" class="ordem-categorias-msg"></p>
+                    </div>
+
+                    <div class="loja-status-card" style="margin-top:16px;">
+                        <input type="text" id="cgBusca" placeholder="🔍 Pesquisar cliente..." oninput="renderClientesGestao()">
+                        <div id="listaClientesGestao" style="margin-top:10px;"></div>
                     </div>
                 </div>
 

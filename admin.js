@@ -2271,6 +2271,88 @@ function renderEstoque() {
     document.getElementById('cardEstoqueBaixo').textContent = baixos;
 }
 
+// ---------- Sistema de Gestão — Clientes (CRM) ----------
+// Fica num nó separado (clientesGestao) de propósito — não mexe no "fidelidade"
+// que já está funcionando ao vivo no cardápio
+let clientesGestao = [];
+let editingClienteGestaoId = null;
+
+function escutarClientesGestao() {
+    db.ref('clientesGestao').on('value', snap => {
+        const val = snap.val() || {};
+        clientesGestao = Object.entries(val).map(([id, c]) => ({ id, ...c }));
+        renderClientesGestao();
+    });
+}
+
+function getClienteGestao(id) { return clientesGestao.find(c => c.id === id); }
+
+function salvarClienteGestao() {
+    const nome = document.getElementById('cgNome').value.trim();
+    const telefone = document.getElementById('cgTelefone').value.trim();
+    const email = document.getElementById('cgEmail').value.trim();
+    const endereco = document.getElementById('cgEndereco').value.trim();
+    const msgEl = document.getElementById('msgClienteGestao');
+
+    if (!nome) { msgEl.textContent = 'Informa o nome do cliente.'; return; }
+
+    const obj = { nome, telefone: telefone || null, email: email || null, endereco: endereco || null };
+    msgEl.textContent = 'Salvando...';
+
+    const promessa = editingClienteGestaoId
+        ? db.ref('clientesGestao/' + editingClienteGestaoId).update(obj)
+        : db.ref('clientesGestao').push(obj);
+
+    promessa.then(() => {
+        msgEl.textContent = 'Salvo!';
+        ['cgNome', 'cgTelefone', 'cgEmail', 'cgEndereco'].forEach(id => document.getElementById(id).value = '');
+        if (editingClienteGestaoId) {
+            editingClienteGestaoId = null;
+            document.getElementById('btnSalvarClienteGestao').textContent = '+ Adicionar Cliente';
+        }
+    }).catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+}
+
+function renderClientesGestao() {
+    const busca = (document.getElementById('cgBusca').value || '').toLowerCase();
+    const container = document.getElementById('listaClientesGestao');
+    const filtrados = clientesGestao.filter(c => c.nome.toLowerCase().includes(busca));
+
+    if (filtrados.length === 0) {
+        container.innerHTML = '<p class="dica-secao">Nenhum cliente cadastrado ainda.</p>';
+        return;
+    }
+
+    container.innerHTML = filtrados.map(c => `
+        <div class="pedido-card" style="margin-top:8px;">
+            <strong>${c.nome}</strong>
+            <p style="margin:4px 0; font-size:0.85em; color:var(--muted);">
+                ${c.telefone ? '📱 ' + c.telefone : ''}${c.email ? ' · ✉️ ' + c.email : ''}
+            </p>
+            ${c.endereco ? `<p style="margin:0 0 6px; font-size:0.85em; color:var(--muted);">📍 ${c.endereco}</p>` : ''}
+            <button class="btn-secondary" onclick="editarClienteGestao('${c.id}')">✏️ Editar</button>
+            <button class="btn-excluir-cupom" onclick="excluirClienteGestao('${c.id}')">🗑️</button>
+        </div>
+    `).join('');
+}
+
+function editarClienteGestao(id) {
+    const c = getClienteGestao(id);
+    if (!c) return;
+    document.getElementById('cgNome').value = c.nome;
+    document.getElementById('cgTelefone').value = c.telefone || '';
+    document.getElementById('cgEmail').value = c.email || '';
+    document.getElementById('cgEndereco').value = c.endereco || '';
+    editingClienteGestaoId = id;
+    document.getElementById('btnSalvarClienteGestao').textContent = 'Atualizar Cliente';
+    document.getElementById('tituloCadastroClienteGestao').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function excluirClienteGestao(id) {
+    if (!confirm('Excluir este cliente do CRM?')) return;
+    db.ref('clientesGestao/' + id).remove().catch(err => alert('Erro ao excluir: ' + err.message));
+}
+
 async function importarBackupSistemaGestao() {
     const input = document.getElementById('inputImportarBackupGestao');
     const msgEl = document.getElementById('msgImportarBackup');
@@ -3428,6 +3510,7 @@ function iniciarEscutaPedidos() {
     escutarIngredientes();
     escutarBases();
     escutarFichaTecnica();
+    escutarClientesGestao();
     const previaLojaNomeEl = document.getElementById('previaLojaNome');
     if (previaLojaNomeEl) previaLojaNomeEl.textContent = LOJA_CONFIG.nome;
     escutarConfigSomAlerta();
