@@ -61,6 +61,7 @@
             <button class="painel-tab-btn" data-tab="produtos">📦 Produtos</button>
             <button class="painel-tab-btn" data-tab="cupons">🎟️ Cupons</button>
             <button class="painel-tab-btn" data-tab="fidelidade">⭐ Fidelidade</button>
+            <button class="painel-tab-btn" data-tab="mensagens">💌 Clientes</button>
             <button class="painel-tab-btn" data-tab="loja">🏪 Loja</button>
             <button class="painel-tab-btn" data-tab="agenda">📅 Agenda</button>
             <button class="painel-tab-btn" data-tab="visitantes">👀 Visitantes</button>
@@ -513,9 +514,11 @@
                     <select id="novaRecompensaProduto" style="display:none;"></select>
                     <button onclick="adicionarRecompensa()">+ Adicionar recompensa</button>
                 </div>
+            </section>
 
-                <h3 style="margin-top:22px;">💌 Falar com os clientes</h3>
-                <p class="dica-secao">Clientes cadastrados no Clube — manda uma mensagem com um clique, direto do seu WhatsApp (nada é enviado automaticamente). Serve tanto pra reconquistar quem sumiu quanto pra avisar todo mundo de uma promoção.</p>
+            <section data-tab="mensagens">
+                <h2>💌 Falar com os clientes</h2>
+                <p class="dica-secao">Todo cliente que já fez pelo menos 1 pedido — não precisa ser do Clube de Fidelidade. Manda uma mensagem com um clique, direto do seu WhatsApp (nada é enviado automaticamente). Serve tanto pra reconquistar quem sumiu quanto pra avisar todo mundo de uma promoção.</p>
                 <label class="campo-label">Mensagem (use <code>{nome}</code> pro nome do cliente, <code>{loja}</code> pro nome da loja, <code>{link}</code> pro link do cardápio)</label>
                 <textarea id="mensagemClientes" class="campo-adicionais" style="min-height:60px;">Oi {nome}! Sentimos sua falta por aqui na {loja} 🥹 Que tal dar uma olhada nas novidades? {link}</textarea>
                 <div class="produto-admin-linha" style="margin:10px 0;">
