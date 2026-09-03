@@ -491,7 +491,17 @@ function escutarConfigFrete() {
     firebase.database().ref('configuracao/frete').on('value', snap => {
         const config = snap.val();
         if (config && config.bairros && Object.keys(config.bairros).length > 0) {
-            bairrosEntrega = config.bairros;
+            // As chaves foram salvas com encodeURIComponent (pra virarem chaves seguras
+            // no Firebase) — precisa decodificar de volta aqui, senão um bairro composto
+            // (ex: "vila nova" -> "vila%20nova") nunca bate com o nome vindo do ViaCEP
+            bairrosEntrega = {};
+            Object.entries(config.bairros).forEach(([chaveCodificada, km]) => {
+                try {
+                    bairrosEntrega[decodeURIComponent(chaveCodificada)] = km;
+                } catch (e) {
+                    bairrosEntrega[chaveCodificada] = km; // chave já não-codificada, usa direto
+                }
+            });
         } else {
             bairrosEntrega = bairrosEntregaPadrao;
         }
@@ -1051,7 +1061,7 @@ function atualizarPrecoModalAdicionais() {
 
 // Adiciona o item de verdade no carrinho — usada tanto pelo caminho direto (produto sem
 // adicionais) quanto pelo modal de adicionais, depois que a pessoa confirma as escolhas
-function finalizarAdicaoAoCarrinho(nomeProduto, precoEfetivo, quantidade, observacao, adicionaisTexto) {
+function finalizarAdicaoAoCarrinho(produtoId, nomeProduto, precoEfetivo, quantidade, observacao, adicionaisTexto) {
     // Só agrupa como "mesmo item" se nome, observação E adicionais escolhidos forem
     // idênticos — senão, dois bolos com recheios diferentes viram uma linha só, errado
     const produtoExistente = carrinho.find(item =>
@@ -1065,6 +1075,7 @@ function finalizarAdicaoAoCarrinho(nomeProduto, precoEfetivo, quantidade, observ
         produtoExistente.preco = precoEfetivo; // Garante que o preço fica sempre atualizado (ex: entrou em oferta)
     } else {
         carrinho.push({
+            produtoId: produtoId || null,
             nome: nomeProduto,
             preco: precoEfetivo,
             quantidade,
@@ -1104,7 +1115,7 @@ function confirmarAdicionaisEAdicionar() {
     });
     const adicionaisTexto = partesTexto.join(', ');
 
-    finalizarAdicaoAoCarrinho(produto.nome, precoEfetivo, quantidade, observacao, adicionaisTexto);
+    finalizarAdicaoAoCarrinho(produto.id, produto.nome, precoEfetivo, quantidade, observacao, adicionaisTexto);
     fecharModalAdicionais();
 }
 
@@ -1364,7 +1375,7 @@ function renderizarProdutos() {
             if (temAdicionais) {
                 abrirModalAdicionais(produtoCompleto, quantidadeEscolhida, observacaoValor);
             } else {
-                finalizarAdicaoAoCarrinho(nomeProduto, precoProduto, quantidadeEscolhida, observacaoValor, null);
+                finalizarAdicaoAoCarrinho(produtoCompleto.id, nomeProduto, precoProduto, quantidadeEscolhida, observacaoValor, null);
             }
 
             if (inputObs) inputObs.value = '';
@@ -1846,7 +1857,7 @@ function repetirUltimoPedido() {
     ultimo.itens.forEach(item => {
         const jaExiste = carrinho.find(c => c.nome === item.nome && (c.observacao || '') === (item.observacao || ''));
         if (jaExiste) jaExiste.quantidade += item.quantidade;
-        else carrinho.push({ nome: item.nome, preco: item.preco, quantidade: item.quantidade, observacao: item.observacao || null });
+        else carrinho.push({ produtoId: item.produtoId || null, nome: item.nome, preco: item.preco, quantidade: item.quantidade, observacao: item.observacao || null });
     });
     salvarCarrinho();
     atualizarCarrinhoHTML();
@@ -1966,7 +1977,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         troco: (formaPagamentoAtual === 'Dinheiro' && troco) ? troco : null,
         observacoes: obs || null,
         dataEncomenda: querAgendar && dataEncomenda ? dataEncomenda : null,
-        itens: carrinho.map(item => ({ nome: item.nome, preco: item.preco, quantidade: item.quantidade, observacao: item.observacao || null, adicionaisTexto: item.adicionaisTexto || null })),
+        itens: carrinho.map(item => ({ produtoId: item.produtoId || null, nome: item.nome, preco: item.preco, quantidade: item.quantidade, observacao: item.observacao || null, adicionaisTexto: item.adicionaisTexto || null })),
         subtotal: subtotalPedido,
         cupom: cupomAplicado ? cupomAplicado.codigo : null,
         desconto: desconto > 0 ? desconto : 0,
