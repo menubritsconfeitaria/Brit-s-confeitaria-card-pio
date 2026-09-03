@@ -1466,10 +1466,58 @@ function iniciarObservadorCategorias() {
 }
 
 
+// ---------- Lembrete de carrinho esquecido ----------
+// Não é um "carrinho abandonado" no sentido clássico (não temos o contato da pessoa
+// ainda nesse ponto) — é só um empurrãozinho gentil, na própria tela, pra quem tem
+// itens esperando e ficou parado ou saiu e voltou pra aba.
+let timerInatividadeCarrinho = null;
+let lembreteCarrinhoJaMostradoNessaSessao = false;
+
+function agendarLembreteCarrinhoPorInatividade() {
+    clearTimeout(timerInatividadeCarrinho);
+    if (carrinho.length === 0 || lembreteCarrinhoJaMostradoNessaSessao) return;
+    timerInatividadeCarrinho = setTimeout(() => {
+        if (carrinho.length > 0) mostrarLembreteCarrinho();
+    }, 90000); // 90 segundos sem nenhuma interação
+}
+
+function mostrarLembreteCarrinho() {
+    if (lembreteCarrinhoJaMostradoNessaSessao || carrinho.length === 0) return;
+    const banner = document.getElementById('lembreteCarrinhoBanner');
+    if (!banner) return;
+    banner.style.display = 'flex';
+    lembreteCarrinhoJaMostradoNessaSessao = true; // só incomoda uma vez por visita
+}
+
+function fecharLembreteCarrinho() {
+    const banner = document.getElementById('lembreteCarrinhoBanner');
+    if (banner) banner.style.display = 'none';
+}
+
+// Se a pessoa saiu da aba e voltou, com itens ainda no carrinho, mostra o lembrete
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && carrinho.length > 0 && !lembreteCarrinhoJaMostradoNessaSessao) {
+        mostrarLembreteCarrinho();
+    }
+});
+
+// Qualquer interação da pessoa reseta o cronômetro de inatividade
+['click', 'scroll', 'keydown', 'touchstart'].forEach(evento => {
+    document.addEventListener(evento, agendarLembreteCarrinhoPorInatividade, { passive: true });
+});
+
 // Função para atualizar a exibição do carrinho na página
 function atualizarCarrinhoHTML() {
     carrinhoItensDiv.innerHTML = '';
     atualizarResumoEncomendaCheckout(); // mantém o valor estimado do sinal sempre atualizado
+
+    if (carrinho.length > 0) {
+        agendarLembreteCarrinhoPorInatividade();
+    } else {
+        fecharLembreteCarrinho();
+        lembreteCarrinhoJaMostradoNessaSessao = false; // libera o aviso de novo pra um novo carrinho
+        clearTimeout(timerInatividadeCarrinho);
+    }
 
     // Atualiza a barrinha flutuante — só aparece quando tem algo no carrinho
     const flutuante = document.getElementById('carrinhoFlutuante');

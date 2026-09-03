@@ -97,6 +97,14 @@
             <span class="carrinho-flutuante-seta">Ver carrinho ↑</span>
         </button>
 
+        <div id="lembreteCarrinhoBanner" class="lembrete-carrinho-banner" style="display:none;">
+            <span>🛒 Você tem itens esperando no carrinho — não esquece de finalizar seu pedido!</span>
+            <div class="lembrete-carrinho-botoes">
+                <button type="button" onclick="document.getElementById('carrinho').scrollIntoView({behavior:'smooth', block:'start'}); fecharLembreteCarrinho();">Ver carrinho</button>
+                <button type="button" class="lembrete-carrinho-fechar" onclick="fecharLembreteCarrinho()">✕</button>
+            </div>
+        </div>
+
         <section id="carrinho" class="container">
             <h2>Seu Carrinho</h2>
             <div class="carrinho-itens">

@@ -1572,3 +1572,56 @@ footer {
     font-weight: 700;
     margin: 0;
 }
+
+/* Lembrete de carrinho esquecido */
+.lembrete-carrinho-banner {
+    position: fixed;
+    bottom: 80px;
+    left: 16px;
+    right: 16px;
+    max-width: 420px;
+    margin: 0 auto;
+    background: var(--card);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    animation: lembreteCarrinhoEntrada 0.3s ease-out;
+}
+@keyframes lembreteCarrinhoEntrada {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+.lembrete-carrinho-banner span {
+    font-size: 0.9em;
+    flex: 1;
+}
+.lembrete-carrinho-botoes {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+.lembrete-carrinho-botoes button:first-child {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.85em;
+    font-weight: 600;
+    cursor: pointer;
+}
+.lembrete-carrinho-fechar {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 1em;
+    cursor: pointer;
+    padding: 4px;
+}
