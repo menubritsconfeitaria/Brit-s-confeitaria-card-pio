@@ -547,6 +547,7 @@
                     <button class="gestao-subtab-btn" data-subtab="sub-ficha-tecnica" onclick="mostrarSubabaGestao('sub-ficha-tecnica')">📋 Ficha Técnica</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-estoque" onclick="mostrarSubabaGestao('sub-estoque')">📦 Estoque</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-clientes-gestao" onclick="mostrarSubabaGestao('sub-clientes-gestao')">👥 Clientes</button>
+                    <button class="gestao-subtab-btn" data-subtab="sub-pedidos-manuais" onclick="mostrarSubabaGestao('sub-pedidos-manuais')">📝 Lançar Pedido</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-importar" onclick="mostrarSubabaGestao('sub-importar')">📥 Importar Backup</button>
                 </div>
 
@@ -789,6 +790,70 @@
                     <div class="loja-status-card" style="margin-top:16px;">
                         <input type="text" id="cgBusca" placeholder="🔍 Pesquisar cliente..." oninput="renderClientesGestao()">
                         <div id="listaClientesGestao" style="margin-top:10px;"></div>
+                    </div>
+                </div>
+
+                <div class="gestao-subconteudo" data-subtab-content="sub-pedidos-manuais" style="display:none;">
+                    <div class="loja-status-card">
+                        <h3>📝 Lançar Pedido (balcão, telefone, etc.)</h3>
+                        <p class="dica-secao">Some junto com os pedidos do cardápio nos relatórios e no fechamento do dia.</p>
+
+                        <div class="produto-admin-linha">
+                            <div class="campo-com-label">
+                                <label class="campo-label">Cliente</label>
+                                <select id="pmCliente"></select>
+                            </div>
+                            <div class="campo-com-label">
+                                <label class="campo-label">Status</label>
+                                <select id="pmStatus">
+                                    <option value="pendente">Pendente</option>
+                                    <option value="aceito">Aceito</option>
+                                    <option value="em_rota">Em rota</option>
+                                    <option value="entregue">Entregue</option>
+                                    <option value="recusado">Cancelado</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <h3 style="margin-top:16px;">Itens do pedido</h3>
+                        <div class="produto-admin-linha">
+                            <div class="campo-com-label" style="flex:2;">
+                                <label class="campo-label">Produto (com ficha técnica)</label>
+                                <select id="pmSelectProduto"></select>
+                            </div>
+                            <div class="campo-com-label">
+                                <label class="campo-label">Quantidade</label>
+                                <input type="text" inputmode="decimal" id="pmQtdItem" value="1">
+                            </div>
+                        </div>
+                        <button class="btn-secondary" style="margin-top:8px;" onclick="adicionarItemPedidoManual()">+ Adicionar item</button>
+                        <div id="pmListaItens" style="margin-top:10px;"></div>
+                        <p class="dica-secao">Subtotal: <strong id="pmSubtotalTemp">R$ 0,00</strong></p>
+
+                        <div class="produto-admin-linha" style="margin-top:10px;">
+                            <div class="campo-com-label">
+                                <label class="campo-label">Desconto (%)</label>
+                                <input type="text" inputmode="decimal" id="pmDesconto" value="0" oninput="renderItensPedidoManual()">
+                            </div>
+                            <div class="campo-com-label">
+                                <label class="campo-label">Frete (R$)</label>
+                                <input type="text" inputmode="decimal" id="pmFrete" value="0" oninput="renderItensPedidoManual()">
+                            </div>
+                            <div class="campo-com-label">
+                                <label class="campo-label">Forma de pagamento</label>
+                                <select id="pmFormaPagamento">
+                                    <option value="">Selecione</option>
+                                    <option>Dinheiro</option><option>Cartão de Crédito</option><option>Cartão de Débito</option><option>Pix</option><option>Transferência Bancária</option><option>Outros</option>
+                                </select>
+                            </div>
+                        </div>
+                        <p class="dica-secao">Total: <strong id="pmTotalTemp">R$ 0,00</strong></p>
+
+                        <label class="campo-label" style="margin-top:10px;">Observações</label>
+                        <textarea id="pmObs" class="campo-adicionais" rows="2"></textarea>
+
+                        <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="salvarPedidoManual()">Salvar Pedido</button>
+                        <p id="msgPedidoManual" class="ordem-categorias-msg"></p>
                     </div>
                 </div>
 

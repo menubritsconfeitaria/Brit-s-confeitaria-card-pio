@@ -1991,6 +1991,7 @@ function escutarFichaTecnica() {
         const val = snap.val() || {};
         fichaTecnica = Object.entries(val).map(([id, p]) => ({ id, ...p }));
         renderFichaTecnica();
+        if (typeof popularSelectProdutoPedidoManual === 'function') popularSelectProdutoPedidoManual();
     });
 }
 
@@ -2282,6 +2283,7 @@ function escutarClientesGestao() {
         const val = snap.val() || {};
         clientesGestao = Object.entries(val).map(([id, c]) => ({ id, ...c }));
         renderClientesGestao();
+        if (typeof popularSelectClientePedidoManual === 'function') popularSelectClientePedidoManual();
     });
 }
 
@@ -2351,6 +2353,118 @@ function editarClienteGestao(id) {
 function excluirClienteGestao(id) {
     if (!confirm('Excluir este cliente do CRM?')) return;
     db.ref('clientesGestao/' + id).remove().catch(err => alert('Erro ao excluir: ' + err.message));
+}
+
+// ---------- Sistema de Gestão — Pedidos manuais ----------
+// Escreve no MESMO nó "pedidos" que o cardápio usa (com origem:'manual'), pra
+// fechamento e relatórios sempre verem tudo junto, nunca separado
+let tempItensPedidoManual = [];
+
+function popularSelectClientePedidoManual() {
+    const sel = document.getElementById('pmCliente');
+    if (!sel) return;
+    const valorAtual = sel.value;
+    sel.innerHTML = '<option value="">— Cliente avulso —</option>' + clientesGestao.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+    sel.value = valorAtual;
+}
+
+function popularSelectProdutoPedidoManual() {
+    const sel = document.getElementById('pmSelectProduto');
+    if (!sel) return;
+    const valorAtual = sel.value;
+    sel.innerHTML = '<option value="">Selecione</option>' + fichaTecnica.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+    sel.value = valorAtual;
+}
+
+function adicionarItemPedidoManual() {
+    const ftId = document.getElementById('pmSelectProduto').value;
+    const qtd = parseFloat(document.getElementById('pmQtdItem').value.replace(',', '.'));
+    if (!ftId || !qtd) { alert('Seleciona o produto e a quantidade.'); return; }
+    const ft = getFichaTecnica(ftId);
+    if (!ft) return;
+    const { precoVenda } = calcularCustoFichaTecnica(ft);
+    tempItensPedidoManual.push({ fichaTecnicaId: ftId, nome: ft.nome, preco: precoVenda, quantidade: qtd });
+    document.getElementById('pmQtdItem').value = '1';
+    renderItensPedidoManual();
+}
+
+function removerItemPedidoManual(i) { tempItensPedidoManual.splice(i, 1); renderItensPedidoManual(); }
+
+function renderItensPedidoManual() {
+    const div = document.getElementById('pmListaItens');
+    div.innerHTML = '';
+    let subtotal = 0;
+    tempItensPedidoManual.forEach((item, i) => {
+        const totalItem = item.preco * item.quantidade;
+        subtotal += totalItem;
+        const linha = document.createElement('div');
+        linha.style.cssText = 'display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border);';
+        linha.innerHTML = `<span>${item.quantidade}x ${item.nome} = ${formatarPreco(totalItem)}</span>
+            <button class="btn-excluir-cupom" onclick="removerItemPedidoManual(${i})">🗑️</button>`;
+        div.appendChild(linha);
+    });
+    document.getElementById('pmSubtotalTemp').textContent = formatarPreco(subtotal);
+
+    const descontoPercent = parseFloat(document.getElementById('pmDesconto').value.replace(',', '.')) || 0;
+    const frete = parseFloat(document.getElementById('pmFrete').value.replace(',', '.')) || 0;
+    const valorDesconto = arred(subtotal * (descontoPercent / 100));
+    const total = arred(subtotal - valorDesconto + frete);
+    document.getElementById('pmTotalTemp').textContent = formatarPreco(total);
+}
+
+function salvarPedidoManual() {
+    const clienteId = document.getElementById('pmCliente').value;
+    const status = document.getElementById('pmStatus').value;
+    const formaPagamento = document.getElementById('pmFormaPagamento').value;
+    const obs = document.getElementById('pmObs').value.trim();
+    const msgEl = document.getElementById('msgPedidoManual');
+
+    if (tempItensPedidoManual.length === 0) { msgEl.textContent = 'Adiciona pelo menos 1 item.'; return; }
+
+    const cliente = clienteId ? getClienteGestao(clienteId) : null;
+    const subtotal = tempItensPedidoManual.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
+    const descontoPercent = parseFloat(document.getElementById('pmDesconto').value.replace(',', '.')) || 0;
+    const frete = parseFloat(document.getElementById('pmFrete').value.replace(',', '.')) || 0;
+    const desconto = arred(subtotal * (descontoPercent / 100));
+    const total = arred(subtotal - desconto + frete);
+
+    const dadosPedido = {
+        origem: 'manual',
+        nome: cliente ? cliente.nome : 'Cliente balcão',
+        telefone: cliente ? cliente.telefone : null,
+        tipoEntrega: 'retirada',
+        endereco: null,
+        formaPagamento: formaPagamento || null,
+        observacoes: obs || null,
+        itens: tempItensPedidoManual.map(item => ({ produtoId: null, fichaTecnicaId: item.fichaTecnicaId, nome: item.nome, preco: item.preco, quantidade: item.quantidade })),
+        subtotal: arred(subtotal),
+        desconto,
+        frete,
+        total,
+        status
+    };
+
+    msgEl.textContent = 'Salvando...';
+    const novoPedidoRef = db.ref('pedidos').push();
+    db.ref('contadores/proximoPedido').transaction(atual => (atual || 0) + 1)
+        .then(resultado => {
+            const numeroAtribuido = resultado.committed ? resultado.snapshot.val() : null;
+            return novoPedidoRef.set({
+                ...dadosPedido,
+                numero: numeroAtribuido,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+        })
+        .then(() => {
+            msgEl.textContent = 'Pedido salvo!';
+            tempItensPedidoManual = [];
+            document.getElementById('pmDesconto').value = '0';
+            document.getElementById('pmFrete').value = '0';
+            document.getElementById('pmObs').value = '';
+            document.getElementById('pmStatus').value = 'pendente';
+            renderItensPedidoManual();
+        })
+        .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
 }
 
 async function importarBackupSistemaGestao() {
