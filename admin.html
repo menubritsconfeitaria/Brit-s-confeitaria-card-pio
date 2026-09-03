@@ -550,6 +550,8 @@
                     <button class="gestao-subtab-btn" data-subtab="sub-pedidos-manuais" onclick="mostrarSubabaGestao('sub-pedidos-manuais')">📝 Lançar Pedido</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-dashboard" onclick="mostrarSubabaGestao('sub-dashboard')">📊 Dashboard</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-relatorios" onclick="mostrarSubabaGestao('sub-relatorios')">📄 Relatórios</button>
+                    <button class="gestao-subtab-btn" data-subtab="sub-orcamento" onclick="mostrarSubabaGestao('sub-orcamento')">💰 Orçamento</button>
+                    <button class="gestao-subtab-btn" data-subtab="sub-backup" onclick="mostrarSubabaGestao('sub-backup')">💾 Backup</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-importar" onclick="mostrarSubabaGestao('sub-importar')">📥 Importar Backup</button>
                 </div>
 
@@ -696,14 +698,14 @@
                         </div>
 
                         <h3 style="margin-top:16px;">Margens de lucro</h3>
-                        <p class="dica-secao">As duas margens definem a proporção da divisão do lucro entre Empresa e Casal (não precisam somar 100%). Também são usadas juntas pra sugerir o preço de venda inicial.</p>
+                        <p class="dica-secao">As duas margens definem a proporção da divisão do lucro entre Empresa e Pró-labore (não precisam somar 100%). Também são usadas juntas pra sugerir o preço de venda inicial.</p>
                         <div class="produto-admin-linha">
                             <div class="campo-com-label">
                                 <label class="campo-label">Margem da empresa (%)</label>
                                 <input type="text" inputmode="decimal" id="ftMargemEmpresa">
                             </div>
                             <div class="campo-com-label">
-                                <label class="campo-label">Margem do casal (%)</label>
+                                <label class="campo-label">Margem do pró-labore (%)</label>
                                 <input type="text" inputmode="decimal" id="ftMargemCasal">
                             </div>
                         </div>
@@ -884,7 +886,7 @@
                         </div>
                         <div class="loja-status-card" style="flex:1; min-width:130px; text-align:center;">
                             <div style="font-size:1.4em; font-weight:700; color:var(--accent);" id="dashCMV">R$ 0,00</div>
-                            <div class="dica-secao">CMV</div>
+                            <div class="dica-secao">CMV <span id="dashCMVPercent"></span></div>
                         </div>
                         <div class="loja-status-card" style="flex:1; min-width:130px; text-align:center;">
                             <div style="font-size:1.4em; font-weight:700; color:var(--primary);" id="dashLucro">R$ 0,00</div>
@@ -897,6 +899,14 @@
                         <div class="loja-status-card" style="flex:1; min-width:130px; text-align:center;">
                             <div style="font-size:1.4em; font-weight:700;" id="dashTicket">R$ 0,00</div>
                             <div class="dica-secao">Ticket médio</div>
+                        </div>
+                        <div class="loja-status-card" style="flex:1; min-width:130px; text-align:center;">
+                            <div style="font-size:1.4em; font-weight:700;" id="dashLucroEmpresa">R$ 0,00</div>
+                            <div class="dica-secao">Lucro empresa</div>
+                        </div>
+                        <div class="loja-status-card" style="flex:1; min-width:130px; text-align:center;">
+                            <div style="font-size:1.4em; font-weight:700;" id="dashLucroCasal">R$ 0,00</div>
+                            <div class="dica-secao">Lucro pró-labore</div>
                         </div>
                     </div>
 
@@ -941,6 +951,57 @@
                         <h3>Ficha técnica detalhada</h3>
                         <select id="selectProdutoDetalheRelatorio" onchange="mostrarDetalheProdutoRelatorio()"></select>
                         <div id="detalheProdutoRelatorio" style="margin-top:10px;"></div>
+                    </div>
+                </div>
+
+                <div class="gestao-subconteudo" data-subtab-content="sub-orcamento" style="display:none;">
+                    <div class="loja-status-card">
+                        <h3>💰 Gerar Orçamento</h3>
+                        <div class="produto-admin-linha">
+                            <div class="campo-com-label">
+                                <label class="campo-label">Nome do cliente</label>
+                                <input type="text" id="orcCliente">
+                            </div>
+                            <div class="campo-com-label">
+                                <label class="campo-label">Validade da proposta</label>
+                                <input type="text" id="orcValidade" placeholder="Ex: 7 dias">
+                            </div>
+                        </div>
+
+                        <h3 style="margin-top:16px;">Itens do orçamento</h3>
+                        <div class="produto-admin-linha">
+                            <div class="campo-com-label" style="flex:2;">
+                                <label class="campo-label">Produto</label>
+                                <select id="orcSelectProduto"></select>
+                            </div>
+                            <div class="campo-com-label">
+                                <label class="campo-label">Quantidade</label>
+                                <input type="text" inputmode="decimal" id="orcQtdItem" value="1">
+                            </div>
+                        </div>
+                        <button class="btn-secondary" style="margin-top:8px;" onclick="adicionarItemOrcamento()">+ Adicionar item</button>
+                        <div id="orcListaItens" style="margin-top:10px;"></div>
+                        <p class="dica-secao">Total do orçamento: <strong id="orcTotalTemp">R$ 0,00</strong></p>
+
+                        <label class="campo-label" style="margin-top:10px;">Observações</label>
+                        <textarea id="orcObs" class="campo-adicionais" rows="2" placeholder="Ex: forma de pagamento, prazo de entrega..."></textarea>
+
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+                            <button class="btn-salvar-ordem" onclick="gerarPreviewOrcamento()">👁️ Visualizar</button>
+                            <button class="btn-secondary" onclick="baixarOrcamentoPDF()">📄 Baixar PDF</button>
+                        </div>
+                    </div>
+                    <div class="loja-status-card" id="cardPreviewOrcamento" style="display:none; margin-top:16px;">
+                        <div id="previewOrcamento"></div>
+                    </div>
+                </div>
+
+                <div class="gestao-subconteudo" data-subtab-content="sub-backup" style="display:none;">
+                    <div class="loja-status-card">
+                        <h3>💾 Backup</h3>
+                        <p class="dica-secao">Os dados já ficam salvos automaticamente no Firebase — esse backup é uma cópia extra, útil pra guardar offline ou levar pra outro lugar.</p>
+                        <button class="btn-salvar-ordem" onclick="exportarBackupGestaoCompleto()">⬇️ Baixar Backup (JSON)</button>
+                        <p id="msgExportarBackupGestao" class="ordem-categorias-msg"></p>
                     </div>
                 </div>
 

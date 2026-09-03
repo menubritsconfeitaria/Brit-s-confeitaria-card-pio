@@ -1993,6 +1993,7 @@ function escutarFichaTecnica() {
         renderFichaTecnica();
         if (typeof popularSelectProdutoPedidoManual === 'function') popularSelectProdutoPedidoManual();
         if (typeof renderRelatorioCustos === 'function') renderRelatorioCustos();
+        if (typeof popularSelectProdutoOrcamento === 'function') popularSelectProdutoOrcamento();
     });
 }
 
@@ -2160,7 +2161,7 @@ function montarResultadoFichaTecnica(produto) {
             <p>Custo unitário final: <strong>${formatarPreco(r.custoUnitarioFinal)}</strong></p>
             <p>Preço de venda: <strong>${formatarPreco(r.precoVenda)}</strong>${r.temPrecoManual ? ' (fixado manualmente)' : ' (calculado)'}</p>
             <p>Lucro líquido/un.: <strong>${formatarPreco(r.lucroLiquido)}</strong> (${r.margemRealPercent}%)</p>
-            <p>Empresa: ${formatarPreco(r.lucroEmpresa)} · Casal: ${formatarPreco(r.lucroCasal)}</p>
+            <p>Empresa: ${formatarPreco(r.lucroEmpresa)} · Pró-labore: ${formatarPreco(r.lucroCasal)}</p>
         </div>
     `;
 }
@@ -2522,7 +2523,7 @@ function carregarDashboard(inicio, fim) {
             return p.status === 'entregue' && dataPedido >= inicio && dataPedido <= fim;
         });
 
-        let faturamento = 0, cmv = 0;
+        let faturamento = 0, cmv = 0, lucroEmpresaTotal = 0, lucroCasalTotal = 0;
         const porMes = {}; // "AAAA-MM" -> { faturamento, lucro }
         const porProduto = {}; // nome -> quantidade vendida
 
@@ -2533,7 +2534,7 @@ function carregarDashboard(inicio, fim) {
             if (!porMes[chaveMes]) porMes[chaveMes] = { faturamento: 0, lucro: 0 };
             porMes[chaveMes].faturamento += p.total || 0;
 
-            let cmvDoPedido = 0;
+            let cmvDoPedido = 0, lucroEmpresaDoPedido = 0, lucroCasalDoPedido = 0;
             (p.itens || []).forEach(item => {
                 porProduto[item.nome] = (porProduto[item.nome] || 0) + item.quantidade;
                 const ftId = item.fichaTecnicaId || null;
@@ -2542,22 +2543,30 @@ function carregarDashboard(inicio, fim) {
                     if (ft) {
                         const r = calcularCustoFichaTecnica(ft);
                         cmvDoPedido += r.custoUnitarioFinal * item.quantidade;
+                        lucroEmpresaDoPedido += r.lucroEmpresa * item.quantidade;
+                        lucroCasalDoPedido += r.lucroCasal * item.quantidade;
                     }
                 }
             });
             cmv += cmvDoPedido;
+            lucroEmpresaTotal += lucroEmpresaDoPedido;
+            lucroCasalTotal += lucroCasalDoPedido;
             porMes[chaveMes].lucro += (p.total || 0) - cmvDoPedido;
         });
 
         const lucro = arred(faturamento - cmv);
         const qtdPedidos = pedidosDoPeriodo.length;
         const ticketMedio = qtdPedidos > 0 ? arred(faturamento / qtdPedidos) : 0;
+        const cmvPercent = faturamento > 0 ? Math.round((cmv / faturamento) * 1000) / 10 : 0;
 
         document.getElementById('dashFaturamento').textContent = formatarPreco(arred(faturamento));
         document.getElementById('dashCMV').textContent = formatarPreco(arred(cmv));
+        document.getElementById('dashCMVPercent').textContent = `(${cmvPercent}%)`;
         document.getElementById('dashLucro').textContent = formatarPreco(lucro);
         document.getElementById('dashPedidos').textContent = qtdPedidos;
         document.getElementById('dashTicket').textContent = formatarPreco(ticketMedio);
+        document.getElementById('dashLucroEmpresa').textContent = formatarPreco(arred(lucroEmpresaTotal));
+        document.getElementById('dashLucroCasal').textContent = formatarPreco(arred(lucroCasalTotal));
 
         desenharGraficosDashboard(porMes, porProduto);
     });
@@ -2634,8 +2643,130 @@ function mostrarDetalheProdutoRelatorio() {
         <p><strong>Custo unitário final:</strong> ${formatarPreco(r.custoUnitarioFinal)}</p>
         <p><strong>Preço de venda:</strong> ${formatarPreco(r.precoVenda)}</p>
         <p><strong>Lucro líquido/un.:</strong> ${formatarPreco(r.lucroLiquido)} (${r.margemRealPercent}%)</p>
-        <p><strong>Divisão:</strong> Empresa ${formatarPreco(r.lucroEmpresa)} · Casal ${formatarPreco(r.lucroCasal)}</p>
+        <p><strong>Divisão:</strong> Empresa ${formatarPreco(r.lucroEmpresa)} · Pró-labore ${formatarPreco(r.lucroCasal)}</p>
     `;
+}
+
+// ---------- Sistema de Gestão — Orçamento (proposta pro cliente) ----------
+let tempItensOrcamento = [];
+
+function popularSelectProdutoOrcamento() {
+    const sel = document.getElementById('orcSelectProduto');
+    if (!sel) return;
+    const valorAtual = sel.value;
+    sel.innerHTML = '<option value="">Selecione</option>' + fichaTecnica.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+    sel.value = valorAtual;
+}
+
+function adicionarItemOrcamento() {
+    const ftId = document.getElementById('orcSelectProduto').value;
+    const qtd = parseFloat(document.getElementById('orcQtdItem').value.replace(',', '.'));
+    if (!ftId || !qtd) { alert('Seleciona o produto e a quantidade.'); return; }
+    const ft = getFichaTecnica(ftId);
+    if (!ft) return;
+    const { precoVenda } = calcularCustoFichaTecnica(ft);
+    tempItensOrcamento.push({ nome: ft.nome, preco: precoVenda, quantidade: qtd });
+    document.getElementById('orcQtdItem').value = '1';
+    renderItensOrcamento();
+}
+
+function removerItemOrcamento(i) { tempItensOrcamento.splice(i, 1); renderItensOrcamento(); }
+
+function renderItensOrcamento() {
+    const div = document.getElementById('orcListaItens');
+    div.innerHTML = '';
+    let total = 0;
+    tempItensOrcamento.forEach((item, i) => {
+        const totalItem = item.preco * item.quantidade;
+        total += totalItem;
+        const linha = document.createElement('div');
+        linha.style.cssText = 'display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border);';
+        linha.innerHTML = `<span>${item.quantidade}x ${item.nome} = ${formatarPreco(totalItem)}</span>
+            <button class="btn-excluir-cupom" onclick="removerItemOrcamento(${i})">🗑️</button>`;
+        div.appendChild(linha);
+    });
+    document.getElementById('orcTotalTemp').textContent = formatarPreco(total);
+}
+
+function gerarHtmlOrcamento() {
+    const cliente = document.getElementById('orcCliente').value.trim() || 'Cliente';
+    const validade = document.getElementById('orcValidade').value.trim();
+    const obs = document.getElementById('orcObs').value.trim();
+    const total = tempItensOrcamento.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
+    const dataHoje = new Date().toLocaleDateString('pt-BR');
+
+    return `
+        <div style="padding:16px; font-family:inherit;">
+            <h2 style="margin-bottom:4px;">${LOJA_CONFIG.nome || 'Orçamento'}</h2>
+            <p class="dica-secao">Orçamento gerado em ${dataHoje}${validade ? ' · Válido por ' + validade : ''}</p>
+            <p><strong>Cliente:</strong> ${cliente}</p>
+            <hr style="margin:12px 0; border:none; border-top:1px solid var(--border);">
+            ${tempItensOrcamento.map(item => `<p>${item.quantidade}x ${item.nome} — ${formatarPreco(item.preco * item.quantidade)}</p>`).join('')}
+            <hr style="margin:12px 0; border:none; border-top:1px solid var(--border);">
+            <p style="font-size:1.2em;"><strong>Total: ${formatarPreco(total)}</strong></p>
+            ${obs ? `<p style="margin-top:10px;"><strong>Observações:</strong> ${obs}</p>` : ''}
+        </div>
+    `;
+}
+
+function gerarPreviewOrcamento() {
+    if (tempItensOrcamento.length === 0) { alert('Adiciona pelo menos 1 item ao orçamento.'); return; }
+    document.getElementById('previewOrcamento').innerHTML = gerarHtmlOrcamento();
+    document.getElementById('cardPreviewOrcamento').style.display = 'block';
+    document.getElementById('cardPreviewOrcamento').scrollIntoView({ behavior: 'smooth' });
+}
+
+function baixarOrcamentoPDF() {
+    if (tempItensOrcamento.length === 0) { alert('Adiciona pelo menos 1 item ao orçamento.'); return; }
+    if (typeof window.jspdf === 'undefined') { alert('A biblioteca de exportação ainda está carregando, tenta de novo em instantes.'); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const cliente = document.getElementById('orcCliente').value.trim() || 'Cliente';
+    const validade = document.getElementById('orcValidade').value.trim();
+    const obs = document.getElementById('orcObs').value.trim();
+
+    doc.setFontSize(14);
+    doc.text(LOJA_CONFIG.nome || 'Orçamento', 14, 15);
+    doc.setFontSize(10);
+    doc.text('Cliente: ' + cliente + (validade ? ' — Válido por ' + validade : ''), 14, 22);
+
+    const linhas = tempItensOrcamento.map(item => [`${item.quantidade}x ${item.nome}`, formatarPreco(item.preco * item.quantidade)]);
+    doc.autoTable({ head: [['Item', 'Valor']], body: linhas, startY: 28 });
+
+    const total = tempItensOrcamento.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
+    const yFinal = doc.lastAutoTable.finalY + 8;
+    doc.setFontSize(12);
+    doc.text('Total: ' + formatarPreco(total), 14, yFinal);
+    if (obs) doc.text('Obs: ' + obs, 14, yFinal + 8);
+
+    doc.save('orcamento-' + cliente.toLowerCase().replace(/\s+/g, '-') + '.pdf');
+}
+
+// ---------- Sistema de Gestão — Backup completo ----------
+// Baixa TUDO que já está no Firebase (ingredientes, bases, fichaTecnica, clientesGestao)
+// num arquivo JSON — cópia extra, útil offline; os dados já ficam salvos na nuvem sozinhos
+async function exportarBackupGestaoCompleto() {
+    const msgEl = document.getElementById('msgExportarBackupGestao');
+    msgEl.textContent = 'Preparando backup...';
+    try {
+        const backup = {
+            ingredientes,
+            bases,
+            fichaTecnica,
+            clientesGestao,
+            exportadoEm: new Date().toISOString()
+        };
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `backup-gestao-${new Date().toISOString().slice(0, 10)}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+        msgEl.textContent = 'Backup baixado!';
+    } catch (err) {
+        msgEl.textContent = 'Erro ao gerar backup: ' + err.message;
+    }
 }
 
 function exportarRelatorioPDF() {
