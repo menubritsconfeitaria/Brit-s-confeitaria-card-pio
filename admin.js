@@ -1680,6 +1680,7 @@ function escutarIngredientes() {
         ingredientes = Object.entries(val).map(([id, ing]) => ({ id, ...ing }));
         renderIngredientes();
         if (typeof popularSelectComponenteBase === 'function') popularSelectComponenteBase();
+        if (typeof popularSelectComponenteFichaTecnica === 'function') popularSelectComponenteFichaTecnica();
     });
 }
 
@@ -1789,6 +1790,8 @@ function escutarBases() {
         bases = Object.entries(val).map(([id, b]) => ({ id, ...b }));
         renderBases();
         popularSelectComponenteBase();
+        if (typeof popularSelectComponenteFichaTecnica === 'function') popularSelectComponenteFichaTecnica();
+        if (typeof renderFichaTecnica === 'function' && fichaTecnica.length > 0) renderFichaTecnica();
     });
 }
 
@@ -1971,6 +1974,244 @@ function excluirBase(id) {
 // antigos não existem mais quando os dados vão pro Firebase (cada push() gera um id
 // novo), então precisamos: 1) criar tudo primeiro guardando um "mapa" antigo->novo,
 // 2) só depois corrigir as referências (ex: os componentes de uma base) usando esse mapa.
+// Arredonda pra 2 casas decimais, evitando erro de ponto flutuante (ex: 0.1+0.2)
+function arred(v) { if (isNaN(v)) return 0; return Math.round((v + Number.EPSILON) * 100) / 100; }
+
+// ---------- Sistema de Gestão — Ficha Técnica (custo/preço dos produtos) ----------
+// Nomes com prefixo "ft"/"FichaTecnica" de propósito — o painel já tem salvarProduto/
+// excluirProduto pros produtos do CARDÁPIO, então precisa ficar bem separado
+let fichaTecnica = [];
+let tempFichaTecnicaComponentes = [];
+let editingFichaTecnicaId = null;
+
+function escutarFichaTecnica() {
+    db.ref('fichaTecnica').on('value', snap => {
+        const val = snap.val() || {};
+        fichaTecnica = Object.entries(val).map(([id, p]) => ({ id, ...p }));
+        renderFichaTecnica();
+    });
+}
+
+function getFichaTecnica(id) { return fichaTecnica.find(p => p.id === id); }
+
+// Calcula custo, preço sugerido e divisão de lucro de uma ficha técnica — mesma
+// lógica de sempre (bases/ingredientes -> custo -> margens -> preço -> divisão)
+function calcularCustoFichaTecnica(produto) {
+    let custoComponentes = 0;
+    const detalhes = [];
+    produto.componentes.forEach(c => {
+        let nome = '', custoItem = 0, unidade = '';
+        if (c.tipo === 'base') {
+            const base = getBase(c.id);
+            if (base) {
+                const { custoPorUnidade } = calcularBase(base);
+                nome = base.nome + ' (base)';
+                custoItem = arred(custoPorUnidade * c.quantidade);
+                unidade = base.unidadeRendimento;
+            } else nome = '(base removida)';
+        } else {
+            const ing = ingredientes.find(i => i.id === c.id);
+            if (ing) {
+                nome = ing.nome;
+                custoItem = arred(custoUnitIngrediente(ing) * c.quantidade);
+                unidade = ing.unidade;
+            } else nome = '(ingrediente removido)';
+        }
+        custoComponentes += custoItem;
+        detalhes.push({ nome, quantidade: c.quantidade, unidade, custoItem });
+    });
+    custoComponentes = arred(custoComponentes);
+
+    const custoMaoObra = arred((produto.horasTrabalho || 0) * (produto.valorHora || 0));
+    const custoTotalReceita = arred(custoComponentes + custoMaoObra);
+    const custoUnitarioReceita = produto.rendimento > 0 ? arred(custoTotalReceita / produto.rendimento) : 0;
+    const custoUnitarioFinal = arred(custoUnitarioReceita + (produto.embalagem || 0) + (produto.custoFixo || 0));
+
+    const margemEmpresa = (produto.margemEmpresa || 0) / 100;
+    const margemCasal = (produto.margemCasal || 0) / 100;
+    const taxaVenda = (produto.taxaVenda || 0) / 100;
+
+    const fatorMarkup = 1 - (margemEmpresa + margemCasal + taxaVenda);
+    const precoVendaCalculado = arred(fatorMarkup > 0 ? custoUnitarioFinal / fatorMarkup : custoUnitarioFinal);
+
+    const temPrecoManual = produto.precoVendaManual != null && produto.precoVendaManual > 0;
+    const precoVenda = temPrecoManual ? arred(produto.precoVendaManual) : precoVendaCalculado;
+
+    const lucroBruto = precoVenda - custoUnitarioFinal;
+    const valorTaxa = arred(precoVenda * taxaVenda);
+    const lucroLiquido = arred(lucroBruto - valorTaxa);
+    const margemRealPercent = precoVenda > 0 ? Math.round((lucroLiquido / precoVenda) * 10000) / 100 : 0;
+
+    let lucroEmpresa = 0, lucroCasal = 0;
+    const totalMargens = margemEmpresa + margemCasal;
+    if (totalMargens > 0) {
+        lucroEmpresa = arred(lucroLiquido * (margemEmpresa / totalMargens));
+        lucroCasal = arred(lucroLiquido - lucroEmpresa);
+    } else {
+        lucroEmpresa = lucroLiquido;
+    }
+
+    return {
+        custoComponentes, custoMaoObra, custoTotalReceita, custoUnitarioReceita, custoUnitarioFinal,
+        precoVenda, precoVendaCalculado, temPrecoManual, margemRealPercent, lucroLiquido, lucroEmpresa, lucroCasal,
+        detalhes
+    };
+}
+
+function popularSelectComponenteFichaTecnica() {
+    const sel = document.getElementById('ftSelectComponente');
+    const valorAtual = sel.value;
+    sel.innerHTML = '<option value="">Selecione</option>'
+        + '<optgroup label="Ingredientes">' + ingredientes.map(i => `<option value="ingrediente_${i.id}">${i.nome}</option>`).join('') + '</optgroup>'
+        + '<optgroup label="Bases">' + bases.map(b => `<option value="base_${b.id}">${b.nome}</option>`).join('') + '</optgroup>';
+    sel.value = valorAtual;
+}
+
+function adicionarComponenteFichaTecnica() {
+    const val = document.getElementById('ftSelectComponente').value;
+    const qtd = parseFloat(document.getElementById('ftQtdComponente').value.replace(',', '.'));
+    if (!val || !qtd) { alert('Seleciona um item e informa a quantidade.'); return; }
+    const idx = val.indexOf('_');
+    const tipoRaw = val.substring(0, idx);
+    const compId = val.substring(idx + 1);
+    tempFichaTecnicaComponentes.push({ tipo: tipoRaw === 'base' ? 'base' : 'ingrediente', id: compId, quantidade: qtd });
+    document.getElementById('ftQtdComponente').value = '';
+    renderTempComponentesFichaTecnica();
+}
+
+function removerComponenteFichaTecnica(i) { tempFichaTecnicaComponentes.splice(i, 1); renderTempComponentesFichaTecnica(); }
+
+function renderTempComponentesFichaTecnica() {
+    const div = document.getElementById('ftListaComponentes');
+    div.innerHTML = '';
+    let total = 0;
+    tempFichaTecnicaComponentes.forEach((c, i) => {
+        let nome = '', custo = 0, unidade = '';
+        if (c.tipo === 'base') {
+            const b = getBase(c.id);
+            if (b) { const { custoPorUnidade } = calcularBase(b); nome = b.nome + ' (base)'; custo = custoPorUnidade * c.quantidade; unidade = b.unidadeRendimento; }
+            else nome = '(base removida)';
+        } else {
+            const ing = ingredientes.find(x => x.id === c.id);
+            if (ing) { nome = ing.nome; custo = custoUnitIngrediente(ing) * c.quantidade; unidade = ing.unidade; }
+            else nome = '(removido)';
+        }
+        total += custo;
+        const linha = document.createElement('div');
+        linha.style.cssText = 'display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border);';
+        linha.innerHTML = `<span>${nome} — ${c.quantidade}${unidade} = ${formatarPreco(custo)}</span>
+            <button class="btn-excluir-cupom" onclick="removerComponenteFichaTecnica(${i})">🗑️</button>`;
+        div.appendChild(linha);
+    });
+    document.getElementById('ftCustoComponentesTemp').textContent = formatarPreco(total);
+}
+
+function salvarFichaTecnica() {
+    const nome = document.getElementById('ftNome').value.trim();
+    const rendimento = parseFloat(document.getElementById('ftRendimento').value.replace(',', '.'));
+    const embalagem = parseFloat(document.getElementById('ftEmbalagem').value.replace(',', '.')) || 0;
+    const custoFixo = parseFloat(document.getElementById('ftCustoFixo').value.replace(',', '.')) || 0;
+    const horasTrabalho = parseFloat(document.getElementById('ftHoras').value.replace(',', '.')) || 0;
+    const valorHora = parseFloat(document.getElementById('ftValorHora').value.replace(',', '.')) || 0;
+    const margemEmpresa = parseFloat(document.getElementById('ftMargemEmpresa').value.replace(',', '.')) || 0;
+    const margemCasal = parseFloat(document.getElementById('ftMargemCasal').value.replace(',', '.')) || 0;
+    const taxaVenda = parseFloat(document.getElementById('ftTaxaVenda').value.replace(',', '.')) || 0;
+    const precoManualDigitado = parseFloat(document.getElementById('ftPrecoManual').value.replace(',', '.'));
+    const precoVendaManual = (!isNaN(precoManualDigitado) && precoManualDigitado > 0) ? precoManualDigitado : null;
+    const msgEl = document.getElementById('msgFichaTecnica');
+
+    if (!nome || !rendimento || tempFichaTecnicaComponentes.length === 0) {
+        msgEl.textContent = 'Preenche nome, rendimento e adiciona componentes.';
+        return;
+    }
+
+    const obj = {
+        nome, rendimento, componentes: [...tempFichaTecnicaComponentes],
+        embalagem, custoFixo, horasTrabalho, valorHora, margemEmpresa, margemCasal, taxaVenda, precoVendaManual
+    };
+    msgEl.textContent = 'Salvando...';
+
+    const promessa = editingFichaTecnicaId
+        ? db.ref('fichaTecnica/' + editingFichaTecnicaId).update(obj)
+        : db.ref('fichaTecnica').push(obj);
+
+    promessa.then(() => {
+        msgEl.textContent = 'Salvo!';
+        document.getElementById('ftResultado').innerHTML = montarResultadoFichaTecnica(obj);
+        tempFichaTecnicaComponentes = [];
+        ['ftNome', 'ftRendimento', 'ftEmbalagem', 'ftCustoFixo', 'ftHoras', 'ftValorHora', 'ftMargemEmpresa', 'ftMargemCasal', 'ftTaxaVenda', 'ftPrecoManual'].forEach(id => document.getElementById(id).value = '');
+        renderTempComponentesFichaTecnica();
+        if (editingFichaTecnicaId) {
+            editingFichaTecnicaId = null;
+            document.getElementById('btnSalvarFichaTecnica').textContent = 'Calcular e Salvar';
+        }
+    }).catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+}
+
+function montarResultadoFichaTecnica(produto) {
+    const r = calcularCustoFichaTecnica(produto);
+    return `
+        <div class="pedido-card">
+            <p>Custo total da receita: <strong>${formatarPreco(r.custoTotalReceita)}</strong></p>
+            <p>Custo unitário final: <strong>${formatarPreco(r.custoUnitarioFinal)}</strong></p>
+            <p>Preço de venda: <strong>${formatarPreco(r.precoVenda)}</strong>${r.temPrecoManual ? ' (fixado manualmente)' : ' (calculado)'}</p>
+            <p>Lucro líquido/un.: <strong>${formatarPreco(r.lucroLiquido)}</strong> (${r.margemRealPercent}%)</p>
+            <p>Empresa: ${formatarPreco(r.lucroEmpresa)} · Casal: ${formatarPreco(r.lucroCasal)}</p>
+        </div>
+    `;
+}
+
+function renderFichaTecnica() {
+    const busca = (document.getElementById('ftBusca').value || '').toLowerCase();
+    const container = document.getElementById('ftListaProdutos');
+    const filtrados = fichaTecnica.filter(p => p.nome.toLowerCase().includes(busca));
+
+    if (filtrados.length === 0) {
+        container.innerHTML = '<p class="dica-secao">Nenhuma ficha técnica cadastrada ainda.</p>';
+        return;
+    }
+
+    container.innerHTML = filtrados.map(p => {
+        const r = calcularCustoFichaTecnica(p);
+        const cmv = r.precoVenda > 0 ? ((r.custoUnitarioFinal / r.precoVenda) * 100).toFixed(1) : '0';
+        return `
+            <div class="pedido-card" style="margin-top:8px;">
+                <strong>${p.nome}</strong>
+                <p style="margin:4px 0; font-size:0.85em; color:var(--muted);">
+                    Rendimento: ${p.rendimento}un · Custo/un.: ${formatarPreco(r.custoUnitarioFinal)} · Preço: ${formatarPreco(r.precoVenda)} · CMV: ${cmv}%
+                </p>
+                <button class="btn-secondary" onclick="editarFichaTecnica('${p.id}')">✏️ Editar</button>
+                <button class="btn-excluir-cupom" onclick="excluirFichaTecnica('${p.id}')">🗑️</button>
+            </div>
+        `;
+    }).join('');
+}
+
+function editarFichaTecnica(id) {
+    const p = getFichaTecnica(id);
+    if (!p) return;
+    document.getElementById('ftNome').value = p.nome;
+    document.getElementById('ftRendimento').value = p.rendimento;
+    document.getElementById('ftEmbalagem').value = p.embalagem || '';
+    document.getElementById('ftCustoFixo').value = p.custoFixo || '';
+    document.getElementById('ftHoras').value = p.horasTrabalho || '';
+    document.getElementById('ftValorHora').value = p.valorHora || '';
+    document.getElementById('ftMargemEmpresa').value = p.margemEmpresa || '';
+    document.getElementById('ftMargemCasal').value = p.margemCasal || '';
+    document.getElementById('ftTaxaVenda').value = p.taxaVenda || '';
+    document.getElementById('ftPrecoManual').value = p.precoVendaManual || '';
+    tempFichaTecnicaComponentes = p.componentes.map(c => ({ ...c }));
+    editingFichaTecnicaId = id;
+    document.getElementById('btnSalvarFichaTecnica').textContent = 'Atualizar';
+    renderTempComponentesFichaTecnica();
+    document.getElementById('tituloCadastroFichaTecnica').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function excluirFichaTecnica(id) {
+    if (!confirm('Excluir esta ficha técnica?')) return;
+    db.ref('fichaTecnica/' + id).remove().catch(err => alert('Erro ao excluir: ' + err.message));
+}
+
 async function importarBackupSistemaGestao() {
     const input = document.getElementById('inputImportarBackupGestao');
     const msgEl = document.getElementById('msgImportarBackup');
@@ -3127,6 +3368,7 @@ function iniciarEscutaPedidos() {
     escutarHistoricoNotificacoes();
     escutarIngredientes();
     escutarBases();
+    escutarFichaTecnica();
     const previaLojaNomeEl = document.getElementById('previaLojaNome');
     if (previaLojaNomeEl) previaLojaNomeEl.textContent = LOJA_CONFIG.nome;
     escutarConfigSomAlerta();

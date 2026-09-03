@@ -543,6 +543,7 @@
                 <div class="gestao-subtabs" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
                     <button class="gestao-subtab-btn active" data-subtab="sub-ingredientes" onclick="mostrarSubabaGestao('sub-ingredientes')">🥄 Ingredientes</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-bases" onclick="mostrarSubabaGestao('sub-bases')">🍰 Bases</button>
+                    <button class="gestao-subtab-btn" data-subtab="sub-ficha-tecnica" onclick="mostrarSubabaGestao('sub-ficha-tecnica')">📋 Ficha Técnica</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-importar" onclick="mostrarSubabaGestao('sub-importar')">📥 Importar Backup</button>
                 </div>
 
@@ -635,6 +636,87 @@
                 <div class="loja-status-card" style="margin-top:16px;">
                     <div id="listaBases"></div>
                 </div>
+                </div>
+
+                <div class="gestao-subconteudo" data-subtab-content="sub-ficha-tecnica" style="display:none;">
+                    <div class="loja-status-card">
+                        <h3 id="tituloCadastroFichaTecnica">Cadastro de Ficha Técnica</h3>
+                        <div class="produto-admin-linha">
+                            <div class="campo-com-label">
+                                <label class="campo-label">Nome do produto</label>
+                                <input type="text" id="ftNome">
+                            </div>
+                            <div class="campo-com-label">
+                                <label class="campo-label">Rendimento (unidades)</label>
+                                <input type="text" inputmode="decimal" id="ftRendimento">
+                            </div>
+                        </div>
+
+                        <h3 style="margin-top:16px;">Componentes (bases ou ingredientes)</h3>
+                        <div class="produto-admin-linha">
+                            <div class="campo-com-label" style="flex:2;">
+                                <label class="campo-label">Base ou ingrediente</label>
+                                <select id="ftSelectComponente"></select>
+                            </div>
+                            <div class="campo-com-label">
+                                <label class="campo-label">Quantidade</label>
+                                <input type="text" inputmode="decimal" id="ftQtdComponente">
+                            </div>
+                        </div>
+                        <button class="btn-secondary" style="margin-top:8px;" onclick="adicionarComponenteFichaTecnica()">+ Adicionar</button>
+                        <div id="ftListaComponentes" style="margin-top:10px;"></div>
+                        <p class="dica-secao">Custo componentes: <strong id="ftCustoComponentesTemp">R$ 0,00</strong></p>
+
+                        <h3 style="margin-top:16px;">Outros custos</h3>
+                        <div class="produto-admin-linha">
+                            <div class="campo-com-label">
+                                <label class="campo-label">Embalagem extra (R$/un)</label>
+                                <input type="text" inputmode="decimal" id="ftEmbalagem">
+                            </div>
+                            <div class="campo-com-label">
+                                <label class="campo-label">Custo fixo rateado (R$/un)</label>
+                                <input type="text" inputmode="decimal" id="ftCustoFixo">
+                            </div>
+                        </div>
+                        <div class="produto-admin-linha" style="margin-top:10px;">
+                            <div class="campo-com-label">
+                                <label class="campo-label">Horas de trabalho</label>
+                                <input type="text" inputmode="decimal" id="ftHoras">
+                            </div>
+                            <div class="campo-com-label">
+                                <label class="campo-label">Valor da hora (R$)</label>
+                                <input type="text" inputmode="decimal" id="ftValorHora">
+                            </div>
+                        </div>
+
+                        <h3 style="margin-top:16px;">Margens de lucro</h3>
+                        <p class="dica-secao">As duas margens definem a proporção da divisão do lucro entre Empresa e Casal (não precisam somar 100%). Também são usadas juntas pra sugerir o preço de venda inicial.</p>
+                        <div class="produto-admin-linha">
+                            <div class="campo-com-label">
+                                <label class="campo-label">Margem da empresa (%)</label>
+                                <input type="text" inputmode="decimal" id="ftMargemEmpresa">
+                            </div>
+                            <div class="campo-com-label">
+                                <label class="campo-label">Margem do casal (%)</label>
+                                <input type="text" inputmode="decimal" id="ftMargemCasal">
+                            </div>
+                        </div>
+                        <label class="campo-label" style="margin-top:10px;">Taxas de venda (%)</label>
+                        <input type="text" inputmode="decimal" id="ftTaxaVenda">
+
+                        <label class="campo-label" style="margin-top:10px;">Preço de venda redondo (opcional)</label>
+                        <p class="dica-secao" style="margin:2px 0 6px;">Deixe em branco pra usar o preço calculado pelas margens. Preencha só se quiser fixar um valor redondo — o lucro é recalculado de verdade em cima desse preço.</p>
+                        <input type="text" inputmode="decimal" id="ftPrecoManual" placeholder="Ex: 15,00">
+
+                        <button class="btn-salvar-ordem" id="btnSalvarFichaTecnica" style="margin-top:10px;" onclick="salvarFichaTecnica()">Calcular e Salvar</button>
+                        <div id="ftResultado" style="margin-top:10px;"></div>
+                        <p id="msgFichaTecnica" class="ordem-categorias-msg"></p>
+                    </div>
+
+                    <div class="loja-status-card" style="margin-top:16px;">
+                        <input type="text" id="ftBusca" placeholder="🔍 Pesquisar..." oninput="renderFichaTecnica()">
+                        <div id="ftListaProdutos" style="margin-top:10px;"></div>
+                    </div>
                 </div>
 
                 <div class="gestao-subconteudo" data-subtab-content="sub-importar" style="display:none;">
