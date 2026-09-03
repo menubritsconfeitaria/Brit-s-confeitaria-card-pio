@@ -668,14 +668,18 @@ const rotulosStatusPedido = {
 // Abre a janela de "Meus Pedidos", buscando os dados atuais de cada pedido guardado
 // localmente — sempre busca fresquinho do Firebase, pra mostrar o status mais atual
 async function abrirMeusPedidos() {
+    alert('[TESTE] Função chamada, o clique funcionou!');
     const modal = document.getElementById('modalMeusPedidos');
     const lista = document.getElementById('listaMeusPedidos');
+    if (!modal || !lista) { alert('[TESTE] Não achei o modal ou a lista no HTML!'); return; }
     modal.style.display = 'flex';
 
     let historico = [];
     try {
         historico = JSON.parse(localStorage.getItem('historicoPedidosBritS')) || [];
     } catch (e) { /* ignora */ }
+
+    alert('[TESTE] Pedidos guardados nesse celular: ' + historico.length);
 
     if (historico.length === 0) {
         lista.innerHTML = '<p style="text-align:center; color:var(--muted); padding:20px 0;">Nenhum pedido feito ainda nesse navegador.</p>';
@@ -688,6 +692,7 @@ async function abrirMeusPedidos() {
         const resultados = await Promise.all(
             historico.map(item => firebase.database().ref('pedidos/' + item.id).once('value'))
         );
+        alert('[TESTE] Busquei os dados, encontrei ' + resultados.filter(s => s.val()).length + ' pedido(s) válido(s)');
 
         const linhas = resultados
             .map((snap, i) => ({ pedido: snap.val(), meta: historico[i] }))
@@ -713,6 +718,7 @@ async function abrirMeusPedidos() {
             ? linhas.join('')
             : '<p style="text-align:center; color:var(--muted); padding:20px 0;">Nenhum pedido encontrado.</p>';
     } catch (err) {
+        alert('[TESTE] Deu erro: ' + err.message);
         lista.innerHTML = '<p style="text-align:center; color:var(--muted); padding:20px 0;">Não foi possível carregar agora. Tenta de novo em instantes.</p>';
     }
 }
