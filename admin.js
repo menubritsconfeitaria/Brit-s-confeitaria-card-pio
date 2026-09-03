@@ -2656,6 +2656,15 @@ function exportarRelatorioExcel() {
     XLSX.writeFile(wb, 'relatorio-custos.xlsx');
 }
 
+// Acha, no array já carregado, um item com o mesmo nome (ignorando maiúsculas/
+// espaços) — usado pra não duplicar o que já foi importado numa rodada anterior
+function acharPorNome(lista, nome) {
+    const alvo = (nome || '').trim().toLowerCase();
+    return lista.find(item => (item.nome || '').trim().toLowerCase() === alvo);
+}
+
+const MAPA_STATUS_PEDIDO_ANTIGO = { pendente: 'pendente', 'produção': 'aceito', em_rota: 'em_rota', entregue: 'entregue', cancelado: 'recusado' };
+
 async function importarBackupSistemaGestao() {
     const input = document.getElementById('inputImportarBackupGestao');
     const msgEl = document.getElementById('msgImportarBackup');
@@ -2669,28 +2678,35 @@ async function importarBackupSistemaGestao() {
 
             const qtdIng = (dados.ingredientes || []).length;
             const qtdBases = (dados.bases || []).length;
-            if (!confirm(`Vai importar ${qtdIng} ingrediente(s) e ${qtdBases} base(s) — isso ADICIONA ao que já existe aqui, não apaga nada. Confirma?`)) return;
+            const qtdProdutos = (dados.produtos || []).length;
+            const qtdClientes = (dados.clientes || []).length;
+            const qtdPedidos = (dados.pedidos || []).length;
+            if (!confirm(`Vai importar ${qtdIng} ingrediente(s), ${qtdBases} base(s), ${qtdProdutos} produto(s), ${qtdClientes} cliente(s) e ${qtdPedidos} pedido(s) — itens já importados antes (mesmo nome/telefone) são reaproveitados, não duplicados. Confirma?`)) return;
 
+            // 1) Ingredientes — reaproveita se já existe um com o mesmo nome
             msgEl.textContent = 'Importando ingredientes...';
             const mapaIngredientes = {};
             for (const ing of (dados.ingredientes || [])) {
+                const jaExiste = acharPorNome(ingredientes, ing.nome);
+                if (jaExiste) { mapaIngredientes[ing.id] = jaExiste.id; continue; }
                 const { id: idAntigo, ...resto } = ing;
                 const ref = await db.ref('ingredientes').push(resto);
                 mapaIngredientes[idAntigo] = ref.key;
             }
 
+            // 2) Bases — mesma lógica, e ainda precisa corrigir as referências internas depois
             msgEl.textContent = 'Importando bases...';
             const mapaBases = {};
-            const basesCriadas = [];
+            const basesCriadasAgora = [];
             for (const base of (dados.bases || [])) {
+                const jaExiste = acharPorNome(bases, base.nome);
+                if (jaExiste) { mapaBases[base.id] = jaExiste.id; continue; }
                 const { id: idAntigo, ...resto } = base;
                 const ref = await db.ref('bases').push(resto);
                 mapaBases[idAntigo] = ref.key;
-                basesCriadas.push({ novoId: ref.key, componentesOriginais: base.componentes || [] });
+                basesCriadasAgora.push({ novoId: ref.key, componentesOriginais: base.componentes || [] });
             }
-
-            msgEl.textContent = 'Ajustando referências entre bases...';
-            for (const b of basesCriadas) {
+            for (const b of basesCriadasAgora) {
                 const corrigidos = b.componentesOriginais.map(c => {
                     if (c.tipo === 'ingrediente') return { ...c, id: mapaIngredientes[c.id] || c.id };
                     if (c.tipo === 'base') return { ...c, id: mapaBases[c.id] || c.id };
@@ -2699,7 +2715,77 @@ async function importarBackupSistemaGestao() {
                 await db.ref('bases/' + b.novoId + '/componentes').set(corrigidos);
             }
 
-            msgEl.textContent = `✅ Importado! ${qtdIng} ingrediente(s) e ${qtdBases} base(s). Produtos/Clientes/Pedidos ainda não são importados nessa versão — vamos poder trazer isso assim que essas peças forem construídas.`;
+            // 3) Produtos antigos -> Ficha Técnica (nó fichaTecnica)
+            msgEl.textContent = 'Importando fichas técnicas...';
+            const mapaProdutos = {};
+            const produtosCriadosAgora = [];
+            for (const prod of (dados.produtos || [])) {
+                const jaExiste = acharPorNome(fichaTecnica, prod.nome);
+                if (jaExiste) { mapaProdutos[prod.id] = jaExiste.id; continue; }
+                const { id: idAntigo, componentes, ...resto } = prod;
+                const ref = await db.ref('fichaTecnica').push({ ...resto, componentes: [] });
+                mapaProdutos[idAntigo] = ref.key;
+                produtosCriadosAgora.push({ novoId: ref.key, componentesOriginais: componentes || [] });
+            }
+            for (const p of produtosCriadosAgora) {
+                const corrigidos = p.componentesOriginais.map(c => {
+                    if (c.tipo === 'ingrediente') return { ...c, id: mapaIngredientes[c.id] || c.id };
+                    if (c.tipo === 'base') return { ...c, id: mapaBases[c.id] || c.id };
+                    return c;
+                });
+                await db.ref('fichaTecnica/' + p.novoId + '/componentes').set(corrigidos);
+            }
+
+            // 4) Clientes -> clientesGestao (reaproveita por telefone, se tiver; senão por nome)
+            msgEl.textContent = 'Importando clientes...';
+            const mapaClientes = {};
+            for (const cli of (dados.clientes || [])) {
+                const jaExiste = cli.telefone
+                    ? clientesGestao.find(c => c.telefone === cli.telefone)
+                    : acharPorNome(clientesGestao, cli.nome);
+                if (jaExiste) { mapaClientes[cli.id] = jaExiste.id; continue; }
+                const { id: idAntigo, ...resto } = cli;
+                const ref = await db.ref('clientesGestao').push(resto);
+                mapaClientes[idAntigo] = ref.key;
+            }
+
+            // 5) Pedidos antigos -> nó "pedidos" (mesmo que o cardápio usa, origem:'manual')
+            msgEl.textContent = 'Importando pedidos...';
+            for (const ped of (dados.pedidos || [])) {
+                const cliente = mapaClientes[ped.clienteId] ? getClienteGestao(mapaClientes[ped.clienteId]) : null;
+                const itensConvertidos = (ped.itens || []).map(item => {
+                    const ftIdNovo = mapaProdutos[item.produtoId] || null;
+                    const ft = ftIdNovo ? getFichaTecnica(ftIdNovo) : null;
+                    const r = ft ? calcularCustoFichaTecnica(ft) : null;
+                    return { fichaTecnicaId: ftIdNovo, produtoId: null, nome: ft ? ft.nome : '(produto removido)', preco: r ? r.precoVenda : 0, quantidade: item.quantidade };
+                });
+                const [ano, mes, dia] = (ped.data || '').split('-').map(Number);
+                const timestampPedido = (ano && mes && dia) ? new Date(ano, mes - 1, dia).getTime() : Date.now();
+
+                const dadosPedido = {
+                    origem: 'manual',
+                    nome: cliente ? cliente.nome : 'Cliente importado',
+                    telefone: cliente ? cliente.telefone : null,
+                    tipoEntrega: 'retirada',
+                    endereco: null,
+                    formaPagamento: ped.formaPagamento || null,
+                    observacoes: ped.obs || null,
+                    itens: itensConvertidos,
+                    subtotal: ped.subtotalBruto || 0,
+                    desconto: ped.descontoPercentual ? arred((ped.subtotalBruto || 0) * (ped.descontoPercentual / 100)) : 0,
+                    frete: ped.frete || 0,
+                    total: ped.valorTotal || 0,
+                    status: MAPA_STATUS_PEDIDO_ANTIGO[ped.status] || 'pendente',
+                    timestamp: timestampPedido
+                };
+
+                const novoPedidoRef = db.ref('pedidos').push();
+                const resultado = await db.ref('contadores/proximoPedido').transaction(atual => (atual || 0) + 1);
+                const numeroAtribuido = resultado.committed ? resultado.snapshot.val() : null;
+                await novoPedidoRef.set({ ...dadosPedido, numero: numeroAtribuido });
+            }
+
+            msgEl.textContent = `✅ Importado! ${qtdIng} ingrediente(s), ${qtdBases} base(s), ${qtdProdutos} produto(s), ${qtdClientes} cliente(s) e ${qtdPedidos} pedido(s) — o que já existia foi reaproveitado, nada duplicado.`;
         } catch (err) {
             msgEl.textContent = 'Erro ao importar: ' + err.message;
         } finally {
