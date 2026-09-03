@@ -62,8 +62,7 @@
             <button class="painel-tab-btn" data-tab="cupons">🎟️ Cupons</button>
             <button class="painel-tab-btn" data-tab="fidelidade">⭐ Fidelidade</button>
             <button class="painel-tab-btn" data-tab="mensagens">💌 Clientes</button>
-            <button class="painel-tab-btn" id="btnAbaIngredientes" data-tab="gestao-ingredientes" style="display:none;">🥄 Ingredientes</button>
-            <button class="painel-tab-btn" data-tab="gestao-bases" style="display:none;">🍰 Bases</button>
+            <button class="painel-tab-btn" data-tab="gestao" style="display:none;">📊 Gestão</button>
             <button class="painel-tab-btn" data-tab="loja">🏪 Loja</button>
             <button class="painel-tab-btn" data-tab="agenda">📅 Agenda</button>
             <button class="painel-tab-btn" data-tab="visitantes">👀 Visitantes</button>
@@ -539,8 +538,14 @@
                 <div id="listaClientesInativos"></div>
             </section>
 
-            <section data-tab="gestao-ingredientes">
-                <h2>🥄 Ingredientes</h2>
+            <section data-tab="gestao">
+                <h2>📊 Gestão Completa</h2>
+                <div class="gestao-subtabs" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
+                    <button class="painel-tab-btn gestao-subtab-btn active" data-subtab="sub-ingredientes" onclick="mostrarSubabaGestao('sub-ingredientes')">🥄 Ingredientes</button>
+                    <button class="painel-tab-btn gestao-subtab-btn" data-subtab="sub-bases" onclick="mostrarSubabaGestao('sub-bases')">🍰 Bases</button>
+                </div>
+
+                <div class="gestao-subconteudo" data-subtab-content="sub-ingredientes">
                 <p class="dica-secao">Cadastre tudo que você compra. O custo unitário e o estoque são usados automaticamente pelas bases e produtos.</p>
 
                 <div class="loja-status-card">
@@ -581,10 +586,9 @@
                     <input type="text" id="buscaIngrediente" placeholder="🔍 Pesquisar ingrediente..." oninput="renderIngredientes()">
                     <div id="listaIngredientes" style="margin-top:10px;"></div>
                 </div>
-            </section>
+                </div>
 
-            <section data-tab="gestao-bases">
-                <h2>🍰 Bases</h2>
+                <div class="gestao-subconteudo" data-subtab-content="sub-bases" style="display:none;">
                 <p class="dica-secao">Ex: Bolo de Chocolate, Recheio de Ninho com Nutella. Uma base pode usar ingredientes E outras bases.</p>
 
                 <div class="loja-status-card">
@@ -629,6 +633,7 @@
 
                 <div class="loja-status-card" style="margin-top:16px;">
                     <div id="listaBases"></div>
+                </div>
                 </div>
             </section>
         </main>

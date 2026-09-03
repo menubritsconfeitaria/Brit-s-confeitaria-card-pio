@@ -1370,7 +1370,7 @@ const MAPA_RECURSOS = {
     pedidoMinimo: { cards: ['cardPedidoMinimoFreteGratis'] },
     areasDeEntrega: { cards: ['cardAreasDeEntrega'] },
     esconderProduto: { classesCorpo: ['ocultar-campo-esconder-produto'] },
-    gestaoCompleta: { abas: ['gestao-ingredientes', 'gestao-bases'] }
+    gestaoCompleta: { abas: ['gestao'] }
 };
 
 function aplicarRecursosLiberados(recursos) {
@@ -1771,6 +1771,17 @@ function excluirIngrediente(id) {
 let bases = [];
 let tempBaseComponentes = [];
 let editingBaseId = null;
+
+// Troca de sub-aba dentro da mega-aba "Gestão" — mesma lógica das abas
+// principais, só que dentro de um container menor (não mexe na URL/localStorage)
+function mostrarSubabaGestao(subaba) {
+    document.querySelectorAll('.gestao-subtab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.subtab === subaba);
+    });
+    document.querySelectorAll('.gestao-subconteudo').forEach(div => {
+        div.style.display = div.dataset.subtabContent === subaba ? 'block' : 'none';
+    });
+}
 
 function escutarBases() {
     db.ref('bases').on('value', snap => {
