@@ -1798,7 +1798,14 @@ function escutarBases() {
 }
 
 function getBase(id) { return bases.find(b => b.id === id); }
-function idIngredienteComponente(c) { return c.tipo === 'ingrediente' ? c.id : null; }
+// Componentes podem vir em 2 formatos: o novo ({tipo:'ingrediente'|'base', id}) e um
+// mais antigo do Sistema de Gestão anterior, de antes de existir "base dentro de base"
+// ({ingredienteId}, sempre um ingrediente, sem o campo tipo)
+function idIngredienteComponente(c) {
+    if (c.tipo === 'ingrediente') return c.id;
+    if (!c.tipo && c.ingredienteId) return c.ingredienteId; // formato antigo
+    return null;
+}
 function idBaseComponente(c) { return c.tipo === 'base' ? c.id : null; }
 
 // Verifica se "candidataId" já usa (direta ou indiretamente) "baseAlvoId" — evita
@@ -2015,7 +2022,7 @@ function calcularCustoFichaTecnica(produto) {
                 unidade = base.unidadeRendimento;
             } else nome = '(base removida)';
         } else {
-            const ing = ingredientes.find(i => i.id === c.id);
+            const ing = ingredientes.find(i => i.id === idIngredienteComponente(c));
             if (ing) {
                 nome = ing.nome;
                 custoItem = arred(custoUnitIngrediente(ing) * c.quantidade);
@@ -2097,7 +2104,7 @@ function renderTempComponentesFichaTecnica() {
             if (b) { const { custoPorUnidade } = calcularBase(b); nome = b.nome + ' (base)'; custo = custoPorUnidade * c.quantidade; unidade = b.unidadeRendimento; }
             else nome = '(base removida)';
         } else {
-            const ing = ingredientes.find(x => x.id === c.id);
+            const ing = ingredientes.find(x => x.id === idIngredienteComponente(c));
             if (ing) { nome = ing.nome; custo = custoUnitIngrediente(ing) * c.quantidade; unidade = ing.unidade; }
             else nome = '(removido)';
         }
@@ -2363,11 +2370,19 @@ function excluirClienteGestao(id) {
 let tempItensPedidoManual = [];
 
 function popularSelectClientePedidoManual() {
-    const sel = document.getElementById('pmCliente');
-    if (!sel) return;
-    const valorAtual = sel.value;
-    sel.innerHTML = '<option value="">— Cliente avulso —</option>' + clientesGestao.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
-    sel.value = valorAtual;
+    const dl = document.getElementById('pmClientesDatalist');
+    if (!dl) return;
+    dl.innerHTML = clientesGestao.map(c => `<option value="${c.nome}">`).join('');
+}
+
+// Acha um cliente pelo nome digitado, ou cria um novo na hora se não existir —
+// mesmo comportamento do sistema antigo (obterOuCriarClientePorNome)
+async function obterOuCriarClienteGestaoPorNome(nomeDigitado) {
+    if (!nomeDigitado) return null;
+    const jaExiste = acharPorNome(clientesGestao, nomeDigitado);
+    if (jaExiste) return jaExiste;
+    const ref = await db.ref('clientesGestao').push({ nome: nomeDigitado, telefone: null, email: null, endereco: null });
+    return { id: ref.key, nome: nomeDigitado };
 }
 
 function popularSelectProdutoPedidoManual() {
@@ -2414,8 +2429,8 @@ function renderItensPedidoManual() {
     document.getElementById('pmTotalTemp').textContent = formatarPreco(total);
 }
 
-function salvarPedidoManual() {
-    const clienteId = document.getElementById('pmCliente').value;
+async function salvarPedidoManual() {
+    const nomeClienteDigitado = document.getElementById('pmCliente').value.trim();
     const status = document.getElementById('pmStatus').value;
     const formaPagamento = document.getElementById('pmFormaPagamento').value;
     const obs = document.getElementById('pmObs').value.trim();
@@ -2423,7 +2438,8 @@ function salvarPedidoManual() {
 
     if (tempItensPedidoManual.length === 0) { msgEl.textContent = 'Adiciona pelo menos 1 item.'; return; }
 
-    const cliente = clienteId ? getClienteGestao(clienteId) : null;
+    msgEl.textContent = 'Salvando...';
+    const cliente = await obterOuCriarClienteGestaoPorNome(nomeClienteDigitado);
     const subtotal = tempItensPedidoManual.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
     const descontoPercent = parseFloat(document.getElementById('pmDesconto').value.replace(',', '.')) || 0;
     const frete = parseFloat(document.getElementById('pmFrete').value.replace(',', '.')) || 0;
@@ -2468,6 +2484,7 @@ function salvarPedidoManual() {
         .then(() => {
             msgEl.textContent = 'Pedido salvo!';
             tempItensPedidoManual = [];
+            document.getElementById('pmCliente').value = '';
             document.getElementById('pmDesconto').value = '0';
             document.getElementById('pmFrete').value = '0';
             document.getElementById('pmObs').value = '';
@@ -2804,6 +2821,52 @@ function acharPorNome(lista, nome) {
 
 const MAPA_STATUS_PEDIDO_ANTIGO = { pendente: 'pendente', 'produção': 'aceito', em_rota: 'em_rota', entregue: 'entregue', cancelado: 'recusado' };
 
+// Verifica bases e fichas técnicas com componentes "órfãos" (apontando pra um
+// ingrediente/base que não existe mais) — útil pra achar dados de uma importação
+// antiga, feita antes desse reconhecimento de formato existir
+function diagnosticarComponentesQuebrados() {
+    const div = document.getElementById('resultadoDiagnostico');
+    const problemas = [];
+
+    function componenteQuebrado(c) {
+        const idBase = idBaseComponente(c);
+        if (idBase) return !getBase(idBase);
+        const idIng = idIngredienteComponente(c);
+        if (idIng) return !ingredientes.find(i => i.id === idIng);
+        return true; // nem base nem ingrediente reconhecido — formato desconhecido
+    }
+
+    bases.forEach(b => {
+        const quebrados = (b.componentes || []).filter(componenteQuebrado);
+        if (quebrados.length > 0) problemas.push({ tipo: 'Base', nome: b.nome, qtdQuebrados: quebrados.length, qtdTotal: (b.componentes || []).length });
+    });
+    fichaTecnica.forEach(p => {
+        const quebrados = (p.componentes || []).filter(componenteQuebrado);
+        if (quebrados.length > 0) problemas.push({ tipo: 'Ficha Técnica', nome: p.nome, qtdQuebrados: quebrados.length, qtdTotal: (p.componentes || []).length });
+    });
+
+    if (problemas.length === 0) {
+        div.innerHTML = '<p class="dica-secao">✅ Nenhum problema encontrado — todas as referências estão certinhas.</p>';
+        return;
+    }
+
+    div.innerHTML = `
+        <p class="dica-secao">⚠️ Achei ${problemas.length} item(ns) com referência quebrada. O jeito mais simples de corrigir: exclui o item aqui embaixo, e roda a importação de novo com o mesmo arquivo de backup — ele será recriado certinho.</p>
+        ${problemas.map(p => `<p>🔴 <strong>${p.tipo}:</strong> ${p.nome} (${p.qtdQuebrados} de ${p.qtdTotal} componente(s) quebrado(s))</p>`).join('')}
+    `;
+}
+
+// Remapeia um componente (ingrediente ou base) do id antigo pro novo — reconhece tanto
+// o formato novo ({tipo, id}) quanto um mais antigo do Sistema de Gestão anterior
+// ({ingredienteId}, sempre ingrediente) — e SEMPRE devolve já no formato novo,
+// corrigindo dados antigos de uma vez por todas na hora de importar
+function remapComponenteImportado(c, mapaIngredientes, mapaBases) {
+    if (c.tipo === 'ingrediente') return { tipo: 'ingrediente', id: mapaIngredientes[c.id] || c.id, quantidade: c.quantidade };
+    if (c.tipo === 'base') return { tipo: 'base', id: mapaBases[c.id] || c.id, quantidade: c.quantidade };
+    if (!c.tipo && c.ingredienteId) return { tipo: 'ingrediente', id: mapaIngredientes[c.ingredienteId] || c.ingredienteId, quantidade: c.quantidade };
+    return c;
+}
+
 async function importarBackupSistemaGestao() {
     const input = document.getElementById('inputImportarBackupGestao');
     const msgEl = document.getElementById('msgImportarBackup');
@@ -2846,11 +2909,7 @@ async function importarBackupSistemaGestao() {
                 basesCriadasAgora.push({ novoId: ref.key, componentesOriginais: base.componentes || [] });
             }
             for (const b of basesCriadasAgora) {
-                const corrigidos = b.componentesOriginais.map(c => {
-                    if (c.tipo === 'ingrediente') return { ...c, id: mapaIngredientes[c.id] || c.id };
-                    if (c.tipo === 'base') return { ...c, id: mapaBases[c.id] || c.id };
-                    return c;
-                });
+                const corrigidos = b.componentesOriginais.map(c => remapComponenteImportado(c, mapaIngredientes, mapaBases));
                 await db.ref('bases/' + b.novoId + '/componentes').set(corrigidos);
             }
 
@@ -2867,11 +2926,7 @@ async function importarBackupSistemaGestao() {
                 produtosCriadosAgora.push({ novoId: ref.key, componentesOriginais: componentes || [] });
             }
             for (const p of produtosCriadosAgora) {
-                const corrigidos = p.componentesOriginais.map(c => {
-                    if (c.tipo === 'ingrediente') return { ...c, id: mapaIngredientes[c.id] || c.id };
-                    if (c.tipo === 'base') return { ...c, id: mapaBases[c.id] || c.id };
-                    return c;
-                });
+                const corrigidos = p.componentesOriginais.map(c => remapComponenteImportado(c, mapaIngredientes, mapaBases));
                 await db.ref('fichaTecnica/' + p.novoId + '/componentes').set(corrigidos);
             }
 

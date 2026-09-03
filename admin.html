@@ -805,7 +805,8 @@
                         <div class="produto-admin-linha">
                             <div class="campo-com-label">
                                 <label class="campo-label">Cliente</label>
-                                <select id="pmCliente"></select>
+                                <input type="text" id="pmCliente" list="pmClientesDatalist" placeholder="Digite ou escolhe o nome do cliente">
+                                <datalist id="pmClientesDatalist"></datalist>
                             </div>
                             <div class="campo-com-label">
                                 <label class="campo-label">Status</label>
@@ -1007,15 +1008,22 @@
 
                 <div class="gestao-subconteudo" data-subtab-content="sub-importar" style="display:none;">
                     <div class="loja-status-card">
+                        <h3>🩺 Diagnóstico de dados</h3>
+                        <p class="dica-secao">Verifica se alguma base ou ficha técnica está com referência quebrada (aponta pra um ingrediente/base que não existe mais) — útil depois de importar dados antigos.</p>
+                        <button class="btn-salvar-ordem" onclick="diagnosticarComponentesQuebrados()">🩺 Verificar agora</button>
+                        <div id="resultadoDiagnostico" style="margin-top:10px;"></div>
+                    </div>
+
+                    <div class="loja-status-card" style="margin-top:16px;">
                         <h3>📥 Importar do Sistema de Gestão antigo</h3>
                         <p class="dica-secao">
                             No Sistema de Gestão que você já usa (arquivo local), vai na aba "Backup" e clica em
                             "⬇️ Baixar Backup (JSON)". Depois escolhe esse arquivo aqui embaixo.
                         </p>
                         <p class="dica-secao">
-                            ⚠️ Só importa <strong>Ingredientes</strong> e <strong>Bases</strong> por enquanto — as
-                            próximas peças (Ficha Técnica, Clientes, Pedidos) vão poder ser importadas assim que
-                            forem construídas. Isso <strong>adiciona</strong> ao que já existe aqui, nunca apaga nada.
+                            Importa Ingredientes, Bases, Ficha Técnica, Clientes e Pedidos — item que já existir
+                            aqui (mesmo nome/telefone) é reaproveitado, nunca duplicado. Isso <strong>adiciona</strong>
+                            ao que já existe, nunca apaga nada.
                         </p>
                         <input type="file" id="inputImportarBackupGestao" accept=".json">
                         <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="importarBackupSistemaGestao()">📥 Importar</button>
