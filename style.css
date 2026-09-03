@@ -1496,3 +1496,9 @@ footer {
     0%, 100% { box-shadow: var(--shadow); }
     50% { box-shadow: 0 0 0 4px var(--accent); }
 }
+
+/* Aviso amigável quando o cardápio ainda não tem nenhum produto cadastrado */
+.cardapio-vazio-aviso {
+    text-align: center;
+    padding: 60px 20px;
+}

@@ -1040,6 +1040,19 @@ function renderizarProdutos() {
     // "produtos" continua intacta, usada em outros lugares (tipo o modal de adicionais)
     const produtosVisiveis = produtos.filter(p => !p.escondido);
 
+    // Cardápio sem nenhum produto ainda (loja recém-criada, ou tudo escondido) — mostra
+    // um aviso amigável em vez de deixar a tela em branco, parecendo quebrada
+    if (produtosVisiveis.length === 0) {
+        listaProdutosDiv.innerHTML = `
+            <div class="cardapio-vazio-aviso">
+                <p style="font-size:2.5em; margin-bottom:10px;">🧁</p>
+                <p style="font-size:1.2em; font-weight:600;">Em breve, nosso cardápio completo!</p>
+                <p style="color:var(--muted);">Estamos preparando tudo com carinho — volta aqui em instantes.</p>
+            </div>
+        `;
+        return;
+    }
+
     // Agrupa os produtos por categoria, respeitando a ordem definida no painel
     const categoriasNaOrdem = ordenarCategorias([...new Set(produtosVisiveis.map(produto => produto.categoria))]);
 
