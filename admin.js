@@ -355,7 +355,8 @@ const RECURSOS_MESTRE = [
     { chave: 'adicionais', nome: '➕ Adicionais por Produto' },
     { chave: 'pedidoMinimo', nome: '🛒 Pedido Mínimo e Frete Grátis' },
     { chave: 'areasDeEntrega', nome: '🚚 Áreas de Entrega' },
-    { chave: 'esconderProduto', nome: '🙈 Esconder Produto do cardápio' }
+    { chave: 'esconderProduto', nome: '🙈 Esconder Produto do cardápio' },
+    { chave: 'gestaoCompleta', nome: '📊 Gestão Completa (ingredientes, ficha técnica, estoque)' }
 ];
 
 const appsClientesMestre = {}; // indice -> { app, auth, db, autenticado }
@@ -1368,7 +1369,8 @@ const MAPA_RECURSOS = {
     adicionais: { cards: ['cardAdicionaisPorProduto'] },
     pedidoMinimo: { cards: ['cardPedidoMinimoFreteGratis'] },
     areasDeEntrega: { cards: ['cardAreasDeEntrega'] },
-    esconderProduto: { classesCorpo: ['ocultar-campo-esconder-produto'] }
+    esconderProduto: { classesCorpo: ['ocultar-campo-esconder-produto'] },
+    gestaoCompleta: { abas: ['gestao-ingredientes'] }
 };
 
 function aplicarRecursosLiberados(recursos) {
@@ -1666,6 +1668,102 @@ function cancelarNotificacaoAgendadaDoPainel(id) {
     if (!confirm('Cancelar essa notificação agendada?')) return;
     firebase.functions().httpsCallable('cancelarNotificacaoAgendada')({ id })
         .catch(err => alert('Não foi possível cancelar: ' + err.message));
+}
+
+// ---------- Sistema de Gestão — Ingredientes ----------
+let ingredientes = [];
+let editingIngredienteId = null;
+
+function escutarIngredientes() {
+    db.ref('ingredientes').on('value', snap => {
+        const val = snap.val() || {};
+        ingredientes = Object.entries(val).map(([id, ing]) => ({ id, ...ing }));
+        renderIngredientes();
+    });
+}
+
+function custoUnitIngrediente(ing) {
+    if (!ing || !ing.qtdComprada) return 0;
+    return ing.precoComprado / ing.qtdComprada;
+}
+
+function salvarIngrediente() {
+    const nome = document.getElementById('ingNome').value.trim();
+    const unidade = document.getElementById('ingUnidade').value;
+    const qtdComprada = parseFloat(document.getElementById('ingQtdComprada').value.replace(',', '.'));
+    const precoComprado = parseFloat(document.getElementById('ingPreco').value.replace(',', '.'));
+    const estoqueAtual = parseFloat(document.getElementById('ingEstoqueAtual').value.replace(',', '.'));
+    const estoqueMinimo = parseFloat(document.getElementById('ingEstoqueMinimo').value.replace(',', '.'));
+    const msgEl = document.getElementById('msgIngrediente');
+
+    if (!nome || !qtdComprada || !precoComprado || isNaN(estoqueAtual) || isNaN(estoqueMinimo)) {
+        msgEl.textContent = 'Preenche todos os campos.';
+        return;
+    }
+
+    const obj = { nome, unidade, qtdComprada, precoComprado, estoqueAtual, estoqueMinimo };
+    msgEl.textContent = 'Salvando...';
+
+    const promessa = editingIngredienteId
+        ? db.ref('ingredientes/' + editingIngredienteId).update(obj)
+        : db.ref('ingredientes').push(obj);
+
+    promessa.then(() => {
+        msgEl.textContent = 'Salvo!';
+        ['ingNome', 'ingQtdComprada', 'ingPreco', 'ingEstoqueAtual', 'ingEstoqueMinimo'].forEach(id => document.getElementById(id).value = '');
+        if (editingIngredienteId) {
+            editingIngredienteId = null;
+            document.getElementById('btnSalvarIngrediente').textContent = '+ Adicionar Ingrediente';
+        }
+    }).catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+}
+
+function renderIngredientes() {
+    const busca = (document.getElementById('buscaIngrediente').value || '').toLowerCase();
+    const container = document.getElementById('listaIngredientes');
+    const filtrados = ingredientes.filter(i => i.nome.toLowerCase().includes(busca));
+
+    if (filtrados.length === 0) {
+        container.innerHTML = '<p class="dica-secao">Nenhum ingrediente cadastrado ainda.</p>';
+        return;
+    }
+
+    container.innerHTML = filtrados.map(ing => {
+        const custoUnit = custoUnitIngrediente(ing);
+        const baixo = (ing.estoqueAtual || 0) < (ing.estoqueMinimo || 0);
+        return `
+            <div class="pedido-card" style="margin-top:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <strong>${ing.nome}</strong>
+                    <span class="pedido-tag ${baixo ? 'tag-pagamento-divergente' : 'tag-pagamento-pago'}">${baixo ? '⚠️ Estoque baixo' : 'OK'}</span>
+                </div>
+                <p style="margin:4px 0; font-size:0.85em; color:var(--muted);">
+                    ${formatarPreco(custoUnit)}/${ing.unidade} · Estoque: ${(ing.estoqueAtual || 0).toFixed(2)} ${ing.unidade}
+                </p>
+                <button class="btn-secondary" onclick="editarIngrediente('${ing.id}')">✏️ Editar</button>
+                <button class="btn-excluir-cupom" onclick="excluirIngrediente('${ing.id}')">🗑️</button>
+            </div>
+        `;
+    }).join('');
+}
+
+function editarIngrediente(id) {
+    const ing = ingredientes.find(i => i.id === id);
+    if (!ing) return;
+    document.getElementById('ingNome').value = ing.nome;
+    document.getElementById('ingUnidade').value = ing.unidade;
+    document.getElementById('ingQtdComprada').value = ing.qtdComprada;
+    document.getElementById('ingPreco').value = ing.precoComprado;
+    document.getElementById('ingEstoqueAtual').value = ing.estoqueAtual;
+    document.getElementById('ingEstoqueMinimo').value = ing.estoqueMinimo;
+    editingIngredienteId = id;
+    document.getElementById('btnSalvarIngrediente').textContent = 'Atualizar Ingrediente';
+    document.getElementById('tituloCadastroIngrediente').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function excluirIngrediente(id) {
+    if (!confirm('Excluir este ingrediente? Se ele estiver em uso em alguma base ou produto, isso pode afetar o cálculo de custo deles.')) return;
+    db.ref('ingredientes/' + id).remove().catch(err => alert('Erro ao excluir: ' + err.message));
 }
 
 function carregarClientesInativos() {
@@ -2769,6 +2867,7 @@ function iniciarEscutaPedidos() {
     escutarRecursosLiberados();
     renderizarListaPendenteBloqueio();
     escutarHistoricoNotificacoes();
+    escutarIngredientes();
     const previaLojaNomeEl = document.getElementById('previaLojaNome');
     if (previaLojaNomeEl) previaLojaNomeEl.textContent = LOJA_CONFIG.nome;
     escutarConfigSomAlerta();
