@@ -953,3 +953,25 @@ body {
    produto quando o recurso correspondente não estiver liberado pro cliente */
 body.ocultar-campo-esconder-produto .campo-esconder-produto { display: none; }
 body.ocultar-campo-encomenda-produto .campo-encomenda-produto { display: none; }
+
+/* Sub-abas dentro de "Gestão Completa" — visual parecido com as abas principais,
+   mas classe própria (não pode reaproveitar .painel-tab-btn: isso fazia esses botões
+   serem "pegos" pelo código de troca das abas principais, escondendo a tela toda) */
+.gestao-subtab-btn {
+    background: var(--bg);
+    color: var(--primary);
+    border: 1px solid var(--border);
+    padding: 8px 14px;
+    border-radius: 18px;
+    font-weight: 700;
+    font-family: inherit;
+    font-size: 0.85em;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.gestao-subtab-btn:hover { background: #f0e4d0; }
+.gestao-subtab-btn.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
