@@ -1370,7 +1370,7 @@ const MAPA_RECURSOS = {
     pedidoMinimo: { cards: ['cardPedidoMinimoFreteGratis'] },
     areasDeEntrega: { cards: ['cardAreasDeEntrega'] },
     esconderProduto: { classesCorpo: ['ocultar-campo-esconder-produto'] },
-    gestaoCompleta: { abas: ['gestao-ingredientes'] }
+    gestaoCompleta: { abas: ['gestao-ingredientes', 'gestao-bases'] }
 };
 
 function aplicarRecursosLiberados(recursos) {
@@ -1679,6 +1679,7 @@ function escutarIngredientes() {
         const val = snap.val() || {};
         ingredientes = Object.entries(val).map(([id, ing]) => ({ id, ...ing }));
         renderIngredientes();
+        if (typeof popularSelectComponenteBase === 'function') popularSelectComponenteBase();
     });
 }
 
@@ -1764,6 +1765,195 @@ function editarIngrediente(id) {
 function excluirIngrediente(id) {
     if (!confirm('Excluir este ingrediente? Se ele estiver em uso em alguma base ou produto, isso pode afetar o cálculo de custo deles.')) return;
     db.ref('ingredientes/' + id).remove().catch(err => alert('Erro ao excluir: ' + err.message));
+}
+
+// ---------- Sistema de Gestão — Bases ----------
+let bases = [];
+let tempBaseComponentes = [];
+let editingBaseId = null;
+
+function escutarBases() {
+    db.ref('bases').on('value', snap => {
+        const val = snap.val() || {};
+        bases = Object.entries(val).map(([id, b]) => ({ id, ...b }));
+        renderBases();
+        popularSelectComponenteBase();
+    });
+}
+
+function getBase(id) { return bases.find(b => b.id === id); }
+function idIngredienteComponente(c) { return c.tipo === 'ingrediente' ? c.id : null; }
+function idBaseComponente(c) { return c.tipo === 'base' ? c.id : null; }
+
+// Verifica se "candidataId" já usa (direta ou indiretamente) "baseAlvoId" — evita
+// que uma base acabe dependendo dela mesma através de uma cadeia de outras bases
+function baseUsaBase(candidataId, baseAlvoId, visitados) {
+    if (!baseAlvoId) return false;
+    if (candidataId === baseAlvoId) return true;
+    visitados = visitados || new Set();
+    if (visitados.has(candidataId)) return false;
+    visitados.add(candidataId);
+    const candidata = getBase(candidataId);
+    if (!candidata) return false;
+    return candidata.componentes.some(c => {
+        const subId = idBaseComponente(c);
+        return subId && (subId === baseAlvoId || baseUsaBase(subId, baseAlvoId, visitados));
+    });
+}
+
+// Calcula o custo total e por unidade de uma base, somando ingredientes e
+// outras bases usadas dentro dela (recursivo, com proteção extra contra loop)
+function calcularBase(base, visitados) {
+    visitados = visitados ? new Set(visitados) : new Set();
+    if (visitados.has(base.id)) return { custoTotal: 0, custoPorUnidade: 0 };
+    visitados.add(base.id);
+
+    let custoTotal = 0;
+    base.componentes.forEach(c => {
+        const baseId = idBaseComponente(c);
+        if (baseId) {
+            const subBase = getBase(baseId);
+            if (subBase) {
+                const { custoPorUnidade } = calcularBase(subBase, visitados);
+                custoTotal += custoPorUnidade * c.quantidade;
+            }
+        } else {
+            const ing = ingredientes.find(i => i.id === idIngredienteComponente(c));
+            if (ing) custoTotal += custoUnitIngrediente(ing) * c.quantidade;
+        }
+    });
+    const custoPorUnidade = base.rendimento ? custoTotal / base.rendimento : 0;
+    return { custoTotal, custoPorUnidade };
+}
+
+function popularSelectComponenteBase() {
+    const sel = document.getElementById('selectIngredienteBase');
+    const valorAtual = sel.value;
+    const outrasBases = bases.filter(b => b.id !== editingBaseId);
+    sel.innerHTML = '<option value="">Selecione</option>'
+        + '<optgroup label="Ingredientes">' + ingredientes.map(i => `<option value="ingrediente_${i.id}">${i.nome}</option>`).join('') + '</optgroup>'
+        + '<optgroup label="Bases">' + outrasBases.map(b => `<option value="base_${b.id}">${b.nome}</option>`).join('') + '</optgroup>';
+    sel.value = valorAtual;
+}
+
+function adicionarComponenteBase() {
+    const val = document.getElementById('selectIngredienteBase').value;
+    const qtd = parseFloat(document.getElementById('qtdComponenteBase').value.replace(',', '.'));
+    if (!val || !qtd) { alert('Seleciona um item e informa a quantidade.'); return; }
+    const idx = val.indexOf('_');
+    const tipoRaw = val.substring(0, idx);
+    const compId = val.substring(idx + 1);
+    if (tipoRaw === 'base' && baseUsaBase(compId, editingBaseId)) {
+        alert('Não é possível usar essa base aqui: isso criaria uma referência circular.');
+        return;
+    }
+    tempBaseComponentes.push({ tipo: tipoRaw === 'base' ? 'base' : 'ingrediente', id: compId, quantidade: qtd });
+    document.getElementById('qtdComponenteBase').value = '';
+    renderTempBaseComponentes();
+}
+
+function removerComponenteBase(i) { tempBaseComponentes.splice(i, 1); renderTempBaseComponentes(); }
+
+function renderTempBaseComponentes() {
+    const div = document.getElementById('listaComponentesBase');
+    div.innerHTML = '';
+    let total = 0;
+    tempBaseComponentes.forEach((c, i) => {
+        let nome = '', custo = 0, unidade = '';
+        const baseId = idBaseComponente(c);
+        if (baseId) {
+            const b = getBase(baseId);
+            if (b) { const { custoPorUnidade } = calcularBase(b); nome = b.nome + ' (base)'; custo = custoPorUnidade * c.quantidade; unidade = b.unidadeRendimento; }
+            else nome = '(base removida)';
+        } else {
+            const ing = ingredientes.find(x => x.id === idIngredienteComponente(c));
+            if (ing) { nome = ing.nome; custo = custoUnitIngrediente(ing) * c.quantidade; unidade = ing.unidade; }
+            else nome = '(removido)';
+        }
+        total += custo;
+        const linha = document.createElement('div');
+        linha.style.cssText = 'display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border);';
+        linha.innerHTML = `<span>${nome} — ${c.quantidade}${unidade} = ${formatarPreco(custo)}</span>
+            <button class="btn-excluir-cupom" onclick="removerComponenteBase(${i})">🗑️</button>`;
+        div.appendChild(linha);
+    });
+    document.getElementById('custoTotalBaseTemp').textContent = formatarPreco(total);
+}
+
+function salvarBase() {
+    const nome = document.getElementById('baseNome').value.trim();
+    const tipo = document.getElementById('baseTipo').value;
+    const rendimento = parseFloat(document.getElementById('baseRendimento').value.replace(',', '.'));
+    const unidadeRendimento = document.getElementById('baseUnidadeRendimento').value;
+    const msgEl = document.getElementById('msgBase');
+
+    if (!nome || !rendimento || tempBaseComponentes.length === 0) {
+        msgEl.textContent = 'Preenche nome, rendimento e adiciona ao menos um ingrediente/base.';
+        return;
+    }
+
+    const obj = { nome, tipo, rendimento, unidadeRendimento, componentes: [...tempBaseComponentes] };
+    msgEl.textContent = 'Salvando...';
+
+    const promessa = editingBaseId
+        ? db.ref('bases/' + editingBaseId).update(obj)
+        : db.ref('bases').push(obj);
+
+    promessa.then(() => {
+        msgEl.textContent = 'Salvo!';
+        tempBaseComponentes = [];
+        document.getElementById('baseNome').value = '';
+        document.getElementById('baseRendimento').value = '';
+        renderTempBaseComponentes();
+        if (editingBaseId) {
+            editingBaseId = null;
+            document.getElementById('btnSalvarBase').textContent = 'Salvar Base';
+        }
+    }).catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+}
+
+function renderBases() {
+    const container = document.getElementById('listaBases');
+    if (bases.length === 0) {
+        container.innerHTML = '<p class="dica-secao">Nenhuma base cadastrada ainda.</p>';
+        return;
+    }
+    container.innerHTML = bases.map(b => {
+        const { custoTotal, custoPorUnidade } = calcularBase(b);
+        return `
+            <div class="pedido-card" style="margin-top:8px;">
+                <strong>${b.nome}</strong> <span class="dica-secao">(${b.tipo})</span>
+                <p style="margin:4px 0; font-size:0.85em; color:var(--muted);">
+                    Rendimento: ${b.rendimento}${b.unidadeRendimento} · Custo total: ${formatarPreco(custoTotal)} · ${formatarPreco(custoPorUnidade)}/${b.unidadeRendimento}
+                </p>
+                <button class="btn-secondary" onclick="editarBase('${b.id}')">✏️ Editar</button>
+                <button class="btn-excluir-cupom" onclick="excluirBase('${b.id}')">🗑️</button>
+            </div>
+        `;
+    }).join('');
+}
+
+function editarBase(id) {
+    const b = getBase(id);
+    if (!b) return;
+    document.getElementById('baseNome').value = b.nome;
+    document.getElementById('baseTipo').value = b.tipo;
+    document.getElementById('baseRendimento').value = b.rendimento;
+    document.getElementById('baseUnidadeRendimento').value = b.unidadeRendimento;
+    tempBaseComponentes = b.componentes.map(c => ({ ...c }));
+    editingBaseId = id;
+    document.getElementById('btnSalvarBase').textContent = 'Atualizar Base';
+    popularSelectComponenteBase();
+    renderTempBaseComponentes();
+    document.getElementById('tituloCadastroBase').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function excluirBase(id) {
+    const usadaEmOutrasBases = bases.some(b => b.id !== id && b.componentes.some(c => idBaseComponente(c) === id));
+    let msg = 'Excluir esta base?';
+    if (usadaEmOutrasBases) msg += '\n\nEla está em uso em outra base — isso pode quebrar o cálculo de custo dela.';
+    if (!confirm(msg)) return;
+    db.ref('bases/' + id).remove().catch(err => alert('Erro ao excluir: ' + err.message));
 }
 
 function carregarClientesInativos() {
@@ -2868,6 +3058,7 @@ function iniciarEscutaPedidos() {
     renderizarListaPendenteBloqueio();
     escutarHistoricoNotificacoes();
     escutarIngredientes();
+    escutarBases();
     const previaLojaNomeEl = document.getElementById('previaLojaNome');
     if (previaLojaNomeEl) previaLojaNomeEl.textContent = LOJA_CONFIG.nome;
     escutarConfigSomAlerta();

@@ -63,6 +63,7 @@
             <button class="painel-tab-btn" data-tab="fidelidade">⭐ Fidelidade</button>
             <button class="painel-tab-btn" data-tab="mensagens">💌 Clientes</button>
             <button class="painel-tab-btn" id="btnAbaIngredientes" data-tab="gestao-ingredientes" style="display:none;">🥄 Ingredientes</button>
+            <button class="painel-tab-btn" data-tab="gestao-bases" style="display:none;">🍰 Bases</button>
             <button class="painel-tab-btn" data-tab="loja">🏪 Loja</button>
             <button class="painel-tab-btn" data-tab="agenda">📅 Agenda</button>
             <button class="painel-tab-btn" data-tab="visitantes">👀 Visitantes</button>
@@ -579,6 +580,55 @@
                 <div class="loja-status-card" style="margin-top:16px;">
                     <input type="text" id="buscaIngrediente" placeholder="🔍 Pesquisar ingrediente..." oninput="renderIngredientes()">
                     <div id="listaIngredientes" style="margin-top:10px;"></div>
+                </div>
+            </section>
+
+            <section data-tab="gestao-bases">
+                <h2>🍰 Bases</h2>
+                <p class="dica-secao">Ex: Bolo de Chocolate, Recheio de Ninho com Nutella. Uma base pode usar ingredientes E outras bases.</p>
+
+                <div class="loja-status-card">
+                    <h3 id="tituloCadastroBase">Cadastro de Base</h3>
+                    <label class="campo-label">Nome da base</label>
+                    <input type="text" id="baseNome">
+                    <div class="produto-admin-linha" style="margin-top:10px;">
+                        <div class="campo-com-label">
+                            <label class="campo-label">Tipo</label>
+                            <select id="baseTipo">
+                                <option>Bolo</option><option>Recheio</option><option>Cobertura</option><option>Docinho</option><option>Salgado</option><option>Outro</option>
+                            </select>
+                        </div>
+                        <div class="campo-com-label">
+                            <label class="campo-label">Rendimento</label>
+                            <input type="text" inputmode="decimal" id="baseRendimento">
+                        </div>
+                    </div>
+                    <label class="campo-label" style="margin-top:10px;">Unidade do rendimento</label>
+                    <select id="baseUnidadeRendimento">
+                        <option value="g">g</option><option value="ml">ml</option><option value="un">un</option>
+                    </select>
+
+                    <h3 style="margin-top:16px;">Ingredientes/Bases usados nessa base</h3>
+                    <div class="produto-admin-linha">
+                        <div class="campo-com-label" style="flex:2;">
+                            <label class="campo-label">Ingrediente ou Base</label>
+                            <select id="selectIngredienteBase"></select>
+                        </div>
+                        <div class="campo-com-label">
+                            <label class="campo-label">Quantidade</label>
+                            <input type="text" inputmode="decimal" id="qtdComponenteBase">
+                        </div>
+                    </div>
+                    <button class="btn-secondary" style="margin-top:8px;" onclick="adicionarComponenteBase()">+ Adicionar</button>
+                    <div id="listaComponentesBase" style="margin-top:10px;"></div>
+                    <p class="dica-secao">Custo total: <strong id="custoTotalBaseTemp">R$ 0,00</strong></p>
+
+                    <button class="btn-salvar-ordem" id="btnSalvarBase" style="margin-top:10px;" onclick="salvarBase()">Salvar Base</button>
+                    <p id="msgBase" class="ordem-categorias-msg"></p>
+                </div>
+
+                <div class="loja-status-card" style="margin-top:16px;">
+                    <div id="listaBases"></div>
                 </div>
             </section>
         </main>
