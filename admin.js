@@ -1370,7 +1370,7 @@ const MAPA_RECURSOS = {
     pedidoMinimo: { cards: ['cardPedidoMinimoFreteGratis'] },
     areasDeEntrega: { cards: ['cardAreasDeEntrega'] },
     esconderProduto: { classesCorpo: ['ocultar-campo-esconder-produto'] },
-    gestaoCompleta: { abas: ['gestao'] }
+    gestaoCompleta: { abas: ['gestao'], classesCorpo: ['ocultar-campo-ficha-tecnica'] }
 };
 
 function aplicarRecursosLiberados(recursos) {
@@ -2602,6 +2602,13 @@ function montarLinhaProduto(id, produto) {
                 <input type="checkbox" id="prodEncomenda_${id}" ${produto.disponivelParaEncomenda ? 'checked' : ''}> 🎂 Disponível pra Encomenda
             </label>
         </div>
+        <div class="campo-vincular-ficha-tecnica" style="margin-top:8px;">
+            <label class="campo-label">📋 Vincular à Ficha Técnica (opcional — permite consumir estoque automaticamente)</label>
+            <select id="prodFichaTecnica_${id}">
+                <option value="">— Nenhuma —</option>
+                ${fichaTecnica.map(ft => `<option value="${ft.id}" ${produto.fichaTecnicaId === ft.id ? 'selected' : ''}>${ft.nome}</option>`).join('')}
+            </select>
+        </div>
         <textarea id="prodDesc_${id}" placeholder="Descrição" rows="2">${produto.descricao || ''}</textarea>
 
         <div class="produto-admin-linha">
@@ -2784,6 +2791,8 @@ function salvarProduto(id) {
     const disponivel = document.getElementById('prodDisp_' + id).checked;
     const escondido = document.getElementById('prodEscondido_' + id).checked;
     const disponivelParaEncomenda = document.getElementById('prodEncomenda_' + id).checked;
+    const campoFichaTecnica = document.getElementById('prodFichaTecnica_' + id);
+    const fichaTecnicaId = campoFichaTecnica ? (campoFichaTecnica.value || null) : null;
     const variantesTexto = document.getElementById('prodVariantes_' + id).value.trim();
     const adicionaisTexto = document.getElementById('prodAdicionais_' + id).value.trim();
 
@@ -2794,7 +2803,7 @@ function salvarProduto(id) {
         return;
     }
 
-    const dados = { nome, descricao, preco, imagem: imagens[0], imagens, categoria, disponivel, escondido, disponivelParaEncomenda, precoOriginal: null, variantes: null, grupoAdicionais: null };
+    const dados = { nome, descricao, preco, imagem: imagens[0], imagens, categoria, disponivel, escondido, disponivelParaEncomenda, fichaTecnicaId, precoOriginal: null, variantes: null, grupoAdicionais: null };
 
     if (!isNaN(precoOriginal) && precoOriginal > preco) {
         dados.precoOriginal = precoOriginal;

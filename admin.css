@@ -975,3 +975,7 @@ body.ocultar-campo-encomenda-produto .campo-encomenda-produto { display: none; }
     color: #fff;
     border-color: var(--primary);
 }
+
+/* Esconde o campo de vincular ficha técnica se o recurso "Gestão Completa" não
+   estiver liberado — não faz sentido mostrar isso sem o resto do sistema */
+body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; }
