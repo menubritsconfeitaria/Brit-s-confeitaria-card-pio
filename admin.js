@@ -1992,6 +1992,7 @@ function escutarFichaTecnica() {
         fichaTecnica = Object.entries(val).map(([id, p]) => ({ id, ...p }));
         renderFichaTecnica();
         if (typeof popularSelectProdutoPedidoManual === 'function') popularSelectProdutoPedidoManual();
+        if (typeof renderRelatorioCustos === 'function') renderRelatorioCustos();
     });
 }
 
@@ -2465,6 +2466,194 @@ function salvarPedidoManual() {
             renderItensPedidoManual();
         })
         .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+}
+
+// ---------- Sistema de Gestão — Dashboard e Relatórios ----------
+let chartFaturamentoInstancia = null, chartLucroInstancia = null, chartTopProdutosInstancia = null;
+
+function filtrarDashboardPeriodo(tipo) {
+    const hoje = new Date();
+    let inicio, fim, rotulo;
+    fim = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 23, 59, 59, 999);
+
+    if (tipo === 'hoje') {
+        inicio = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 0, 0, 0, 0);
+        rotulo = 'Hoje';
+    } else if (tipo === '7') {
+        inicio = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - 6, 0, 0, 0, 0);
+        rotulo = 'Últimos 7 dias';
+    } else if (tipo === '30') {
+        inicio = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - 29, 0, 0, 0, 0);
+        rotulo = 'Últimos 30 dias';
+    } else if (tipo === 'mes') {
+        inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1, 0, 0, 0, 0);
+        rotulo = 'Este mês';
+    } else if (tipo === 'tudo') {
+        inicio = new Date(2000, 0, 1);
+        rotulo = 'Tudo';
+    } else { // custom
+        const de = document.getElementById('dashPeriodoDe').value;
+        const ate = document.getElementById('dashPeriodoAte').value;
+        if (!de || !ate) { alert('Escolhe as duas datas.'); return; }
+        const [aI, mI, dI] = de.split('-').map(Number);
+        const [aF, mF, dF] = ate.split('-').map(Number);
+        inicio = new Date(aI, mI - 1, dI, 0, 0, 0, 0);
+        fim = new Date(aF, mF - 1, dF, 23, 59, 59, 999);
+        rotulo = `${de.split('-').reverse().join('/')} a ${ate.split('-').reverse().join('/')}`;
+    }
+
+    document.getElementById('dashPeriodoLabel').textContent = 'Período selecionado: ' + rotulo;
+    carregarDashboard(inicio.getTime(), fim.getTime());
+}
+
+function carregarDashboard(inicio, fim) {
+    db.ref('pedidos').once('value').then(snap => {
+        const val = snap.val() || {};
+        const pedidosDoPeriodo = Object.values(val).filter(p => {
+            const dataPedido = p.timestamp || p.criadoEm || 0;
+            return p.status === 'entregue' && dataPedido >= inicio && dataPedido <= fim;
+        });
+
+        let faturamento = 0, cmv = 0;
+        const porMes = {}; // "AAAA-MM" -> { faturamento, lucro }
+        const porProduto = {}; // nome -> quantidade vendida
+
+        pedidosDoPeriodo.forEach(p => {
+            faturamento += p.total || 0;
+            const dataPedido = new Date(p.timestamp || p.criadoEm || 0);
+            const chaveMes = `${dataPedido.getFullYear()}-${String(dataPedido.getMonth() + 1).padStart(2, '0')}`;
+            if (!porMes[chaveMes]) porMes[chaveMes] = { faturamento: 0, lucro: 0 };
+            porMes[chaveMes].faturamento += p.total || 0;
+
+            let cmvDoPedido = 0;
+            (p.itens || []).forEach(item => {
+                porProduto[item.nome] = (porProduto[item.nome] || 0) + item.quantidade;
+                const ftId = item.fichaTecnicaId || null;
+                if (ftId) {
+                    const ft = getFichaTecnica(ftId);
+                    if (ft) {
+                        const r = calcularCustoFichaTecnica(ft);
+                        cmvDoPedido += r.custoUnitarioFinal * item.quantidade;
+                    }
+                }
+            });
+            cmv += cmvDoPedido;
+            porMes[chaveMes].lucro += (p.total || 0) - cmvDoPedido;
+        });
+
+        const lucro = arred(faturamento - cmv);
+        const qtdPedidos = pedidosDoPeriodo.length;
+        const ticketMedio = qtdPedidos > 0 ? arred(faturamento / qtdPedidos) : 0;
+
+        document.getElementById('dashFaturamento').textContent = formatarPreco(arred(faturamento));
+        document.getElementById('dashCMV').textContent = formatarPreco(arred(cmv));
+        document.getElementById('dashLucro').textContent = formatarPreco(lucro);
+        document.getElementById('dashPedidos').textContent = qtdPedidos;
+        document.getElementById('dashTicket').textContent = formatarPreco(ticketMedio);
+
+        desenharGraficosDashboard(porMes, porProduto);
+    });
+}
+
+function desenharGraficosDashboard(porMes, porProduto) {
+    if (typeof Chart === 'undefined') return; // biblioteca ainda não carregou
+
+    const mesesOrdenados = Object.keys(porMes).sort();
+    const rotulosMeses = mesesOrdenados.map(m => {
+        const [ano, mes] = m.split('-');
+        return `${['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'][mes - 1]}/${ano.slice(2)}`;
+    });
+
+    if (chartFaturamentoInstancia) chartFaturamentoInstancia.destroy();
+    chartFaturamentoInstancia = new Chart(document.getElementById('chartFaturamento'), {
+        type: 'bar',
+        data: { labels: rotulosMeses, datasets: [{ label: 'Faturamento', data: mesesOrdenados.map(m => arred(porMes[m].faturamento)), backgroundColor: '#a0522d' }] },
+        options: { responsive: true }
+    });
+
+    if (chartLucroInstancia) chartLucroInstancia.destroy();
+    chartLucroInstancia = new Chart(document.getElementById('chartLucro'), {
+        type: 'bar',
+        data: { labels: rotulosMeses, datasets: [{ label: 'Lucro', data: mesesOrdenados.map(m => arred(porMes[m].lucro)), backgroundColor: '#c9974c' }] },
+        options: { responsive: true }
+    });
+
+    const topProdutos = Object.entries(porProduto).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    if (chartTopProdutosInstancia) chartTopProdutosInstancia.destroy();
+    chartTopProdutosInstancia = new Chart(document.getElementById('chartTopProdutos'), {
+        type: 'bar',
+        data: { labels: topProdutos.map(p => p[0]), datasets: [{ label: 'Quantidade vendida', data: topProdutos.map(p => p[1]), backgroundColor: '#a0522d' }] },
+        options: { indexAxis: 'y', responsive: true }
+    });
+}
+
+function renderRelatorioCustos() {
+    const tbody = document.getElementById('tbodyRelatorio');
+    if (!tbody) return;
+    tbody.innerHTML = fichaTecnica.map(p => {
+        const r = calcularCustoFichaTecnica(p);
+        return `
+            <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:6px;">${p.nome}</td>
+                <td style="padding:6px;">${formatarPreco(r.custoUnitarioFinal)}</td>
+                <td style="padding:6px;">${formatarPreco(r.precoVenda)}</td>
+                <td style="padding:6px;">${formatarPreco(r.lucroLiquido)}</td>
+                <td style="padding:6px;">${r.margemRealPercent}%</td>
+            </tr>
+        `;
+    }).join('');
+
+    const sel = document.getElementById('selectProdutoDetalheRelatorio');
+    if (sel) {
+        const valorAtual = sel.value;
+        sel.innerHTML = '<option value="">Selecione um produto</option>' + fichaTecnica.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+        sel.value = valorAtual;
+    }
+}
+
+function mostrarDetalheProdutoRelatorio() {
+    const id = document.getElementById('selectProdutoDetalheRelatorio').value;
+    const div = document.getElementById('detalheProdutoRelatorio');
+    if (!id) { div.innerHTML = ''; return; }
+    const p = getFichaTecnica(id);
+    if (!p) return;
+    const r = calcularCustoFichaTecnica(p);
+    div.innerHTML = `
+        <p><strong>Rendimento:</strong> ${p.rendimento} un.</p>
+        <p><strong>Componentes:</strong></p>
+        <ul>${r.detalhes.map(d => `<li>${d.nome}: ${d.quantidade}${d.unidade} = ${formatarPreco(d.custoItem)}</li>`).join('')}</ul>
+        <p><strong>Custo total da receita:</strong> ${formatarPreco(r.custoTotalReceita)}</p>
+        <p><strong>Custo unitário final:</strong> ${formatarPreco(r.custoUnitarioFinal)}</p>
+        <p><strong>Preço de venda:</strong> ${formatarPreco(r.precoVenda)}</p>
+        <p><strong>Lucro líquido/un.:</strong> ${formatarPreco(r.lucroLiquido)} (${r.margemRealPercent}%)</p>
+        <p><strong>Divisão:</strong> Empresa ${formatarPreco(r.lucroEmpresa)} · Casal ${formatarPreco(r.lucroCasal)}</p>
+    `;
+}
+
+function exportarRelatorioPDF() {
+    if (typeof window.jspdf === 'undefined') { alert('A biblioteca de exportação ainda está carregando, tenta de novo em instantes.'); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text('Relatório de Custos — ' + (LOJA_CONFIG.nome || ''), 14, 15);
+    const linhas = fichaTecnica.map(p => {
+        const r = calcularCustoFichaTecnica(p);
+        return [p.nome, formatarPreco(r.custoUnitarioFinal), formatarPreco(r.precoVenda), formatarPreco(r.lucroLiquido), r.margemRealPercent + '%'];
+    });
+    doc.autoTable({ head: [['Produto', 'Custo/un.', 'Preço', 'Lucro/un.', 'Margem']], body: linhas, startY: 22 });
+    doc.save('relatorio-custos.pdf');
+}
+
+function exportarRelatorioExcel() {
+    if (typeof XLSX === 'undefined') { alert('A biblioteca de exportação ainda está carregando, tenta de novo em instantes.'); return; }
+    const linhas = fichaTecnica.map(p => {
+        const r = calcularCustoFichaTecnica(p);
+        return { Produto: p.nome, 'Custo/un.': r.custoUnitarioFinal, 'Preço': r.precoVenda, 'Lucro/un.': r.lucroLiquido, 'Margem (%)': r.margemRealPercent };
+    });
+    const ws = XLSX.utils.json_to_sheet(linhas);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Relatório de Custos');
+    XLSX.writeFile(wb, 'relatorio-custos.xlsx');
 }
 
 async function importarBackupSistemaGestao() {

@@ -548,6 +548,8 @@
                     <button class="gestao-subtab-btn" data-subtab="sub-estoque" onclick="mostrarSubabaGestao('sub-estoque')">📦 Estoque</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-clientes-gestao" onclick="mostrarSubabaGestao('sub-clientes-gestao')">👥 Clientes</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-pedidos-manuais" onclick="mostrarSubabaGestao('sub-pedidos-manuais')">📝 Lançar Pedido</button>
+                    <button class="gestao-subtab-btn" data-subtab="sub-dashboard" onclick="mostrarSubabaGestao('sub-dashboard')">📊 Dashboard</button>
+                    <button class="gestao-subtab-btn" data-subtab="sub-relatorios" onclick="mostrarSubabaGestao('sub-relatorios')">📄 Relatórios</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-importar" onclick="mostrarSubabaGestao('sub-importar')">📥 Importar Backup</button>
                 </div>
 
@@ -857,6 +859,91 @@
                     </div>
                 </div>
 
+                <div class="gestao-subconteudo" data-subtab-content="sub-dashboard" style="display:none;">
+                    <div class="loja-status-card">
+                        <h3>📅 Relatório por período</h3>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+                            <button class="btn-secondary" onclick="filtrarDashboardPeriodo('hoje')">Hoje</button>
+                            <button class="btn-secondary" onclick="filtrarDashboardPeriodo('7')">Últimos 7 dias</button>
+                            <button class="btn-secondary" onclick="filtrarDashboardPeriodo('30')">Últimos 30 dias</button>
+                            <button class="btn-secondary" onclick="filtrarDashboardPeriodo('mes')">Este mês</button>
+                            <button class="btn-secondary" onclick="filtrarDashboardPeriodo('tudo')">Tudo</button>
+                        </div>
+                        <div class="produto-admin-linha">
+                            <div class="campo-com-label"><label class="campo-label">De</label><input type="date" id="dashPeriodoDe"></div>
+                            <div class="campo-com-label"><label class="campo-label">Até</label><input type="date" id="dashPeriodoAte"></div>
+                            <button class="btn-salvar-ordem" style="align-self:flex-end;" onclick="filtrarDashboardPeriodo('custom')">Aplicar</button>
+                        </div>
+                        <p class="dica-secao" id="dashPeriodoLabel">Período selecionado: Últimos 7 dias</p>
+                    </div>
+
+                    <div class="produto-admin-linha" style="margin-top:16px; flex-wrap:wrap;">
+                        <div class="loja-status-card" style="flex:1; min-width:130px; text-align:center;">
+                            <div style="font-size:1.4em; font-weight:700;" id="dashFaturamento">R$ 0,00</div>
+                            <div class="dica-secao">Faturamento</div>
+                        </div>
+                        <div class="loja-status-card" style="flex:1; min-width:130px; text-align:center;">
+                            <div style="font-size:1.4em; font-weight:700; color:var(--accent);" id="dashCMV">R$ 0,00</div>
+                            <div class="dica-secao">CMV</div>
+                        </div>
+                        <div class="loja-status-card" style="flex:1; min-width:130px; text-align:center;">
+                            <div style="font-size:1.4em; font-weight:700; color:var(--primary);" id="dashLucro">R$ 0,00</div>
+                            <div class="dica-secao">Lucro bruto</div>
+                        </div>
+                        <div class="loja-status-card" style="flex:1; min-width:130px; text-align:center;">
+                            <div style="font-size:1.4em; font-weight:700;" id="dashPedidos">0</div>
+                            <div class="dica-secao">Pedidos</div>
+                        </div>
+                        <div class="loja-status-card" style="flex:1; min-width:130px; text-align:center;">
+                            <div style="font-size:1.4em; font-weight:700;" id="dashTicket">R$ 0,00</div>
+                            <div class="dica-secao">Ticket médio</div>
+                        </div>
+                    </div>
+
+                    <div class="loja-status-card" style="margin-top:16px;">
+                        <h3>Faturamento por mês</h3>
+                        <canvas id="chartFaturamento" height="200"></canvas>
+                    </div>
+                    <div class="loja-status-card" style="margin-top:16px;">
+                        <h3>Lucro por mês</h3>
+                        <canvas id="chartLucro" height="200"></canvas>
+                    </div>
+                    <div class="loja-status-card" style="margin-top:16px;">
+                        <h3>Produtos mais vendidos</h3>
+                        <canvas id="chartTopProdutos" height="200"></canvas>
+                    </div>
+                </div>
+
+                <div class="gestao-subconteudo" data-subtab-content="sub-relatorios" style="display:none;">
+                    <div class="loja-status-card">
+                        <h3>Relatório de Custos</h3>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+                            <button class="btn-secondary" onclick="exportarRelatorioPDF()">📄 Exportar PDF</button>
+                            <button class="btn-secondary" onclick="exportarRelatorioExcel()">📊 Exportar Excel</button>
+                        </div>
+                        <div id="relatorioTabelaWrap" style="overflow-x:auto;">
+                            <table style="width:100%; border-collapse:collapse; font-size:0.85em;">
+                                <thead>
+                                    <tr style="text-align:left; border-bottom:2px solid var(--border);">
+                                        <th style="padding:6px;">Produto</th>
+                                        <th style="padding:6px;">Custo/un.</th>
+                                        <th style="padding:6px;">Preço</th>
+                                        <th style="padding:6px;">Lucro/un.</th>
+                                        <th style="padding:6px;">Margem</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyRelatorio"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="loja-status-card" style="margin-top:16px;">
+                        <h3>Ficha técnica detalhada</h3>
+                        <select id="selectProdutoDetalheRelatorio" onchange="mostrarDetalheProdutoRelatorio()"></select>
+                        <div id="detalheProdutoRelatorio" style="margin-top:10px;"></div>
+                    </div>
+                </div>
+
                 <div class="gestao-subconteudo" data-subtab-content="sub-importar" style="display:none;">
                     <div class="loja-status-card">
                         <h3>📥 Importar do Sistema de Gestão antigo</h3>
@@ -890,6 +977,10 @@
     <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-functions-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-storage-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="loja-config.js"></script>
     <script src="firebase-config.js"></script>
     <script src="admin.js"></script>
