@@ -544,6 +544,7 @@
                     <button class="gestao-subtab-btn active" data-subtab="sub-ingredientes" onclick="mostrarSubabaGestao('sub-ingredientes')">🥄 Ingredientes</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-bases" onclick="mostrarSubabaGestao('sub-bases')">🍰 Bases</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-ficha-tecnica" onclick="mostrarSubabaGestao('sub-ficha-tecnica')">📋 Ficha Técnica</button>
+                    <button class="gestao-subtab-btn" data-subtab="sub-estoque" onclick="mostrarSubabaGestao('sub-estoque')">📦 Estoque</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-importar" onclick="mostrarSubabaGestao('sub-importar')">📥 Importar Backup</button>
                 </div>
 
@@ -716,6 +717,43 @@
                     <div class="loja-status-card" style="margin-top:16px;">
                         <input type="text" id="ftBusca" placeholder="🔍 Pesquisar..." oninput="renderFichaTecnica()">
                         <div id="ftListaProdutos" style="margin-top:10px;"></div>
+                    </div>
+                </div>
+
+                <div class="gestao-subconteudo" data-subtab-content="sub-estoque" style="display:none;">
+                    <div class="produto-admin-linha">
+                        <div class="loja-status-card" style="flex:1; text-align:center;">
+                            <div style="font-size:1.8em; font-weight:700;" id="cardEstoqueTotal">0</div>
+                            <div class="dica-secao">Itens em estoque</div>
+                        </div>
+                        <div class="loja-status-card" style="flex:1; text-align:center;">
+                            <div style="font-size:1.8em; font-weight:700; color:var(--accent);" id="cardEstoqueBaixo">0</div>
+                            <div class="dica-secao">Itens em estoque baixo</div>
+                        </div>
+                    </div>
+
+                    <div class="loja-status-card" style="margin-top:16px;">
+                        <h3>Registrar entrada de estoque</h3>
+                        <div class="produto-admin-linha">
+                            <div class="campo-com-label">
+                                <label class="campo-label">Ingrediente</label>
+                                <select id="estSelectIngrediente"></select>
+                            </div>
+                            <div class="campo-com-label">
+                                <label class="campo-label">Quantidade a adicionar</label>
+                                <input type="text" inputmode="decimal" id="estQtdEntrada">
+                            </div>
+                            <div class="campo-com-label">
+                                <label class="campo-label">Novo preço pago (opcional)</label>
+                                <input type="text" inputmode="decimal" id="estNovoPreco">
+                            </div>
+                        </div>
+                        <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="registrarEntradaEstoque()">Registrar Entrada</button>
+                        <p id="msgEstoque" class="ordem-categorias-msg"></p>
+                    </div>
+
+                    <div class="loja-status-card" style="margin-top:16px;">
+                        <div id="listaEstoque"></div>
                     </div>
                 </div>
 

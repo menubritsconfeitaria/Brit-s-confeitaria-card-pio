@@ -1681,6 +1681,8 @@ function escutarIngredientes() {
         renderIngredientes();
         if (typeof popularSelectComponenteBase === 'function') popularSelectComponenteBase();
         if (typeof popularSelectComponenteFichaTecnica === 'function') popularSelectComponenteFichaTecnica();
+        if (typeof popularSelectEstoqueIngrediente === 'function') popularSelectEstoqueIngrediente();
+        if (typeof renderEstoque === 'function') renderEstoque();
     });
 }
 
@@ -2210,6 +2212,63 @@ function editarFichaTecnica(id) {
 function excluirFichaTecnica(id) {
     if (!confirm('Excluir esta ficha técnica?')) return;
     db.ref('fichaTecnica/' + id).remove().catch(err => alert('Erro ao excluir: ' + err.message));
+}
+
+// ---------- Sistema de Gestão — Estoque ----------
+// Não tem "gaveta" própria — só lê/escreve os mesmos campos (estoqueAtual,
+// precoComprado) que já existem em cada ingrediente
+function popularSelectEstoqueIngrediente() {
+    const sel = document.getElementById('estSelectIngrediente');
+    if (!sel) return;
+    const valorAtual = sel.value;
+    sel.innerHTML = '<option value="">Selecione</option>' + ingredientes.map(i => `<option value="${i.id}">${i.nome}</option>`).join('');
+    sel.value = valorAtual;
+}
+
+function registrarEntradaEstoque() {
+    const id = document.getElementById('estSelectIngrediente').value;
+    const qtd = parseFloat(document.getElementById('estQtdEntrada').value.replace(',', '.'));
+    const novoPreco = parseFloat(document.getElementById('estNovoPreco').value.replace(',', '.'));
+    const msgEl = document.getElementById('msgEstoque');
+
+    if (!id || !qtd) { msgEl.textContent = 'Seleciona o ingrediente e a quantidade.'; return; }
+    const ing = ingredientes.find(i => i.id === id);
+    if (!ing) { msgEl.textContent = 'Ingrediente não encontrado.'; return; }
+
+    const dados = { estoqueAtual: (ing.estoqueAtual || 0) + qtd };
+    if (!isNaN(novoPreco) && novoPreco > 0) dados.precoComprado = novoPreco;
+
+    msgEl.textContent = 'Registrando...';
+    db.ref('ingredientes/' + id).update(dados).then(() => {
+        msgEl.textContent = 'Entrada registrada!';
+        document.getElementById('estQtdEntrada').value = '';
+        document.getElementById('estNovoPreco').value = '';
+    }).catch(err => { msgEl.textContent = 'Erro: ' + err.message; });
+}
+
+function renderEstoque() {
+    const container = document.getElementById('listaEstoque');
+    if (!container) return;
+    let baixos = 0;
+
+    container.innerHTML = ingredientes.map(ing => {
+        const baixo = (ing.estoqueAtual || 0) < (ing.estoqueMinimo || 0);
+        if (baixo) baixos++;
+        return `
+            <div class="pedido-card" style="margin-top:8px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <strong>${ing.nome}</strong>
+                    <p style="margin:2px 0; font-size:0.85em; color:var(--muted);">
+                        ${(ing.estoqueAtual || 0).toFixed(2)} ${ing.unidade} · mínimo: ${(ing.estoqueMinimo || 0).toFixed(2)} ${ing.unidade}
+                    </p>
+                </div>
+                <span class="pedido-tag ${baixo ? 'tag-pagamento-divergente' : 'tag-pagamento-pago'}">${baixo ? '⚠️ Baixo' : 'OK'}</span>
+            </div>
+        `;
+    }).join('') || '<p class="dica-secao">Nenhum ingrediente cadastrado ainda.</p>';
+
+    document.getElementById('cardEstoqueTotal').textContent = ingredientes.length;
+    document.getElementById('cardEstoqueBaixo').textContent = baixos;
 }
 
 async function importarBackupSistemaGestao() {
