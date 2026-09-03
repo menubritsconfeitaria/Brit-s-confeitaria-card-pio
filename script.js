@@ -645,6 +645,82 @@ function fecharStatusPedido() {
     localStorage.removeItem('ultimoPedidoBritS');
 }
 
+// Guarda o pedido na lista local de "Meus Pedidos" — mantém só os 10 mais recentes,
+// o mais novo primeiro. Fica só nesse navegador (não depende de login nem telefone).
+function adicionarAoHistoricoLocal(pedidoId) {
+    try {
+        const historico = JSON.parse(localStorage.getItem('historicoPedidosBritS')) || [];
+        historico.unshift({ id: pedidoId, criadoEm: Date.now() });
+        localStorage.setItem('historicoPedidosBritS', JSON.stringify(historico.slice(0, 10)));
+    } catch (e) {
+        // localStorage bloqueado ou cheio — não é crítico, só não guarda o histórico
+    }
+}
+
+const rotulosStatusPedido = {
+    pendente: '🕒 Aguardando confirmação',
+    aceito: '✅ Aceito, sendo preparado',
+    em_rota: '🛵 Saiu para entrega',
+    entregue: '🎉 Entregue',
+    recusado: '❌ Recusado'
+};
+
+// Abre a janela de "Meus Pedidos", buscando os dados atuais de cada pedido guardado
+// localmente — sempre busca fresquinho do Firebase, pra mostrar o status mais atual
+async function abrirMeusPedidos() {
+    const modal = document.getElementById('modalMeusPedidos');
+    const lista = document.getElementById('listaMeusPedidos');
+    modal.style.display = 'flex';
+
+    let historico = [];
+    try {
+        historico = JSON.parse(localStorage.getItem('historicoPedidosBritS')) || [];
+    } catch (e) { /* ignora */ }
+
+    if (historico.length === 0) {
+        lista.innerHTML = '<p style="text-align:center; color:var(--muted); padding:20px 0;">Nenhum pedido feito ainda nesse navegador.</p>';
+        return;
+    }
+
+    lista.innerHTML = '<p style="text-align:center; padding:20px 0;">Carregando...</p>';
+
+    try {
+        const resultados = await Promise.all(
+            historico.map(item => firebase.database().ref('pedidos/' + item.id).once('value'))
+        );
+
+        const linhas = resultados
+            .map((snap, i) => ({ pedido: snap.val(), meta: historico[i] }))
+            .filter(r => r.pedido) // ignora se o pedido não existir mais (removido, etc.)
+            .map(({ pedido, meta }) => {
+                const dataFormatada = new Date(meta.criadoEm).toLocaleDateString('pt-BR');
+                const itensTexto = (pedido.itens || []).map(item => `${item.quantidade}x ${item.nome}`).join(', ');
+                const totalTexto = pedido.total != null ? `R$ ${pedido.total.toFixed(2).replace('.', ',')}` : 'A confirmar';
+                const statusTexto = rotulosStatusPedido[pedido.status] || pedido.status || '—';
+                return `
+                    <div class="item-meus-pedidos">
+                        <div class="item-meus-pedidos-topo">
+                            <strong>${dataFormatada}</strong>
+                            <span>${statusTexto}</span>
+                        </div>
+                        <p class="item-meus-pedidos-itens">${itensTexto}</p>
+                        <p class="item-meus-pedidos-total">${totalTexto}</p>
+                    </div>
+                `;
+            });
+
+        lista.innerHTML = linhas.length > 0
+            ? linhas.join('')
+            : '<p style="text-align:center; color:var(--muted); padding:20px 0;">Nenhum pedido encontrado.</p>';
+    } catch (err) {
+        lista.innerHTML = '<p style="text-align:center; color:var(--muted); padding:20px 0;">Não foi possível carregar agora. Tenta de novo em instantes.</p>';
+    }
+}
+
+function fecharMeusPedidos() {
+    document.getElementById('modalMeusPedidos').style.display = 'none';
+}
+
 // Se o cliente tem um pedido recente rastreado (últimas 48h), volta a mostrar o status dele
 function verificarPedidoSalvo() {
     try {
@@ -1864,6 +1940,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
     // Guarda esse pedido pra mostrar o status (pendente/aceito/em rota/entregue/recusado) pro cliente
     if (pedidoId) {
         localStorage.setItem('ultimoPedidoBritS', JSON.stringify({ id: pedidoId, criadoEm: Date.now() }));
+        adicionarAoHistoricoLocal(pedidoId);
         mostrarStatusPedido(pedidoId);
     }
 

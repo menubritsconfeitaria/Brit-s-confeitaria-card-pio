@@ -197,6 +197,18 @@
                         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.7.44 3.35 1.29 4.8L2 22l5.42-1.4a9.9 9.9 0 0 0 4.62 1.17h.01c5.46 0 9.9-4.45 9.9-9.91C21.96 6.4 17.5 2 12.04 2Zm5.8 14a2.7 2.7 0 0 1-1.87 1.35c-.5.1-1.14.19-3.32-.7-2.78-1.15-4.58-3.98-4.72-4.16-.14-.19-1.13-1.5-1.13-2.87s.7-2.03.95-2.31c.24-.28.53-.35.71-.35h.5c.16 0 .38-.06.6.45.24.57.8 1.97.87 2.11.07.14.12.31.02.5-.1.19-.15.31-.29.48-.14.17-.3.38-.43.51-.14.14-.29.29-.13.57.17.28.75 1.24 1.61 2 1.11.99 2.04 1.3 2.32 1.44.28.14.44.12.6-.07.17-.19.72-.84.91-1.13.19-.28.38-.24.64-.14.26.09 1.65.78 1.93.92.28.14.47.21.54.33.07.12.07.68-.16 1.34Z"/></svg>
                     </a>
                 </div>
+                <button type="button" id="btnMeusPedidos" class="btn-meus-pedidos" onclick="abrirMeusPedidos()">📋 Meus Pedidos</button>
+            </div>
+
+            <div id="modalMeusPedidos" class="modal-overlay" style="display:none;" onclick="if(event.target === this) fecharMeusPedidos()">
+                <div class="modal-meus-pedidos">
+                    <div class="modal-meus-pedidos-topo">
+                        <h3>📋 Meus Pedidos</h3>
+                        <button type="button" onclick="fecharMeusPedidos()" class="btn-fechar-modal">✕</button>
+                    </div>
+                    <p class="dica-encomenda">Mostra os últimos pedidos feitos nesse navegador.</p>
+                    <div id="listaMeusPedidos"></div>
+                </div>
             </div>
 
             <section class="personalizar-secao">
