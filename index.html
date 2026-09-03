@@ -229,14 +229,26 @@
 
                     <div class="personalizar-grid">
                         <div class="personalizar-form">
+                            <label for="pcNome">Seu nome</label>
+                            <input type="text" id="pcNome" placeholder="Ex: Maria" maxlength="40">
+
                             <label for="pcNomeLoja">Nome da sua loja</label>
                             <input type="text" id="pcNomeLoja" placeholder="Ex: Doces da Maria" maxlength="40">
 
-                            <label for="pcLogoInput">Sua logo (opcional, imagem quadrada fica melhor)</label>
-                            <input type="file" id="pcLogoInput" accept="image/*">
+                            <label for="pcEmail">Seu e-mail</label>
+                            <input type="email" id="pcEmail" placeholder="Ex: maria@email.com">
 
                             <label for="pcWhatsapp">Seu WhatsApp</label>
                             <input type="text" id="pcWhatsapp" placeholder="Ex: 27 99999-8888">
+
+                            <label for="pcTipoNegocio">Tipo de negócio</label>
+                            <input type="text" id="pcTipoNegocio" placeholder="Ex: Confeitaria, hamburgueria, açaiteria...">
+
+                            <label for="pcCidade">Sua cidade (opcional)</label>
+                            <input type="text" id="pcCidade" placeholder="Ex: Colatina/ES">
+
+                            <label for="pcLogoInput">Sua logo (opcional, imagem quadrada fica melhor)</label>
+                            <input type="file" id="pcLogoInput" accept="image/*">
 
                             <label for="pcInstagram">Seu Instagram (opcional)</label>
                             <input type="text" id="pcInstagram" placeholder="Ex: @doces.damaria">
@@ -246,6 +258,7 @@
 
                             <button type="button" class="btn-ver-previa" onclick="ativarModoDemoCompleto()">👀 Ver meu cardápio assim, no site inteiro!</button>
                             <button type="button" onclick="enviarInteressePersonalizado()">📲 Quero o meu cardápio assim!</button>
+                            <p id="pcMsgEnvio" class="dica-encomenda" style="margin-top:8px;"></p>
                         </div>
 
                         <div class="personalizar-preview">

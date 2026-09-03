@@ -2346,6 +2346,25 @@ inicializarPersonalizacaoPreview();
 // (diferente do WhatsApp da própria Brit's, que é só pra pedidos de doces)
 const numeroWhatsAppServicoCardapio = '5527997726901';
 
+// Config pública do Firebase Mestre — só pra salvar o cadastro de quem se
+// interessou pelo serviço (leadsCardapio). Não dá acesso a nada além disso:
+// as regras do Mestre só liberam ESCRITA nesse nó específico, pra visitante
+// nenhum autenticado, e a LEITURA continua exigindo login do dono do serviço.
+const FIREBASE_MESTRE_CONFIG_LEADS = {
+    apiKey: "AIzaSyCMr33r_7zBb8A-WlVQcxxZB4f-FsSQiDg",
+    authDomain: "painel-admin-mestre.firebaseapp.com",
+    databaseURL: "https://painel-admin-mestre-default-rtdb.firebaseio.com",
+    projectId: "painel-admin-mestre",
+    storageBucket: "painel-admin-mestre.firebasestorage.app",
+    messagingSenderId: "190805206633",
+    appId: "1:190805206633:web:36d1f40aa56511d358a4f8"
+};
+let appMestreLeads = null;
+function obterAppMestreLeads() {
+    if (!appMestreLeads) appMestreLeads = firebase.initializeApp(FIREBASE_MESTRE_CONFIG_LEADS, 'mestreLeads');
+    return appMestreLeads;
+}
+
 // Abre/fecha o formulário de personalização, que começa escondido — só a chamada fica visível
 function alternarPersonalizarConteudo() {
     const conteudo = document.getElementById('personalizarConteudo');
@@ -2404,21 +2423,46 @@ function restaurarCardapioOriginal() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function enviarInteressePersonalizado() {
-    const nome = document.getElementById('pcNomeLoja').value.trim();
+async function enviarInteressePersonalizado() {
+    const nome = document.getElementById('pcNome').value.trim();
+    const nomeLoja = document.getElementById('pcNomeLoja').value.trim();
+    const email = document.getElementById('pcEmail').value.trim();
     const whatsapp = document.getElementById('pcWhatsapp').value.trim();
+    const tipoNegocio = document.getElementById('pcTipoNegocio').value.trim();
+    const cidade = document.getElementById('pcCidade').value.trim();
     const instagram = document.getElementById('pcInstagram').value.trim();
     const cor = document.getElementById('pcCorPrincipal').value;
     const temLogoPropria = document.getElementById('pcLogoInput').files.length > 0;
+    const msgEl = document.getElementById('pcMsgEnvio');
 
-    if (!nome) {
-        alert('Digita o nome da sua loja pra gente continuar :)');
+    if (!nome || !nomeLoja || !whatsapp) {
+        msgEl.textContent = '⚠️ Preenche pelo menos seu nome, o nome da loja e o WhatsApp.';
         return;
     }
 
-    let mensagem = `Olá! Vi o cardápio da Brit's Confeitaria e quero um cardápio digital assim pro meu negócio!\n\n`;
-    mensagem += `Nome da loja: ${nome}\n`;
-    if (whatsapp) mensagem += `WhatsApp: ${whatsapp}\n`;
+    msgEl.textContent = 'Enviando...';
+
+    try {
+        const app = obterAppMestreLeads();
+        await app.database().ref('leadsCardapio').push({
+            nome, nomeLoja, email: email || null, whatsapp, tipoNegocio: tipoNegocio || null,
+            cidade: cidade || null, instagram: instagram || null, corPrincipal: cor,
+            temLogoPropria, origemUrl: window.location.href, criadoEm: firebase.database.ServerValue.TIMESTAMP
+        });
+    } catch (err) {
+        // Mesmo se salvar falhar (ex: sem internet num instante ruim), ainda manda
+        // pro WhatsApp — a pessoa não pode ficar sem resposta nenhuma por causa disso
+        console.log('Não foi possível salvar o cadastro:', err.message);
+    }
+
+    msgEl.innerHTML = '✅ <strong>Recebemos seu cadastro!</strong> Nossa equipe vai analisar e entrar em contato em breve pelo WhatsApp informado.';
+
+    let mensagem = `Olá! Vi o cardápio e quero um cardápio digital assim pro meu negócio!\n\n`;
+    mensagem += `Nome: ${nome}\n`;
+    mensagem += `Nome da loja: ${nomeLoja}\n`;
+    if (email) mensagem += `E-mail: ${email}\n`;
+    if (tipoNegocio) mensagem += `Tipo de negócio: ${tipoNegocio}\n`;
+    if (cidade) mensagem += `Cidade: ${cidade}\n`;
     if (instagram) mensagem += `Instagram: ${instagram}\n`;
     mensagem += `Cor principal escolhida: ${cor}\n`;
     if (temLogoPropria) mensagem += `(já tenho uma logo pronta pra usar)\n`;

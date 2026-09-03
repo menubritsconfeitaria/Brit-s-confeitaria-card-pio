@@ -311,6 +311,7 @@ function sincronizarTelaDoMestre() {
     document.getElementById('cardLoginMestre').style.display = logado ? 'none' : 'block';
     document.getElementById('cardConteudoMestre').style.display = logado ? 'block' : 'none';
     document.getElementById('cardAdicionarClienteMestre').style.display = logado ? 'block' : 'none';
+    document.getElementById('cardLeadsMestre').style.display = logado ? 'block' : 'none';
     if (logado && clientesRegistroMestre.length === 0) carregarClientesMestre();
 
     // Se já tinha um cliente selecionado e logado antes, mantém a tela dele visível —
@@ -336,7 +337,9 @@ async function fazerLoginNoMestre() {
         document.getElementById('cardLoginMestre').style.display = 'none';
         document.getElementById('cardConteudoMestre').style.display = 'block';
         document.getElementById('cardAdicionarClienteMestre').style.display = 'block';
+        document.getElementById('cardLeadsMestre').style.display = 'block';
         carregarClientesMestre();
+        carregarLeadsMestre();
     } catch (err) {
         msgEl.textContent = 'Senha incorreta ou erro de conexão: ' + err.message;
     }
@@ -358,6 +361,36 @@ const RECURSOS_MESTRE = [
 const appsClientesMestre = {}; // indice -> { app, auth, db, autenticado }
 let clientesRegistroMestre = [];
 let clienteMestreSelecionadoIndice = null;
+
+// Carrega quem preencheu "Quero meu cardápio assim" em qualquer cardápio — mais
+// recentes primeiro, com um link pronto pra já chamar no WhatsApp
+function carregarLeadsMestre() {
+    dbMestre.ref('leadsCardapio').once('value').then(snap => {
+        const dados = snap.val() || {};
+        const leads = Object.values(dados).sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
+        const container = document.getElementById('listaLeadsMestre');
+
+        if (leads.length === 0) {
+            container.innerHTML = '<p class="dica-secao">Nenhum lead ainda.</p>';
+            return;
+        }
+
+        container.innerHTML = leads.map(lead => {
+            const data = lead.criadoEm ? new Date(lead.criadoEm).toLocaleDateString('pt-BR') : '—';
+            const numeroWhats = (lead.whatsapp || '').replace(/\D/g, '');
+            return `
+                <div class="loja-status-card" style="margin-top:10px;">
+                    <strong>${lead.nome}</strong> — ${lead.nomeLoja}
+                    <p style="margin:4px 0; font-size:0.85em; color:var(--muted);">
+                        ${lead.tipoNegocio ? lead.tipoNegocio + ' · ' : ''}${lead.cidade ? lead.cidade + ' · ' : ''}${data}
+                    </p>
+                    ${lead.email ? `<p style="margin:2px 0; font-size:0.85em;">✉️ ${lead.email}</p>` : ''}
+                    <a href="https://wa.me/55${numeroWhats}" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="display:inline-block; margin-top:6px; text-decoration:none;">💬 Chamar no WhatsApp</a>
+                </div>
+            `;
+        }).join('');
+    });
+}
 
 function carregarClientesMestre() {
     dbMestre.ref('clientes').once('value').then(snap => {
