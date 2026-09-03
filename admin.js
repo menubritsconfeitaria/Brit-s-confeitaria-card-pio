@@ -2445,6 +2445,11 @@ function salvarPedidoManual() {
         status
     };
 
+    const statusDesejado = dadosPedido.status;
+    dadosPedido.status = 'pendente'; // sempre cria como pendente — se o status real for diferente,
+    // atualiza logo em seguida (um passo a mais), pra Cloud Function (que só reage a MUDANÇA de
+    // status, não à criação) disparar certinho mesmo quando o pedido já nasce "Entregue"
+
     msgEl.textContent = 'Salvando...';
     const novoPedidoRef = db.ref('pedidos').push();
     db.ref('contadores/proximoPedido').transaction(atual => (atual || 0) + 1)
@@ -2455,6 +2460,9 @@ function salvarPedidoManual() {
                 numero: numeroAtribuido,
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             });
+        })
+        .then(() => {
+            if (statusDesejado !== 'pendente') return novoPedidoRef.child('status').set(statusDesejado);
         })
         .then(() => {
             msgEl.textContent = 'Pedido salvo!';
@@ -2782,7 +2790,10 @@ async function importarBackupSistemaGestao() {
                 const novoPedidoRef = db.ref('pedidos').push();
                 const resultado = await db.ref('contadores/proximoPedido').transaction(atual => (atual || 0) + 1);
                 const numeroAtribuido = resultado.committed ? resultado.snapshot.val() : null;
+                const statusRealDoPedido = dadosPedido.status;
+                dadosPedido.status = 'pendente';
                 await novoPedidoRef.set({ ...dadosPedido, numero: numeroAtribuido });
+                if (statusRealDoPedido !== 'pendente') await novoPedidoRef.child('status').set(statusRealDoPedido);
             }
 
             msgEl.textContent = `✅ Importado! ${qtdIng} ingrediente(s), ${qtdBases} base(s), ${qtdProdutos} produto(s), ${qtdClientes} cliente(s) e ${qtdPedidos} pedido(s) — o que já existia foi reaproveitado, nada duplicado.`;
