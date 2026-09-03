@@ -1967,6 +1967,63 @@ function excluirBase(id) {
     db.ref('bases/' + id).remove().catch(err => alert('Erro ao excluir: ' + err.message));
 }
 
+// Importa um backup exportado do Sistema de Gestão antigo (localStorage). Os ids
+// antigos não existem mais quando os dados vão pro Firebase (cada push() gera um id
+// novo), então precisamos: 1) criar tudo primeiro guardando um "mapa" antigo->novo,
+// 2) só depois corrigir as referências (ex: os componentes de uma base) usando esse mapa.
+async function importarBackupSistemaGestao() {
+    const input = document.getElementById('inputImportarBackupGestao');
+    const msgEl = document.getElementById('msgImportarBackup');
+    if (!input.files.length) { msgEl.textContent = 'Escolhe o arquivo de backup (.json) primeiro.'; return; }
+
+    const reader = new FileReader();
+    reader.onload = async function (e) {
+        try {
+            const dados = JSON.parse(e.target.result);
+            if (!dados.ingredientes) { msgEl.textContent = 'Esse arquivo não parece ser um backup válido.'; return; }
+
+            const qtdIng = (dados.ingredientes || []).length;
+            const qtdBases = (dados.bases || []).length;
+            if (!confirm(`Vai importar ${qtdIng} ingrediente(s) e ${qtdBases} base(s) — isso ADICIONA ao que já existe aqui, não apaga nada. Confirma?`)) return;
+
+            msgEl.textContent = 'Importando ingredientes...';
+            const mapaIngredientes = {};
+            for (const ing of (dados.ingredientes || [])) {
+                const { id: idAntigo, ...resto } = ing;
+                const ref = await db.ref('ingredientes').push(resto);
+                mapaIngredientes[idAntigo] = ref.key;
+            }
+
+            msgEl.textContent = 'Importando bases...';
+            const mapaBases = {};
+            const basesCriadas = [];
+            for (const base of (dados.bases || [])) {
+                const { id: idAntigo, ...resto } = base;
+                const ref = await db.ref('bases').push(resto);
+                mapaBases[idAntigo] = ref.key;
+                basesCriadas.push({ novoId: ref.key, componentesOriginais: base.componentes || [] });
+            }
+
+            msgEl.textContent = 'Ajustando referências entre bases...';
+            for (const b of basesCriadas) {
+                const corrigidos = b.componentesOriginais.map(c => {
+                    if (c.tipo === 'ingrediente') return { ...c, id: mapaIngredientes[c.id] || c.id };
+                    if (c.tipo === 'base') return { ...c, id: mapaBases[c.id] || c.id };
+                    return c;
+                });
+                await db.ref('bases/' + b.novoId + '/componentes').set(corrigidos);
+            }
+
+            msgEl.textContent = `✅ Importado! ${qtdIng} ingrediente(s) e ${qtdBases} base(s). Produtos/Clientes/Pedidos ainda não são importados nessa versão — vamos poder trazer isso assim que essas peças forem construídas.`;
+        } catch (err) {
+            msgEl.textContent = 'Erro ao importar: ' + err.message;
+        } finally {
+            input.value = '';
+        }
+    };
+    reader.readAsText(input.files[0]);
+}
+
 function carregarClientesInativos() {
     const diasLimite = parseInt(document.getElementById('diasInatividade').value, 10) || 0;
     const container = document.getElementById('listaClientesInativos');

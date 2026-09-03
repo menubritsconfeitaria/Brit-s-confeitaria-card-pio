@@ -543,6 +543,7 @@
                 <div class="gestao-subtabs" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
                     <button class="painel-tab-btn gestao-subtab-btn active" data-subtab="sub-ingredientes" onclick="mostrarSubabaGestao('sub-ingredientes')">🥄 Ingredientes</button>
                     <button class="painel-tab-btn gestao-subtab-btn" data-subtab="sub-bases" onclick="mostrarSubabaGestao('sub-bases')">🍰 Bases</button>
+                    <button class="painel-tab-btn gestao-subtab-btn" data-subtab="sub-importar" onclick="mostrarSubabaGestao('sub-importar')">📥 Importar Backup</button>
                 </div>
 
                 <div class="gestao-subconteudo" data-subtab-content="sub-ingredientes">
@@ -634,6 +635,24 @@
                 <div class="loja-status-card" style="margin-top:16px;">
                     <div id="listaBases"></div>
                 </div>
+                </div>
+
+                <div class="gestao-subconteudo" data-subtab-content="sub-importar" style="display:none;">
+                    <div class="loja-status-card">
+                        <h3>📥 Importar do Sistema de Gestão antigo</h3>
+                        <p class="dica-secao">
+                            No Sistema de Gestão que você já usa (arquivo local), vai na aba "Backup" e clica em
+                            "⬇️ Baixar Backup (JSON)". Depois escolhe esse arquivo aqui embaixo.
+                        </p>
+                        <p class="dica-secao">
+                            ⚠️ Só importa <strong>Ingredientes</strong> e <strong>Bases</strong> por enquanto — as
+                            próximas peças (Ficha Técnica, Clientes, Pedidos) vão poder ser importadas assim que
+                            forem construídas. Isso <strong>adiciona</strong> ao que já existe aqui, nunca apaga nada.
+                        </p>
+                        <input type="file" id="inputImportarBackupGestao" accept=".json">
+                        <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="importarBackupSistemaGestao()">📥 Importar</button>
+                        <p id="msgImportarBackup" class="ordem-categorias-msg"></p>
+                    </div>
                 </div>
             </section>
         </main>
