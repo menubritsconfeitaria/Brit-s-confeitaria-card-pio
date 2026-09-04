@@ -2377,7 +2377,9 @@ function salvarClienteGestao() {
 function renderClientesGestao() {
     const busca = (document.getElementById('cgBusca').value || '').toLowerCase();
     const container = document.getElementById('listaClientesGestao');
-    const filtrados = clientesGestao.filter(c => c.nome.toLowerCase().includes(busca));
+    const filtrados = clientesGestao
+        .filter(c => c.nome.toLowerCase().includes(busca))
+        .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 
     if (filtrados.length === 0) {
         container.innerHTML = '<p class="dica-secao">Nenhum cliente cadastrado ainda.</p>';
@@ -2431,7 +2433,8 @@ let editingPedidoManualId = null;
 function popularSelectClientePedidoManual() {
     const dl = document.getElementById('pmClientesDatalist');
     if (!dl) return;
-    dl.innerHTML = clientesGestao.map(c => `<option value="${c.nome}">`).join('');
+    const ordenados = [...clientesGestao].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    dl.innerHTML = ordenados.map(c => `<option value="${c.nome}">`).join('');
 }
 
 // Acha um cliente pelo nome digitado, ou cria um novo na hora se não existir —
