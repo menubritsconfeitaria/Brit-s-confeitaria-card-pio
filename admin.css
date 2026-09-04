@@ -655,6 +655,13 @@ body {
 
 .previa-imagens {
     margin: 6px 0 8px;
+    display: flex;
+    flex-wrap: wrap;
+}
+.previa-imagem-wrap {
+    position: relative;
+    display: inline-block;
+    margin: 0 6px 6px 0;
 }
 .previa-imagem-thumb {
     width: 56px;
@@ -662,13 +669,33 @@ body {
     object-fit: cover;
     border-radius: 8px;
     border: 1px solid var(--border);
-    margin: 0 6px 6px 0;
     background: var(--bg);
+    display: block;
 }
 .previa-imagem-thumb.previa-imagem-erro {
     border-color: #c0392b;
     opacity: 0.35;
 }
+.previa-imagem-excluir {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #c0392b;
+    color: #fff;
+    border: 2px solid #fff;
+    font-size: 0.7em;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+.previa-imagem-excluir:hover { background: #a53238; }
 
 .btn-secondary {
     background: #fff;

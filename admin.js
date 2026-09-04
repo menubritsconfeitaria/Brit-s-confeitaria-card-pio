@@ -4065,9 +4065,22 @@ function atualizarPreviaImagens(id) {
     if (!input || !previa) return;
     const nomes = input.value.trim().split(',').map(v => v.trim()).filter(v => v.length > 0);
     if (nomes.length === 0) { previa.innerHTML = ''; return; }
-    previa.innerHTML = nomes.map(nome =>
-        `<img src="${nome}" alt="${nome}" class="previa-imagem-thumb" onerror="this.classList.add('previa-imagem-erro')">`
+    previa.innerHTML = nomes.map((nome, i) =>
+        `<div class="previa-imagem-wrap">
+            <img src="${nome}" alt="${nome}" class="previa-imagem-thumb" onerror="this.classList.add('previa-imagem-erro')">
+            <button type="button" class="previa-imagem-excluir" onclick="removerImagemProduto('${id}', ${i})" title="Excluir essa foto">✕</button>
+        </div>`
     ).join('');
+}
+
+// Remove uma foto específica da lista (pelo índice, contando da esquerda) — reescreve
+// o campo de texto sem ela e atualiza a prévia
+function removerImagemProduto(id, indice) {
+    const input = document.getElementById('prodImagens_' + id);
+    const nomes = input.value.trim().split(',').map(v => v.trim()).filter(v => v.length > 0);
+    nomes.splice(indice, 1);
+    input.value = nomes.join(', ');
+    atualizarPreviaImagens(id);
 }
 
 function atualizarPreviaVariantes(id) {
