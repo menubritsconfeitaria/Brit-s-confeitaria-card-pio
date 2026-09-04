@@ -605,25 +605,31 @@ function salvarPedidoNoPainel(dadosPedido) {
     }
 }
 
-// Acompanha em tempo real o status (pendente/aceito/recusado) de um pedido pro cliente
+// Acompanha em tempo real o status e o pagamento (sinal/restante) de um pedido pro
+// cliente — escuta o pedido inteiro (não só o status) porque precisa saber também se
+// tem um restante pendente, pra mostrar o botão de pagar
 let refStatusPedidoAtual = null;
+let pedidoIdParaPagarRestante = null;
 
 function mostrarStatusPedido(pedidoId) {
     if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
     const banner = document.getElementById('statusPedidoBanner');
     const texto = document.getElementById('statusPedidoTexto');
+    const btnRestante = document.getElementById('btnPagarRestante');
     if (!banner || !texto) return;
 
     if (refStatusPedidoAtual) {
         refStatusPedidoAtual.off();
     }
 
-    const ref = firebase.database().ref('pedidos/' + pedidoId + '/status');
+    const ref = firebase.database().ref('pedidos/' + pedidoId);
     refStatusPedidoAtual = ref;
+    pedidoIdParaPagarRestante = pedidoId;
 
     ref.on('value', snap => {
-        const status = snap.val();
-        if (!status) return;
+        const pedido = snap.val();
+        if (!pedido || !pedido.status) return;
+        const status = pedido.status;
         banner.classList.remove('status-pendente', 'status-aceito', 'status-recusado', 'status-em_rota', 'status-pronto_retirada', 'status-entregue');
         if (status === 'pendente') {
             banner.classList.add('status-pendente');
@@ -644,8 +650,50 @@ function mostrarStatusPedido(pedidoId) {
             banner.classList.add('status-recusado');
             texto.textContent = '❌ Seu pedido foi recusado. Fale com a gente pelo WhatsApp para mais detalhes.';
         }
+
+        // Mostra o botão de pagar o restante só quando: o sinal já foi pago, o
+        // restante ainda não foi pago, e o pedido ainda não foi recusado
+        const sinalPago = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' && pedido.pagamento.status === 'pago';
+        const restanteJaPago = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'pago';
+        if (btnRestante) {
+            if (sinalPago && !restanteJaPago && status !== 'recusado') {
+                const valorRestante = pedido.pagamentoRestante ? pedido.pagamentoRestante.valorRestante : null;
+                btnRestante.textContent = valorRestante
+                    ? `💳 Pagar o restante (R$ ${valorRestante.toFixed(2).replace('.', ',')})`
+                    : '💳 Pagar o restante';
+                btnRestante.style.display = 'block';
+            } else {
+                btnRestante.style.display = 'none';
+            }
+        }
+
         banner.style.display = 'flex';
     });
+}
+
+// Chamado pelo botão "Pagar o restante" no banner de acompanhamento — cria o
+// checkout via Cloud Function e manda o cliente pra tela de pagamento, mesmo
+// caminho profissional que já é usado pro sinal
+async function pagarRestanteEncomenda(pedidoIdExplicito, botaoClicado) {
+    const pedidoId = pedidoIdExplicito || pedidoIdParaPagarRestante;
+    if (!pedidoId) return;
+    const btn = botaoClicado || document.getElementById('btnPagarRestante');
+    const textoOriginal = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Preparando pagamento...';
+    try {
+        const criarCheckout = firebase.functions().httpsCallable('criarCheckoutRestanteEncomenda');
+        const resultado = await criarCheckout({ pedidoId });
+        if (resultado.data && resultado.data.checkoutUrl) {
+            window.location.href = resultado.data.checkoutUrl;
+        } else {
+            throw new Error('Não recebi o link de pagamento.');
+        }
+    } catch (err) {
+        alert('Não foi possível preparar o pagamento do restante agora. Tenta de novo em instantes, ou fala com a gente pelo WhatsApp.');
+        btn.disabled = false;
+        btn.textContent = textoOriginal;
+    }
 }
 
 function fecharStatusPedido() {
@@ -655,6 +703,7 @@ function fecharStatusPedido() {
         refStatusPedidoAtual.off();
         refStatusPedidoAtual = null;
     }
+    pedidoIdParaPagarRestante = null;
     localStorage.removeItem('ultimoPedidoBritS');
 }
 
@@ -711,6 +760,10 @@ async function abrirMeusPedidos() {
                 const itensTexto = (pedido.itens || []).map(item => `${item.quantidade}x ${item.nome}`).join(', ');
                 const totalTexto = pedido.total != null ? `R$ ${pedido.total.toFixed(2).replace('.', ',')}` : 'A confirmar';
                 const statusTexto = rotulosStatusPedido[pedido.status] || pedido.status || '—';
+                const sinalPago = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' && pedido.pagamento.status === 'pago';
+                const restanteJaPago = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'pago';
+                const mostrarBotaoRestante = sinalPago && !restanteJaPago && pedido.status !== 'recusado';
+                const valorRestanteTexto = pedido.pagamentoRestante ? `R$ ${pedido.pagamentoRestante.valorRestante.toFixed(2).replace('.', ',')}` : '';
                 return `
                     <div class="item-meus-pedidos">
                         <div class="item-meus-pedidos-topo">
@@ -719,6 +772,7 @@ async function abrirMeusPedidos() {
                         </div>
                         <p class="item-meus-pedidos-itens">${itensTexto}</p>
                         <p class="item-meus-pedidos-total">${totalTexto}</p>
+                        ${mostrarBotaoRestante ? `<button class="btn-pagar-restante-lista" onclick="pagarRestanteEncomenda('${meta.id}', this)">💳 Pagar o restante ${valorRestanteTexto}</button>` : ''}
                     </div>
                 `;
             });

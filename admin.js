@@ -2642,6 +2642,13 @@ function editarPedidoManual(id) {
     document.getElementById('pmObs').value = p.observacoes || '';
     document.getElementById('pmDesconto').value = '0'; // desconto já vem embutido nos itens/total originais
     document.getElementById('pmFrete').value = p.frete || 0;
+
+    const temSinal = p.pagamento && p.pagamento.tipoPagamento === 'sinal';
+    document.getElementById('pmEhEncomenda').checked = !!temSinal;
+    document.getElementById('blocoEncomendaSinal').style.display = temSinal ? 'block' : 'none';
+    document.getElementById('pmSinalRecebido').value = temSinal ? p.pagamento.valorSinal : 0;
+    document.getElementById('pmRestanteJaRecebido').checked = !!(p.pagamentoRestante && p.pagamentoRestante.status === 'pago');
+
     tempItensPedidoManual = (p.itens || []).map(item => ({ ...item }));
     editingPedidoManualId = id;
     document.getElementById('btnSalvarPedidoManual').textContent = 'Atualizar Pedido';
@@ -2700,6 +2707,33 @@ async function salvarPedidoManual() {
         timestamp: timestampEscolhido
     };
 
+    // Se marcado como encomenda com sinal, registra o pagamento — lançado direto como
+    // "já recebido" (diferente do fluxo do cardápio, que gera um link de pagamento;
+    // aqui é só um registro do que já foi recebido na mão/Pix combinado por fora)
+    const ehEncomenda = document.getElementById('pmEhEncomenda').checked;
+    if (ehEncomenda) {
+        const sinalRecebido = parseFloat((document.getElementById('pmSinalRecebido').value || '0').replace(',', '.')) || 0;
+        if (sinalRecebido > 0) {
+            dadosPedido.pagamento = {
+                provedor: 'manual',
+                tipoPagamento: 'sinal',
+                status: 'pago',
+                valorSinal: sinalRecebido,
+                confirmadoEm: Date.now()
+            };
+            const restanteJaRecebido = document.getElementById('pmRestanteJaRecebido').checked;
+            if (restanteJaRecebido) {
+                dadosPedido.pagamentoRestante = {
+                    provedor: 'manual',
+                    tipoPagamento: 'restante',
+                    status: 'pago',
+                    valorRestante: arred(total - sinalRecebido),
+                    confirmadoEm: Date.now()
+                };
+            }
+        }
+    }
+
     // Editando um pedido que já existe — atualiza direto (a mudança de status, se
     // houver, já dispara a Cloud Function normalmente, sem precisar do truque
     // "cria como pendente primeiro" que só é necessário na CRIAÇÃO)
@@ -2716,6 +2750,10 @@ async function salvarPedidoManual() {
             document.getElementById('pmFrete').value = '0';
             document.getElementById('pmObs').value = '';
             document.getElementById('pmStatus').value = 'pendente';
+            document.getElementById('pmEhEncomenda').checked = false;
+            document.getElementById('pmSinalRecebido').value = '0';
+            document.getElementById('pmRestanteJaRecebido').checked = false;
+            document.getElementById('blocoEncomendaSinal').style.display = 'none';
             renderItensPedidoManual();
         } catch (err) {
             msgEl.textContent = 'Erro ao atualizar: ' + err.message;
@@ -2749,6 +2787,10 @@ async function salvarPedidoManual() {
             document.getElementById('pmFrete').value = '0';
             document.getElementById('pmObs').value = '';
             document.getElementById('pmStatus').value = 'pendente';
+            document.getElementById('pmEhEncomenda').checked = false;
+            document.getElementById('pmSinalRecebido').value = '0';
+            document.getElementById('pmRestanteJaRecebido').checked = false;
+            document.getElementById('blocoEncomendaSinal').style.display = 'none';
             renderItensPedidoManual();
         })
         .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
@@ -2800,12 +2842,24 @@ function carregarDashboard(inicio, fim) {
             return p.status === 'entregue' && dataPedido >= inicio && dataPedido <= fim;
         });
 
-        let faturamento = 0, cmv = 0, lucroEmpresaTotal = 0, lucroCasalTotal = 0;
+        let faturamento = 0, cmv = 0, lucroEmpresaTotal = 0, lucroCasalTotal = 0, recebidoDeFato = 0;
         const porMes = {}; // "AAAA-MM" -> { faturamento, lucro }
         const porProduto = {}; // nome -> quantidade vendida
 
         pedidosDoPeriodo.forEach(p => {
             faturamento += p.total || 0;
+
+            // Pedido normal: assume que o total foi recebido (pago na entrega/pedido).
+            // Encomenda com sinal: só conta o que REALMENTE já entrou (sinal, e o
+            // restante só se já tiver sido pago também) — nunca o total inteiro se o
+            // restante ainda estiver pendente
+            if (p.pagamento && p.pagamento.tipoPagamento === 'sinal') {
+                if (p.pagamento.status === 'pago') recebidoDeFato += p.pagamento.valorSinal || 0;
+                if (p.pagamentoRestante && p.pagamentoRestante.status === 'pago') recebidoDeFato += p.pagamentoRestante.valorRestante || 0;
+            } else {
+                recebidoDeFato += p.total || 0;
+            }
+
             const dataPedido = new Date(p.timestamp || p.criadoEm || 0);
             const chaveMes = `${dataPedido.getFullYear()}-${String(dataPedido.getMonth() + 1).padStart(2, '0')}`;
             if (!porMes[chaveMes]) porMes[chaveMes] = { faturamento: 0, lucro: 0 };
@@ -2844,6 +2898,7 @@ function carregarDashboard(inicio, fim) {
         document.getElementById('dashTicket').textContent = formatarPreco(ticketMedio);
         document.getElementById('dashLucroEmpresa').textContent = formatarPreco(arred(lucroEmpresaTotal));
         document.getElementById('dashLucroCasal').textContent = formatarPreco(arred(lucroCasalTotal));
+        document.getElementById('dashRecebido').textContent = formatarPreco(arred(recebidoDeFato));
 
         desenharGraficosDashboard(porMes, porProduto);
     });

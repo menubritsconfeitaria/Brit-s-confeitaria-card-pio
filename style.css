@@ -655,6 +655,36 @@ footer {
 }
 #statusPedidoFechar:hover { opacity: 1; }
 
+#btnPagarRestante {
+    background: var(--primary, #a0522d);
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 7px 14px;
+    font-size: 0.85em;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+}
+#btnPagarRestante:hover { opacity: 0.9; }
+#btnPagarRestante:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.btn-pagar-restante-lista {
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+    background: var(--primary, #a0522d);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 8px;
+    font-size: 0.85em;
+    font-weight: 700;
+    cursor: pointer;
+}
+.btn-pagar-restante-lista:hover { opacity: 0.9; }
+.btn-pagar-restante-lista:disabled { opacity: 0.6; cursor: not-allowed; }
+
 /* Cupom de desconto */
 .cupom-area {
     display: flex;

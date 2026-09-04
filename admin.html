@@ -860,6 +860,25 @@
                         </div>
                         <p class="dica-secao">Total: <strong id="pmTotalTemp">R$ 0,00</strong></p>
 
+                        <label class="campo-label" style="margin-top:10px;">
+                            <input type="checkbox" id="pmEhEncomenda" onchange="document.getElementById('blocoEncomendaSinal').style.display = this.checked ? 'block' : 'none'">
+                            É uma encomenda com sinal?
+                        </label>
+                        <div id="blocoEncomendaSinal" style="display:none; margin-top:8px;">
+                            <div class="produto-admin-linha">
+                                <div class="campo-com-label">
+                                    <label class="campo-label">Sinal recebido (R$)</label>
+                                    <input type="text" inputmode="decimal" id="pmSinalRecebido" value="0">
+                                </div>
+                                <div class="campo-com-label">
+                                    <label class="campo-label">
+                                        <input type="checkbox" id="pmRestanteJaRecebido">
+                                        Restante já recebido também?
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
                         <label class="campo-label" style="margin-top:10px;">Observações</label>
                         <textarea id="pmObs" class="campo-adicionais" rows="2"></textarea>
 
@@ -920,6 +939,10 @@
                         <div class="loja-status-card" style="flex:1; min-width:130px; text-align:center;">
                             <div style="font-size:1.4em; font-weight:700;" id="dashLucroCasal">R$ 0,00</div>
                             <div class="dica-secao">Lucro pró-labore</div>
+                        </div>
+                        <div class="loja-status-card" style="flex:1; min-width:130px; text-align:center;">
+                            <div style="font-size:1.4em; font-weight:700; color:var(--primary);" id="dashRecebido">R$ 0,00</div>
+                            <div class="dica-secao">Recebido de fato</div>
                         </div>
                     </div>
 
