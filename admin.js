@@ -3121,22 +3121,36 @@ async function corrigirStatusPedidosImportados() {
                 if (p.origemBackupId) mapaBackupIdParaFirebaseId[p.origemBackupId] = firebaseId;
             });
 
-            let corrigidos = 0, jaCertos = 0, naoEncontrados = 0;
+            let corrigidos = 0, jaCertos = 0, naoEncontrados = 0, timestampsCorrigidos = 0;
             for (const ped of dados.pedidos) {
                 const firebaseId = mapaBackupIdParaFirebaseId[ped.id];
                 if (!firebaseId) { naoEncontrados++; continue; }
 
                 const statusCorreto = MAPA_STATUS_PEDIDO_ANTIGO[ped.status] || 'pendente';
                 const statusAtual = todosPedidosVal[firebaseId].status;
+                let mudouAlgo = false;
                 if (statusAtual !== statusCorreto) {
                     await db.ref('pedidos/' + firebaseId + '/status').set(statusCorreto);
                     corrigidos++;
-                } else {
-                    jaCertos++;
+                    mudouAlgo = true;
                 }
+
+                // Confere também se o timestamp está ausente/inválido — sem isso, o
+                // pedido fica "invisível" pro filtro de período do Dashboard mesmo
+                // com o status certo
+                const timestampAtual = todosPedidosVal[firebaseId].timestamp;
+                if (!timestampAtual || isNaN(timestampAtual)) {
+                    const [ano, mes, dia] = (ped.data || '').split('-').map(Number);
+                    const timestampCorrigido = (ano && mes && dia) ? new Date(ano, mes - 1, dia).getTime() : Date.now();
+                    await db.ref('pedidos/' + firebaseId + '/timestamp').set(timestampCorrigido);
+                    timestampsCorrigidos++;
+                    mudouAlgo = true;
+                }
+
+                if (!mudouAlgo) jaCertos++;
             }
 
-            msgEl.textContent = `✅ Conferido! ${corrigidos} pedido(s) corrigido(s), ${jaCertos} já estavam certos, ${naoEncontrados} não foram encontrados (ainda não importados). Confere o Dashboard de novo.`;
+            msgEl.textContent = `✅ Conferido! ${corrigidos} status corrigido(s), ${timestampsCorrigidos} data(s)/timestamp corrigido(s), ${jaCertos} já estavam certos, ${naoEncontrados} não encontrados. Confere o Dashboard de novo.`;
         } catch (err) {
             msgEl.textContent = 'Erro ao corrigir: ' + err.message;
         } finally {
