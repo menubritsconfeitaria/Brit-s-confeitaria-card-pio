@@ -2429,6 +2429,54 @@ function renderItensPedidoManual() {
     document.getElementById('pmTotalTemp').textContent = formatarPreco(total);
 }
 
+// Lista os últimos pedidos lançados manualmente (não os do cardápio) — mesmo nó
+// "pedidos", só filtra por origem no navegador mesmo (evita precisar de outro índice)
+function escutarPedidosManuais() {
+    db.ref('pedidos').limitToLast(150).on('value', snap => {
+        const val = snap.val() || {};
+        const manuais = Object.entries(val)
+            .map(([id, p]) => ({ id, ...p }))
+            .filter(p => p.origem === 'manual')
+            .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+            .slice(0, 30); // só os 30 mais recentes, pra não ficar gigante
+
+        const div = document.getElementById('listaPedidosManuais');
+        if (!div) return;
+        if (manuais.length === 0) {
+            div.innerHTML = '<p class="dica-secao">Nenhum pedido lançado ainda.</p>';
+            return;
+        }
+
+        const rotulosStatus = { pendente: '🕒 Pendente', aceito: '✅ Aceito', em_rota: '🛵 Em rota', entregue: '🎉 Entregue', recusado: '❌ Cancelado' };
+        div.innerHTML = `
+            <table style="width:100%; border-collapse:collapse; font-size:0.85em;">
+                <thead><tr style="text-align:left; border-bottom:2px solid var(--border);">
+                    <th style="padding:6px;">#</th><th style="padding:6px;">Cliente</th><th style="padding:6px;">Itens</th>
+                    <th style="padding:6px;">Total</th><th style="padding:6px;">Pagamento</th><th style="padding:6px;">Status</th><th style="padding:6px;"></th>
+                </tr></thead>
+                <tbody>
+                    ${manuais.map(p => `
+                        <tr style="border-bottom:1px solid var(--border);">
+                            <td style="padding:6px;">#${p.numero || '—'}</td>
+                            <td style="padding:6px;">${p.nome || '—'}</td>
+                            <td style="padding:6px;">${(p.itens || []).length}</td>
+                            <td style="padding:6px;">${formatarPreco(p.total || 0)}</td>
+                            <td style="padding:6px;">${p.formaPagamento || '—'}</td>
+                            <td style="padding:6px;">${rotulosStatus[p.status] || p.status}</td>
+                            <td style="padding:6px;"><button class="btn-excluir-cupom" onclick="excluirPedidoManualDireto('${p.id}', ${p.numero})">🗑️</button></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    });
+}
+
+async function excluirPedidoManualDireto(id, numero) {
+    if (!confirm(`Excluir o pedido #${numero || ''} de vez? Não dá pra desfazer.`)) return;
+    await db.ref('pedidos/' + id).remove();
+}
+
 async function salvarPedidoManual() {
     const nomeClienteDigitado = document.getElementById('pmCliente').value.trim();
     const status = document.getElementById('pmStatus').value;
@@ -4203,6 +4251,7 @@ function iniciarEscutaPedidos() {
     escutarBases();
     escutarFichaTecnica();
     escutarClientesGestao();
+    escutarPedidosManuais();
     const previaLojaNomeEl = document.getElementById('previaLojaNome');
     if (previaLojaNomeEl) previaLojaNomeEl.textContent = LOJA_CONFIG.nome;
     escutarConfigSomAlerta();
