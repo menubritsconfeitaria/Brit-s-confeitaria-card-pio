@@ -2236,15 +2236,16 @@ function renderFichaTecnica() {
     container.innerHTML = filtrados.map(p => {
         const r = calcularCustoFichaTecnica(p);
         const cmv = r.precoVenda > 0 ? ((r.custoUnitarioFinal / r.precoVenda) * 100).toFixed(1) : '0';
+        const produtosAtuais = Object.values(ultimoValProdutosAdmin || {});
+        const jaMigrado = produtosAtuais.some(prod => prod.fichaTecnicaId === p.id);
         return `
             <div class="pedido-card" style="margin-top:8px;">
-                <strong>${p.nome}</strong>
+                <strong>${p.nome}</strong> ${jaMigrado ? '<span class="pedido-tag tag-status-entregue">✅ Já está no site</span>' : ''}
                 <p style="margin:4px 0; font-size:0.85em; color:var(--muted);">
                     Rendimento: ${p.rendimento}un · Custo/un.: ${formatarPreco(r.custoUnitarioFinal)} · Preço: ${formatarPreco(r.precoVenda)} · CMV: ${cmv}%
                 </p>
                 <button class="btn-secondary" onclick="editarFichaTecnica('${p.id}')">✏️ Editar</button>
-                <button class="btn-secondary" onclick="migrarFichaTecnicaParaProduto('${p.id}')">🚀 Migrar pro site</button>
-                <button class="btn-excluir-cupom" onclick="excluirFichaTecnica('${p.id}')">🗑️</button>
+                ${jaMigrado ? '' : `<button class="btn-secondary" onclick="migrarFichaTecnicaParaProduto('${p.id}')">🚀 Migrar pro site</button>`}                <button class="btn-excluir-cupom" onclick="excluirFichaTecnica('${p.id}')">🗑️</button>
             </div>
         `;
     }).join('');
@@ -3958,6 +3959,7 @@ function importarDadosIniciais() {
 function montarLinhaProduto(id, produto) {
     const div = document.createElement('div');
     div.classList.add('produto-admin-item');
+    div.id = 'produtoCard_' + id;
     div.innerHTML = `
         <div class="produto-admin-linha">
             <input type="text" id="prodNome_${id}" value="${produto.nome || ''}" placeholder="Nome do produto">
@@ -4169,6 +4171,7 @@ function renderizarListaProdutosAdmin() {
         lista.appendChild(montarLinhaProduto(id, produto));
         atualizarPreviaImagens(id);
     });
+    if (typeof renderFichaTecnica === 'function' && fichaTecnica.length > 0) renderFichaTecnica();
 }
 
 // Aceita tanto vírgula quanto ponto como separador decimal (ex: "45,00" ou "45.00")
@@ -4294,7 +4297,7 @@ async function migrarFichaTecnicaParaProduto(id) {
     if (!ft) return;
     const r = calcularCustoFichaTecnica(ft);
 
-    if (!confirm(`Criar o produto "${ft.nome}" no cardápio, com preço R$ ${r.precoVenda.toFixed(2).replace('.', ',')}? Depois é só entrar na aba Produtos pra completar foto e categoria.`)) return;
+    if (!confirm(`Criar o produto "${ft.nome}" no cardápio, com preço R$ ${r.precoVenda.toFixed(2).replace('.', ',')}? Você já vai cair direto na aba Produtos pra completar foto e categoria.`)) return;
 
     try {
         const novoRef = db.ref('produtos').push();
@@ -4309,7 +4312,19 @@ async function migrarFichaTecnicaParaProduto(id) {
             fichaTecnicaId: ft.id,
             criadoEm: firebase.database.ServerValue.TIMESTAMP
         });
-        alert(`Produto "${ft.nome}" criado! Ele começa DESATIVADO — vai na aba Produtos, adiciona a foto e categoria, e ativa ele quando estiver pronto.`);
+
+        // Troca pra aba Produtos e rola até o card recém-criado — dá um tempinho pro
+        // Firebase confirmar e o card aparecer na tela antes de tentar rolar até ele
+        const botaoAbaProdutos = document.querySelector('.painel-tab-btn[data-tab="produtos"]');
+        if (botaoAbaProdutos) botaoAbaProdutos.click();
+        setTimeout(() => {
+            const card = document.getElementById('produtoCard_' + novoRef.key);
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                card.classList.add('produto-recem-migrado');
+                setTimeout(() => card.classList.remove('produto-recem-migrado'), 3000);
+            }
+        }, 700);
     } catch (err) {
         alert('Erro ao criar o produto: ' + err.message);
     }

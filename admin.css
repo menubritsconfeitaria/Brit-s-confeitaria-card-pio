@@ -436,6 +436,11 @@ body {
     border-radius: 14px;
     padding: 14px;
     box-shadow: var(--shadow);
+    transition: box-shadow 0.3s, border-color 0.3s;
+}
+.produto-admin-item.produto-recem-migrado {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(160, 82, 45, 0.3);
 }
 
 .produto-admin-linha {
