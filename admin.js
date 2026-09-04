@@ -4127,16 +4127,21 @@ async function autoVincularFichaTecnicaPorNome() {
     const produtosSnap = await db.ref('produtos').once('value');
     const produtosVal = produtosSnap.val() || {};
 
-    let vinculados = 0, jaTinhamVinculo = 0, semFichaCorrespondente = 0;
+    let vinculados = 0, corrigidos = 0, jaCertos = 0, semFichaCorrespondente = 0;
     for (const [id, produto] of Object.entries(produtosVal)) {
-        if (produto.fichaTecnicaId) { jaTinhamVinculo++; continue; }
+        // Um vínculo só conta como "já certo" se apontar pra uma ficha técnica que
+        // REALMENTE existe hoje — se aponta pra uma que já foi apagada (sobra de uma
+        // ficha antiga), trata como se não tivesse vínculo nenhum e corrige
+        const vinculoAtualValido = produto.fichaTecnicaId && fichaTecnica.some(ft => ft.id === produto.fichaTecnicaId);
+        if (vinculoAtualValido) { jaCertos++; continue; }
+
         const ft = acharPorNome(fichaTecnica, produto.nome);
         if (!ft) { semFichaCorrespondente++; continue; }
         await db.ref('produtos/' + id + '/fichaTecnicaId').set(ft.id);
-        vinculados++;
+        if (produto.fichaTecnicaId) corrigidos++; else vinculados++;
     }
 
-    msgEl.innerHTML = `<p class="dica-secao">✅ ${vinculados} produto(s) vinculado(s) automaticamente, ${jaTinhamVinculo} já tinham vínculo (não mexi), ${semFichaCorrespondente} sem ficha técnica de mesmo nome.</p>`;
+    msgEl.innerHTML = `<p class="dica-secao">✅ ${vinculados} vinculado(s) novo(s), ${corrigidos} corrigido(s) (apontavam pra ficha técnica já apagada), ${jaCertos} já estavam certos, ${semFichaCorrespondente} sem ficha técnica de mesmo nome.</p>`;
 }
 
 function escutarProdutos() {
