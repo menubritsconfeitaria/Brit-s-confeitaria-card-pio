@@ -2415,8 +2415,10 @@ async function excluirClienteGestao(id) {
     const cliente = getClienteGestao(id);
     let temPedidos = false;
     if (cliente && cliente.telefone) {
-        const snap = await db.ref('pedidos').orderByChild('telefone').equalTo(cliente.telefone).once('value');
-        temPedidos = snap.exists();
+        const telNormalizado = normalizarTelefone(cliente.telefone);
+        const snap = await db.ref('pedidos').once('value');
+        const val = snap.val() || {};
+        temPedidos = Object.values(val).some(p => normalizarTelefone(p.telefone) === telNormalizado);
     }
     let msg = 'Excluir este cliente do CRM?';
     if (temPedidos) msg += '\n\nEle tem pedidos registrados — excluir o cliente não apaga os pedidos, só o cadastro dele.';
@@ -3098,6 +3100,12 @@ function exportarRelatorioExcel() {
 
 // Acha, no array já carregado, um item com o mesmo nome (ignorando maiúsculas/
 // espaços) — usado pra não duplicar o que já foi importado numa rodada anterior
+// Compara telefone só pelos dígitos — "(27) 99763-3871", "27997633871" e
+// "27 99763 3871" são o MESMO número, não importa a formatação usada
+function normalizarTelefone(tel) {
+    return (tel || '').replace(/\D/g, '');
+}
+
 function acharPorNome(lista, nome) {
     const alvo = (nome || '').trim().toLowerCase();
     return lista.find(item => (item.nome || '').trim().toLowerCase() === alvo);
@@ -3628,8 +3636,9 @@ async function importarBackupSistemaGestao() {
             msgEl.textContent = 'Importando clientes...';
             const mapaClientes = {};
             for (const cli of (dados.clientes || [])) {
-                const jaExiste = cli.telefone
-                    ? clientesGestao.find(c => c.telefone === cli.telefone)
+                const telNormalizado = normalizarTelefone(cli.telefone);
+                const jaExiste = telNormalizado
+                    ? clientesGestao.find(c => normalizarTelefone(c.telefone) === telNormalizado)
                     : acharPorNome(clientesGestao, cli.nome);
                 if (jaExiste) { mapaClientes[cli.id] = jaExiste.id; continue; }
                 const { id: idAntigo, ...resto } = cli;
