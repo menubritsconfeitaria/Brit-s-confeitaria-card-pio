@@ -3979,6 +3979,7 @@ function montarLinhaProduto(id, produto) {
                 <option value="">— Nenhuma —</option>
                 ${fichaTecnica.map(ft => `<option value="${ft.id}" ${produto.fichaTecnicaId === ft.id ? 'selected' : ''}>${ft.nome}</option>`).join('')}
             </select>
+            ${!produto.fichaTecnicaId ? `<button type="button" class="btn-secondary" style="margin-top:6px;" onclick="criarFichaTecnicaAPartirDoProduto('${id}')">📋 Criar Ficha Técnica pra esse produto</button>` : ''}
         </div>
         <textarea id="prodDesc_${id}" placeholder="Descrição" rows="2">${produto.descricao || ''}</textarea>
 
@@ -4292,6 +4293,39 @@ function excluirProduto(id) {
 // Cria o produto no cardápio a partir de uma ficha técnica já pronta — já vem com
 // nome e preço calculado preenchidos e já vinculado a essa ficha técnica. Só falta
 // a pessoa entrar na aba Produtos e completar foto + categoria
+// Caminho inverso do "Migrar pro site" — parte de um produto que JÁ existe no
+// cardápio e cria a ficha técnica dele (começa em branco, sem componentes ainda —
+// a pessoa completa a receita depois), já linkando os dois automaticamente
+async function criarFichaTecnicaAPartirDoProduto(produtoId) {
+    const nome = document.getElementById('prodNome_' + produtoId).value.trim();
+    const precoAtual = parseFloat(document.getElementById('prodPreco_' + produtoId).value.replace(',', '.')) || 0;
+    if (!nome) { alert('Preenche o nome do produto antes de criar a ficha técnica.'); return; }
+
+    if (!confirm(`Criar a Ficha Técnica de "${nome}"? Ela começa em branco (sem ingredientes ainda) — você completa a receita depois na aba Ficha Técnica. O preço atual (${formatarPreco(precoAtual)}) já entra fixado, pra não mudar o preço do cardápio sem querer.`)) return;
+
+    try {
+        const novaFtRef = db.ref('fichaTecnica').push();
+        await novaFtRef.set({
+            nome,
+            rendimento: 1,
+            componentes: [],
+            embalagem: 0, custoFixo: 0, horasTrabalho: 0, valorHora: 0,
+            margemEmpresa: 0, margemCasal: 0, taxaVenda: 0,
+            precoVendaManual: precoAtual > 0 ? precoAtual : null
+        });
+        await db.ref('produtos/' + produtoId + '/fichaTecnicaId').set(novaFtRef.key);
+
+        const botaoAbaGestao = document.querySelector('.painel-tab-btn[data-tab="gestao"]');
+        if (botaoAbaGestao) botaoAbaGestao.click();
+        setTimeout(() => {
+            mostrarSubabaGestao('sub-ficha-tecnica');
+            alert(`Ficha técnica de "${nome}" criada e já vinculada! Agora é só adicionar os ingredientes/bases da receita aqui.`);
+        }, 300);
+    } catch (err) {
+        alert('Erro ao criar a ficha técnica: ' + err.message);
+    }
+}
+
 async function migrarFichaTecnicaParaProduto(id) {
     const ft = getFichaTecnica(id);
     if (!ft) return;
