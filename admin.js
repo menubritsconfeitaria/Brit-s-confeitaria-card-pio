@@ -3120,10 +3120,16 @@ async function limparTodosOsPedidosDeTeste() {
 
     try {
         const snap = await db.ref('pedidos').once('value');
-        const total = snap.exists() ? Object.keys(snap.val()).length : 0;
-        await db.ref('pedidos').remove();
+        const val = snap.val() || {};
+        const ids = Object.keys(val);
+        let removidos = 0;
+        for (const id of ids) {
+            await db.ref('pedidos/' + id).remove();
+            removidos++;
+            if (removidos % 20 === 0) msgEl.innerHTML = `<p class="dica-secao">Limpando... ${removidos} de ${ids.length}</p>`;
+        }
         await db.ref('contadores/proximoPedido').remove(); // reseta a numeração também, pra começar do #1
-        msgEl.innerHTML = `<p class="dica-secao">✅ Limpo! ${total} pedido(s) de teste removido(s), numeração reiniciada do zero. A partir de agora, só pedidos reais (ou reimportados do backup) devem entrar aqui.</p>`;
+        msgEl.innerHTML = `<p class="dica-secao">✅ Limpo! ${removidos} pedido(s) de teste removido(s), numeração reiniciada do zero. A partir de agora, só pedidos reais (ou reimportados do backup) devem entrar aqui.</p>`;
     } catch (err) {
         msgEl.innerHTML = `<p class="dica-secao">❌ Deu erro: ${err.message}</p>`;
     }
