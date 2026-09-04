@@ -3093,6 +3093,15 @@ function acharPorNome(lista, nome) {
     return lista.find(item => (item.nome || '').trim().toLowerCase() === alvo);
 }
 
+// Ingredientes são diferentes dos outros — pode existir "Creme de leite" cadastrado
+// duas vezes de propósito (uma em gramas, outra em unidade), pra receitas diferentes.
+// Por isso, pra ingredientes, compara por NOME + UNIDADE juntos, não só o nome
+function acharIngredientePorNomeEUnidade(lista, nome, unidade) {
+    const nomeAlvo = (nome || '').trim().toLowerCase();
+    const unidadeAlvo = (unidade || '').trim().toLowerCase();
+    return lista.find(item => (item.nome || '').trim().toLowerCase() === nomeAlvo && (item.unidade || '').trim().toLowerCase() === unidadeAlvo);
+}
+
 const MAPA_STATUS_PEDIDO_ANTIGO = { pendente: 'pendente', 'produção': 'aceito', em_rota: 'em_rota', entregue: 'entregue', cancelado: 'recusado' };
 
 // Corrige o status de pedidos JÁ importados que ficaram com status errado (ex: uma
@@ -3104,6 +3113,73 @@ const MAPA_STATUS_PEDIDO_ANTIGO = { pendente: 'pendente', 'produção': 'aceito'
 // com o que está neste arquivo de backup — diferente da importação normal (que só
 // cria o que não existe, nunca atualiza), isso força a sincronização, útil quando
 // o preço de algo mudou no sistema antigo depois da primeira importação
+// Corrige os componentes de TODAS as bases e fichas técnicas, comparando com o
+// backup original — resolve o caso de "mesmo nome, unidades diferentes" (ex: Creme
+// de leite em gramas E em unidade): usa o id ANTIGO de cada componente do backup pra
+// achar de novo o ingrediente/base ATUAL certo (por nome + unidade), e corrige a
+// referência se estiver errada
+async function corrigirVinculosComponentes() {
+    const input = document.getElementById('inputImportarBackupGestao');
+    const msgEl = document.getElementById('msgImportarBackup');
+    if (!input.files.length) { msgEl.textContent = 'Escolhe o arquivo de backup (.json) primeiro (o mais recente).'; return; }
+
+    const reader = new FileReader();
+    reader.onload = async function (e) {
+        try {
+            const dados = JSON.parse(e.target.result);
+            msgEl.textContent = 'Corrigindo vínculos de componentes...';
+
+            // Mapa: id antigo do ingrediente -> {nome, unidade}, pra achar de novo o certo
+            const mapaIngredienteAntigo = {};
+            (dados.ingredientes || []).forEach(i => { mapaIngredienteAntigo[i.id] = { nome: i.nome, unidade: i.unidade }; });
+            const mapaBaseAntigaNome = {};
+            (dados.bases || []).forEach(b => { mapaBaseAntigaNome[b.id] = b.nome; });
+
+            function remapComponentesAntigos(componentesAntigos) {
+                return componentesAntigos.map(c => {
+                    if (c.tipo === 'base' || (!c.tipo && !c.ingredienteId)) {
+                        const bid = c.tipo === 'base' ? c.id : null;
+                        const nomeBase = bid ? mapaBaseAntigaNome[bid] : null;
+                        const baseAtual = nomeBase ? acharPorNome(bases, nomeBase) : null;
+                        return baseAtual ? { tipo: 'base', id: baseAtual.id, quantidade: c.quantidade } : c;
+                    }
+                    const idAntigo = c.tipo === 'ingrediente' ? c.id : c.ingredienteId;
+                    const infoIng = mapaIngredienteAntigo[idAntigo];
+                    const ingAtual = infoIng ? acharIngredientePorNomeEUnidade(ingredientes, infoIng.nome, infoIng.unidade) : null;
+                    return ingAtual ? { tipo: 'ingrediente', id: ingAtual.id, quantidade: c.quantidade } : c;
+                });
+            }
+
+            let basesCorrigidas = 0, fichasCorrigidas = 0;
+            for (const baseBackup of (dados.bases || [])) {
+                const baseAtual = acharPorNome(bases, baseBackup.nome);
+                if (!baseAtual) continue;
+                const corrigidos = remapComponentesAntigos(baseBackup.componentes || []);
+                if (JSON.stringify(corrigidos) !== JSON.stringify(baseAtual.componentes)) {
+                    await db.ref('bases/' + baseAtual.id + '/componentes').set(corrigidos);
+                    basesCorrigidas++;
+                }
+            }
+            for (const prodBackup of (dados.produtos || [])) {
+                const ftAtual = acharPorNome(fichaTecnica, prodBackup.nome);
+                if (!ftAtual) continue;
+                const corrigidos = remapComponentesAntigos(prodBackup.componentes || []);
+                if (JSON.stringify(corrigidos) !== JSON.stringify(ftAtual.componentes)) {
+                    await db.ref('fichaTecnica/' + ftAtual.id + '/componentes').set(corrigidos);
+                    fichasCorrigidas++;
+                }
+            }
+
+            msgEl.textContent = `✅ Corrigido! ${basesCorrigidas} base(s) e ${fichasCorrigidas} ficha(s) técnica(s) com vínculos ajustados. Confere o Dashboard de novo.`;
+        } catch (err) {
+            msgEl.textContent = 'Erro: ' + err.message;
+        } finally {
+            input.value = '';
+        }
+    };
+    reader.readAsText(input.files[0]);
+}
+
 async function sincronizarPrecosIngredientes() {
     const input = document.getElementById('inputImportarBackupGestao');
     const msgEl = document.getElementById('msgImportarBackup');
@@ -3118,10 +3194,19 @@ async function sincronizarPrecosIngredientes() {
             if (!dados.ingredientes) { msgEl.textContent = 'Esse arquivo não tem ingredientes.'; return; }
 
             msgEl.textContent = 'Sincronizando preços...';
-            let atualizados = 0, jaCertos = 0, naoEncontrados = 0;
+            let atualizados = 0, jaCertos = 0, criados = 0;
             for (const ingBackup of dados.ingredientes) {
-                const ingAtual = acharPorNome(ingredientes, ingBackup.nome);
-                if (!ingAtual) { naoEncontrados++; continue; }
+                let ingAtual = acharIngredientePorNomeEUnidade(ingredientes, ingBackup.nome, ingBackup.unidade);
+
+                if (!ingAtual) {
+                    // Não existe esse ingrediente NESSA unidade específica ainda — cria
+                    // (comum quando o mesmo nome existe em 2 unidades diferentes, ex:
+                    // "Creme de leite" em gramas E em unidade, pra receitas diferentes)
+                    const { id: idAntigo, ...resto } = ingBackup;
+                    await db.ref('ingredientes').push(resto);
+                    criados++;
+                    continue;
+                }
 
                 if (ingAtual.qtdComprada !== ingBackup.qtdComprada || ingAtual.precoComprado !== ingBackup.precoComprado) {
                     await db.ref('ingredientes/' + ingAtual.id).update({
@@ -3134,7 +3219,7 @@ async function sincronizarPrecosIngredientes() {
                 }
             }
 
-            msgEl.textContent = `✅ Sincronizado! ${atualizados} ingrediente(s) atualizado(s), ${jaCertos} já estavam certos, ${naoEncontrados} não encontrados. Agora roda "Corrigir status" de novo (ele recalcula tudo com os preços certos).`;
+            msgEl.textContent = `✅ Sincronizado! ${atualizados} ingrediente(s) atualizado(s), ${criados} criado(s) (nome+unidade que faltava), ${jaCertos} já estavam certos. Agora roda "🔧 Corrigir vínculos de Bases/Fichas" (novo botão).`;
         } catch (err) {
             msgEl.textContent = 'Erro: ' + err.message;
         } finally {
@@ -3488,7 +3573,7 @@ async function importarBackupSistemaGestao() {
             msgEl.textContent = 'Importando ingredientes...';
             const mapaIngredientes = {};
             for (const ing of (dados.ingredientes || [])) {
-                const jaExiste = acharPorNome(ingredientes, ing.nome);
+                const jaExiste = acharIngredientePorNomeEUnidade(ingredientes, ing.nome, ing.unidade);
                 if (jaExiste) { mapaIngredientes[ing.id] = jaExiste.id; continue; }
                 const { id: idAntigo, ...resto } = ing;
                 const ref = await db.ref('ingredientes').push(resto);
