@@ -2979,6 +2979,8 @@ async function importarBackupSistemaGestao() {
             const qtdPedidos = (dados.pedidos || []).length;
             if (!confirm(`Vai importar ${qtdIng} ingrediente(s), ${qtdBases} base(s), ${qtdProdutos} produto(s), ${qtdClientes} cliente(s) e ${qtdPedidos} pedido(s) — itens já importados antes (mesmo nome/telefone) são reaproveitados, não duplicados. Confirma?`)) return;
 
+            window._importandoBackupGestao = true; // silencia o som de "pedido novo" durante a importação
+
             // 1) Ingredientes — reaproveita se já existe um com o mesmo nome
             msgEl.textContent = 'Importando ingredientes...';
             const mapaIngredientes = {};
@@ -3080,6 +3082,7 @@ async function importarBackupSistemaGestao() {
         } catch (err) {
             msgEl.textContent = 'Erro ao importar: ' + err.message;
         } finally {
+            window._importandoBackupGestao = false;
             input.value = '';
         }
     };
@@ -4251,7 +4254,7 @@ function iniciarEscutaPedidos() {
             listaPendentesEl.prepend(montarCardPedido(snap.key, pedido, true));
             idsRenderizados.add(snap.key);
             atualizarContador();
-            if (primeiraCargaConcluida && pedido.status === 'pendente') tocarAlerta();
+            if (primeiraCargaConcluida && pedido.status === 'pendente' && !window._importandoBackupGestao) tocarAlerta();
         });
 
         // Quando o status do pedido muda (aceitar, sair pra entrega, entregar, recusar)
