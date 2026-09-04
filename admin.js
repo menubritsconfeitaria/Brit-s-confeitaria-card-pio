@@ -3121,7 +3121,12 @@ async function corrigirStatusPedidosImportados() {
                 if (p.origemBackupId) mapaBackupIdParaFirebaseId[p.origemBackupId] = firebaseId;
             });
 
-            let corrigidos = 0, jaCertos = 0, naoEncontrados = 0, timestampsCorrigidos = 0;
+            // Monta um mapa: id do produto ANTIGO (do backup) -> nome do produto,
+            // pra depois achar a ficha técnica ATUAL com esse mesmo nome
+            const mapaProdutoAntigoParaNome = {};
+            (dados.produtos || []).forEach(p => { mapaProdutoAntigoParaNome[p.id] = p.nome; });
+
+            let corrigidos = 0, jaCertos = 0, naoEncontrados = 0, timestampsCorrigidos = 0, itensReconectados = 0;
             for (const ped of dados.pedidos) {
                 const firebaseId = mapaBackupIdParaFirebaseId[ped.id];
                 if (!firebaseId) { naoEncontrados++; continue; }
@@ -3147,10 +3152,32 @@ async function corrigirStatusPedidosImportados() {
                     mudouAlgo = true;
                 }
 
+                // Confere se cada item do pedido está com o vínculo de ficha técnica
+                // certo — pode ter ficado desatualizado de uma rodada de importação
+                // anterior (a ficha técnica daquela vez pode não existir mais)
+                const itensAtuais = todosPedidosVal[firebaseId].itens || [];
+                let itensMudaram = false;
+                const itensCorrigidos = (ped.itens || []).map((itemBackup, i) => {
+                    const nomeProduto = mapaProdutoAntigoParaNome[itemBackup.produtoId];
+                    const ftAtual = nomeProduto ? acharPorNome(fichaTecnica, nomeProduto) : null;
+                    const fichaTecnicaIdCorreto = ftAtual ? ftAtual.id : null;
+                    const itemAtual = itensAtuais[i] || {};
+                    if (fichaTecnicaIdCorreto && itemAtual.fichaTecnicaId !== fichaTecnicaIdCorreto) {
+                        itensMudaram = true;
+                        return { ...itemAtual, fichaTecnicaId: fichaTecnicaIdCorreto };
+                    }
+                    return itemAtual;
+                });
+                if (itensMudaram) {
+                    await db.ref('pedidos/' + firebaseId + '/itens').set(itensCorrigidos);
+                    itensReconectados++;
+                    mudouAlgo = true;
+                }
+
                 if (!mudouAlgo) jaCertos++;
             }
 
-            msgEl.textContent = `✅ Conferido! ${corrigidos} status corrigido(s), ${timestampsCorrigidos} data(s)/timestamp corrigido(s), ${jaCertos} já estavam certos, ${naoEncontrados} não encontrados. Confere o Dashboard de novo.`;
+            msgEl.textContent = `✅ Conferido! ${corrigidos} status corrigido(s), ${timestampsCorrigidos} data(s) corrigida(s), ${itensReconectados} pedido(s) com itens reconectados à ficha técnica, ${jaCertos} já estavam 100% certos, ${naoEncontrados} não encontrados. Confere o Dashboard de novo.`;
         } catch (err) {
             msgEl.textContent = 'Erro ao corrigir: ' + err.message;
         } finally {
