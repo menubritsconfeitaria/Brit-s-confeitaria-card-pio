@@ -208,6 +208,7 @@ body {
 .tag-status-pendente { background: #fff3cd; color: #8a6300; }
 .tag-status-aceito { background: #d4edda; color: #1e6b34; }
 .tag-status-em-rota { background: #d6e9fb; color: #1a5a96; }
+.tag-status-pronto-retirada { background: #fde9c8; color: #8a5a00; }
 .tag-status-entregue { background: #e0f5e9; color: #157347; }
 .tag-status-recusado { background: #f8d7da; color: #a53238; }
 .tag-pagamento-aguardando { background: #fff3cd; color: #8a6300; }

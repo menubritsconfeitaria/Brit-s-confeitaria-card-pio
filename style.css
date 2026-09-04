@@ -639,6 +639,7 @@ footer {
 .status-pedido-banner.status-pendente { background: #fff3cd; color: #8a6300; }
 .status-pedido-banner.status-aceito { background: #d4edda; color: #1e6b34; }
 .status-pedido-banner.status-em_rota { background: #d6e9fb; color: #1a5a96; }
+.status-pedido-banner.status-pronto_retirada { background: #fde9c8; color: #8a5a00; }
 .status-pedido-banner.status-entregue { background: #e0f5e9; color: #157347; }
 .status-pedido-banner.status-recusado { background: #f8d7da; color: #a53238; }
 
