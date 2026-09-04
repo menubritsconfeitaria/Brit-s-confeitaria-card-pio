@@ -3106,7 +3106,7 @@ const MAPA_STATUS_PEDIDO_ANTIGO = { pendente: 'pendente', 'produção': 'aceito'
 // que vieram de importação — nunca mexe nos pedidos reais do cardápio nem nos lançados
 // manualmente na mão) — pra começar do zero e reimportar limpo. Irreversível.
 async function zerarSistemaGestao() {
-    const confirmacao1 = confirm('⚠️ Isso vai APAGAR PRA SEMPRE: todos os ingredientes, bases, fichas técnicas, clientes do CRM, e os pedidos que vieram de importação (não mexe nos pedidos do cardápio nem nos lançados na mão por você). Não tem como desfazer. Tem certeza?');
+    const confirmacao1 = confirm('⚠️ Isso vai APAGAR PRA SEMPRE: todos os ingredientes, bases, fichas técnicas, clientes do CRM, e TODOS os pedidos que não vieram do cardápio (importados OU lançados na mão por você) — os pedidos reais do cardápio nunca são tocados. Não tem como desfazer. Tem certeza?');
     if (!confirmacao1) return;
     const digitado = prompt('Pra confirmar de vez, digita ZERAR (em maiúsculas):');
     if (digitado !== 'ZERAR') { alert('Cancelado — não digitou certinho.'); return; }
@@ -3114,24 +3114,30 @@ async function zerarSistemaGestao() {
     const msgEl = document.getElementById('resultadoDiagnostico');
     msgEl.innerHTML = '<p class="dica-secao">Zerando...</p>';
 
-    await db.ref('ingredientes').remove();
-    await db.ref('bases').remove();
-    await db.ref('fichaTecnica').remove();
-    await db.ref('clientesGestao').remove();
+    try {
+        await db.ref('ingredientes').remove();
+        await db.ref('bases').remove();
+        await db.ref('fichaTecnica').remove();
+        await db.ref('clientesGestao').remove();
 
-    // Só apaga pedidos que TÊM origemBackupId (ou seja, vieram de importação) —
-    // pedidos lançados na mão (sem essa marca) e os do cardápio ficam intocados
-    const todosPedidosSnap = await db.ref('pedidos').once('value');
-    const todosPedidosVal = todosPedidosSnap.val() || {};
-    let removidos = 0;
-    for (const [id, p] of Object.entries(todosPedidosVal)) {
-        if (p.origemBackupId) {
-            await db.ref('pedidos/' + id).remove();
-            removidos++;
+        // Apaga qualquer pedido com origem:'manual' — cobre tanto os importados (tenham
+        // ou não a marca origemBackupId, que só existe nas importações mais recentes)
+        // quanto os lançados na mão. Pedidos DE VERDADE do cardápio (origem ausente ou
+        // diferente de 'manual') nunca são tocados
+        const todosPedidosSnap = await db.ref('pedidos').once('value');
+        const todosPedidosVal = todosPedidosSnap.val() || {};
+        let removidos = 0;
+        for (const [id, p] of Object.entries(todosPedidosVal)) {
+            if (p.origem === 'manual') {
+                await db.ref('pedidos/' + id).remove();
+                removidos++;
+            }
         }
-    }
 
-    msgEl.innerHTML = `<p class="dica-secao">✅ Zerado! Removidos: todos os ingredientes/bases/fichas técnicas/clientes, e ${removidos} pedido(s) importado(s). Pode importar o backup de novo, do zero.</p>`;
+        msgEl.innerHTML = `<p class="dica-secao">✅ Zerado! Removidos: todos os ingredientes/bases/fichas técnicas/clientes, e ${removidos} pedido(s). Pode importar o backup de novo, do zero.</p>`;
+    } catch (err) {
+        msgEl.innerHTML = `<p class="dica-secao">❌ Deu erro no meio do processo: ${err.message}. Alguma coisa pode ter ficado pela metade — me avisa antes de continuar.</p>`;
+    }
 }
 
 async function removerDuplicatas() {
