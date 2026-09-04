@@ -3095,6 +3095,57 @@ function acharPorNome(lista, nome) {
 
 const MAPA_STATUS_PEDIDO_ANTIGO = { pendente: 'pendente', 'produção': 'aceito', em_rota: 'em_rota', entregue: 'entregue', cancelado: 'recusado' };
 
+// Corrige o status de pedidos JÁ importados que ficaram com status errado (ex: uma
+// falha momentânea na importação deixou "preso" num status intermediário, ou alguém
+// mexeu sem querer). Usa o MESMO arquivo de backup — pra cada pedido já vinculado
+// (via origemBackupId), confere se o status bate com o que o backup diz que deveria
+// ser, e corrige os que estiverem diferentes, tudo de uma vez
+async function corrigirStatusPedidosImportados() {
+    const input = document.getElementById('inputImportarBackupGestao');
+    const msgEl = document.getElementById('msgImportarBackup');
+    if (!input.files.length) { msgEl.textContent = 'Escolhe o arquivo de backup (.json) primeiro (o mesmo de sempre).'; return; }
+
+    const reader = new FileReader();
+    reader.onload = async function (e) {
+        try {
+            const dados = JSON.parse(e.target.result);
+            if (!dados.pedidos) { msgEl.textContent = 'Esse arquivo não tem pedidos pra conferir.'; return; }
+
+            msgEl.textContent = 'Conferindo status de todos os pedidos importados...';
+            const todosPedidosSnap = await db.ref('pedidos').once('value');
+            const todosPedidosVal = todosPedidosSnap.val() || {};
+
+            // Monta um mapa: id do backup -> id atual no Firebase (só dos que já foram importados)
+            const mapaBackupIdParaFirebaseId = {};
+            Object.entries(todosPedidosVal).forEach(([firebaseId, p]) => {
+                if (p.origemBackupId) mapaBackupIdParaFirebaseId[p.origemBackupId] = firebaseId;
+            });
+
+            let corrigidos = 0, jaCertos = 0, naoEncontrados = 0;
+            for (const ped of dados.pedidos) {
+                const firebaseId = mapaBackupIdParaFirebaseId[ped.id];
+                if (!firebaseId) { naoEncontrados++; continue; }
+
+                const statusCorreto = MAPA_STATUS_PEDIDO_ANTIGO[ped.status] || 'pendente';
+                const statusAtual = todosPedidosVal[firebaseId].status;
+                if (statusAtual !== statusCorreto) {
+                    await db.ref('pedidos/' + firebaseId + '/status').set(statusCorreto);
+                    corrigidos++;
+                } else {
+                    jaCertos++;
+                }
+            }
+
+            msgEl.textContent = `✅ Conferido! ${corrigidos} pedido(s) corrigido(s), ${jaCertos} já estavam certos, ${naoEncontrados} não foram encontrados (ainda não importados). Confere o Dashboard de novo.`;
+        } catch (err) {
+            msgEl.textContent = 'Erro ao corrigir: ' + err.message;
+        } finally {
+            input.value = '';
+        }
+    };
+    reader.readAsText(input.files[0]);
+}
+
 // Verifica bases e fichas técnicas com componentes "órfãos" (apontando pra um
 // ingrediente/base que não existe mais) — útil pra achar dados de uma importação
 // antiga, feita antes desse reconhecimento de formato existir
