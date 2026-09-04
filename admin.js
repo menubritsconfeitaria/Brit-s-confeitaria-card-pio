@@ -3003,6 +3003,29 @@ function baixarOrcamentoPDF() {
     doc.save('orcamento-' + cliente.toLowerCase().replace(/\s+/g, '-') + '.pdf');
 }
 
+function imprimirOrcamento() {
+    if (tempItensOrcamento.length === 0) { alert('Adiciona pelo menos 1 item ao orçamento.'); return; }
+    const janela = window.open('', '_blank');
+    janela.document.write(`<html><head><title>Orçamento</title></head><body>${gerarHtmlOrcamento()}</body></html>`);
+    janela.document.close();
+    janela.print();
+}
+
+function baixarOrcamentoJPG() {
+    if (tempItensOrcamento.length === 0) { alert('Adiciona pelo menos 1 item ao orçamento.'); return; }
+    if (typeof html2canvas === 'undefined') { alert('A biblioteca de exportação ainda está carregando, tenta de novo em instantes.'); return; }
+    gerarPreviewOrcamento();
+    setTimeout(() => {
+        const el = document.getElementById('previewOrcamento');
+        html2canvas(el, { scale: 2 }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'orcamento-' + (LOJA_CONFIG.nomeCurto || 'cardapio').toLowerCase().replace(/\s+/g, '-') + '.jpg';
+            link.href = canvas.toDataURL('image/jpeg', 0.95);
+            link.click();
+        });
+    }, 200);
+}
+
 // ---------- Sistema de Gestão — Backup completo ----------
 // Baixa TUDO que já está no Firebase (ingredientes, bases, fichaTecnica, clientesGestao)
 // num arquivo JSON — cópia extra, útil offline; os dados já ficam salvos na nuvem sozinhos
