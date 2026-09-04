@@ -469,6 +469,7 @@
                             <option value="pendente">Recebidos</option>
                             <option value="aceito">Em preparo</option>
                             <option value="em_rota">Saiu para entrega</option>
+                            <option value="pronto_retirada">Pronto pra retirada</option>
                             <option value="entregue">Entregues</option>
                             <option value="recusado">Cancelados</option>
                         </select>
@@ -818,6 +819,7 @@
                                     <option value="pendente">Pendente</option>
                                     <option value="aceito">Aceito</option>
                                     <option value="em_rota">Em rota</option>
+                                    <option value="pronto_retirada">Pronto pra retirada</option>
                                     <option value="entregue">Entregue</option>
                                     <option value="recusado">Cancelado</option>
                                 </select>
@@ -1028,6 +1030,7 @@
                         <p class="dica-secao">Verifica se alguma base ou ficha técnica está com referência quebrada (aponta pra um ingrediente/base que não existe mais) — útil depois de importar dados antigos.</p>
                         <button class="btn-salvar-ordem" onclick="diagnosticarComponentesQuebrados()">🩺 Verificar agora</button>
                         <button class="btn-secondary" onclick="removerDuplicatas()">🧹 Remover duplicatas</button>
+                        <button class="btn-excluir-cupom" style="width:auto; padding:6px 12px;" onclick="zerarSistemaGestao()">☢️ Zerar tudo (começar do zero)</button>
                         <div id="resultadoDiagnostico" style="margin-top:10px;"></div>
                     </div>
 
@@ -1043,7 +1046,7 @@
                             ao que já existe, nunca apaga nada.
                         </p>
                         <input type="file" id="inputImportarBackupGestao" accept=".json">
-                        <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="importarBackupSistemaGestao()">📥 Importar</button>
+                        <button class="btn-salvar-ordem" id="btnImportarBackupGestao" style="margin-top:10px;" onclick="importarBackupSistemaGestao()">📥 Importar</button>
                         <p id="msgImportarBackup" class="ordem-categorias-msg"></p>
                     </div>
                 </div>

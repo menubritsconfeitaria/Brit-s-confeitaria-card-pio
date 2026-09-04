@@ -949,6 +949,7 @@ function montarCardPedido(id, pedido, comAcoes) {
         pendente: '<span class="pedido-tag tag-status-pendente">Pendente</span>',
         aceito: '<span class="pedido-tag tag-status-aceito">Aceito</span>',
         em_rota: '<span class="pedido-tag tag-status-em-rota">🛵 Em rota</span>',
+        pronto_retirada: '<span class="pedido-tag tag-status-pronto-retirada">🛍️ Pronto pra retirada</span>',
         entregue: '<span class="pedido-tag tag-status-entregue">✅ Entregue</span>',
         recusado: '<span class="pedido-tag tag-status-recusado">Recusado</span>'
     }[pedido.status] || '';
@@ -999,7 +1000,7 @@ function montarBotoesAcaoPedido(id, pedido) {
     if (pedido.status === 'aceito') {
         const btnRota = pedido.tipoEntrega === 'entrega'
             ? `<button class="btn-em-rota" onclick="responderPedido('${id}', 'em_rota')">🛵 Saiu para entrega</button>`
-            : '';
+            : `<button class="btn-em-rota" onclick="responderPedido('${id}', 'pronto_retirada')">🛍️ Pronto pra retirada</button>`;
         return `
         <div class="pedido-acoes">
             ${btnRota}
@@ -1010,6 +1011,12 @@ function montarBotoesAcaoPedido(id, pedido) {
         return `
         <div class="pedido-acoes">
             <button class="btn-entregue" onclick="responderPedido('${id}', 'entregue')">✅ Marcar como Entregue</button>
+        </div>`;
+    }
+    if (pedido.status === 'pronto_retirada') {
+        return `
+        <div class="pedido-acoes">
+            <button class="btn-entregue" onclick="responderPedido('${id}', 'entregue')">✅ Marcar como Retirado</button>
         </div>`;
     }
     return '';
@@ -2502,7 +2509,7 @@ function escutarPedidosManuais() {
             return;
         }
 
-        const rotulosStatus = { pendente: '🕒 Pendente', aceito: '✅ Aceito', em_rota: '🛵 Em rota', entregue: '🎉 Entregue', recusado: '❌ Cancelado' };
+        const rotulosStatus = { pendente: '🕒 Pendente', aceito: '✅ Aceito', em_rota: '🛵 Em rota', pronto_retirada: '🛍️ Pronto pra retirada', entregue: '🎉 Entregue', recusado: '❌ Cancelado' };
         div.innerHTML = `
             <table style="width:100%; border-collapse:collapse; font-size:0.85em;">
                 <thead><tr style="text-align:left; border-bottom:2px solid var(--border);">
@@ -2549,7 +2556,7 @@ function formatarTelefoneWhatsAppGestao(telefone) {
 function gerarTextoPedidoWhatsAppGestao(pedido, paraCliente) {
     const linhas = (pedido.itens || []).map(item => `❤ ${item.nome} x${item.quantidade} = ${formatarPreco(item.preco * item.quantidade)}`).join('\n');
     const dataFormatada = pedido.timestamp ? new Date(pedido.timestamp).toLocaleDateString('pt-BR') : '—';
-    const rotulosStatus = { pendente: 'Pendente', aceito: 'Aceito', em_rota: 'Em rota', entregue: 'Entregue', recusado: 'Cancelado' };
+    const rotulosStatus = { pendente: 'Pendente', aceito: 'Aceito', em_rota: 'Em rota', pronto_retirada: 'Pronto pra retirada', entregue: 'Entregue', recusado: 'Cancelado' };
 
     let texto = '';
     if (paraCliente) {
@@ -2594,7 +2601,7 @@ function imprimirPedidoGestao(id) {
     const p = ultimosPedidosManuais.find(x => x.id === id);
     if (!p) return;
     const dataFormatada = p.timestamp ? new Date(p.timestamp).toLocaleDateString('pt-BR') : '—';
-    const rotulosStatus = { pendente: 'Pendente', aceito: 'Aceito', em_rota: 'Em rota', entregue: 'Entregue', recusado: 'Cancelado' };
+    const rotulosStatus = { pendente: 'Pendente', aceito: 'Aceito', em_rota: 'Em rota', pronto_retirada: 'Pronto pra retirada', entregue: 'Entregue', recusado: 'Cancelado' };
     const linhas = (p.itens || []).map(item => `<tr><td>${item.nome}</td><td>${item.quantidade}</td><td>${formatarPreco(item.preco * item.quantidade)}</td></tr>`).join('');
 
     const janela = window.open('', '_blank');
@@ -3095,6 +3102,38 @@ const MAPA_STATUS_PEDIDO_ANTIGO = { pendente: 'pendente', 'produção': 'aceito'
 // PRIMEIRO de cada grupo, e redireciona qualquer referência (bases usando outra base,
 // fichas técnicas usando ingrediente/base) pro id mantido antes de excluir o resto,
 // pra nunca quebrar nada que já estivesse referenciando o duplicado que está saindo
+// Apaga TUDO da Gestão (ingredientes, bases, ficha técnica, clientes, e só os pedidos
+// que vieram de importação — nunca mexe nos pedidos reais do cardápio nem nos lançados
+// manualmente na mão) — pra começar do zero e reimportar limpo. Irreversível.
+async function zerarSistemaGestao() {
+    const confirmacao1 = confirm('⚠️ Isso vai APAGAR PRA SEMPRE: todos os ingredientes, bases, fichas técnicas, clientes do CRM, e os pedidos que vieram de importação (não mexe nos pedidos do cardápio nem nos lançados na mão por você). Não tem como desfazer. Tem certeza?');
+    if (!confirmacao1) return;
+    const digitado = prompt('Pra confirmar de vez, digita ZERAR (em maiúsculas):');
+    if (digitado !== 'ZERAR') { alert('Cancelado — não digitou certinho.'); return; }
+
+    const msgEl = document.getElementById('resultadoDiagnostico');
+    msgEl.innerHTML = '<p class="dica-secao">Zerando...</p>';
+
+    await db.ref('ingredientes').remove();
+    await db.ref('bases').remove();
+    await db.ref('fichaTecnica').remove();
+    await db.ref('clientesGestao').remove();
+
+    // Só apaga pedidos que TÊM origemBackupId (ou seja, vieram de importação) —
+    // pedidos lançados na mão (sem essa marca) e os do cardápio ficam intocados
+    const todosPedidosSnap = await db.ref('pedidos').once('value');
+    const todosPedidosVal = todosPedidosSnap.val() || {};
+    let removidos = 0;
+    for (const [id, p] of Object.entries(todosPedidosVal)) {
+        if (p.origemBackupId) {
+            await db.ref('pedidos/' + id).remove();
+            removidos++;
+        }
+    }
+
+    msgEl.innerHTML = `<p class="dica-secao">✅ Zerado! Removidos: todos os ingredientes/bases/fichas técnicas/clientes, e ${removidos} pedido(s) importado(s). Pode importar o backup de novo, do zero.</p>`;
+}
+
 async function removerDuplicatas() {
     if (!confirm('Vai procurar ingredientes, bases, fichas técnicas e clientes com o mesmo nome (ou telefone), manter só o primeiro de cada grupo, e apagar o resto — corrigindo as referências antes de apagar. Confirma?')) return;
     const msgEl = document.getElementById('resultadoDiagnostico');
@@ -3228,10 +3267,35 @@ function remapComponenteImportado(c, mapaIngredientes, mapaBases) {
     return c;
 }
 
+let _importacaoGestaoEmAndamento = false; // trava — impede clique duplo/2 abas rodando a importação ao mesmo tempo
+
 async function importarBackupSistemaGestao() {
     const input = document.getElementById('inputImportarBackupGestao');
     const msgEl = document.getElementById('msgImportarBackup');
+    const botao = document.getElementById('btnImportarBackupGestao');
     if (!input.files.length) { msgEl.textContent = 'Escolhe o arquivo de backup (.json) primeiro.'; return; }
+
+    if (_importacaoGestaoEmAndamento) {
+        msgEl.textContent = '⚠️ Já tem uma importação rodando — espera ela terminar antes de tentar de novo.';
+        return;
+    }
+
+    // Trava também no Firebase (não só local) — protege contra 2 aparelhos/abas
+    // diferentes tentando importar ao mesmo tempo. transaction() é atômico: só UM
+    // dos dois "vence" e consegue travar; o outro é barrado aqui mesmo
+    msgEl.textContent = 'Verificando se já tem outra importação rodando...';
+    const resultadoTrava = await db.ref('configuracao/importacaoGestaoTravada').transaction(atual => {
+        if (atual && (Date.now() - atual) < 10 * 60 * 1000) return; // já travado há menos de 10min — aborta
+        return Date.now(); // livre (ou travado há muito tempo, provavelmente travou e nunca destravou) — assume a trava
+    });
+    if (!resultadoTrava.committed) {
+        msgEl.textContent = '⚠️ Detectei uma importação rodando em outro aparelho/aba agora — espera ela terminar (ou tenta de novo em alguns minutos) antes de importar por aqui.';
+        return;
+    }
+
+    _importacaoGestaoEmAndamento = true;
+    botao.disabled = true;
+    botao.textContent = '⏳ Importando... não clica de novo';
 
     const reader = new FileReader();
     reader.onload = async function (e) {
@@ -3307,8 +3371,26 @@ async function importarBackupSistemaGestao() {
             }
 
             // 5) Pedidos antigos -> nó "pedidos" (mesmo que o cardápio usa, origem:'manual')
+            // Proteção contra duplicata: marca cada pedido importado com o id ORIGINAL do
+            // backup (origemBackupId) — antes de importar, busca quais ids já foram
+            // importados antes, pra nunca trazer o mesmo pedido duas vezes
+            msgEl.textContent = 'Verificando pedidos já importados antes...';
+            const todosPedidosSnap = await db.ref('pedidos').once('value');
+            const todosPedidosVal = todosPedidosSnap.val() || {};
+            const idsJaImportados = new Set(
+                Object.values(todosPedidosVal)
+                    .map(p => p.origemBackupId)
+                    .filter(Boolean)
+            );
+
             msgEl.textContent = 'Importando pedidos...';
-            for (const ped of (dados.pedidos || [])) {
+            let pedidosPulados = 0;
+            // Ordena por data ANTES de importar — assim o número sequencial (#1, #2, #3...)
+            // reflete a ordem cronológica de verdade, não a ordem em que estavam no arquivo
+            const pedidosOrdenados = [...(dados.pedidos || [])].sort((a, b) => (a.data || '').localeCompare(b.data || ''));
+            for (const ped of pedidosOrdenados) {
+                if (idsJaImportados.has(ped.id)) { pedidosPulados++; continue; }
+
                 const cliente = mapaClientes[ped.clienteId] ? getClienteGestao(mapaClientes[ped.clienteId]) : null;
                 const itensConvertidos = (ped.itens || []).map(item => {
                     const ftIdNovo = mapaProdutos[item.produtoId] || null;
@@ -3321,6 +3403,7 @@ async function importarBackupSistemaGestao() {
 
                 const dadosPedido = {
                     origem: 'manual',
+                    origemBackupId: ped.id, // marca de onde veio, pra nunca duplicar numa reimportação
                     nome: cliente ? cliente.nome : 'Cliente importado',
                     telefone: cliente ? cliente.telefone : null,
                     tipoEntrega: 'retirada',
@@ -3345,11 +3428,15 @@ async function importarBackupSistemaGestao() {
                 if (statusRealDoPedido !== 'pendente') await novoPedidoRef.child('status').set(statusRealDoPedido);
             }
 
-            msgEl.textContent = `✅ Importado! ${qtdIng} ingrediente(s), ${qtdBases} base(s), ${qtdProdutos} produto(s), ${qtdClientes} cliente(s) e ${qtdPedidos} pedido(s) — o que já existia foi reaproveitado, nada duplicado.`;
+            msgEl.textContent = `✅ Importado! ${qtdIng} ingrediente(s), ${qtdBases} base(s), ${qtdProdutos} produto(s), ${qtdClientes} cliente(s) e ${qtdPedidos - pedidosPulados} pedido(s) novo(s) (${pedidosPulados} já tinham sido importados antes e foram pulados). Nada duplicado.`;
         } catch (err) {
             msgEl.textContent = 'Erro ao importar: ' + err.message;
         } finally {
             window._importandoBackupGestao = false;
+            _importacaoGestaoEmAndamento = false;
+            db.ref('configuracao/importacaoGestaoTravada').remove();
+            botao.disabled = false;
+            botao.textContent = '📥 Importar';
             input.value = '';
         }
     };
@@ -4078,7 +4165,7 @@ function renderFechamentoDiario(pedidos, dataInicioInput, dataFimInput) {
     const cancelados = pedidos.filter(p => p.status === 'recusado');
     const validos = pedidos.filter(p => p.status !== 'recusado');
     const concluidos = pedidos.filter(p => p.status === 'entregue');
-    const emAndamento = pedidos.filter(p => ['pendente', 'aceito', 'em_rota'].includes(p.status));
+    const emAndamento = pedidos.filter(p => ['pendente', 'aceito', 'em_rota', 'pronto_retirada'].includes(p.status));
     const totalValidos = validos.reduce((s, p) => s + totalDoPedido(p), 0);
 
     const resumoHtml = `
