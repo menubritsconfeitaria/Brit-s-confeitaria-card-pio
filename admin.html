@@ -998,6 +998,10 @@
                         </div>
                         <button class="btn-secondary" style="margin-top:8px;" onclick="adicionarItemOrcamento()">+ Adicionar item</button>
                         <div id="orcListaItens" style="margin-top:10px;"></div>
+
+                        <label class="campo-label" style="margin-top:10px;">Frete (opcional)</label>
+                        <input type="text" inputmode="decimal" id="orcFrete" value="0" oninput="renderItensOrcamento()">
+
                         <p class="dica-secao">Total do orçamento: <strong id="orcTotalTemp">R$ 0,00</strong></p>
 
                         <label class="campo-label" style="margin-top:10px;">Observações</label>

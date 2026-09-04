@@ -2953,14 +2953,17 @@ function renderItensOrcamento() {
             <button class="btn-excluir-cupom" onclick="removerItemOrcamento(${i})">🗑️</button>`;
         div.appendChild(linha);
     });
-    document.getElementById('orcTotalTemp').textContent = formatarPreco(total);
+    const frete = parseFloat((document.getElementById('orcFrete').value || '0').replace(',', '.')) || 0;
+    document.getElementById('orcTotalTemp').textContent = formatarPreco(total + frete);
 }
 
 function gerarHtmlOrcamento() {
     const cliente = document.getElementById('orcCliente').value.trim() || 'Cliente';
     const validade = document.getElementById('orcValidade').value.trim();
     const obs = document.getElementById('orcObs').value.trim();
-    const total = tempItensOrcamento.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
+    const frete = parseFloat((document.getElementById('orcFrete').value || '0').replace(',', '.')) || 0;
+    const subtotal = tempItensOrcamento.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
+    const total = subtotal + frete;
     const dataHoje = new Date().toLocaleDateString('pt-BR');
 
     return `
@@ -2970,6 +2973,7 @@ function gerarHtmlOrcamento() {
             <p><strong>Cliente:</strong> ${cliente}</p>
             <hr style="margin:12px 0; border:none; border-top:1px solid var(--border);">
             ${tempItensOrcamento.map(item => `<p>${item.quantidade}x ${item.nome} — ${formatarPreco(item.preco * item.quantidade)}</p>`).join('')}
+            ${frete > 0 ? `<p>Frete — ${formatarPreco(frete)}</p>` : ''}
             <hr style="margin:12px 0; border:none; border-top:1px solid var(--border);">
             <p style="font-size:1.2em;"><strong>Total: ${formatarPreco(total)}</strong></p>
             ${obs ? `<p style="margin-top:10px;"><strong>Observações:</strong> ${obs}</p>` : ''}
@@ -2999,9 +3003,12 @@ function baixarOrcamentoPDF() {
     doc.text('Cliente: ' + cliente + (validade ? ' — Válido por ' + validade : ''), 14, 22);
 
     const linhas = tempItensOrcamento.map(item => [`${item.quantidade}x ${item.nome}`, formatarPreco(item.preco * item.quantidade)]);
+    const frete = parseFloat((document.getElementById('orcFrete').value || '0').replace(',', '.')) || 0;
+    if (frete > 0) linhas.push(['Frete', formatarPreco(frete)]);
     doc.autoTable({ head: [['Item', 'Valor']], body: linhas, startY: 28 });
 
-    const total = tempItensOrcamento.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
+    const subtotal = tempItensOrcamento.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
+    const total = subtotal + frete;
     const yFinal = doc.lastAutoTable.finalY + 8;
     doc.setFontSize(12);
     doc.text('Total: ' + formatarPreco(total), 14, yFinal);
