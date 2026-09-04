@@ -2243,6 +2243,7 @@ function renderFichaTecnica() {
                     Rendimento: ${p.rendimento}un · Custo/un.: ${formatarPreco(r.custoUnitarioFinal)} · Preço: ${formatarPreco(r.precoVenda)} · CMV: ${cmv}%
                 </p>
                 <button class="btn-secondary" onclick="editarFichaTecnica('${p.id}')">✏️ Editar</button>
+                <button class="btn-secondary" onclick="migrarFichaTecnicaParaProduto('${p.id}')">🚀 Migrar pro site</button>
                 <button class="btn-excluir-cupom" onclick="excluirFichaTecnica('${p.id}')">🗑️</button>
             </div>
         `;
@@ -3992,6 +3993,11 @@ function montarLinhaProduto(id, produto) {
 
         <label class="campo-label">Foto(s) do produto (nomes dos arquivos, separados por VÍRGULA — a primeira é a foto principal)</label>
         <input type="text" id="prodImagens_${id}" value="${(Array.isArray(produto.imagens) && produto.imagens.length ? produto.imagens : (produto.imagem ? [produto.imagem] : [])).join(', ')}" placeholder="Ex: bolo1.jpg, bolo2.jpg, bolo3.jpg" oninput="atualizarPreviaImagens('${id}')">
+        <div style="display:flex; gap:8px; align-items:center; margin-top:6px;">
+            <input type="file" id="prodUploadFoto_${id}" accept="image/*" style="flex:1;">
+            <button type="button" class="btn-secondary" onclick="enviarFotoProduto('${id}')">📤 Enviar foto</button>
+        </div>
+        <p id="prodMsgUpload_${id}" class="ordem-categorias-msg"></p>
         <div id="previaImagens_${id}" class="previa-imagens"></div>
 
         <input type="text" id="prodCategoria_${id}" value="${produto.categoria || ''}" placeholder="Categoria" list="categoriasDatalist">
@@ -4021,6 +4027,38 @@ Adicione extras (opcional): Granola +2, Chantilly extra +3, Confete +1.5">${mont
 
 // Mostra na hora quantos "sabores" foram reconhecidos, pra confirmar que separou certo por vírgula
 // Mostra as fotos de verdade (miniaturas), pra confirmar visualmente que os nomes dos arquivos estão certos
+// Envia uma foto de produto direto pro Storage da própria loja (mesmo Storage que já
+// guarda a logo) — depois de enviar, completa sozinho o campo de texto de fotos
+// (que continua funcionando normal, por nome de arquivo ou link, sem mudar nada nisso)
+async function enviarFotoProduto(id) {
+    const inputArquivo = document.getElementById('prodUploadFoto_' + id);
+    const msgEl = document.getElementById('prodMsgUpload_' + id);
+    const arquivo = inputArquivo.files[0];
+    if (!arquivo) { msgEl.textContent = 'Escolhe uma imagem primeiro.'; return; }
+    if (!arquivo.type.startsWith('image/')) { msgEl.textContent = 'Isso não parece ser uma imagem.'; return; }
+    if (arquivo.size > 2 * 1024 * 1024) { msgEl.textContent = 'Imagem muito grande — usa algo até 2MB.'; return; }
+
+    msgEl.textContent = 'Enviando...';
+    try {
+        const extensao = arquivo.name.split('.').pop();
+        const nomeArquivo = `produto-${id}-${Date.now()}.${extensao}`;
+        const ref = firebase.storage().ref('produtos/' + nomeArquivo);
+        await ref.put(arquivo);
+        const url = await ref.getDownloadURL();
+
+        const campoTexto = document.getElementById('prodImagens_' + id);
+        const atuais = campoTexto.value.split(',').map(v => v.trim()).filter(v => v.length > 0);
+        atuais.push(url);
+        campoTexto.value = atuais.join(', ');
+        atualizarPreviaImagens(id);
+
+        msgEl.textContent = 'Foto enviada! Não esquece de clicar em Salvar Produto.';
+        inputArquivo.value = '';
+    } catch (err) {
+        msgEl.textContent = 'Erro ao enviar: ' + err.message;
+    }
+}
+
 function atualizarPreviaImagens(id) {
     const input = document.getElementById('prodImagens_' + id);
     const previa = document.getElementById('previaImagens_' + id);
@@ -4233,6 +4271,35 @@ function salvarProduto(id) {
 function excluirProduto(id) {
     if (!confirm('Excluir este produto do cardápio? Essa ação não pode ser desfeita.')) return;
     db.ref('produtos/' + id).remove().catch(err => alert('Erro ao excluir produto: ' + err.message));
+}
+
+// Cria o produto no cardápio a partir de uma ficha técnica já pronta — já vem com
+// nome e preço calculado preenchidos e já vinculado a essa ficha técnica. Só falta
+// a pessoa entrar na aba Produtos e completar foto + categoria
+async function migrarFichaTecnicaParaProduto(id) {
+    const ft = getFichaTecnica(id);
+    if (!ft) return;
+    const r = calcularCustoFichaTecnica(ft);
+
+    if (!confirm(`Criar o produto "${ft.nome}" no cardápio, com preço R$ ${r.precoVenda.toFixed(2).replace('.', ',')}? Depois é só entrar na aba Produtos pra completar foto e categoria.`)) return;
+
+    try {
+        const novoRef = db.ref('produtos').push();
+        await novoRef.set({
+            nome: ft.nome,
+            descricao: '',
+            preco: r.precoVenda,
+            imagem: '',
+            imagens: [],
+            categoria: 'Outros',
+            disponivel: false, // começa escondido de propósito — só liga depois de completar foto/categoria
+            fichaTecnicaId: ft.id,
+            criadoEm: firebase.database.ServerValue.TIMESTAMP
+        });
+        alert(`Produto "${ft.nome}" criado! Ele começa DESATIVADO — vai na aba Produtos, adiciona a foto e categoria, e ativa ele quando estiver pronto.`);
+    } catch (err) {
+        alert('Erro ao criar o produto: ' + err.message);
+    }
 }
 
 function adicionarNovoProduto() {
