@@ -2402,8 +2402,16 @@ function editarClienteGestao(id) {
     document.getElementById('tituloCadastroClienteGestao').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
-function excluirClienteGestao(id) {
-    if (!confirm('Excluir este cliente do CRM?')) return;
+async function excluirClienteGestao(id) {
+    const cliente = getClienteGestao(id);
+    let temPedidos = false;
+    if (cliente && cliente.telefone) {
+        const snap = await db.ref('pedidos').orderByChild('telefone').equalTo(cliente.telefone).once('value');
+        temPedidos = snap.exists();
+    }
+    let msg = 'Excluir este cliente do CRM?';
+    if (temPedidos) msg += '\n\nEle tem pedidos registrados — excluir o cliente não apaga os pedidos, só o cadastro dele.';
+    if (!confirm(msg)) return;
     db.ref('clientesGestao/' + id).remove().catch(err => alert('Erro ao excluir: ' + err.message));
 }
 
@@ -2613,6 +2621,10 @@ function editarPedidoManual(id) {
     const p = ultimosPedidosManuais.find(x => x.id === id);
     if (!p) return;
     document.getElementById('pmCliente').value = p.nome || '';
+    if (p.timestamp) {
+        const d = new Date(p.timestamp);
+        document.getElementById('pmData').value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
     document.getElementById('pmStatus').value = p.status || 'pendente';
     document.getElementById('pmFormaPagamento').value = p.formaPagamento || '';
     document.getElementById('pmObs').value = p.observacoes || '';
@@ -2632,12 +2644,24 @@ async function excluirPedidoManualDireto(id, numero) {
 
 async function salvarPedidoManual() {
     const nomeClienteDigitado = document.getElementById('pmCliente').value.trim();
+    const dataEscolhida = document.getElementById('pmData').value; // formato yyyy-mm-dd
     const status = document.getElementById('pmStatus').value;
     const formaPagamento = document.getElementById('pmFormaPagamento').value;
     const obs = document.getElementById('pmObs').value.trim();
     const msgEl = document.getElementById('msgPedidoManual');
 
     if (tempItensPedidoManual.length === 0) { msgEl.textContent = 'Adiciona pelo menos 1 item.'; return; }
+
+    // Usa a data escolhida (na hora atual, do jeito que estamos agora — só a data muda,
+    // não afeta o horário) — se não escolher nada, usa a data de hoje
+    let timestampEscolhido;
+    if (dataEscolhida) {
+        const [ano, mes, dia] = dataEscolhida.split('-').map(Number);
+        const agora = new Date();
+        timestampEscolhido = new Date(ano, mes - 1, dia, agora.getHours(), agora.getMinutes(), agora.getSeconds()).getTime();
+    } else {
+        timestampEscolhido = Date.now();
+    }
 
     msgEl.textContent = 'Salvando...';
     const cliente = await obterOuCriarClienteGestaoPorNome(nomeClienteDigitado);
@@ -2660,7 +2684,8 @@ async function salvarPedidoManual() {
         desconto,
         frete,
         total,
-        status
+        status,
+        timestamp: timestampEscolhido
     };
 
     // Editando um pedido que já existe — atualiza direto (a mudança de status, se
@@ -2698,8 +2723,7 @@ async function salvarPedidoManual() {
             const numeroAtribuido = resultado.committed ? resultado.snapshot.val() : null;
             return novoPedidoRef.set({
                 ...dadosPedido,
-                numero: numeroAtribuido,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
+                numero: numeroAtribuido
             });
         })
         .then(() => {
@@ -2853,9 +2877,13 @@ function renderRelatorioCustos() {
         return `
             <tr style="border-bottom:1px solid var(--border);">
                 <td style="padding:6px;">${p.nome}</td>
+                <td style="padding:6px;">${formatarPreco(r.custoTotalReceita)}</td>
+                <td style="padding:6px;">${p.rendimento}</td>
                 <td style="padding:6px;">${formatarPreco(r.custoUnitarioFinal)}</td>
                 <td style="padding:6px;">${formatarPreco(r.precoVenda)}</td>
                 <td style="padding:6px;">${formatarPreco(r.lucroLiquido)}</td>
+                <td style="padding:6px;">${formatarPreco(r.lucroEmpresa)}</td>
+                <td style="padding:6px;">${formatarPreco(r.lucroCasal)}</td>
                 <td style="padding:6px;">${r.margemRealPercent}%</td>
             </tr>
         `;
@@ -2876,16 +2904,8 @@ function mostrarDetalheProdutoRelatorio() {
     const p = getFichaTecnica(id);
     if (!p) return;
     const r = calcularCustoFichaTecnica(p);
-    div.innerHTML = `
-        <p><strong>Rendimento:</strong> ${p.rendimento} un.</p>
-        <p><strong>Componentes:</strong></p>
-        <ul>${r.detalhes.map(d => `<li>${d.nome}: ${d.quantidade}${d.unidade} = ${formatarPreco(d.custoItem)}</li>`).join('')}</ul>
-        <p><strong>Custo total da receita:</strong> ${formatarPreco(r.custoTotalReceita)}</p>
-        <p><strong>Custo unitário final:</strong> ${formatarPreco(r.custoUnitarioFinal)}</p>
-        <p><strong>Preço de venda:</strong> ${formatarPreco(r.precoVenda)}</p>
-        <p><strong>Lucro líquido/un.:</strong> ${formatarPreco(r.lucroLiquido)} (${r.margemRealPercent}%)</p>
-        <p><strong>Divisão:</strong> Empresa ${formatarPreco(r.lucroEmpresa)} · Pró-labore ${formatarPreco(r.lucroCasal)}</p>
-    `;
+    const componentesHtml = `<p><strong>Componentes:</strong></p><ul>${r.detalhes.map(d => `<li>${d.nome}: ${d.quantidade}${d.unidade} = ${formatarPreco(d.custoItem)}</li>`).join('')}</ul>`;
+    div.innerHTML = componentesHtml + montarResultadoFichaTecnica(p);
 }
 
 // ---------- Sistema de Gestão — Orçamento (proposta pro cliente) ----------
@@ -3018,9 +3038,9 @@ function exportarRelatorioPDF() {
     doc.text('Relatório de Custos — ' + (LOJA_CONFIG.nome || ''), 14, 15);
     const linhas = fichaTecnica.map(p => {
         const r = calcularCustoFichaTecnica(p);
-        return [p.nome, formatarPreco(r.custoUnitarioFinal), formatarPreco(r.precoVenda), formatarPreco(r.lucroLiquido), r.margemRealPercent + '%'];
+        return [p.nome, formatarPreco(r.custoUnitarioFinal), formatarPreco(r.precoVenda), formatarPreco(r.lucroLiquido), formatarPreco(r.lucroEmpresa), formatarPreco(r.lucroCasal)];
     });
-    doc.autoTable({ head: [['Produto', 'Custo/un.', 'Preço', 'Lucro/un.', 'Margem']], body: linhas, startY: 22 });
+    doc.autoTable({ head: [['Produto', 'Custo/un.', 'Preço', 'Lucro total/un.', 'Lucro empresa/un.', 'Lucro pró-labore/un.']], body: linhas, startY: 22 });
     doc.save('relatorio-custos.pdf');
 }
 
@@ -3028,7 +3048,7 @@ function exportarRelatorioExcel() {
     if (typeof XLSX === 'undefined') { alert('A biblioteca de exportação ainda está carregando, tenta de novo em instantes.'); return; }
     const linhas = fichaTecnica.map(p => {
         const r = calcularCustoFichaTecnica(p);
-        return { Produto: p.nome, 'Custo/un.': r.custoUnitarioFinal, 'Preço': r.precoVenda, 'Lucro/un.': r.lucroLiquido, 'Margem (%)': r.margemRealPercent };
+        return { Produto: p.nome, 'Custo/un.': r.custoUnitarioFinal, 'Preço': r.precoVenda, 'Lucro total/un.': r.lucroLiquido, 'Lucro empresa/un.': r.lucroEmpresa, 'Lucro pró-labore/un.': r.lucroCasal, 'Margem (%)': r.margemRealPercent };
     });
     const ws = XLSX.utils.json_to_sheet(linhas);
     const wb = XLSX.utils.book_new();
@@ -4447,6 +4467,8 @@ function iniciarEscutaPedidos() {
     const hojeFormatado = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0');
     document.getElementById('fechamentoDataInicio').value = hojeFormatado;
     document.getElementById('fechamentoDataFim').value = hojeFormatado;
+    const campoPmData = document.getElementById('pmData');
+    if (campoPmData) campoPmData.value = hojeFormatado;
 
     // E o período de visitas já vem com os últimos 7 dias
     const seteDiasAtras = new Date(); seteDiasAtras.setDate(seteDiasAtras.getDate() - 6);
