@@ -2824,6 +2824,84 @@ const MAPA_STATUS_PEDIDO_ANTIGO = { pendente: 'pendente', 'produção': 'aceito'
 // Verifica bases e fichas técnicas com componentes "órfãos" (apontando pra um
 // ingrediente/base que não existe mais) — útil pra achar dados de uma importação
 // antiga, feita antes desse reconhecimento de formato existir
+// Remove itens duplicados (mesmo nome, ou mesmo telefone pra clientes) — mantém o
+// PRIMEIRO de cada grupo, e redireciona qualquer referência (bases usando outra base,
+// fichas técnicas usando ingrediente/base) pro id mantido antes de excluir o resto,
+// pra nunca quebrar nada que já estivesse referenciando o duplicado que está saindo
+async function removerDuplicatas() {
+    if (!confirm('Vai procurar ingredientes, bases, fichas técnicas e clientes com o mesmo nome (ou telefone), manter só o primeiro de cada grupo, e apagar o resto — corrigindo as referências antes de apagar. Confirma?')) return;
+    const msgEl = document.getElementById('resultadoDiagnostico');
+    msgEl.innerHTML = '<p class="dica-secao">Removendo duplicatas...</p>';
+
+    function agrupar(lista, chaveFn) {
+        const grupos = {};
+        lista.forEach(item => {
+            const chave = chaveFn(item);
+            if (!chave) return;
+            if (!grupos[chave]) grupos[chave] = [];
+            grupos[chave].push(item);
+        });
+        return Object.values(grupos).filter(g => g.length > 1);
+    }
+
+    async function redirecionarReferencias(idAntigo, idNovo, tipoAlvo) {
+        for (const b of bases) {
+            if (!b.componentes) continue;
+            let mudou = false;
+            const corrigidos = b.componentes.map(c => {
+                if (tipoAlvo === 'base' && c.tipo === 'base' && c.id === idAntigo) { mudou = true; return { ...c, id: idNovo }; }
+                if (tipoAlvo === 'ingrediente' && c.tipo === 'ingrediente' && c.id === idAntigo) { mudou = true; return { ...c, id: idNovo }; }
+                return c;
+            });
+            if (mudou) await db.ref('bases/' + b.id + '/componentes').set(corrigidos);
+        }
+        for (const p of fichaTecnica) {
+            if (!p.componentes) continue;
+            let mudou = false;
+            const corrigidos = p.componentes.map(c => {
+                if (tipoAlvo === 'base' && c.tipo === 'base' && c.id === idAntigo) { mudou = true; return { ...c, id: idNovo }; }
+                if (tipoAlvo === 'ingrediente' && c.tipo === 'ingrediente' && c.id === idAntigo) { mudou = true; return { ...c, id: idNovo }; }
+                return c;
+            });
+            if (mudou) await db.ref('fichaTecnica/' + p.id + '/componentes').set(corrigidos);
+        }
+    }
+
+    let totalRemovidos = 0;
+
+    for (const grupo of agrupar(ingredientes, i => (i.nome || '').trim().toLowerCase())) {
+        const manter = grupo[0];
+        for (const dup of grupo.slice(1)) {
+            await redirecionarReferencias(dup.id, manter.id, 'ingrediente');
+            await db.ref('ingredientes/' + dup.id).remove();
+            totalRemovidos++;
+        }
+    }
+    for (const grupo of agrupar(bases, b => (b.nome || '').trim().toLowerCase())) {
+        const manter = grupo[0];
+        for (const dup of grupo.slice(1)) {
+            await redirecionarReferencias(dup.id, manter.id, 'base');
+            await db.ref('bases/' + dup.id).remove();
+            totalRemovidos++;
+        }
+    }
+    for (const grupo of agrupar(fichaTecnica, p => (p.nome || '').trim().toLowerCase())) {
+        for (const dup of grupo.slice(1)) {
+            await db.ref('fichaTecnica/' + dup.id).remove();
+            totalRemovidos++;
+        }
+    }
+    for (const grupo of agrupar(clientesGestao, c => c.telefone || (c.nome || '').trim().toLowerCase())) {
+        for (const dup of grupo.slice(1)) {
+            await db.ref('clientesGestao/' + dup.id).remove();
+            totalRemovidos++;
+        }
+    }
+
+    msgEl.innerHTML = `<p class="dica-secao">✅ Removidas ${totalRemovidos} duplicata(s). Rodando o diagnóstico de novo...</p>`;
+    setTimeout(diagnosticarComponentesQuebrados, 1000); // espera os listeners atualizarem os arrays
+}
+
 function diagnosticarComponentesQuebrados() {
     const div = document.getElementById('resultadoDiagnostico');
     const problemas = [];
