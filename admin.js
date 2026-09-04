@@ -2001,6 +2001,7 @@ function escutarFichaTecnica() {
         if (typeof popularSelectProdutoPedidoManual === 'function') popularSelectProdutoPedidoManual();
         if (typeof renderRelatorioCustos === 'function') renderRelatorioCustos();
         if (typeof popularSelectProdutoOrcamento === 'function') popularSelectProdutoOrcamento();
+        if (typeof renderizarListaProdutosAdmin === 'function') renderizarListaProdutosAdmin();
     });
 }
 
@@ -3423,32 +3424,41 @@ function atualizarDatalistCategorias() {
         .join('');
 }
 
+let ultimoValProdutosAdmin = null; // guarda os últimos dados, pra poder re-renderizar
+// a lista sem precisar reler o Firebase (ex: quando a Ficha Técnica carrega depois)
+
 function escutarProdutos() {
     db.ref('produtos').on('value', snap => {
-        const lista = document.getElementById('produtosAdminList');
-        const btnImportar = document.getElementById('btnImportarDados');
+        ultimoValProdutosAdmin = snap.val() || {};
+        renderizarListaProdutosAdmin();
+    });
+}
 
-        const val = snap.val() || {};
-        const itens = Object.entries(val).map(([id, produto]) => ({ id, produto }));
-        itens.sort((a, b) => (a.produto.criadoEm || 0) - (b.produto.criadoEm || 0));
+function renderizarListaProdutosAdmin() {
+    const lista = document.getElementById('produtosAdminList');
+    const btnImportar = document.getElementById('btnImportarDados');
+    if (!lista) return;
 
-        categoriasConhecidas = [...new Set(itens.map(i => i.produto.categoria).filter(Boolean))];
-        produtosConhecidos = itens.map(i => i.produto.nome).filter(Boolean);
-        atualizarDatalistCategorias();
-        atualizarPreviaOrdemCategorias();
-        atualizarSelectProdutoRecompensa();
+    const val = ultimoValProdutosAdmin || {};
+    const itens = Object.entries(val).map(([id, produto]) => ({ id, produto }));
+    itens.sort((a, b) => (a.produto.criadoEm || 0) - (b.produto.criadoEm || 0));
 
-        btnImportar.style.display = itens.length === 0 ? 'block' : 'none';
+    categoriasConhecidas = [...new Set(itens.map(i => i.produto.categoria).filter(Boolean))];
+    produtosConhecidos = itens.map(i => i.produto.nome).filter(Boolean);
+    atualizarDatalistCategorias();
+    atualizarPreviaOrdemCategorias();
+    atualizarSelectProdutoRecompensa();
 
-        lista.innerHTML = '';
-        if (itens.length === 0) {
-            lista.innerHTML = '<p class="vazio">Nenhum produto cadastrado ainda.</p>';
-            return;
-        }
-        itens.forEach(({ id, produto }) => {
-            lista.appendChild(montarLinhaProduto(id, produto));
-            atualizarPreviaImagens(id);
-        });
+    btnImportar.style.display = itens.length === 0 ? 'block' : 'none';
+
+    lista.innerHTML = '';
+    if (itens.length === 0) {
+        lista.innerHTML = '<p class="vazio">Nenhum produto cadastrado ainda.</p>';
+        return;
+    }
+    itens.forEach(({ id, produto }) => {
+        lista.appendChild(montarLinhaProduto(id, produto));
+        atualizarPreviaImagens(id);
     });
 }
 
