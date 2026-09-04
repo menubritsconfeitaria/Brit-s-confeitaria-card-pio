@@ -2369,6 +2369,7 @@ function excluirClienteGestao(id) {
 // Escreve no MESMO nó "pedidos" que o cardápio usa (com origem:'manual'), pra
 // fechamento e relatórios sempre verem tudo junto, nunca separado
 let tempItensPedidoManual = [];
+let editingPedidoManualId = null;
 
 function popularSelectClientePedidoManual() {
     const dl = document.getElementById('pmClientesDatalist');
@@ -2432,6 +2433,8 @@ function renderItensPedidoManual() {
 
 // Lista os últimos pedidos lançados manualmente (não os do cardápio) — mesmo nó
 // "pedidos", só filtra por origem no navegador mesmo (evita precisar de outro índice)
+let ultimosPedidosManuais = []; // guarda a lista pra imprimir/enviar/editar sem reler o Firebase
+
 function escutarPedidosManuais() {
     db.ref('pedidos').limitToLast(150).on('value', snap => {
         const val = snap.val() || {};
@@ -2440,6 +2443,7 @@ function escutarPedidosManuais() {
             .filter(p => p.origem === 'manual')
             .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
             .slice(0, 30); // só os 30 mais recentes, pra não ficar gigante
+        ultimosPedidosManuais = manuais;
 
         const div = document.getElementById('listaPedidosManuais');
         if (!div) return;
@@ -2452,25 +2456,131 @@ function escutarPedidosManuais() {
         div.innerHTML = `
             <table style="width:100%; border-collapse:collapse; font-size:0.85em;">
                 <thead><tr style="text-align:left; border-bottom:2px solid var(--border);">
-                    <th style="padding:6px;">#</th><th style="padding:6px;">Cliente</th><th style="padding:6px;">Itens</th>
-                    <th style="padding:6px;">Total</th><th style="padding:6px;">Pagamento</th><th style="padding:6px;">Status</th><th style="padding:6px;"></th>
+                    <th style="padding:6px;">#</th><th style="padding:6px;">Cliente</th><th style="padding:6px;">Data</th>
+                    <th style="padding:6px;">Itens</th><th style="padding:6px;">Total</th><th style="padding:6px;">Desconto</th>
+                    <th style="padding:6px;">Pagamento</th><th style="padding:6px;">Status</th><th style="padding:6px;">Ações</th>
                 </tr></thead>
                 <tbody>
-                    ${manuais.map(p => `
+                    ${manuais.map(p => {
+                        const dataFormatada = p.timestamp ? new Date(p.timestamp).toLocaleDateString('pt-BR') : '—';
+                        return `
                         <tr style="border-bottom:1px solid var(--border);">
                             <td style="padding:6px;">#${p.numero || '—'}</td>
                             <td style="padding:6px;">${p.nome || '—'}</td>
+                            <td style="padding:6px;">${dataFormatada}</td>
                             <td style="padding:6px;">${(p.itens || []).length}</td>
                             <td style="padding:6px;">${formatarPreco(p.total || 0)}</td>
+                            <td style="padding:6px;">${p.desconto > 0 ? formatarPreco(p.desconto) : '-'}</td>
                             <td style="padding:6px;">${p.formaPagamento || '—'}</td>
                             <td style="padding:6px;">${rotulosStatus[p.status] || p.status}</td>
-                            <td style="padding:6px;"><button class="btn-excluir-cupom" onclick="excluirPedidoManualDireto('${p.id}', ${p.numero})">🗑️</button></td>
+                            <td style="padding:6px; white-space:nowrap;">
+                                <button class="btn-secondary" style="padding:4px 8px;" onclick="enviarPedidoWhatsAppClienteGestao('${p.id}')" title="WhatsApp Cliente">📲</button>
+                                <button class="btn-secondary" style="padding:4px 8px;" onclick="enviarPedidoWhatsAppLojaGestao('${p.id}')" title="WhatsApp Loja">📲🏪</button>
+                                <button class="btn-secondary" style="padding:4px 8px;" onclick="imprimirPedidoGestao('${p.id}')" title="Imprimir">🖨️</button>
+                                <button class="btn-secondary" style="padding:4px 8px;" onclick="editarPedidoManual('${p.id}')" title="Editar">✏️</button>
+                                <button class="btn-excluir-cupom" onclick="excluirPedidoManualDireto('${p.id}', ${p.numero})" title="Excluir">🗑️</button>
+                            </td>
                         </tr>
-                    `).join('')}
+                    `; }).join('')}
                 </tbody>
             </table>
         `;
     });
+}
+
+function formatarTelefoneWhatsAppGestao(telefone) {
+    let digits = (telefone || '').replace(/\D/g, '');
+    if (!digits) return null;
+    if (digits.length === 10 || digits.length === 11) digits = '55' + digits;
+    if (digits.length < 12) return null;
+    return digits;
+}
+
+function gerarTextoPedidoWhatsAppGestao(pedido, paraCliente) {
+    const linhas = (pedido.itens || []).map(item => `❤ ${item.nome} x${item.quantidade} = ${formatarPreco(item.preco * item.quantidade)}`).join('\n');
+    const dataFormatada = pedido.timestamp ? new Date(pedido.timestamp).toLocaleDateString('pt-BR') : '—';
+    const rotulosStatus = { pendente: 'Pendente', aceito: 'Aceito', em_rota: 'Em rota', entregue: 'Entregue', recusado: 'Cancelado' };
+
+    let texto = '';
+    if (paraCliente) {
+        texto += `Olá${pedido.nome ? ', ' + pedido.nome : ''}! ❤\n\n`;
+        texto += `Aqui está o resumo do seu pedido na ${LOJA_CONFIG.nome}:\n\n`;
+    } else {
+        texto += `*Pedido - ${LOJA_CONFIG.nome}*\n\n`;
+        texto += `*Cliente:* ${pedido.nome || '-'}\n`;
+    }
+    texto += `*Data:* ${dataFormatada}\n`;
+    texto += `*Status:* ${rotulosStatus[pedido.status] || pedido.status}\n\n`;
+    texto += `*Itens:*\n${linhas}\n\n`;
+    if (pedido.desconto > 0) texto += `*Desconto:* -${formatarPreco(pedido.desconto)}\n`;
+    if (pedido.frete > 0) texto += `*Taxa de entrega:* ${formatarPreco(pedido.frete)}\n`;
+    texto += `*Total: ${formatarPreco(pedido.total || 0)}*\n`;
+    texto += `*Forma de Pagamento:* ${pedido.formaPagamento || '-'}\n`;
+    if (pedido.observacoes) texto += `\n*Observações:* ${pedido.observacoes}\n`;
+    if (paraCliente) texto += `\n${LOJA_CONFIG.nome} agradece a preferência! ❤`;
+    return texto;
+}
+
+function enviarPedidoWhatsAppClienteGestao(id) {
+    const p = ultimosPedidosManuais.find(x => x.id === id);
+    if (!p) return;
+    if (!p.telefone) { alert('Esse cliente ainda não tem telefone cadastrado.\nAdiciona o telefone dele na aba Clientes antes de enviar.'); return; }
+    const numero = formatarTelefoneWhatsAppGestao(p.telefone);
+    if (!numero) { alert('O telefone desse cliente parece inválido (formato esperado: DDD + número).'); return; }
+    const texto = gerarTextoPedidoWhatsAppGestao(p, true);
+    window.open(`https://api.whatsapp.com/send?phone=${numero}&text=${encodeURIComponent(texto)}`, '_blank');
+}
+
+function enviarPedidoWhatsAppLojaGestao(id) {
+    const p = ultimosPedidosManuais.find(x => x.id === id);
+    if (!p) return;
+    const numero = formatarTelefoneWhatsAppGestao(LOJA_CONFIG.whatsappPedidos);
+    if (!numero) { alert('O WhatsApp da loja não está configurado (Identidade e Marca).'); return; }
+    const texto = gerarTextoPedidoWhatsAppGestao(p, false);
+    window.open(`https://api.whatsapp.com/send?phone=${numero}&text=${encodeURIComponent(texto)}`, '_blank');
+}
+
+function imprimirPedidoGestao(id) {
+    const p = ultimosPedidosManuais.find(x => x.id === id);
+    if (!p) return;
+    const dataFormatada = p.timestamp ? new Date(p.timestamp).toLocaleDateString('pt-BR') : '—';
+    const rotulosStatus = { pendente: 'Pendente', aceito: 'Aceito', em_rota: 'Em rota', entregue: 'Entregue', recusado: 'Cancelado' };
+    const linhas = (p.itens || []).map(item => `<tr><td>${item.nome}</td><td>${item.quantidade}</td><td>${formatarPreco(item.preco * item.quantidade)}</td></tr>`).join('');
+
+    const janela = window.open('', '_blank');
+    janela.document.write(`
+        <html><head><title>Pedido #${p.numero}</title></head><body style="font-family:sans-serif;">
+        <h2>Pedido #${p.numero} — ${LOJA_CONFIG.nome}</h2>
+        <p><strong>Cliente:</strong> ${p.nome || '-'} &nbsp; <strong>Data:</strong> ${dataFormatada} &nbsp; <strong>Status:</strong> ${rotulosStatus[p.status] || p.status}</p>
+        <table border="1" cellpadding="6" style="border-collapse:collapse; width:100%;">
+            <thead><tr><th>Produto</th><th>Qtd.</th><th>Subtotal</th></tr></thead>
+            <tbody>${linhas}</tbody>
+        </table>
+        ${p.desconto > 0 ? `<p style="text-align:right;"><strong>Desconto:</strong> -${formatarPreco(p.desconto)}</p>` : ''}
+        ${p.frete > 0 ? `<p style="text-align:right;"><strong>Taxa de entrega:</strong> ${formatarPreco(p.frete)}</p>` : ''}
+        <p style="text-align:right; font-size:1.2em;"><strong>Total: ${formatarPreco(p.total || 0)}</strong></p>
+        <p><strong>Forma de Pagamento:</strong> ${p.formaPagamento || '-'}</p>
+        ${p.observacoes ? `<p>Obs: ${p.observacoes}</p>` : ''}
+        </body></html>
+    `);
+    janela.document.close();
+    janela.print();
+}
+
+function editarPedidoManual(id) {
+    const p = ultimosPedidosManuais.find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('pmCliente').value = p.nome || '';
+    document.getElementById('pmStatus').value = p.status || 'pendente';
+    document.getElementById('pmFormaPagamento').value = p.formaPagamento || '';
+    document.getElementById('pmObs').value = p.observacoes || '';
+    document.getElementById('pmDesconto').value = '0'; // desconto já vem embutido nos itens/total originais
+    document.getElementById('pmFrete').value = p.frete || 0;
+    tempItensPedidoManual = (p.itens || []).map(item => ({ ...item }));
+    editingPedidoManualId = id;
+    document.getElementById('btnSalvarPedidoManual').textContent = 'Atualizar Pedido';
+    renderItensPedidoManual();
+    document.getElementById('pmCliente').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 async function excluirPedidoManualDireto(id, numero) {
@@ -2510,6 +2620,29 @@ async function salvarPedidoManual() {
         total,
         status
     };
+
+    // Editando um pedido que já existe — atualiza direto (a mudança de status, se
+    // houver, já dispara a Cloud Function normalmente, sem precisar do truque
+    // "cria como pendente primeiro" que só é necessário na CRIAÇÃO)
+    if (editingPedidoManualId) {
+        msgEl.textContent = 'Atualizando...';
+        try {
+            await db.ref('pedidos/' + editingPedidoManualId).update(dadosPedido);
+            msgEl.textContent = 'Pedido atualizado!';
+            editingPedidoManualId = null;
+            document.getElementById('btnSalvarPedidoManual').textContent = 'Salvar Pedido';
+            tempItensPedidoManual = [];
+            document.getElementById('pmCliente').value = '';
+            document.getElementById('pmDesconto').value = '0';
+            document.getElementById('pmFrete').value = '0';
+            document.getElementById('pmObs').value = '';
+            document.getElementById('pmStatus').value = 'pendente';
+            renderItensPedidoManual();
+        } catch (err) {
+            msgEl.textContent = 'Erro ao atualizar: ' + err.message;
+        }
+        return;
+    }
 
     const statusDesejado = dadosPedido.status;
     dadosPedido.status = 'pendente'; // sempre cria como pendente — se o status real for diferente,
