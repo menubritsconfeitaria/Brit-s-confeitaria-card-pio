@@ -4063,6 +4063,28 @@ function atualizarDatalistCategorias() {
 let ultimoValProdutosAdmin = null; // guarda os últimos dados, pra poder re-renderizar
 // a lista sem precisar reler o Firebase (ex: quando a Ficha Técnica carrega depois)
 
+// Vincula automaticamente cada produto do cardápio à ficha técnica de MESMO NOME,
+// só nos que ainda não têm vínculo nenhum — não sobrescreve um vínculo já escolhido
+// na mão, mesmo que aponte pra outro nome (respeita a escolha manual)
+async function autoVincularFichaTecnicaPorNome() {
+    const msgEl = document.getElementById('resultadoDiagnostico');
+    msgEl.innerHTML = '<p class="dica-secao">Vinculando produtos à ficha técnica...</p>';
+
+    const produtosSnap = await db.ref('produtos').once('value');
+    const produtosVal = produtosSnap.val() || {};
+
+    let vinculados = 0, jaTinhamVinculo = 0, semFichaCorrespondente = 0;
+    for (const [id, produto] of Object.entries(produtosVal)) {
+        if (produto.fichaTecnicaId) { jaTinhamVinculo++; continue; }
+        const ft = acharPorNome(fichaTecnica, produto.nome);
+        if (!ft) { semFichaCorrespondente++; continue; }
+        await db.ref('produtos/' + id + '/fichaTecnicaId').set(ft.id);
+        vinculados++;
+    }
+
+    msgEl.innerHTML = `<p class="dica-secao">✅ ${vinculados} produto(s) vinculado(s) automaticamente, ${jaTinhamVinculo} já tinham vínculo (não mexi), ${semFichaCorrespondente} sem ficha técnica de mesmo nome.</p>`;
+}
+
 function escutarProdutos() {
     db.ref('produtos').on('value', snap => {
         ultimoValProdutosAdmin = snap.val() || {};
