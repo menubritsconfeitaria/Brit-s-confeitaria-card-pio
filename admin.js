@@ -2161,15 +2161,57 @@ function salvarFichaTecnica() {
     }).catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
 }
 
+// Sugere preços redondos perto do calculado (arredondando de 0,50 em 0,50 e de 1 em 1)
+function sugestoesPrecoRedondo(precoBase) {
+    const candidatos = new Set([
+        Math.floor(precoBase * 2) / 2,
+        Math.ceil(precoBase * 2) / 2,
+        Math.floor(precoBase),
+        Math.ceil(precoBase)
+    ]);
+    return [...candidatos].filter(v => v > 0 && Math.abs(v - precoBase) > 0.001).sort((a, b) => a - b);
+}
+
+// Simula o lucro/margem SE vendesse por um preço de teste, sem alterar nada salvo
+function preverComPreco(produto, precoTeste) {
+    const r = calcularCustoFichaTecnica(produto);
+    const taxaVenda = (produto.taxaVenda || 0) / 100;
+    const valorTaxa = arred(precoTeste * taxaVenda);
+    const lucroLiquido = arred(precoTeste - r.custoUnitarioFinal - valorTaxa);
+    const margemReal = precoTeste > 0 ? Math.round((lucroLiquido / precoTeste) * 10000) / 100 : 0;
+    return { lucroLiquido, margemReal };
+}
+
+async function definirPrecoVendaManualFT(id, valor) {
+    await db.ref('fichaTecnica/' + id + '/precoVendaManual').set(valor > 0 ? arred(valor) : null);
+}
+async function limparPrecoVendaManualFT(id) { await definirPrecoVendaManualFT(id, null); }
+
 function montarResultadoFichaTecnica(produto) {
     const r = calcularCustoFichaTecnica(produto);
+    const sugestoes = sugestoesPrecoRedondo(r.precoVendaCalculado);
+    const botoesSugestao = sugestoes.map(preco => {
+        const prev = preverComPreco(produto, preco);
+        const cor = prev.lucroLiquido >= 0 ? '#1e6b34' : '#c0392b';
+        return `<button type="button" class="btn-secondary" style="margin:4px 6px 0 0; font-size:0.8em;" onclick="definirPrecoVendaManualFT('${produto.id}', ${preco})">
+            ${formatarPreco(preco)} <span style="color:${cor};">(lucro ${formatarPreco(prev.lucroLiquido)} · ${prev.margemReal}%)</span>
+        </button>`;
+    }).join('');
+
     return `
         <div class="pedido-card">
             <p>Custo total da receita: <strong>${formatarPreco(r.custoTotalReceita)}</strong></p>
             <p>Custo unitário final: <strong>${formatarPreco(r.custoUnitarioFinal)}</strong></p>
-            <p>Preço de venda: <strong>${formatarPreco(r.precoVenda)}</strong>${r.temPrecoManual ? ' (fixado manualmente)' : ' (calculado)'}</p>
+            <p>Preço calculado pelas margens: <strong>${formatarPreco(r.precoVendaCalculado)}</strong></p>
+            <p>💰 Preço de venda ${r.temPrecoManual ? '(fixado manualmente)' : '(sugerido)'}: <strong>${formatarPreco(r.precoVenda)}</strong></p>
             <p>Lucro líquido/un.: <strong>${formatarPreco(r.lucroLiquido)}</strong> (${r.margemRealPercent}%)</p>
             <p>Empresa: ${formatarPreco(r.lucroEmpresa)} · Pró-labore: ${formatarPreco(r.lucroCasal)}</p>
+            ${sugestoes.length ? `
+                <div style="margin-top:10px; padding-top:8px; border-top:1px solid var(--border);">
+                    <p class="dica-secao"><strong>💡 Preços redondos por perto</strong> — clica pra fixar e ver o lucro real na hora:</p>
+                    ${botoesSugestao}
+                </div>` : ''}
+            ${r.temPrecoManual ? `<button type="button" class="btn-secondary" style="margin-top:10px;" onclick="limparPrecoVendaManualFT('${produto.id}')">↺ Voltar a usar o preço calculado</button>` : ''}
         </div>
     `;
 }
