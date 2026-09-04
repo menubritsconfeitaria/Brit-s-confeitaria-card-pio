@@ -624,7 +624,7 @@ function mostrarStatusPedido(pedidoId) {
     ref.on('value', snap => {
         const status = snap.val();
         if (!status) return;
-        banner.classList.remove('status-pendente', 'status-aceito', 'status-recusado', 'status-em_rota', 'status-entregue');
+        banner.classList.remove('status-pendente', 'status-aceito', 'status-recusado', 'status-em_rota', 'status-pronto_retirada', 'status-entregue');
         if (status === 'pendente') {
             banner.classList.add('status-pendente');
             texto.textContent = '🕒 Pedido enviado! Aguardando a confirmação da loja...';
@@ -634,6 +634,9 @@ function mostrarStatusPedido(pedidoId) {
         } else if (status === 'em_rota') {
             banner.classList.add('status-em_rota');
             texto.textContent = '🛵 Seu pedido saiu para entrega!';
+        } else if (status === 'pronto_retirada') {
+            banner.classList.add('status-pronto_retirada');
+            texto.textContent = `🛍️ Seu pedido está pronto! Pode vir buscar na ${LOJA_CONFIG.nome}.`;
         } else if (status === 'entregue') {
             banner.classList.add('status-entregue');
             texto.textContent = `🎉 Pedido entregue! Seus pontos do Clube ${LOJA_CONFIG.nomeCurto} já foram creditados. Bom apetite!`;
@@ -671,6 +674,7 @@ const rotulosStatusPedido = {
     pendente: '🕒 Aguardando confirmação',
     aceito: '✅ Aceito, sendo preparado',
     em_rota: '🛵 Saiu para entrega',
+    pronto_retirada: '🛍️ Pronto pra retirada',
     entregue: '🎉 Entregue',
     recusado: '❌ Recusado'
 };
@@ -1865,6 +1869,10 @@ function repetirUltimoPedido() {
 }
 
 botaoFinalizarCompra.addEventListener('click', async () => {
+    // Proteção contra clique duplo — sem isso, clicar 2x rápido (comum no celular)
+    // cria 2 pedidos duplicados de verdade, com cobrança/contagem em dobro
+    if (botaoFinalizarCompra.disabled) return;
+
     // Encomenda agendada é pra uma data futura — não faz sentido bloquear só porque a
     // loja está fechada agora, nesse exato momento (diferente de um pedido pro dia)
     if (!lojaAbertaAtual && !dataEncomendaEscolhida) {
@@ -1887,6 +1895,14 @@ botaoFinalizarCompra.addEventListener('click', async () => {
             return;
         }
     }
+
+    // Só trava o botão DAQUI pra frente — depois desse ponto, todas as validações já
+    // passaram e o pedido vai ser enviado de verdade
+    botaoFinalizarCompra.disabled = true;
+    const textoOriginalBotao = botaoFinalizarCompra.textContent;
+    botaoFinalizarCompra.textContent = 'Enviando...';
+
+    try {
 
     // Coleta os dados do formulário
     const nome = nomeClienteInput.value.trim();
@@ -2091,6 +2107,10 @@ botaoFinalizarCompra.addEventListener('click', async () => {
     atualizarCarrinhoHTML();
     limparFormularioEndereco();
     console.log('Pedido enviado para o WhatsApp. Carrinho e formulário limpos.');
+    } finally {
+        botaoFinalizarCompra.disabled = false;
+        botaoFinalizarCompra.textContent = textoOriginalBotao;
+    }
 });
 
 // Atualiza os preços de itens que já estavam salvos no carrinho do navegador,
