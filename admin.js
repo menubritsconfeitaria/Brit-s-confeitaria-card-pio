@@ -3100,6 +3100,50 @@ const MAPA_STATUS_PEDIDO_ANTIGO = { pendente: 'pendente', 'produção': 'aceito'
 // mexeu sem querer). Usa o MESMO arquivo de backup — pra cada pedido já vinculado
 // (via origemBackupId), confere se o status bate com o que o backup diz que deveria
 // ser, e corrige os que estiverem diferentes, tudo de uma vez
+// Atualiza o preço/quantidade dos ingredientes já existentes pra bater EXATAMENTE
+// com o que está neste arquivo de backup — diferente da importação normal (que só
+// cria o que não existe, nunca atualiza), isso força a sincronização, útil quando
+// o preço de algo mudou no sistema antigo depois da primeira importação
+async function sincronizarPrecosIngredientes() {
+    const input = document.getElementById('inputImportarBackupGestao');
+    const msgEl = document.getElementById('msgImportarBackup');
+    if (!input.files.length) { msgEl.textContent = 'Escolhe o arquivo de backup (.json) primeiro (o mais recente).'; return; }
+
+    if (!confirm('Isso vai atualizar o preço/quantidade de TODOS os ingredientes que já existem, pra bater com este arquivo de backup. Não cria nem apaga nada, só corrige valores. Confirma?')) return;
+
+    const reader = new FileReader();
+    reader.onload = async function (e) {
+        try {
+            const dados = JSON.parse(e.target.result);
+            if (!dados.ingredientes) { msgEl.textContent = 'Esse arquivo não tem ingredientes.'; return; }
+
+            msgEl.textContent = 'Sincronizando preços...';
+            let atualizados = 0, jaCertos = 0, naoEncontrados = 0;
+            for (const ingBackup of dados.ingredientes) {
+                const ingAtual = acharPorNome(ingredientes, ingBackup.nome);
+                if (!ingAtual) { naoEncontrados++; continue; }
+
+                if (ingAtual.qtdComprada !== ingBackup.qtdComprada || ingAtual.precoComprado !== ingBackup.precoComprado) {
+                    await db.ref('ingredientes/' + ingAtual.id).update({
+                        qtdComprada: ingBackup.qtdComprada,
+                        precoComprado: ingBackup.precoComprado
+                    });
+                    atualizados++;
+                } else {
+                    jaCertos++;
+                }
+            }
+
+            msgEl.textContent = `✅ Sincronizado! ${atualizados} ingrediente(s) atualizado(s), ${jaCertos} já estavam certos, ${naoEncontrados} não encontrados. Agora roda "Corrigir status" de novo (ele recalcula tudo com os preços certos).`;
+        } catch (err) {
+            msgEl.textContent = 'Erro: ' + err.message;
+        } finally {
+            input.value = '';
+        }
+    };
+    reader.readAsText(input.files[0]);
+}
+
 async function corrigirStatusPedidosImportados() {
     const input = document.getElementById('inputImportarBackupGestao');
     const msgEl = document.getElementById('msgImportarBackup');
