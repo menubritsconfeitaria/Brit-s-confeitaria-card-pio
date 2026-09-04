@@ -2916,11 +2916,11 @@ function diagnosticarComponentesQuebrados() {
 
     bases.forEach(b => {
         const quebrados = (b.componentes || []).filter(componenteQuebrado);
-        if (quebrados.length > 0) problemas.push({ tipo: 'Base', nome: b.nome, qtdQuebrados: quebrados.length, qtdTotal: (b.componentes || []).length });
+        if (quebrados.length > 0) problemas.push({ tipo: 'Base', id: b.id, nome: b.nome, qtdQuebrados: quebrados.length, qtdTotal: (b.componentes || []).length });
     });
     fichaTecnica.forEach(p => {
         const quebrados = (p.componentes || []).filter(componenteQuebrado);
-        if (quebrados.length > 0) problemas.push({ tipo: 'Ficha Técnica', nome: p.nome, qtdQuebrados: quebrados.length, qtdTotal: (p.componentes || []).length });
+        if (quebrados.length > 0) problemas.push({ tipo: 'Ficha Técnica', id: p.id, nome: p.nome, qtdQuebrados: quebrados.length, qtdTotal: (p.componentes || []).length });
     });
 
     if (problemas.length === 0) {
@@ -2928,10 +2928,26 @@ function diagnosticarComponentesQuebrados() {
         return;
     }
 
+    window._problemasDiagnostico = problemas; // guarda pro botão de excluir tudo usar
     div.innerHTML = `
-        <p class="dica-secao">⚠️ Achei ${problemas.length} item(ns) com referência quebrada. O jeito mais simples de corrigir: exclui o item aqui embaixo, e roda a importação de novo com o mesmo arquivo de backup — ele será recriado certinho.</p>
+        <p class="dica-secao">⚠️ Achei ${problemas.length} item(ns) com referência quebrada. Exclui tudo de uma vez (botão abaixo) e roda a importação de novo com o mesmo arquivo de backup — serão recriados certinho.</p>
+        <button class="btn-excluir-cupom" style="width:auto; padding:6px 12px;" onclick="excluirTodosOsQuebrados()">🗑️ Excluir todos os ${problemas.length} quebrados</button>
         ${problemas.map(p => `<p>🔴 <strong>${p.tipo}:</strong> ${p.nome} (${p.qtdQuebrados} de ${p.qtdTotal} componente(s) quebrado(s))</p>`).join('')}
     `;
+}
+
+async function excluirTodosOsQuebrados() {
+    const problemas = window._problemasDiagnostico || [];
+    if (problemas.length === 0) return;
+    if (!confirm(`Excluir ${problemas.length} item(ns) quebrado(s)? Depois é só importar o backup de novo com o mesmo arquivo, pra recriar certinho.`)) return;
+
+    const div = document.getElementById('resultadoDiagnostico');
+    div.innerHTML = '<p class="dica-secao">Excluindo...</p>';
+    for (const p of problemas) {
+        const caminho = p.tipo === 'Base' ? 'bases' : 'fichaTecnica';
+        await db.ref(caminho + '/' + p.id).remove();
+    }
+    div.innerHTML = `<p class="dica-secao">✅ ${problemas.length} item(ns) excluído(s). Agora é só importar o backup de novo com o mesmo arquivo.</p>`;
 }
 
 // Remapeia um componente (ingrediente ou base) do id antigo pro novo — reconhece tanto
