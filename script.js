@@ -354,27 +354,30 @@ function atualizarStatusLoja(config) {
     const texto = document.getElementById('statusLojaTexto');
     if (!banner || !texto) return;
 
-    // Se a loja configurou algo pelo painel (nome, cores, contatos...), usa isso — senão,
-    // continua com o padrão do loja-config.js. Só reaplica quando algo realmente muda,
-    // pra não ficar reescrevendo a tela à toa a cada atualização de status
-    const configMesclada = {
-        ...LOJA_CONFIG,
-        nome: (config && config.nomeLoja) || LOJA_CONFIG.nome,
-        nomeCurto: (config && config.nomeCurtoLoja) || LOJA_CONFIG.nomeCurto,
-        subtitulo: (config && config.subtituloLoja) || LOJA_CONFIG.subtitulo,
-        cidade: (config && config.cidadeLoja) || LOJA_CONFIG.cidade,
-        whatsappPedidos: (config && config.whatsappLoja) || LOJA_CONFIG.whatsappPedidos,
-        instagramUrl: (config && config.instagramLoja) || LOJA_CONFIG.instagramUrl,
-        corPrimaria: (config && config.corPrimariaLoja) || LOJA_CONFIG.corPrimaria,
-        corAccent: (config && config.corAccentLoja) || LOJA_CONFIG.corAccent,
-        logo: (config && config.logoUrl) || LOJA_CONFIG.logo
-    };
-    const assinaturaConfig = JSON.stringify(configMesclada);
-    if (assinaturaConfig !== ultimaConfigAplicadaAssinatura) {
-        aplicarConfigDaLoja(configMesclada);
-        ultimaConfigAplicadaAssinatura = assinaturaConfig;
+    // Enquanto a prévia personalizada estiver ativa, NUNCA reaplica a configuração
+    // real por cima — sem isso, essa mesma função (chamada logo depois de ativar o
+    // modo demo, pra forçar "loja aberta") podia sobrescrever o nome/logo/cor que a
+    // pessoa acabou de digitar, voltando pros dados reais da Brit's sem avisar
+    if (!modoDemoAtivo) {
+        const configMesclada = {
+            ...LOJA_CONFIG,
+            nome: (config && config.nomeLoja) || LOJA_CONFIG.nome,
+            nomeCurto: (config && config.nomeCurtoLoja) || LOJA_CONFIG.nomeCurto,
+            subtitulo: (config && config.subtituloLoja) || LOJA_CONFIG.subtitulo,
+            cidade: (config && config.cidadeLoja) || LOJA_CONFIG.cidade,
+            whatsappPedidos: (config && config.whatsappLoja) || LOJA_CONFIG.whatsappPedidos,
+            instagramUrl: (config && config.instagramLoja) || LOJA_CONFIG.instagramUrl,
+            corPrimaria: (config && config.corPrimariaLoja) || LOJA_CONFIG.corPrimaria,
+            corAccent: (config && config.corAccentLoja) || LOJA_CONFIG.corAccent,
+            logo: (config && config.logoUrl) || LOJA_CONFIG.logo
+        };
+        const assinaturaConfig = JSON.stringify(configMesclada);
+        if (assinaturaConfig !== ultimaConfigAplicadaAssinatura) {
+            aplicarConfigDaLoja(configMesclada);
+            ultimaConfigAplicadaAssinatura = assinaturaConfig;
+        }
+        whatsappPedidosEfetivo = configMesclada.whatsappPedidos;
     }
-    whatsappPedidosEfetivo = configMesclada.whatsappPedidos;
 
     // Guarda se a loja já ativou o pagamento online — usado por selecionarPagamento()
     // pra decidir se Pix/Cartão exigem pagar na hora ou continuam combinados como sempre
