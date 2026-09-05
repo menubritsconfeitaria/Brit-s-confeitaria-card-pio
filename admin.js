@@ -1030,6 +1030,19 @@ function responderPedido(id, novoStatus) {
         // Proteção: se já estava entregue, não credita pontos de novo (evita clique duplo)
         if (novoStatus === 'entregue' && pedido.status === 'entregue') return;
 
+        // Avisa antes de recusar um pedido que já teve pagamento de verdade coletado
+        // (sinal e/ou restante) — pra nunca esquecer de estornar manualmente
+        if (novoStatus === 'recusado') {
+            const sinalPago = pedido.pagamento && pedido.pagamento.status === 'pago';
+            const restantePago = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'pago';
+            if (sinalPago || restantePago) {
+                const valores = [];
+                if (sinalPago) valores.push(`sinal de ${formatarPreco(pedido.pagamento.valorSinal)}`);
+                if (restantePago) valores.push(`restante de ${formatarPreco(pedido.pagamentoRestante.valorRestante)}`);
+                if (!confirm(`⚠️ Esse pedido já teve o ${valores.join(' e o ')} pago de verdade via InfinitePay. Recusar aqui NÃO estorna esse valor automaticamente — você precisa fazer o estorno manualmente no painel do InfinitePay. Quer continuar mesmo assim?`)) return;
+            }
+        }
+
         return pedidoRef.update({ status: novoStatus }).then(() => {
             if (novoStatus === 'entregue') {
                 creditarPontosFidelidade(pedido);
@@ -2374,6 +2387,45 @@ function salvarClienteGestao() {
             document.getElementById('btnSalvarClienteGestao').textContent = '+ Adicionar Cliente';
         }
     }).catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+}
+
+// Monta a lista de botões "enviar" pro WhatsApp, um por cliente com telefone
+// cadastrado — o WhatsApp não permite envio em massa de graça, então isso é o
+// jeito prático: cada clique abre o WhatsApp já com a mensagem pronta, só falta
+// apertar enviar lá. Marca quem já foi "enviado" (guardado no navegador, só
+// pra ajudar a não perder onde parou — não é enviado de verdade sozinho)
+function montarListaMensagemMassa() {
+    const texto = document.getElementById('mmTexto').value.trim();
+    const listaEl = document.getElementById('mmLista');
+    const contadorEl = document.getElementById('mmContador');
+    if (!texto) { alert('Escreve a mensagem primeiro.'); return; }
+
+    const comTelefone = clientesGestao.filter(c => normalizarTelefone(c.telefone));
+    const semTelefone = clientesGestao.length - comTelefone.length;
+    const jaEnviados = JSON.parse(localStorage.getItem('mensagemMassaEnviados') || '[]');
+
+    contadorEl.textContent = `${comTelefone.length} cliente(s) com telefone (${semTelefone} sem telefone, não aparecem aqui).`;
+
+    const ordenados = [...comTelefone].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    listaEl.innerHTML = ordenados.map(c => {
+        const numero = formatarTelefoneWhatsAppGestao(c.telefone);
+        const jaFoi = jaEnviados.includes(c.id);
+        return `
+            <div class="pedido-card" style="margin-top:6px; display:flex; justify-content:space-between; align-items:center; ${jaFoi ? 'opacity:0.5;' : ''}">
+                <span>${jaFoi ? '✅' : ''} ${c.nome}</span>
+                <a href="https://api.whatsapp.com/send?phone=${numero}&text=${encodeURIComponent(texto)}" target="_blank" class="btn-secondary" style="text-decoration:none;" onclick="marcarEnviadoMensagemMassa('${c.id}')">📲 Enviar</a>
+            </div>
+        `;
+    }).join('') || '<p class="dica-secao">Nenhum cliente com telefone cadastrado.</p>';
+}
+
+function marcarEnviadoMensagemMassa(clienteId) {
+    const jaEnviados = JSON.parse(localStorage.getItem('mensagemMassaEnviados') || '[]');
+    if (!jaEnviados.includes(clienteId)) {
+        jaEnviados.push(clienteId);
+        localStorage.setItem('mensagemMassaEnviados', JSON.stringify(jaEnviados));
+    }
+    setTimeout(montarListaMensagemMassa, 300); // atualiza o visual (marca com ✅) depois do clique
 }
 
 function renderClientesGestao() {
@@ -4576,6 +4628,7 @@ const STATUS_LABELS_FECHAMENTO = {
     pendente: 'Recebido',
     aceito: 'Em preparo',
     em_rota: 'Saiu para entrega',
+    pronto_retirada: 'Pronto pra retirada',
     entregue: 'Entregue',
     recusado: 'Cancelado'
 };
