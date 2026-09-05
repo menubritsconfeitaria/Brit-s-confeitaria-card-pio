@@ -141,7 +141,7 @@ main {
 .carrossel-slide {
     min-width: 100%;
     position: relative;
-    height: 200px;
+    height: 140px;
     cursor: pointer;
     background: var(--card);
     overflow: hidden;
