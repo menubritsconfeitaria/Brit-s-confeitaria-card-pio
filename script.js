@@ -634,7 +634,7 @@ async function carregarCarrosselDestaques() {
             .map(id => {
                 const p = produtosVal[id];
                 if (!p || p.disponivel === false) return null;
-                return { id, nome: p.nome, preco: p.preco, imagem: p.imagem || (p.imagens && p.imagens[0]) || null };
+                return { id, nome: p.nome, preco: p.preco, imagem: p.imagemCarrossel || p.imagem || (p.imagens && p.imagens[0]) || null };
             })
             .filter(Boolean);
         if (destaquesManuais.length > 0) montarCarrossel(destaquesManuais);

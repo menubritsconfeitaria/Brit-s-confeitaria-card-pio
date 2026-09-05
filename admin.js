@@ -4091,6 +4091,14 @@ function montarLinhaProduto(id, produto) {
         <p id="prodMsgUpload_${id}" class="ordem-categorias-msg"></p>
         <div id="previaImagens_${id}" class="previa-imagens"></div>
 
+        <label class="campo-label" style="margin-top:10px;">🎠 Foto específica pro Carrossel (opcional — se não colocar, usa a foto principal de cima)</label>
+        <input type="text" id="prodImagemCarrossel_${id}" value="${produto.imagemCarrossel || ''}" placeholder="Cola um link, ou usa o upload abaixo">
+        <div style="display:flex; gap:8px; align-items:center; margin-top:6px;">
+            <input type="file" id="prodUploadCarrossel_${id}" accept="image/*" style="flex:1;">
+            <button type="button" class="btn-secondary" onclick="enviarFotoCarrossel('${id}')">📤 Enviar foto do carrossel</button>
+        </div>
+        <p id="prodMsgUploadCarrossel_${id}" class="ordem-categorias-msg"></p>
+
         <input type="text" id="prodCategoria_${id}" value="${produto.categoria || ''}" placeholder="Categoria" list="categoriasDatalist">
 
         <label class="campo-label">Sabores/opções (digite cada um separado por VÍRGULA — deixe em branco se não tiver)</label>
@@ -4144,6 +4152,32 @@ async function enviarFotoProduto(id) {
         atualizarPreviaImagens(id);
 
         msgEl.textContent = 'Foto enviada! Não esquece de clicar em Salvar Produto.';
+        inputArquivo.value = '';
+    } catch (err) {
+        msgEl.textContent = 'Erro ao enviar: ' + err.message;
+    }
+}
+
+// Envia uma foto EXCLUSIVA pro carrossel — diferente das fotos normais do produto,
+// essa pode já vir editada/recortada do jeito ideal pro formato largo do banner
+async function enviarFotoCarrossel(id) {
+    const inputArquivo = document.getElementById('prodUploadCarrossel_' + id);
+    const msgEl = document.getElementById('prodMsgUploadCarrossel_' + id);
+    const arquivo = inputArquivo.files[0];
+    if (!arquivo) { msgEl.textContent = 'Escolhe uma imagem primeiro.'; return; }
+    if (!arquivo.type.startsWith('image/')) { msgEl.textContent = 'Isso não parece ser uma imagem.'; return; }
+    if (arquivo.size > 2 * 1024 * 1024) { msgEl.textContent = 'Imagem muito grande — usa algo até 2MB.'; return; }
+
+    msgEl.textContent = 'Enviando...';
+    try {
+        const extensao = arquivo.name.split('.').pop();
+        const nomeArquivo = `produto-${id}-carrossel-${Date.now()}.${extensao}`;
+        const ref = firebase.storage().ref('produtos/' + nomeArquivo);
+        await ref.put(arquivo);
+        const url = await ref.getDownloadURL();
+
+        document.getElementById('prodImagemCarrossel_' + id).value = url;
+        msgEl.textContent = 'Foto do carrossel enviada! Não esquece de clicar em Salvar Produto.';
         inputArquivo.value = '';
     } catch (err) {
         msgEl.textContent = 'Erro ao enviar: ' + err.message;
@@ -4391,6 +4425,7 @@ function salvarProduto(id) {
     const disponivelParaEncomenda = document.getElementById('prodEncomenda_' + id).checked;
     const campoFichaTecnica = document.getElementById('prodFichaTecnica_' + id);
     const fichaTecnicaId = campoFichaTecnica ? (campoFichaTecnica.value || null) : null;
+    const imagemCarrossel = document.getElementById('prodImagemCarrossel_' + id).value.trim() || null;
     const variantesTexto = document.getElementById('prodVariantes_' + id).value.trim();
     const adicionaisTexto = document.getElementById('prodAdicionais_' + id).value.trim();
 
@@ -4401,7 +4436,7 @@ function salvarProduto(id) {
         return;
     }
 
-    const dados = { nome, descricao, preco, imagem: imagens[0], imagens, categoria, disponivel, escondido, disponivelParaEncomenda, fichaTecnicaId, precoOriginal: null, variantes: null, grupoAdicionais: null };
+    const dados = { nome, descricao, preco, imagem: imagens[0], imagens, categoria, disponivel, escondido, disponivelParaEncomenda, fichaTecnicaId, imagemCarrossel, precoOriginal: null, variantes: null, grupoAdicionais: null };
 
     if (!isNaN(precoOriginal) && precoOriginal > preco) {
         dados.precoOriginal = precoOriginal;
