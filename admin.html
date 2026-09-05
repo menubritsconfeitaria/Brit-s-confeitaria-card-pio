@@ -890,10 +890,12 @@
                                     <input type="text" inputmode="decimal" id="pmSinalRecebido" value="0">
                                 </div>
                                 <div class="campo-com-label">
-                                    <label class="campo-label">
-                                        <input type="checkbox" id="pmRestanteJaRecebido">
-                                        Restante já recebido também?
-                                    </label>
+                                    <label class="campo-label">Restante já recebido também?</label>
+                                    <div class="toggle-sim-nao">
+                                        <button type="button" id="btnRestanteNao" class="toggle-opcao selecionado" onclick="definirRestanteJaRecebido(false)">Não</button>
+                                        <button type="button" id="btnRestanteSim" class="toggle-opcao" onclick="definirRestanteJaRecebido(true)">Sim</button>
+                                    </div>
+                                    <input type="hidden" id="pmRestanteJaRecebido" value="nao">
                                 </div>
                             </div>
                         </div>

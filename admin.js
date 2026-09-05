@@ -2701,7 +2701,7 @@ function editarPedidoManual(id) {
     document.getElementById('pmEhEncomenda').checked = !!temSinal;
     document.getElementById('blocoEncomendaSinal').style.display = temSinal ? 'block' : 'none';
     document.getElementById('pmSinalRecebido').value = temSinal ? p.pagamento.valorSinal : 0;
-    document.getElementById('pmRestanteJaRecebido').checked = !!(p.pagamentoRestante && p.pagamentoRestante.status === 'pago');
+    definirRestanteJaRecebido(!!(p.pagamentoRestante && p.pagamentoRestante.status === 'pago'));
 
     tempItensPedidoManual = (p.itens || []).map(item => ({ ...item }));
     editingPedidoManualId = id;
@@ -2713,6 +2713,14 @@ function editarPedidoManual(id) {
 async function excluirPedidoManualDireto(id, numero) {
     if (!confirm(`Excluir o pedido #${numero || ''} de vez? Não dá pra desfazer.`)) return;
     await db.ref('pedidos/' + id).remove();
+}
+
+// Alterna o estado do toggle Sim/Não do "restante já recebido" — visual (qual botão
+// fica destacado) e o valor guardado no campo escondido, que o resto do código lê
+function definirRestanteJaRecebido(valor) {
+    document.getElementById('pmRestanteJaRecebido').value = valor ? 'sim' : 'nao';
+    document.getElementById('btnRestanteSim').classList.toggle('selecionado', valor);
+    document.getElementById('btnRestanteNao').classList.toggle('selecionado', !valor);
 }
 
 async function salvarPedidoManual() {
@@ -2775,7 +2783,7 @@ async function salvarPedidoManual() {
                 valorSinal: sinalRecebido,
                 confirmadoEm: Date.now()
             };
-            const restanteJaRecebido = document.getElementById('pmRestanteJaRecebido').checked;
+            const restanteJaRecebido = document.getElementById('pmRestanteJaRecebido').value === 'sim';
             if (restanteJaRecebido) {
                 dadosPedido.pagamentoRestante = {
                     provedor: 'manual',
@@ -2806,7 +2814,7 @@ async function salvarPedidoManual() {
             document.getElementById('pmStatus').value = 'pendente';
             document.getElementById('pmEhEncomenda').checked = false;
             document.getElementById('pmSinalRecebido').value = '0';
-            document.getElementById('pmRestanteJaRecebido').checked = false;
+            definirRestanteJaRecebido(false);
             document.getElementById('blocoEncomendaSinal').style.display = 'none';
             renderItensPedidoManual();
         } catch (err) {
@@ -2843,7 +2851,7 @@ async function salvarPedidoManual() {
             document.getElementById('pmStatus').value = 'pendente';
             document.getElementById('pmEhEncomenda').checked = false;
             document.getElementById('pmSinalRecebido').value = '0';
-            document.getElementById('pmRestanteJaRecebido').checked = false;
+            definirRestanteJaRecebido(false);
             document.getElementById('blocoEncomendaSinal').style.display = 'none';
             renderItensPedidoManual();
         })
