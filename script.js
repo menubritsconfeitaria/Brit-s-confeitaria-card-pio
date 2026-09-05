@@ -651,7 +651,8 @@ function montarCarrossel(destaques) {
 
     trilho.innerHTML = destaques.map(d => `
         <div class="carrossel-slide" onclick="document.getElementById('produtos-destaque').scrollIntoView({behavior:'smooth'})">
-            ${d.imagem ? `<img src="${d.imagem}" alt="${d.nome}">` : ''}
+            ${d.imagem ? `<img class="carrossel-fundo" src="${d.imagem}" alt="" aria-hidden="true">` : ''}
+            ${d.imagem ? `<img class="carrossel-foto" src="${d.imagem}" alt="${d.nome}">` : ''}
             <div class="carrossel-slide-info">
                 <strong>${d.nome}</strong>
                 ${d.preco != null ? `<span>R$ ${d.preco.toFixed(2).replace('.', ',')}</span>` : ''}

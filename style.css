@@ -131,9 +131,8 @@ main {
     position: relative;
     border-radius: 14px;
     overflow: hidden;
-    margin: 0 auto 16px;
+    margin-bottom: 16px;
     box-shadow: var(--shadow);
-    max-width: 180px;
 }
 .carrossel-trilho {
     display: flex;
@@ -142,18 +141,31 @@ main {
 .carrossel-slide {
     min-width: 100%;
     position: relative;
-    aspect-ratio: 3 / 4;
+    height: 200px;
     cursor: pointer;
     background: var(--card);
+    overflow: hidden;
 }
-.carrossel-slide img {
+.carrossel-fundo {
+    position: absolute;
+    top: -10%; left: -10%;
+    width: 120%;
+    height: 120%;
+    object-fit: cover;
+    filter: blur(18px) brightness(0.75);
+    display: block;
+}
+.carrossel-foto {
+    position: relative;
+    z-index: 1;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     display: block;
 }
 .carrossel-slide-info {
     position: absolute;
+    z-index: 2;
     left: 0; right: 0; bottom: 0;
     background: linear-gradient(to top, rgba(0,0,0,0.65), transparent);
     color: #fff;
