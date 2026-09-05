@@ -5140,6 +5140,15 @@ function iniciarEscutaPedidos() {
     const statusFinais = ['entregue', 'recusado'];
     const ehStatusFinal = pedido => statusFinais.includes(pedido.status);
 
+    // Guarda o status de pagamento (sinal/restante) já conhecido de cada pedido, pra
+    // depois comparar no child_changed e detectar quando um pagamento é confirmado —
+    // sem isso, o webhook do InfinitePay confirma o pagamento em silêncio, e ninguém
+    // no painel fica sabendo que o dinheiro entrou até checar manualmente
+    const statusPagamentoConhecido = new Map();
+    function statusPagamentoAtual(pedido) {
+        return (pedido.pagamento ? pedido.pagamento.status : '') + '|' + (pedido.pagamentoRestante ? pedido.pagamentoRestante.status : '');
+    }
+
     // Carrega os pedidos ainda ativos (pendente/aceito/em rota) já existentes, sem tocar som
     refPedidos.limitToLast(60).once('value').then(snapshot => {
         listaPendentesEl.innerHTML = '';
@@ -5147,6 +5156,7 @@ function iniciarEscutaPedidos() {
         snapshot.forEach(child => itens.push({ id: child.key, pedido: child.val() }));
         itens.reverse(); // mais recentes primeiro
         itens.forEach(({ id, pedido }) => {
+            statusPagamentoConhecido.set(id, statusPagamentoAtual(pedido));
             if (ehStatusFinal(pedido)) return;
             listaPendentesEl.appendChild(montarCardPedido(id, pedido, true));
             idsRenderizados.add(id);
@@ -5162,6 +5172,7 @@ function iniciarEscutaPedidos() {
         refPedidos.on('child_added', snap => {
             if (idsRenderizados.has(snap.key)) return; // já estava na carga inicial
             const pedido = snap.val();
+            statusPagamentoConhecido.set(snap.key, statusPagamentoAtual(pedido));
             if (ehStatusFinal(pedido)) return; // pedido antigo carregado já finalizado, ignora
             const vazio = listaPendentesEl.querySelector('.vazio');
             if (vazio) vazio.remove();
@@ -5175,6 +5186,22 @@ function iniciarEscutaPedidos() {
         refPedidos.on('child_changed', snap => {
             const pedido = snap.val();
             const cardAtual = document.getElementById('pendente-' + snap.key);
+
+            // Detecta se ALGUM pagamento (sinal ou restante) acabou de virar "pago" —
+            // isso acontece em silêncio pelo webhook do InfinitePay, às vezes horas
+            // depois do pedido ter sido feito, então avisa igual um pedido novo
+            const statusAnterior = statusPagamentoConhecido.get(snap.key) || '';
+            const statusNovo = statusPagamentoAtual(pedido);
+            if (statusAnterior !== statusNovo) {
+                const sinalAcabouDePagar = pedido.pagamento && pedido.pagamento.status === 'pago' && !statusAnterior.startsWith('pago');
+                const restanteAcabouDePagar = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'pago' && !statusAnterior.endsWith('pago');
+                if ((sinalAcabouDePagar || restanteAcabouDePagar) && !window._importandoBackupGestao) {
+                    tocarAlerta();
+                    const tipoTexto = restanteAcabouDePagar && sinalAcabouDePagar ? 'Sinal e restante' : (restanteAcabouDePagar ? 'Restante' : 'Sinal');
+                    alert(`💰 ${tipoTexto} do pedido #${pedido.numero || ''} (${pedido.nome || ''}) foi confirmado como pago agora!`);
+                }
+                statusPagamentoConhecido.set(snap.key, statusNovo);
+            }
 
             if (ehStatusFinal(pedido)) {
                 // Chegou num status final -> sai da lista de pedidos ativos
