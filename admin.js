@@ -981,12 +981,40 @@ function montarCardPedido(id, pedido, comAcoes) {
         <div class="pedido-total-linha total-final"><span>Total</span><span>${pedido.total != null ? formatarPreco(pedido.total) : 'A confirmar'}</span></div>
         ${enderecoHtml}
         ${obsHtml}
+        <div id="avisoRecompensaDisponivel_${id}"></div>
         <div class="pedido-imprimir-linha">
             <button class="btn-imprimir-pedido" onclick="imprimirPedidoIndividual('${id}')">🖨️ Imprimir</button>
         </div>
         ${comAcoes ? montarBotoesAcaoPedido(id, pedido) : ''}
     `;
+    // Confere (de forma assíncrona, sem travar o card) se esse cliente JÁ tem pontos
+    // suficientes pra alguma recompensa — mostra um aviso pra lembrar de oferecer,
+    // mesmo que ele não tenha resgatado nada nesse pedido específico
+    if (!pedido.recompensaResgatada) verificarRecompensaDisponivelNoPedido(id, pedido);
     return div;
+}
+
+async function verificarRecompensaDisponivelNoPedido(id, pedido) {
+    if (!pedido.telefone) return;
+    const tel = String(pedido.telefone).replace(/\D/g, '');
+    if (tel.length < 10) return;
+    try {
+        const [fidSnap, recSnap] = await Promise.all([
+            db.ref('fidelidade/' + tel).once('value'),
+            db.ref('configuracao/recompensasFidelidade').once('value')
+        ]);
+        const pontosAtuais = (fidSnap.val() || {}).pontos || 0;
+        const recompensas = (recSnap.val() || []).filter(Boolean);
+        const disponiveis = recompensas.filter(r => r.pontos <= pontosAtuais);
+        if (disponiveis.length === 0) return;
+
+        const alvo = document.getElementById('avisoRecompensaDisponivel_' + id);
+        if (!alvo) return; // card pode já ter sumido da tela (pedido finalizado rápido)
+        const listaTexto = disponiveis.map(r => `${r.descricao} (${r.pontos} pts)`).join(' · ');
+        alvo.innerHTML = `<div class="pedido-resgate">⭐ Esse cliente já TEM pontos pra resgatar: <strong>${listaTexto}</strong> — vale oferecer!</div>`;
+    } catch (err) {
+        console.log('Não foi possível checar recompensa disponível:', err.message);
+    }
 }
 
 function montarBotoesAcaoPedido(id, pedido) {
@@ -4973,8 +5001,9 @@ function creditarPontosFidelidade(pedido) {
     const ref = db.ref('fidelidade/' + tel);
     ref.once('value').then(snap => {
         const atual = snap.val() || { pontos: 0, totalGasto: 0 };
-        const novosPontos = Math.max(0, (atual.pontos || 0) + pontosGanhos - pontosResgatados);
-        ref.set({
+        const pontosAntes = atual.pontos || 0;
+        const novosPontos = Math.max(0, pontosAntes + pontosGanhos - pontosResgatados);
+        return ref.set({
             nome: pedido.nome || atual.nome || '',
             pontos: novosPontos,
             totalGasto: Math.round(((atual.totalGasto || 0) + valorBase) * 100) / 100,
@@ -4984,8 +5013,26 @@ function creditarPontosFidelidade(pedido) {
                 data: Date.now()
             },
             atualizadoEm: firebase.database.ServerValue.TIMESTAMP
-        }).catch(err => console.log('Erro ao creditar fidelidade:', err));
-    }).catch(err => console.log('Erro ao ler fidelidade:', err));
+        }).then(() => avisarSeAtingiuPatamarFidelidade(pedido.nome || atual.nome, pontosAntes, novosPontos));
+    }).catch(err => console.log('Erro ao ler/creditar fidelidade:', err));
+}
+
+// Avisa quando o cliente CRUZA um patamar de recompensa configurado (ex: passou de
+// 90 pra 110 pontos, e uma recompensa pede 100) — sem isso, o crédito de pontos é
+// completamente silencioso e ninguém no painel fica sabendo que alguém já pode resgatar
+async function avisarSeAtingiuPatamarFidelidade(nomeCliente, pontosAntes, pontosDepois) {
+    if (pontosDepois <= pontosAntes) return; // só interessa quando pontos SOBEM
+    try {
+        const snap = await db.ref('configuracao/recompensasFidelidade').once('value');
+        const recompensas = (snap.val() || []).filter(Boolean);
+        const cruzadas = recompensas.filter(r => pontosAntes < r.pontos && r.pontos <= pontosDepois);
+        if (cruzadas.length === 0) return;
+        tocarAlerta();
+        const descricoes = cruzadas.map(r => `🎁 ${r.descricao} (${r.pontos} pontos)`).join('\n');
+        alert(`⭐ ${nomeCliente || 'Um cliente'} acabou de atingir pontos suficientes pra resgatar:\n\n${descricoes}`);
+    } catch (err) {
+        console.log('Não foi possível checar patamares de fidelidade:', err.message);
+    }
 }
 
 function salvarConfigFidelidade() {
