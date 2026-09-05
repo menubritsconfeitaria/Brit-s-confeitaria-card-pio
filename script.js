@@ -113,6 +113,19 @@ const clienteObsInput = document.getElementById('clienteObs');
 const areaEntregaDiv = document.getElementById('areaEntrega');
 const areaTrocoDiv = document.getElementById('areaTroco');
 
+let precisaTrocoAtual = false; // "Não" já vem selecionado por padrão
+
+// Alterna a pergunta Sim/Não de "precisa de troco" — só mostra o campo de valor
+// quando a pessoa escolhe "Sim", evitando a estranheza de um campo desabilitado
+// mas ainda visível na tela
+function definirPrecisaTroco(precisa) {
+    precisaTrocoAtual = precisa;
+    document.getElementById('btnTrocoSim').classList.toggle('selecionado', precisa);
+    document.getElementById('btnTrocoNao').classList.toggle('selecionado', !precisa);
+    document.getElementById('campoValorTroco').style.display = precisa ? 'block' : 'none';
+    if (!precisa) clienteTrocoInput.value = '';
+}
+
 // Variável para armazenar a categoria atualmente selecionada
 let categoriaAtual = 'Todos';
 
@@ -1786,6 +1799,7 @@ function limparFormularioEndereco() {
     estadoClienteInput.value = '';
     cepClienteInput.value = '';
     clienteTrocoInput.value = '';
+    definirPrecisaTroco(false);
     clienteObsInput.value = '';
     infoFreteDiv.style.display = 'none';
     selecionarTipoEntrega('retirada');
@@ -2042,7 +2056,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
     const cidade = cidadeClienteInput.value.trim();
     const estado = estadoClienteInput.value.trim();
     const cep = cepClienteInput.value.trim();
-    const troco = clienteTrocoInput.value.trim();
+    const troco = precisaTrocoAtual ? clienteTrocoInput.value.trim() : 'Sem troco';
     const obs = clienteObsInput.value.trim();
     const querAgendar = agendamentoAtivo && !!dataEncomendaEscolhida;
     const dataEncomenda = dataEncomendaEscolhida;
@@ -2102,7 +2116,11 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         mensagemPedido += `*CEP:* ${cep}\n`;
     }
     mensagemPedido += `*Forma de pagamento:* ${formaPagamentoAtual}\n`;
-    if (formaPagamentoAtual === 'Dinheiro' && troco) mensagemPedido += `*Troco para:* ${troco}\n`;
+    if (formaPagamentoAtual === 'Dinheiro' && troco) {
+        const trocoNormalizado = troco.trim().toLowerCase();
+        const semTroco = ['sem troco', 'não preciso', 'nao preciso', 'não precisa', 'nao precisa'].includes(trocoNormalizado);
+        mensagemPedido += semTroco ? `*Sem troco*\n` : `*Troco para:* ${troco}\n`;
+    }
     mensagemPedido += `\n*Itens:*\n${itensPedido}\n`;
     mensagemPedido += `*Subtotal:* ${subtotalTexto}\n`;
     if (cupomAplicado) mensagemPedido += `*Cupom:* ${cupomAplicado.codigo}${desconto > 0 ? ` (- R$ ${desconto.toFixed(2).replace('.', ',')})` : ''}\n`;

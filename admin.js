@@ -812,6 +812,16 @@ function formatarPreco(v) {
     return `R$ ${Number(v || 0).toFixed(2).replace('.', ',')}`;
 }
 
+// Formata o campo de troco de forma legível — trata tanto valores numéricos digitados
+// ("50", "R$ 50") quanto frases de "não precisa" (do checkbox novo, ou de texto livre
+// que alguém digitou antes dele existir), sem misturar os dois formatos
+function formatarTrocoLabel(troco) {
+    if (!troco) return '';
+    const normalizado = String(troco).trim().toLowerCase();
+    const semTroco = ['sem troco', 'não preciso', 'nao preciso', 'não precisa', 'nao precisa', 'não', 'nao'].includes(normalizado);
+    return semTroco ? 'Sem troco' : `Troco para ${troco}`;
+}
+
 function formatarHora(timestamp) {
     if (!timestamp) return '';
     return new Date(timestamp).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -850,7 +860,7 @@ function montarHtmlTicketImpressao(pedido, numeroPedido) {
         ${itensHtml}
         <hr>
         <p><strong>Forma de pagamento:</strong> ${pedido.formaPagamento || 'Não informado'}</p>
-        ${pedido.troco ? `<p><strong>Troco para:</strong> R$ ${pedido.troco}</p>` : ''}
+        ${pedido.troco ? `<p><strong>${formatarTrocoLabel(pedido.troco)}</strong></p>` : ''}
         ${pedido.observacoes ? `<p><strong>Observações:</strong> ${pedido.observacoes}</p>` : ''}
         ${pedido.recompensaResgatada ? `<p><strong>🎁 RESGATE DO CLUBE:</strong> ${pedido.recompensaResgatada.descricao}</p>` : ''}
         ${pedido.dataEncomenda ? `<p><strong>📅 ENCOMENDA PRA:</strong> ${pedido.dataEncomenda.split('-').reverse().join('/')}</p>` : ''}
@@ -965,7 +975,7 @@ function montarCardPedido(id, pedido, comAcoes) {
                 <div class="pedido-cliente">${pedido.numero ? `<span class="pedido-numero">🛒Pedido #${String(pedido.numero).padStart(3, '0')}</span> - ` : ''}${pedido.nome || 'Cliente'}</div>
                 <div>
                     <span class="pedido-tag ${pedido.tipoEntrega === 'entrega' ? 'tag-entrega' : 'tag-retirada'}">${pedido.tipoEntrega === 'entrega' ? '🛵 Entrega' : '🏠 Retirada'}</span>
-                    <span class="pedido-tag tag-pagamento">💰 ${pedido.formaPagamento || ''}${pedido.troco ? ' (troco p/ ' + pedido.troco + ')' : ''}</span>
+                    <span class="pedido-tag tag-pagamento">💰 ${pedido.formaPagamento || ''}${pedido.troco ? ' (' + formatarTrocoLabel(pedido.troco) + ')' : ''}</span>
                     ${montarTagPagamento(pedido)}
                     ${tagStatus}
                 </div>

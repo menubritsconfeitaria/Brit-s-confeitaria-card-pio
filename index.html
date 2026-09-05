@@ -162,8 +162,15 @@
                 </div>
 
                 <div id="areaTroco" style="display:none;">
-                    <label>Precisa de troco para quanto?</label>
-                    <input type="text" id="clienteTroco" placeholder="Ex: R$ 50,00">
+                    <label>Precisa de troco?</label>
+                    <div class="toggle-sim-nao">
+                        <button type="button" id="btnTrocoSim" class="toggle-opcao" onclick="definirPrecisaTroco(true)">Sim</button>
+                        <button type="button" id="btnTrocoNao" class="toggle-opcao selecionado" onclick="definirPrecisaTroco(false)">Não</button>
+                    </div>
+                    <div id="campoValorTroco" style="display:none; margin-top:8px;">
+                        <label>Troco para quanto?</label>
+                        <input type="text" id="clienteTroco" placeholder="Ex: R$ 50,00">
+                    </div>
                 </div>
 
                 <div id="resumoEncomendaCheckout" style="display:none;">
