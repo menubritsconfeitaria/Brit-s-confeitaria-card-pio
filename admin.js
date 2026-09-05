@@ -2580,13 +2580,12 @@ function renderItensPedidoManual() {
 let ultimosPedidosManuais = []; // guarda a lista pra imprimir/enviar/editar sem reler o Firebase
 
 function escutarPedidosManuais() {
-    db.ref('pedidos').limitToLast(150).on('value', snap => {
+    db.ref('pedidos').limitToLast(1000).on('value', snap => {
         const val = snap.val() || {};
         const manuais = Object.entries(val)
             .map(([id, p]) => ({ id, ...p }))
             .filter(p => p.origem === 'manual')
-            .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
-            .slice(0, 30); // só os 30 mais recentes, pra não ficar gigante
+            .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
         ultimosPedidosManuais = manuais;
 
         const div = document.getElementById('listaPedidosManuais');
