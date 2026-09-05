@@ -1724,3 +1724,26 @@ footer {
     cursor: pointer;
     padding: 4px;
 }
+
+/* Toggle Sim/Não — pra perguntas de sim ou não ficarem visualmente claras */
+.toggle-sim-nao {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+}
+.toggle-opcao {
+    flex: 1;
+    padding: 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 0.9em;
+    cursor: pointer;
+}
+.toggle-opcao.selecionado {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
