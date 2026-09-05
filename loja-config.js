@@ -21,7 +21,7 @@ const LOJA_CONFIG = {
     nomeCurto: "Brit's",
 
     // Frase que aparece embaixo do nome, no cabeçalho
-    subtitulo: "Seu cardápio diário de delícias frescas.",
+    subtitulo: "Entrega ao Senhor tudo o que você faz, e os seus planos serão bem-sucedidos. (Provérbios 16:3) A Brit's Confeitaria nasceu assim: entregando cada sonho, cada receita e cada cliente nas mãos de Deus. Obrigada por fazer parte dessa história! 🙏🍰",
 
     // Cidade/região atendida pelo delivery — aparece no cabeçalho, ajuda o cliente
     // a confirmar rapidinho que está no lugar certo (deixe "" pra não mostrar)
@@ -37,7 +37,7 @@ const LOJA_CONFIG = {
     instagramUrl: "https://www.instagram.com/brites.doces/",
 
     // URL onde esse cardápio fica publicado (usada nas tags de compartilhamento)
-    urlCardapio: "https://menubritsconfeitaria.github.io/Brit-s-confeitaria-card-pio/",
+    urlCardapio: "https://britsconfeitaria.com.br/",
 
     // Cores da marca (aceita qualquer cor CSS válida, ex: "#a0522d" ou "rgb(160,82,45)")
     corPrimaria: "#a0522d",
