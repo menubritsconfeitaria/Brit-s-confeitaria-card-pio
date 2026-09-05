@@ -131,8 +131,9 @@ main {
     position: relative;
     border-radius: 14px;
     overflow: hidden;
-    margin-bottom: 16px;
+    margin: 0 auto 16px;
     box-shadow: var(--shadow);
+    max-width: 280px;
 }
 .carrossel-trilho {
     display: flex;
@@ -141,7 +142,7 @@ main {
 .carrossel-slide {
     min-width: 100%;
     position: relative;
-    height: 160px;
+    aspect-ratio: 3 / 4;
     cursor: pointer;
     background: var(--card);
 }
