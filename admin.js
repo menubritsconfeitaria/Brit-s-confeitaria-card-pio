@@ -4232,6 +4232,56 @@ async function autoVincularFichaTecnicaPorNome() {
     msgEl.innerHTML = `<p class="dica-secao">✅ ${vinculados} vinculado(s) novo(s), ${corrigidos} corrigido(s) (apontavam pra ficha técnica já apagada), ${jaCertos} já estavam certos, ${semFichaCorrespondente} sem ficha técnica de mesmo nome.</p>`;
 }
 
+// ---------- Carrossel — destaques manuais (usado enquanto não há venda suficiente
+// pra calcular os mais vendidos de verdade automaticamente) ----------
+let destaquesManuaisAtuais = [];
+
+function escutarDestaquesManuais() {
+    db.ref('configuracao/destaquesManuais').on('value', snap => {
+        destaquesManuaisAtuais = snap.val() || [];
+        renderizarListaDestaquesManuais();
+    });
+    db.ref('configuracao/carrosselDestaquesAuto').on('value', snap => {
+        const auto = snap.val();
+        const statusEl = document.getElementById('statusCarrosselAtual');
+        if (!statusEl) return;
+        statusEl.textContent = (auto && auto.length > 0)
+            ? `✅ No momento, o carrossel está mostrando os MAIS VENDIDOS reais da semana (calculado automaticamente).`
+            : `🟡 Ainda não há venda suficiente essa semana — o carrossel está mostrando os destaques escolhidos na mão abaixo.`;
+    });
+}
+
+function renderizarListaDestaquesManuais() {
+    const container = document.getElementById('listaDestaquesManuais');
+    if (!container) return;
+    const produtos = Object.entries(ultimoValProdutosAdmin || {});
+    if (produtos.length === 0) { container.innerHTML = '<p class="dica-secao">Cadastre produtos primeiro.</p>'; return; }
+
+    container.innerHTML = produtos.map(([id, produto]) => `
+        <label class="produto-disponivel-check" style="display:block; margin-top:4px;">
+            <input type="checkbox" class="check-destaque-manual" value="${id}" ${destaquesManuaisAtuais.includes(id) ? 'checked' : ''} onchange="limitarSelecaoDestaques(this)">
+            ${produto.nome}
+        </label>
+    `).join('');
+}
+
+// Trava a seleção em no máximo 5 — desmarca sozinho se tentar marcar o 6º
+function limitarSelecaoDestaques(checkboxClicado) {
+    const marcados = document.querySelectorAll('.check-destaque-manual:checked');
+    if (marcados.length > 5) {
+        checkboxClicado.checked = false;
+        alert('Máximo de 5 destaques por vez — desmarca algum antes de escolher outro.');
+    }
+}
+
+function salvarDestaquesManuais() {
+    const msgEl = document.getElementById('msgDestaquesManuais');
+    const marcados = [...document.querySelectorAll('.check-destaque-manual:checked')].map(c => c.value);
+    db.ref('configuracao/destaquesManuais').set(marcados)
+        .then(() => { msgEl.textContent = `Salvo! ${marcados.length} destaque(s) escolhido(s).`; })
+        .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+}
+
 function escutarProdutos() {
     db.ref('produtos').on('value', snap => {
         ultimoValProdutosAdmin = snap.val() || {};
@@ -4266,6 +4316,7 @@ function renderizarListaProdutosAdmin() {
         atualizarPreviaImagens(id);
     });
     if (typeof renderFichaTecnica === 'function' && fichaTecnica.length > 0) renderFichaTecnica();
+    if (typeof renderizarListaDestaquesManuais === 'function') renderizarListaDestaquesManuais();
 }
 
 // Aceita tanto vírgula quanto ponto como separador decimal (ex: "45,00" ou "45.00")
@@ -5161,6 +5212,7 @@ function iniciarEscutaPedidos() {
     escutarBases();
     escutarFichaTecnica();
     escutarClientesGestao();
+    escutarDestaquesManuais();
     escutarPedidosManuais();
     const previaLojaNomeEl = document.getElementById('previaLojaNome');
     if (previaLojaNomeEl) previaLojaNomeEl.textContent = LOJA_CONFIG.nome;

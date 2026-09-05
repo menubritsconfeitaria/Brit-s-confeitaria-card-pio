@@ -611,6 +611,76 @@ function salvarPedidoNoPainel(dadosPedido) {
 let refStatusPedidoAtual = null;
 let pedidoIdParaPagarRestante = null;
 
+// Carrossel de destaques — usa os "mais vendidos da semana" calculados automaticamente
+// (Cloud Function, 1x por dia) se já tiver dado suficiente; senão, cai pros destaques
+// escolhidos na mão no painel. Troca de slide sozinho a cada alguns segundos.
+let carrosselTimer = null;
+let carrosselIndiceAtual = 0;
+
+async function carregarCarrosselDestaques() {
+    if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
+    try {
+        const autoSnap = await firebase.database().ref('configuracao/carrosselDestaquesAuto').once('value');
+        const auto = autoSnap.val();
+        if (auto && auto.length > 0) { montarCarrossel(auto); return; }
+
+        const manuaisSnap = await firebase.database().ref('configuracao/destaquesManuais').once('value');
+        const idsManuais = manuaisSnap.val() || [];
+        if (idsManuais.length === 0) return; // nada configurado ainda — carrossel fica escondido
+
+        const produtosSnap = await firebase.database().ref('produtos').once('value');
+        const produtosVal = produtosSnap.val() || {};
+        const destaquesManuais = idsManuais
+            .map(id => {
+                const p = produtosVal[id];
+                if (!p || p.disponivel === false) return null;
+                return { id, nome: p.nome, preco: p.preco, imagem: p.imagem || (p.imagens && p.imagens[0]) || null };
+            })
+            .filter(Boolean);
+        if (destaquesManuais.length > 0) montarCarrossel(destaquesManuais);
+    } catch (err) {
+        console.log('Não foi possível carregar o carrossel de destaques:', err.message);
+    }
+}
+
+function montarCarrossel(destaques) {
+    const container = document.getElementById('carrosselDestaques');
+    const trilho = document.getElementById('carrosselTrilho');
+    const bolinhas = document.getElementById('carrosselBolinhas');
+    if (!container || !trilho || !bolinhas) return;
+
+    trilho.innerHTML = destaques.map(d => `
+        <div class="carrossel-slide" onclick="document.getElementById('produtos-destaque').scrollIntoView({behavior:'smooth'})">
+            ${d.imagem ? `<img src="${d.imagem}" alt="${d.nome}">` : ''}
+            <div class="carrossel-slide-info">
+                <strong>${d.nome}</strong>
+                ${d.preco != null ? `<span>R$ ${d.preco.toFixed(2).replace('.', ',')}</span>` : ''}
+            </div>
+        </div>
+    `).join('');
+    bolinhas.innerHTML = destaques.map((_, i) => `<span class="carrossel-bolinha ${i === 0 ? 'ativa' : ''}"></span>`).join('');
+
+    container.style.display = 'block';
+    carrosselIndiceAtual = 0;
+    atualizarPosicaoCarrossel();
+
+    if (carrosselTimer) clearInterval(carrosselTimer);
+    if (destaques.length > 1) {
+        carrosselTimer = setInterval(() => {
+            carrosselIndiceAtual = (carrosselIndiceAtual + 1) % destaques.length;
+            atualizarPosicaoCarrossel();
+        }, 4000);
+    }
+}
+
+function atualizarPosicaoCarrossel() {
+    const trilho = document.getElementById('carrosselTrilho');
+    const bolinhas = document.querySelectorAll('.carrossel-bolinha');
+    if (!trilho) return;
+    trilho.style.transform = `translateX(-${carrosselIndiceAtual * 100}%)`;
+    bolinhas.forEach((b, i) => b.classList.toggle('ativa', i === carrosselIndiceAtual));
+}
+
 function mostrarStatusPedido(pedidoId) {
     if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
     const banner = document.getElementById('statusPedidoBanner');
@@ -2186,6 +2256,7 @@ function sincronizarPrecosCarrinho() {
 // Chama as funções iniciais ao carregar a página
 escutarProdutos(); // Carrega o cardápio do Firebase (e re-renderiza sozinho quando o painel mudar algo)
 escutarConfigFrete(); // Carrega a configuração de bairros/valor por km do painel
+carregarCarrosselDestaques();
 escutarOrdemCategorias(); // Carrega a ordem de categorias definida no painel
 
 // Clube Brit's: recupera o cliente já identificado nesse navegador (se houver) e escuta a configuração

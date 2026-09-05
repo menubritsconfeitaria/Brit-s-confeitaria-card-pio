@@ -154,6 +154,20 @@
                     <button class="btn-secondary" onclick="agendarNotificacaoDoPainel()">📅 Agendar</button>
                 </div>
 
+                <div class="loja-status-card" id="cardDestaquesCarrossel" style="margin-top:16px;">
+                    <h3>🎠 Destaques do Carrossel</h3>
+                    <p class="dica-secao">
+                        Escolhe até 5 produtos pra aparecer no carrossel do cardápio. Assim que houver vendas
+                        suficientes na última semana, o sistema troca sozinho pra mostrar os mais vendidos de
+                        verdade — esses aqui só valem enquanto isso não acontece (ou se não tiver venda o
+                        suficiente numa semana mais fraca).
+                    </p>
+                    <p class="dica-secao" id="statusCarrosselAtual"></p>
+                    <div id="listaDestaquesManuais"></div>
+                    <button class="btn-secondary" style="margin-top:10px;" onclick="salvarDestaquesManuais()">Salvar destaques</button>
+                    <p id="msgDestaquesManuais" class="ordem-categorias-msg"></p>
+                </div>
+
                 <div class="loja-status-card" id="cardAtivarPagamentoOnline" style="margin-top:16px;">
                     <h3>💳 Pagamento Online (InfinitePay)</h3>
                     <p class="dica-secao">
