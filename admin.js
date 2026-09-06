@@ -1337,11 +1337,11 @@ function removerBairro(nomeCodificado) {
 function renderizarListaBairros() {
     const container = document.getElementById('listaBairrosCadastrados');
     if (!container) return;
-    const busca = (document.getElementById('buscaBairro').value || '').toLowerCase();
+    const busca = normalizarTexto(document.getElementById('buscaBairro').value || '');
     const bairros = configFreteAtual.bairros || {};
     const entradas = Object.entries(bairros)
         .map(([nomeCodificado, km]) => ({ nomeCodificado, nome: decodeURIComponent(nomeCodificado), km }))
-        .filter(b => b.nome.includes(busca))
+        .filter(b => normalizarTexto(b.nome).includes(busca))
         .sort((a, b) => a.nome.localeCompare(b.nome));
 
     if (entradas.length === 0) {
@@ -1831,9 +1831,9 @@ function salvarIngrediente() {
 }
 
 function renderIngredientes() {
-    const busca = (document.getElementById('buscaIngrediente').value || '').toLowerCase();
+    const busca = normalizarTexto(document.getElementById('buscaIngrediente').value || '');
     const container = document.getElementById('listaIngredientes');
-    const filtrados = ingredientes.filter(i => i.nome.toLowerCase().includes(busca));
+    const filtrados = ingredientes.filter(i => normalizarTexto(i.nome).includes(busca));
 
     if (filtrados.length === 0) {
         container.innerHTML = '<p class="dica-secao">Nenhum ingrediente cadastrado ainda.</p>';
@@ -2325,9 +2325,9 @@ function montarResultadoFichaTecnica(produto) {
 }
 
 function renderFichaTecnica() {
-    const busca = (document.getElementById('ftBusca').value || '').toLowerCase();
+    const busca = normalizarTexto(document.getElementById('ftBusca').value || '');
     const container = document.getElementById('ftListaProdutos');
-    const filtrados = fichaTecnica.filter(p => p.nome.toLowerCase().includes(busca));
+    const filtrados = fichaTecnica.filter(p => normalizarTexto(p.nome).includes(busca));
 
     if (filtrados.length === 0) {
         container.innerHTML = '<p class="dica-secao">Nenhuma ficha técnica cadastrada ainda.</p>';
@@ -2517,10 +2517,10 @@ function marcarEnviadoMensagemMassa(clienteId) {
 }
 
 function renderClientesGestao() {
-    const busca = (document.getElementById('cgBusca').value || '').toLowerCase();
+    const busca = normalizarTexto(document.getElementById('cgBusca').value || '');
     const container = document.getElementById('listaClientesGestao');
     const filtrados = clientesGestao
-        .filter(c => c.nome.toLowerCase().includes(busca))
+        .filter(c => normalizarTexto(c.nome).includes(busca))
         .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 
     if (filtrados.length === 0) {
@@ -3316,18 +3316,24 @@ function normalizarTelefone(tel) {
     return (tel || '').replace(/\D/g, '');
 }
 
+// Remove acentos e deixa em minúsculo — assim "Lívia" e "Livia" são reconhecidos
+// como a mesma coisa em qualquer busca ou comparação de nome do sistema
+function normalizarTexto(texto) {
+    return (texto || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+}
+
 function acharPorNome(lista, nome) {
-    const alvo = (nome || '').trim().toLowerCase();
-    return lista.find(item => (item.nome || '').trim().toLowerCase() === alvo);
+    const alvo = normalizarTexto(nome);
+    return lista.find(item => normalizarTexto(item.nome) === alvo);
 }
 
 // Ingredientes são diferentes dos outros — pode existir "Creme de leite" cadastrado
 // duas vezes de propósito (uma em gramas, outra em unidade), pra receitas diferentes.
 // Por isso, pra ingredientes, compara por NOME + UNIDADE juntos, não só o nome
 function acharIngredientePorNomeEUnidade(lista, nome, unidade) {
-    const nomeAlvo = (nome || '').trim().toLowerCase();
-    const unidadeAlvo = (unidade || '').trim().toLowerCase();
-    return lista.find(item => (item.nome || '').trim().toLowerCase() === nomeAlvo && (item.unidade || '').trim().toLowerCase() === unidadeAlvo);
+    const nomeAlvo = normalizarTexto(nome);
+    const unidadeAlvo = normalizarTexto(unidade);
+    return lista.find(item => normalizarTexto(item.nome) === nomeAlvo && normalizarTexto(item.unidade) === unidadeAlvo);
 }
 
 const MAPA_STATUS_PEDIDO_ANTIGO = { pendente: 'pendente', 'produção': 'aceito', em_rota: 'em_rota', entregue: 'entregue', cancelado: 'recusado' };
