@@ -1020,14 +1020,15 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
     gap: 6px;
 }
 .toggle-opcao {
-    flex: 1;
-    padding: 8px;
-    border-radius: 10px;
+    flex: 0 0 auto;
+    min-width: 70px;
+    padding: 6px 14px;
+    border-radius: 8px;
     border: 1px solid var(--border);
     background: var(--bg);
     color: var(--primary);
     font-weight: 700;
-    font-size: 0.9em;
+    font-size: 0.85em;
     cursor: pointer;
 }
 .toggle-opcao.selecionado {

@@ -893,10 +893,12 @@
                         </div>
                         <p class="dica-secao">Total: <strong id="pmTotalTemp">R$ 0,00</strong></p>
 
-                        <label class="campo-label" style="margin-top:10px;">
-                            <input type="checkbox" id="pmEhEncomenda" onchange="document.getElementById('blocoEncomendaSinal').style.display = this.checked ? 'block' : 'none'">
-                            É uma encomenda com sinal?
-                        </label>
+                        <label class="campo-label" style="margin-top:10px;">É uma encomenda com sinal?</label>
+                        <div class="toggle-sim-nao">
+                            <button type="button" id="btnEncomendaSim" class="toggle-opcao" onclick="definirEhEncomenda(true)">Sim</button>
+                            <button type="button" id="btnEncomendaNao" class="toggle-opcao selecionado" onclick="definirEhEncomenda(false)">Não</button>
+                        </div>
+                        <input type="hidden" id="pmEhEncomenda" value="nao">
                         <div id="blocoEncomendaSinal" style="display:none; margin-top:8px;">
                             <div class="produto-admin-linha">
                                 <div class="campo-com-label">
