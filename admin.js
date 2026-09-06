@@ -2642,9 +2642,11 @@ let ultimosPedidosManuais = []; // guarda a lista pra imprimir/enviar/editar sem
 function escutarPedidosManuais() {
     db.ref('pedidos').limitToLast(1000).on('value', snap => {
         const val = snap.val() || {};
+        // Mostra TODOS os pedidos aqui agora (manuais + do cardápio) — antes só
+        // mostrava os manuais, mas como os dois já vivem no mesmo lugar no Firebase,
+        // não faz sentido esconder um do outro nessa lista
         const manuais = Object.entries(val)
             .map(([id, p]) => ({ id, ...p }))
-            .filter(p => p.origem === 'manual')
             .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
         ultimosPedidosManuais = manuais;
 
@@ -2655,7 +2657,7 @@ function escutarPedidosManuais() {
             return;
         }
 
-        const rotulosStatus = { pendente: '🕒 Pendente', aceito: '✅ Aceito', em_rota: '🛵 Em rota', pronto_retirada: '🛍️ Pronto pra retirada', entregue: '🎉 Entregue', recusado: '❌ Cancelado' };
+        const rotulosStatus = { aguardando_pagamento: '💳 Aguardando pagamento', pendente: '🕒 Pendente', aceito: '✅ Aceito', em_rota: '🛵 Em rota', pronto_retirada: '🛍️ Pronto pra retirada', entregue: '🎉 Entregue', recusado: '❌ Cancelado' };
         div.innerHTML = `
             <table style="width:100%; border-collapse:collapse; font-size:0.85em;">
                 <thead><tr style="text-align:left; border-bottom:2px solid var(--border);">
@@ -2681,7 +2683,7 @@ function escutarPedidosManuais() {
                                 <button class="btn-secondary" style="padding:4px 8px;" onclick="enviarPedidoWhatsAppLojaGestao('${p.id}')" title="WhatsApp Loja">📲🏪</button>
                                 <button class="btn-secondary" style="padding:4px 8px;" onclick="imprimirPedidoGestao('${p.id}')" title="Imprimir">🖨️</button>
                                 <button class="btn-secondary" style="padding:4px 8px;" onclick="editarPedidoManual('${p.id}')" title="Editar">✏️</button>
-                                <button class="btn-excluir-cupom" onclick="excluirPedidoManualDireto('${p.id}', ${p.numero})" title="Excluir">🗑️</button>
+                                <button class="btn-excluir-cupom" onclick="excluirPedidoQualquerStatus('${p.id}', ${p.numero})" title="Excluir">🗑️</button>
                             </td>
                         </tr>
                     `; }).join('')}
@@ -2795,11 +2797,6 @@ function editarPedidoManual(id) {
     document.getElementById('btnSalvarPedidoManual').textContent = 'Atualizar Pedido';
     renderItensPedidoManual();
     document.getElementById('pmCliente').scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
-
-async function excluirPedidoManualDireto(id, numero) {
-    if (!confirm(`Excluir o pedido #${numero || ''} de vez? Não dá pra desfazer.`)) return;
-    await db.ref('pedidos/' + id).remove();
 }
 
 // Alterna o estado do toggle Sim/Não do "restante já recebido" — visual (qual botão
@@ -4997,7 +4994,6 @@ function montarCardPedidoFechamento(p) {
     const itensHtml = (p.itens || []).map(item =>
         `<div class="pedido-total-linha"><span>${item.quantidade}x ${item.nome}${item.adicionaisTexto ? ` <em>(${item.adicionaisTexto})</em>` : ''}</span><span>${formatarPreco((item.preco || 0) * item.quantidade)}</span></div>`
     ).join('');
-    const lancado = !!p.lancado;
 
     return `
     <div class="fechamento-pedido-card">
@@ -5021,8 +5017,6 @@ function montarCardPedidoFechamento(p) {
 
         <div class="fechamento-pedido-acoes">
             <button class="btn-secondary" onclick="copiarPedidoIndividual('${p.id}')">📋 Copiar pedido</button>
-            <button class="btn-secondary" onclick="copiarPedidoParaSistemaGestao('${p.id}')">📥 Copiar p/ Sistema de Gestão</button>
-            <button class="btn-lancado ${lancado ? 'lancado' : ''}" id="btn-lancado-${p.id}" onclick="alternarLancado('${p.id}')">${lancado ? '🟢 Lançado' : '🟠 Pendente de lançamento'}</button>
         </div>
     </div>`;
 }
@@ -5061,48 +5055,6 @@ function copiarPedidoIndividual(id) {
 
 // Gera um "código" com os dados do pedido organizados, pra colar no Sistema de Gestão
 // e ele preencher o formulário de pedido sozinho (sem precisar digitar tudo de novo)
-function copiarPedidoParaSistemaGestao(id) {
-    const p = fechamentoPedidosAtuais[id];
-    if (!p) return;
-
-    const subtotal = p.subtotal || 0;
-    // O cardápio guarda o desconto em R$, mas o Sistema de Gestão usa %, então convertemos aqui
-    const descontoPercentual = subtotal > 0 ? Math.round(((p.desconto || 0) / subtotal) * 10000) / 100 : 0;
-
-    // "Cartão" no cardápio não distingue crédito/débito — mapeamos pra crédito por padrão
-    const mapaFormaPagamento = { 'Pix': 'pix', 'Dinheiro': 'dinheiro', 'Cartão': 'cartao_credito' };
-    const formaPagamentoConvertida = mapaFormaPagamento[p.formaPagamento] || 'outros';
-
-    const dataObj = typeof p.timestamp === 'number' ? new Date(p.timestamp) : new Date();
-    const dataFormatada = dataObj.getFullYear() + '-' + String(dataObj.getMonth() + 1).padStart(2, '0') + '-' + String(dataObj.getDate()).padStart(2, '0');
-
-    const dados = {
-        origem: 'brits-cardapio',
-        versao: 2,
-        cliente: { nome: p.nome || '', telefone: p.telefone || '' },
-        data: dataFormatada,
-        dataEncomenda: p.dataEncomenda || null,
-        itens: (p.itens || []).map(item => ({
-            nome: item.nome,
-            quantidade: item.quantidade,
-            adicionais: item.adicionaisTexto || '',
-            observacao: item.observacao || ''
-        })),
-        descontoPercentual,
-        frete: p.frete || 0,
-        sinal: (p.pagamento && p.pagamento.tipoPagamento === 'sinal') ? {
-            percentual: p.pagamento.percentualSinal || 0,
-            valorPago: p.pagamento.status === 'pago' ? (p.pagamento.valorSinal || 0) : 0,
-            statusPagamento: p.pagamento.status || 'aguardando'
-        } : null,
-        formaPagamento: formaPagamentoConvertida,
-        observacoes: p.observacoes || ''
-    };
-
-    const texto = '###PEDIDO_BRITS###\n' + JSON.stringify(dados) + '\n###FIM_PEDIDO_BRITS###';
-    copiarTexto(texto);
-}
-
 function copiarTodosPedidos(dataFormatada) {
     const todos = Object.values(fechamentoPedidosAtuais).sort((a, b) => (a.numero || a.timestamp || 0) - (b.numero || b.timestamp || 0));
     if (todos.length === 0) return;
@@ -5128,22 +5080,6 @@ function copiarTexto(texto) {
     } else {
         alert('Seu navegador não permite copiar automaticamente. Copie o texto manualmente.');
     }
-}
-
-// Marca/desmarca um pedido como já lançado no Sistema de Gestão — fica salvo no Firebase,
-// então continua valendo mesmo trocando de aparelho ou recarregando a página
-function alternarLancado(id) {
-    const p = fechamentoPedidosAtuais[id];
-    if (!p) return;
-    const novoValor = !p.lancado;
-    db.ref('pedidos/' + id).update({ lancado: novoValor }).then(() => {
-        p.lancado = novoValor;
-        const btn = document.getElementById('btn-lancado-' + id);
-        if (btn) {
-            btn.textContent = novoValor ? '🟢 Lançado' : '🟠 Pendente de lançamento';
-            btn.classList.toggle('lancado', novoValor);
-        }
-    }).catch(err => alert('Não foi possível salvar: ' + err.message));
 }
 
 // ---------- CLUBE DE FIDELIDADE ----------
