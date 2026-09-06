@@ -705,6 +705,7 @@ footer {
 }
 
 .status-pedido-banner.status-pendente { background: #fff3cd; color: #8a6300; }
+.status-pedido-banner.status-aguardando_pagamento { background: #e0e7ff; color: #3730a3; }
 .status-pedido-banner.status-aceito { background: #d4edda; color: #1e6b34; }
 .status-pedido-banner.status-em_rota { background: #d6e9fb; color: #1a5a96; }
 .status-pedido-banner.status-pronto_retirada { background: #fde9c8; color: #8a5a00; }
@@ -1732,14 +1733,15 @@ footer {
     margin-top: 6px;
 }
 .toggle-opcao {
-    flex: 1;
-    padding: 8px;
-    border-radius: 10px;
+    flex: 0 0 auto;
+    min-width: 70px;
+    padding: 6px 14px;
+    border-radius: 8px;
     border: 1px solid var(--border);
     background: var(--bg);
     color: var(--primary);
     font-weight: 700;
-    font-size: 0.9em;
+    font-size: 0.85em;
     cursor: pointer;
 }
 .toggle-opcao.selecionado {
