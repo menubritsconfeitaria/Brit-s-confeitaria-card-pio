@@ -561,7 +561,8 @@ footer {
     border-radius: 12px;
     cursor: pointer;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
+    text-transform: uppercase;
     background: var(--bg);
     color: var(--text);
     transition: all 0.15s;
