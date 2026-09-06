@@ -1066,36 +1066,41 @@ async function verificarRecompensaDisponivelNoPedido(id, pedido) {
 }
 
 function montarBotoesAcaoPedido(id, pedido) {
+    let botoesEspecificos = '';
     if (pedido.status === 'pendente') {
-        return `
-        <div class="pedido-acoes">
+        botoesEspecificos = `
             <button class="btn-aceitar" onclick="responderPedido('${id}', 'aceito')">✅ Aceitar</button>
-            <button class="btn-recusar" onclick="responderPedido('${id}', 'recusado')">✖ Recusar</button>
-        </div>`;
-    }
-    if (pedido.status === 'aceito') {
+            <button class="btn-recusar" onclick="responderPedido('${id}', 'recusado')">✖ Recusar</button>`;
+    } else if (pedido.status === 'aceito') {
         const btnRota = pedido.tipoEntrega === 'entrega'
             ? `<button class="btn-em-rota" onclick="responderPedido('${id}', 'em_rota')">🛵 Saiu para entrega</button>`
             : `<button class="btn-em-rota" onclick="responderPedido('${id}', 'pronto_retirada')">🛍️ Pronto pra retirada</button>`;
-        return `
-        <div class="pedido-acoes">
-            ${btnRota}
-            <button class="btn-entregue" onclick="responderPedido('${id}', 'entregue')">✅ Marcar como Entregue</button>
-        </div>`;
+        botoesEspecificos = `${btnRota}<button class="btn-entregue" onclick="responderPedido('${id}', 'entregue')">✅ Marcar como Entregue</button>`;
+    } else if (pedido.status === 'em_rota') {
+        botoesEspecificos = `<button class="btn-entregue" onclick="responderPedido('${id}', 'entregue')">✅ Marcar como Entregue</button>`;
+    } else if (pedido.status === 'pronto_retirada') {
+        botoesEspecificos = `<button class="btn-entregue" onclick="responderPedido('${id}', 'entregue')">✅ Marcar como Retirado</button>`;
     }
-    if (pedido.status === 'em_rota') {
-        return `
-        <div class="pedido-acoes">
-            <button class="btn-entregue" onclick="responderPedido('${id}', 'entregue')">✅ Marcar como Entregue</button>
-        </div>`;
-    }
-    if (pedido.status === 'pronto_retirada') {
-        return `
-        <div class="pedido-acoes">
-            <button class="btn-entregue" onclick="responderPedido('${id}', 'entregue')">✅ Marcar como Retirado</button>
-        </div>`;
-    }
-    return '';
+
+    // Excluir fica disponível pra QUALQUER pedido, em qualquer status — útil pra
+    // remover pedido de teste, duplicado, ou lançado sem querer no cardápio real
+    const botaoExcluir = `<button class="btn-excluir-cupom" onclick="excluirPedidoQualquerStatus('${id}', ${pedido.numero || 'null'})" title="Excluir esse pedido de vez">🗑️</button>`;
+
+    return `<div class="pedido-acoes">${botoesEspecificos}${botaoExcluir}</div>`;
+}
+
+// Exclui QUALQUER pedido (não só os manuais) — avisa antes se ele já tiver pagamento
+// confirmado de verdade, pra nunca apagar sem querer algo que já virou venda real
+async function excluirPedidoQualquerStatus(id, numero) {
+    const snap = await db.ref('pedidos/' + id).once('value');
+    const pedido = snap.val();
+    const temPagamentoConfirmado = pedido && ((pedido.pagamento && pedido.pagamento.status === 'pago') || (pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'pago'));
+
+    let msg = `Excluir o pedido #${numero || ''} de vez? Não dá pra desfazer.`;
+    if (temPagamentoConfirmado) msg = `⚠️ Esse pedido JÁ TEVE PAGAMENTO CONFIRMADO de verdade! Excluir aqui não estorna nada — se precisar devolver o dinheiro, isso tem que ser feito manualmente no InfinitePay. Tem certeza que quer excluir mesmo assim?\n\n${msg}`;
+
+    if (!confirm(msg)) return;
+    await db.ref('pedidos/' + id).remove();
 }
 
 function responderPedido(id, novoStatus) {
@@ -4298,6 +4303,42 @@ let ultimoValProdutosAdmin = null; // guarda os últimos dados, pra poder re-ren
 // Vincula automaticamente cada produto do cardápio à ficha técnica de MESMO NOME,
 // só nos que ainda não têm vínculo nenhum — não sobrescreve um vínculo já escolhido
 // na mão, mesmo que aponte pra outro nome (respeita a escolha manual)
+// Corrige pedidos REAIS do cardápio (não manuais) que foram feitos antes do sistema
+// passar a guardar o vínculo com a Ficha Técnica em cada item — sem isso, o CMV desses
+// pedidos antigos nunca vai ser calculado, mesmo com os produtos certinhos vinculados
+async function corrigirFichaTecnicaPedidosAntigos() {
+    const msgEl = document.getElementById('resultadoDiagnostico');
+    msgEl.innerHTML = '<p class="dica-secao">Corrigindo pedidos antigos...</p>';
+
+    const [pedidosSnap, produtosSnap] = await Promise.all([
+        db.ref('pedidos').once('value'),
+        db.ref('produtos').once('value')
+    ]);
+    const pedidosVal = pedidosSnap.val() || {};
+    const produtosVal = produtosSnap.val() || {};
+
+    let corrigidos = 0, jaCertos = 0, semProdutoOuFicha = 0;
+    for (const [id, pedido] of Object.entries(pedidosVal)) {
+        if (!pedido.itens) continue;
+        let mudou = false;
+        const itensCorrigidos = pedido.itens.map(item => {
+            if (item.fichaTecnicaId || !item.produtoId) return item; // já tem, ou é item avulso (manual/recompensa sem produto)
+            const produto = produtosVal[item.produtoId];
+            if (!produto || !produto.fichaTecnicaId) { semProdutoOuFicha++; return item; }
+            mudou = true;
+            return { ...item, fichaTecnicaId: produto.fichaTecnicaId };
+        });
+        if (mudou) {
+            await db.ref('pedidos/' + id + '/itens').set(itensCorrigidos);
+            corrigidos++;
+        } else {
+            jaCertos++;
+        }
+    }
+
+    msgEl.innerHTML = `<p class="dica-secao">✅ ${corrigidos} pedido(s) corrigido(s), ${jaCertos} já estavam certos ou não precisavam, ${semProdutoOuFicha} item(ns) sem produto/ficha correspondente (não deu pra corrigir). Confere o Dashboard de novo.</p>`;
+}
+
 async function autoVincularFichaTecnicaPorNome() {
     const msgEl = document.getElementById('resultadoDiagnostico');
     msgEl.innerHTML = '<p class="dica-secao">Vinculando produtos à ficha técnica...</p>';

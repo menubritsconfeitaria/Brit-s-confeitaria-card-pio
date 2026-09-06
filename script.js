@@ -1984,6 +1984,7 @@ function resgatarRecompensa(index) {
     if (r.tipo === 'produto') {
         const produtoRef = produtos.find(p => p.nome === r.produtoNome);
         carrinho.push({
+            produtoId: produtoRef ? produtoRef.id : null,
             nome: r.produtoNome,
             preco: 0,
             quantidade: 1,
@@ -2152,7 +2153,18 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         troco: (formaPagamentoAtual === 'Dinheiro' && troco) ? troco : null,
         observacoes: obs || null,
         dataEncomenda: querAgendar && dataEncomenda ? dataEncomenda : null,
-        itens: carrinho.map(item => ({ produtoId: item.produtoId || null, nome: item.nome, preco: item.preco, quantidade: item.quantidade, observacao: item.observacao || null, adicionaisTexto: item.adicionaisTexto || null })),
+        itens: carrinho.map(item => {
+            const produtoAtual = produtos.find(p => p.id === item.produtoId);
+            return {
+                produtoId: item.produtoId || null,
+                fichaTecnicaId: (produtoAtual && produtoAtual.fichaTecnicaId) || null,
+                nome: item.nome,
+                preco: item.preco,
+                quantidade: item.quantidade,
+                observacao: item.observacao || null,
+                adicionaisTexto: item.adicionaisTexto || null
+            };
+        }),
         subtotal: subtotalPedido,
         cupom: cupomAplicado ? cupomAplicado.codigo : null,
         desconto: desconto > 0 ? desconto : 0,
