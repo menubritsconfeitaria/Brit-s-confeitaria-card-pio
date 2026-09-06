@@ -939,6 +939,13 @@ let pedidosParaImpressao = {};
 function montarTagPagamento(pedido) {
     if (!pedido.pagamento) return '';
     const p = pedido.pagamento;
+    // Se foi marcado como pago manualmente (ex: cliente pagou Pix por fora, ou
+    // trocou a forma de pagamento), isso sobrepõe o status real do pagamento
+    // online — sem isso, o pedido continuava mostrando "aguardando" pra sempre,
+    // mesmo depois de você confirmar manualmente que o dinheiro já entrou
+    if (pedido.pagamentoConfirmadoManual) {
+        return '<span class="pedido-tag tag-pagamento-pago">🟢 Pago (confirmado manualmente)</span>';
+    }
     const ehSinal = p.tipoPagamento === 'sinal';
     const totalPedido = totalDoPedido(pedido);
     const restante = ehSinal && p.valorSinal != null ? formatarPreco(totalPedido - p.valorSinal) : null;
@@ -5035,7 +5042,9 @@ function montarTextoPedido(p) {
     texto += `Frete: ${formatarPreco(p.frete || 0)}\n`;
     texto += `Total: ${formatarPreco(totalDoPedido(p))}\n\n`;
     texto += `Forma de pagamento: ${p.formaPagamento || 'Não informado'}\n`;
-    if (p.pagamento) {
+    if (p.pagamentoConfirmadoManual) {
+        texto += `Status do pagamento: PAGO (confirmado manualmente)\n`;
+    } else if (p.pagamento) {
         const statusPagamentoLabel = { aguardando: 'Aguardando pagamento', pago: 'PAGO', divergente: 'VALOR DIVERGENTE - conferir' }[p.pagamento.status] || p.pagamento.status;
         texto += `Status do pagamento: ${statusPagamentoLabel}${p.pagamento.metodo ? ' (' + p.pagamento.metodo + ')' : ''}\n`;
     }
