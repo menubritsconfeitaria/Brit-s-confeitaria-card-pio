@@ -572,7 +572,8 @@ function escutarCupons() {
     });
 }
 
-function salvarPedidoNoPainel(dadosPedido) {
+function salvarPedidoNoPainel(dadosPedido, statusInicial) {
+    statusInicial = statusInicial || 'pendente';
     try {
         if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) {
             console.log('Firebase indisponível — pedido seguirá só pelo WhatsApp.');
@@ -591,7 +592,7 @@ function salvarPedidoNoPainel(dadosPedido) {
                 return novoPedidoRef.set({
                     ...dadosPedido,
                     numero: numeroAtribuido,
-                    status: 'pendente',
+                    status: statusInicial,
                     timestamp: firebase.database.ServerValue.TIMESTAMP
                 });
             })
@@ -599,7 +600,7 @@ function salvarPedidoNoPainel(dadosPedido) {
                 console.log('Não foi possível gerar o número do pedido, salvando sem numeração:', err);
                 return novoPedidoRef.set({
                     ...dadosPedido,
-                    status: 'pendente',
+                    status: statusInicial,
                     timestamp: firebase.database.ServerValue.TIMESTAMP
                 });
             })
@@ -717,8 +718,11 @@ function mostrarStatusPedido(pedidoId) {
         const pedido = snap.val();
         if (!pedido || !pedido.status) return;
         const status = pedido.status;
-        banner.classList.remove('status-pendente', 'status-aceito', 'status-recusado', 'status-em_rota', 'status-pronto_retirada', 'status-entregue');
-        if (status === 'pendente') {
+        banner.classList.remove('status-pendente', 'status-aceito', 'status-recusado', 'status-em_rota', 'status-pronto_retirada', 'status-entregue', 'status-aguardando_pagamento');
+        if (status === 'aguardando_pagamento') {
+            banner.classList.add('status-aguardando_pagamento');
+            texto.textContent = '💳 Aguardando a confirmação do seu pagamento...';
+        } else if (status === 'pendente') {
             banner.classList.add('status-pendente');
             texto.textContent = '🕒 Pedido enviado! Aguardando a confirmação da loja...';
         } else if (status === 'aceito') {
@@ -807,6 +811,7 @@ function adicionarAoHistoricoLocal(pedidoId) {
 }
 
 const rotulosStatusPedido = {
+    aguardando_pagamento: '💳 Aguardando pagamento',
     pendente: '🕒 Aguardando confirmação',
     aceito: '✅ Aceito, sendo preparado',
     em_rota: '🛵 Saiu para entrega',
@@ -2131,6 +2136,14 @@ botaoFinalizarCompra.addEventListener('click', async () => {
     mensagemPedido += `\nAguardando a confirmação!`;
 
     // Salva o pedido no painel da loja (Firebase), sem travar o fluxo caso falhe
+    // Se o pedido ainda vai exigir um pagamento online (sinal da encomenda, ou Pix/Cartão
+    // à vista) antes de valer de verdade, começa com um status "escondido" — só vira
+    // "pendente" (aparecendo pra loja, com som e tudo) quando o pagamento for confirmado.
+    // Evita a loja ser avisada de um pedido que o cliente talvez nem termine de pagar
+    const exigePagamentoAntes = (querAgendar && percentualSinalEncomenda > 0)
+        || (pagamentoOnlineAtivo && !querAgendar && (formaPagamentoAtual === 'Pix' || formaPagamentoAtual === 'Cartão'));
+    const statusInicialPedido = exigePagamentoAntes ? 'aguardando_pagamento' : 'pendente';
+
     const { id: pedidoId, promessaSalvo } = salvarPedidoNoPainel({
         nome, telefone,
         tipoEntrega: tipoEntregaAtual,
@@ -2156,7 +2169,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         notificacaoToken: (localStorage.getItem('notificacoesAtivasBritS') === '1')
             ? localStorage.getItem('notificacaoTokenBritS')
             : null
-    });
+    }, statusInicialPedido);
 
     // Guarda esse pedido pra mostrar o status (pendente/aceito/em rota/entregue/recusado) pro cliente
     if (pedidoId) {
@@ -2196,6 +2209,10 @@ botaoFinalizarCompra.addEventListener('click', async () => {
             window.location.href = resultado.data.checkoutUrl;
         } catch (err) {
             console.log('Não foi possível criar o checkout do sinal:', err.message, '| Detalhes:', JSON.stringify(err.details));
+            try {
+                const limparPedido = firebase.functions().httpsCallable('limparPedidoFalhoDeCheckout');
+                await limparPedido({ pedidoId });
+            } catch (e2) { /* segue mesmo se não conseguir limpar */ }
             alert('Não foi possível iniciar o pagamento do sinal. Tente novamente.');
             botaoFinalizarCompra.disabled = false;
             botaoFinalizarCompra.textContent = 'Finalizar Compra';
@@ -2226,6 +2243,13 @@ botaoFinalizarCompra.addEventListener('click', async () => {
             window.location.href = resultado.data.checkoutUrl;
         } catch (err) {
             console.log('Não foi possível criar o checkout de pagamento:', err.message, '| Detalhes:', JSON.stringify(err.details));
+            // Apaga o pedido malsucedido via Cloud Function — o cliente (sem login)
+            // não tem permissão de apagar direto, só criar. Sem isso, cada nova
+            // tentativa ficava empilhando pedidos duplicados no painel
+            try {
+                const limparPedido = firebase.functions().httpsCallable('limparPedidoFalhoDeCheckout');
+                await limparPedido({ pedidoId });
+            } catch (e2) { /* segue mesmo se não conseguir limpar */ }
             alert('Não foi possível iniciar o pagamento. Tente novamente.');
             botaoFinalizarCompra.disabled = false;
             botaoFinalizarCompra.textContent = '🌐 Pagar Agora';

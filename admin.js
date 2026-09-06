@@ -815,6 +815,43 @@ function formatarPreco(v) {
 // Formata o campo de troco de forma legível — trata tanto valores numéricos digitados
 // ("50", "R$ 50") quanto frases de "não precisa" (do checkbox novo, ou de texto livre
 // que alguém digitou antes dele existir), sem misturar os dois formatos
+// Deixa a forma de pagamento editável com um clique — útil quando o cliente combina
+// uma coisa no pedido mas paga de outro jeito na hora (ex: marcou Cartão mas pagou
+// no Pix direto, por fora do sistema)
+// Marca/desmarca "pago" manualmente — pra quando o pagamento aconteceu fora do
+// fluxo normal (ex: cliente marcou uma forma no pedido mas pagou Pix direto na
+// conta, por fora) e a loja quer um jeito simples de anotar "já recebi isso"
+function alternarPagamentoConfirmadoManual(id, novoValor) {
+    db.ref('pedidos/' + id + '/pagamentoConfirmadoManual').set(novoValor)
+        .catch(err => alert('Erro ao atualizar: ' + err.message));
+}
+
+function editarFormaPagamentoPedido(id, elemento) {
+    const opcoes = ['Dinheiro', 'Cartão de Crédito', 'Cartão de Débito', 'Pix', 'Transferência Bancária', 'Outros'];
+    const select = document.createElement('select');
+    select.className = 'select-edicao-rapida';
+    opcoes.forEach(op => {
+        const option = document.createElement('option');
+        option.value = op;
+        option.textContent = op;
+        select.appendChild(option);
+    });
+
+    db.ref('pedidos/' + id + '/formaPagamento').once('value').then(snap => {
+        const valorAtual = snap.val() || '';
+        [...select.options].forEach(opt => { opt.selected = (opt.value === valorAtual); });
+    });
+
+    select.onchange = () => {
+        db.ref('pedidos/' + id + '/formaPagamento').set(select.value)
+            .catch(err => alert('Erro ao atualizar: ' + err.message));
+    };
+    select.onblur = () => { if (select.parentNode) select.parentNode.replaceChild(elemento, select); };
+
+    elemento.parentNode.replaceChild(select, elemento);
+    select.focus();
+}
+
 function formatarTrocoLabel(troco) {
     if (!troco) return '';
     const normalizado = String(troco).trim().toLowerCase();
@@ -938,7 +975,7 @@ function montarCardPedido(id, pedido, comAcoes) {
 
     let itensHtml = '';
     (pedido.itens || []).forEach(item => {
-        itensHtml += `<li><span>${item.quantidade}x ${item.nome}${item.adicionaisTexto ? ` <em>(${item.adicionaisTexto})</em>` : ''}</span><span>${formatarPreco(item.preco * item.quantidade)}</span></li>`;
+        itensHtml += `<li><span>${item.quantidade}x ${item.nome}${item.observacao ? ` <em>— ${item.observacao}</em>` : ''}${item.adicionaisTexto ? ` <em>(${item.adicionaisTexto})</em>` : ''}</span><span>${formatarPreco(item.preco * item.quantidade)}</span></li>`;
     });
 
     let enderecoHtml = '';
@@ -975,7 +1012,8 @@ function montarCardPedido(id, pedido, comAcoes) {
                 <div class="pedido-cliente">${pedido.numero ? `<span class="pedido-numero">🛒Pedido #${String(pedido.numero).padStart(3, '0')}</span> - ` : ''}${pedido.nome || 'Cliente'}</div>
                 <div>
                     <span class="pedido-tag ${pedido.tipoEntrega === 'entrega' ? 'tag-entrega' : 'tag-retirada'}">${pedido.tipoEntrega === 'entrega' ? '🛵 Entrega' : '🏠 Retirada'}</span>
-                    <span class="pedido-tag tag-pagamento">💰 ${pedido.formaPagamento || ''}${pedido.troco ? ' (' + formatarTrocoLabel(pedido.troco) + ')' : ''}</span>
+                    <span class="pedido-tag tag-pagamento" style="cursor:pointer;" onclick="editarFormaPagamentoPedido('${id}', this)" title="Clique pra corrigir a forma de pagamento">💰 ${pedido.formaPagamento || ''}${pedido.troco ? ' (' + formatarTrocoLabel(pedido.troco) + ')' : ''} ✏️</span>
+                    <span class="pedido-tag ${pedido.pagamentoConfirmadoManual ? 'tag-status-entregue' : ''}" style="cursor:pointer;" onclick="alternarPagamentoConfirmadoManual('${id}', ${!pedido.pagamentoConfirmadoManual})" title="Clique pra marcar/desmarcar como pago (uso manual, ex: cliente pagou Pix por fora)">${pedido.pagamentoConfirmadoManual ? '✅ Pago' : '☐ Marcar como pago'}</span>
                     ${montarTagPagamento(pedido)}
                     ${tagStatus}
                 </div>
@@ -2735,7 +2773,7 @@ function editarPedidoManual(id) {
     document.getElementById('pmFrete').value = p.frete || 0;
 
     const temSinal = p.pagamento && p.pagamento.tipoPagamento === 'sinal';
-    document.getElementById('pmEhEncomenda').checked = !!temSinal;
+    definirEhEncomenda(!!temSinal);
     document.getElementById('blocoEncomendaSinal').style.display = temSinal ? 'block' : 'none';
     document.getElementById('pmSinalRecebido').value = temSinal ? p.pagamento.valorSinal : 0;
     definirRestanteJaRecebido(!!(p.pagamentoRestante && p.pagamentoRestante.status === 'pago'));
@@ -2754,6 +2792,15 @@ async function excluirPedidoManualDireto(id, numero) {
 
 // Alterna o estado do toggle Sim/Não do "restante já recebido" — visual (qual botão
 // fica destacado) e o valor guardado no campo escondido, que o resto do código lê
+// Alterna o toggle Sim/Não de "é encomenda com sinal", mostrando/escondendo os
+// campos de sinal junto
+function definirEhEncomenda(valor) {
+    document.getElementById('pmEhEncomenda').value = valor ? 'sim' : 'nao';
+    document.getElementById('btnEncomendaSim').classList.toggle('selecionado', valor);
+    document.getElementById('btnEncomendaNao').classList.toggle('selecionado', !valor);
+    document.getElementById('blocoEncomendaSinal').style.display = valor ? 'block' : 'none';
+}
+
 function definirRestanteJaRecebido(valor) {
     document.getElementById('pmRestanteJaRecebido').value = valor ? 'sim' : 'nao';
     document.getElementById('btnRestanteSim').classList.toggle('selecionado', valor);
@@ -2809,7 +2856,7 @@ async function salvarPedidoManual() {
     // Se marcado como encomenda com sinal, registra o pagamento — lançado direto como
     // "já recebido" (diferente do fluxo do cardápio, que gera um link de pagamento;
     // aqui é só um registro do que já foi recebido na mão/Pix combinado por fora)
-    const ehEncomenda = document.getElementById('pmEhEncomenda').checked;
+    const ehEncomenda = document.getElementById('pmEhEncomenda').value === 'sim';
     if (ehEncomenda) {
         const sinalRecebido = parseFloat((document.getElementById('pmSinalRecebido').value || '0').replace(',', '.')) || 0;
         if (sinalRecebido > 0) {
@@ -2849,7 +2896,7 @@ async function salvarPedidoManual() {
             document.getElementById('pmFrete').value = '0';
             document.getElementById('pmObs').value = '';
             document.getElementById('pmStatus').value = 'pendente';
-            document.getElementById('pmEhEncomenda').checked = false;
+            definirEhEncomenda(false);
             document.getElementById('pmSinalRecebido').value = '0';
             definirRestanteJaRecebido(false);
             document.getElementById('blocoEncomendaSinal').style.display = 'none';
@@ -2886,7 +2933,7 @@ async function salvarPedidoManual() {
             document.getElementById('pmFrete').value = '0';
             document.getElementById('pmObs').value = '';
             document.getElementById('pmStatus').value = 'pendente';
-            document.getElementById('pmEhEncomenda').checked = false;
+            definirEhEncomenda(false);
             document.getElementById('pmSinalRecebido').value = '0';
             definirRestanteJaRecebido(false);
             document.getElementById('blocoEncomendaSinal').style.display = 'none';
@@ -5280,7 +5327,9 @@ function iniciarEscutaPedidos() {
 
     const refPedidos = db.ref('pedidos');
     const listaPendentesEl = document.getElementById('listaPendentes');
-    const statusFinais = ['entregue', 'recusado'];
+    // "aguardando_pagamento" entra aqui também — não é bem um status "final", mas
+    // precisa ficar de fora da fila ativa do mesmo jeito, até o pagamento confirmar
+    const statusFinais = ['entregue', 'recusado', 'aguardando_pagamento'];
     const ehStatusFinal = pedido => statusFinais.includes(pedido.status);
 
     // Guarda o status de pagamento (sinal/restante) já conhecido de cada pedido, pra
@@ -5356,6 +5405,13 @@ function iniciarEscutaPedidos() {
             } else if (idsRenderizados.has(snap.key) && cardAtual) {
                 // Atualiza o card no lugar, com os botões certos pro novo estágio
                 cardAtual.replaceWith(montarCardPedido(snap.key, pedido, true));
+            } else if (!idsRenderizados.has(snap.key)) {
+                // Pedido estava escondido (aguardando pagamento confirmar) e agora
+                // passou a valer — entra na fila igual um pedido novo, com alerta
+                if (listaPendentesEl.querySelector('.vazio')) listaPendentesEl.innerHTML = '';
+                listaPendentesEl.insertBefore(montarCardPedido(snap.key, pedido, true), listaPendentesEl.firstChild);
+                idsRenderizados.add(snap.key);
+                if (pedido.status === 'pendente' && !window._importandoBackupGestao) tocarAlerta();
             }
             atualizarContador();
         });
