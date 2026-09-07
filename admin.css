@@ -985,7 +985,8 @@ body {
 /* Esconde os campos "Esconder do cardápio" / "Disponível pra Encomenda" de cada
    produto quando o recurso correspondente não estiver liberado pro cliente */
 body.ocultar-campo-esconder-produto .campo-esconder-produto { display: none; }
-body.ocultar-campo-encomenda-produto .campo-encomenda-produto { display: none; }
+body.ocultar-campo-encomenda-produto .campo-encomenda-produto,
+body.ocultar-campo-encomenda-por-loja .campo-encomenda-produto { display: none; }
 
 /* Sub-abas dentro de "Gestão Completa" — visual parecido com as abas principais,
    mas classe própria (não pode reaproveitar .painel-tab-btn: isso fazia esses botões

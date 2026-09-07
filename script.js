@@ -899,6 +899,31 @@ function verificarPedidoSalvo() {
 }
 
 // Preenche o formulário com os dados salvos da última compra (nome, telefone, endereço)
+// Salva os dados do cliente conforme ele vai digitando — antes, só salvava depois
+// de finalizar um pedido de verdade. Assim, mesmo quem só começa a preencher e
+// fecha o navegador sem terminar já tem os dados guardados na próxima visita
+function salvarDadosClienteParcial() {
+    try {
+        localStorage.setItem('dadosClienteBritS', JSON.stringify({
+            nome: nomeClienteInput.value,
+            telefone: telefoneClienteInput.value,
+            rua: ruaClienteInput.value,
+            numero: numeroClienteInput.value,
+            complemento: complementoClienteInput.value,
+            bairro: bairroClienteInput.value,
+            cidade: cidadeClienteInput.value,
+            estado: estadoClienteInput.value,
+            cep: cepClienteInput.value,
+            tipoEntrega: tipoEntregaAtual
+        }));
+    } catch (e) {
+        // localStorage indisponível (ex: modo privado/cheio) — ignora, não é crítico
+    }
+}
+[nomeClienteInput, telefoneClienteInput, ruaClienteInput, numeroClienteInput, complementoClienteInput, bairroClienteInput, cidadeClienteInput, estadoClienteInput, cepClienteInput].forEach(input => {
+    if (input) input.addEventListener('input', salvarDadosClienteParcial);
+});
+
 function carregarDadosClienteSalvos() {
     try {
         const dados = JSON.parse(localStorage.getItem('dadosClienteBritS'));

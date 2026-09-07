@@ -2642,11 +2642,12 @@ let ultimosPedidosManuais = []; // guarda a lista pra imprimir/enviar/editar sem
 function escutarPedidosManuais() {
     db.ref('pedidos').limitToLast(1000).on('value', snap => {
         const val = snap.val() || {};
-        // Mostra TODOS os pedidos aqui agora (manuais + do cardápio) — antes só
-        // mostrava os manuais, mas como os dois já vivem no mesmo lugar no Firebase,
-        // não faz sentido esconder um do outro nessa lista
+        // Mostra TODOS os pedidos aqui (manuais + do cardápio) — MENOS os que ainda
+        // estão "aguardando_pagamento": esses não podem aparecer em lugar NENHUM do
+        // painel antes do pagamento confirmar de verdade, nem aqui
         const manuais = Object.entries(val)
             .map(([id, p]) => ({ id, ...p }))
+            .filter(p => p.status !== 'aguardando_pagamento')
             .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
         ultimosPedidosManuais = manuais;
 
@@ -4068,6 +4069,10 @@ function escutarConfigLoja() {
 
         const chkAgendamento = document.getElementById('chkAgendamentoAtivo');
         if (chkAgendamento) chkAgendamento.checked = !!config.agendamentoAtivo;
+        // Esconde "Disponível pra Encomenda" também quando a PRÓPRIA LOJA desliga esse
+        // recurso — antes só escondia quando o DONO DO SERVIÇO desligava lá na
+        // Administração; os dois interruptores precisam funcionar independentemente
+        document.body.classList.toggle('ocultar-campo-encomenda-por-loja', !config.agendamentoAtivo);
 
         const painelLogo = document.getElementById('painelLogo');
         if (painelLogo && config.logoUrl) painelLogo.src = config.logoUrl;
@@ -4903,6 +4908,9 @@ function carregarFechamentoDiario() {
         snap.forEach(child => {
             const p = child.val();
             const ts = typeof p.timestamp === 'number' ? p.timestamp : 0;
+            // "aguardando_pagamento" nunca conta aqui, mesmo com "Todos os status"
+            // selecionado — só entra na lista quando o pagamento realmente confirma
+            if (p.status === 'aguardando_pagamento') return;
             if (ts >= inicio && ts <= fim) pedidosDoDia.push({ id: child.key, ...p });
         });
         pedidosDoDia.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
