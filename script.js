@@ -640,9 +640,17 @@ async function carregarCarrosselDestaques() {
     if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
     try {
         // Sempre cruza os destaques com o cadastro ATUAL dos produtos.
-        // Assim, um item só aparece no carrossel se também estiver visível e disponível no cardápio.
-        const produtosSnap = await firebase.database().ref('produtos').once('value');
+        // Item indisponível ou escondido nunca entra no carrossel, em nenhum modo.
+        const [produtosSnap, modoSnap, autoSnap, manuaisSnap] = await Promise.all([
+            firebase.database().ref('produtos').once('value'),
+            firebase.database().ref('configuracao/carrosselModo').once('value'),
+            firebase.database().ref('configuracao/carrosselDestaquesAuto').once('value'),
+            firebase.database().ref('configuracao/destaquesManuais').once('value')
+        ]);
         const produtosVal = produtosSnap.val() || {};
+        const modoSalvo = modoSnap.val();
+        // Sem configuração nova, preserva o comportamento antigo: automático.
+        const modo = ['manual','automatico','misto'].includes(modoSalvo) ? modoSalvo : 'automatico';
 
         const produtoPodeAparecer = (p) => !!(p && p.disponivel === true && !p.escondido);
         const montarDestaqueDoProduto = (id) => {
@@ -655,38 +663,38 @@ async function carregarCarrosselDestaques() {
                 imagem: p.imagemCarrossel || p.imagem || (p.imagens && p.imagens[0]) || null
             };
         };
+        const idsDaLista = (valor) => {
+            const lista = Array.isArray(valor) ? valor : (valor ? Object.values(valor) : []);
+            return lista
+                .map(item => typeof item === 'string' ? item : (item && (item.id || item.produtoId)))
+                .filter(Boolean);
+        };
+        const unicos = (lista) => [...new Set(lista)];
 
-        // Primeiro tenta os destaques automáticos, mas NUNCA confia no snapshot antigo
-        // para disponibilidade: usa apenas o ID e relê o produto atual.
-        const autoSnap = await firebase.database().ref('configuracao/carrosselDestaquesAuto').once('value');
-        const autoRaw = autoSnap.val();
-        const autoLista = Array.isArray(autoRaw) ? autoRaw : (autoRaw ? Object.values(autoRaw) : []);
-        const idsAuto = autoLista
-            .map(item => typeof item === 'string' ? item : (item && (item.id || item.produtoId)))
-            .filter(Boolean);
-        const destaquesAuto = idsAuto.map(montarDestaqueDoProduto).filter(Boolean).slice(0, 3);
-        if (destaquesAuto.length > 0) {
-            montarCarrossel(destaquesAuto);
-            return;
+        const idsAuto = idsDaLista(autoSnap.val());
+        const idsManuais = idsDaLista(manuaisSnap.val());
+        let idsEscolhidos = [];
+
+        if (modo === 'manual') {
+            idsEscolhidos = idsManuais;
+        } else if (modo === 'misto') {
+            // Os escolhidos pelo lojista têm prioridade; o automático só completa vagas.
+            idsEscolhidos = unicos([...idsManuais, ...idsAuto]);
+        } else {
+            idsEscolhidos = idsAuto;
         }
 
-        // Se os automáticos estiverem indisponíveis/escondidos, usa os manuais válidos.
-        const manuaisSnap = await firebase.database().ref('configuracao/destaquesManuais').once('value');
-        const manuaisRaw = manuaisSnap.val();
-        const idsManuais = Array.isArray(manuaisRaw) ? manuaisRaw : (manuaisRaw ? Object.values(manuaisRaw) : []);
-        const destaquesManuais = idsManuais
-            .map(id => typeof id === 'string' ? id : (id && (id.id || id.produtoId)))
-            .filter(Boolean)
+        const destaques = idsEscolhidos
             .map(montarDestaqueDoProduto)
             .filter(Boolean)
-            .slice(0, 3);
+            .slice(0, 5);
 
-        if (destaquesManuais.length > 0) {
-            montarCarrossel(destaquesManuais);
+        if (destaques.length > 0) {
+            montarCarrossel(destaques);
             return;
         }
 
-        // Nenhum destaque está realmente disponível no site: esconde o carrossel.
+        // Nenhum destaque válido no modo escolhido: esconde a vitrine.
         const container = document.getElementById('carrosselDestaques');
         if (container) container.style.display = 'none';
         if (carrosselTimer) {
@@ -704,8 +712,8 @@ function montarCarrossel(destaques) {
     const bolinhas = document.getElementById('carrosselBolinhas');
     if (!container || !trilho || !bolinhas) return;
 
-    // Mantém a vitrine curta: no máximo 3 destaques de alto impacto.
-    const destaquesVisiveis = (Array.isArray(destaques) ? destaques : []).filter(Boolean).slice(0, 3);
+    // Exibe até 5 destaques; como só um slide aparece por vez, isso aumenta a variedade sem alongar a página.
+    const destaquesVisiveis = (Array.isArray(destaques) ? destaques : []).filter(Boolean).slice(0, 5);
     if (destaquesVisiveis.length === 0) {
         container.style.display = 'none';
         return;

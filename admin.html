@@ -157,14 +157,28 @@
                 <div class="loja-status-card" id="cardDestaquesCarrossel" style="margin-top:16px;">
                     <h3>🎠 Destaques do Carrossel</h3>
                     <p class="dica-secao">
-                        Escolhe até 3 produtos pra aparecer na vitrine de destaques do cardápio. Assim que houver vendas
-                        suficientes na última semana, o sistema troca sozinho pra mostrar os mais vendidos de
-                        verdade — esses aqui só valem enquanto isso não acontece (ou se não tiver venda o
-                        suficiente numa semana mais fraca).
+                        Escolha como a vitrine vai funcionar. O carrossel pode exibir até 5 produtos e nunca mostra
+                        item indisponível ou escondido no cardápio.
                     </p>
+
+                    <div class="campo-com-label" style="margin-top:12px; max-width:420px;">
+                        <label class="campo-label" for="carrosselModoSelect">Modo do carrossel</label>
+                        <select id="carrosselModoSelect" onchange="atualizarAjudaModoCarrossel()">
+                            <option value="manual">Manual — eu escolho os produtos</option>
+                            <option value="automatico">Automático — mais vendidos da semana</option>
+                            <option value="misto">Misto — meus escolhidos + mais vendidos</option>
+                        </select>
+                    </div>
+                    <p class="dica-secao" id="ajudaModoCarrossel" style="margin-top:8px;"></p>
                     <p class="dica-secao" id="statusCarrosselAtual"></p>
-                    <div id="listaDestaquesManuais"></div>
-                    <button class="btn-secondary" style="margin-top:10px;" onclick="salvarDestaquesManuais()">Salvar destaques</button>
+
+                    <div id="blocoDestaquesManuais">
+                        <p class="campo-label" style="margin-top:12px;">Produtos escolhidos manualmente</p>
+                        <p class="dica-secao">Selecione até 5. No modo Misto, eles entram primeiro e o sistema completa as vagas restantes com os mais vendidos.</p>
+                        <div id="listaDestaquesManuais"></div>
+                    </div>
+
+                    <button class="btn-secondary" style="margin-top:10px;" onclick="salvarConfiguracaoCarrossel()">Salvar configuração do carrossel</button>
                     <p id="msgDestaquesManuais" class="ordem-categorias-msg"></p>
                 </div>
 

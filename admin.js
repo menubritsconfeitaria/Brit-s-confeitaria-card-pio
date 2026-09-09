@@ -4390,23 +4390,66 @@ async function autoVincularFichaTecnicaPorNome() {
     msgEl.innerHTML = `<p class="dica-secao">✅ ${vinculados} vinculado(s) novo(s), ${corrigidos} corrigido(s) (apontavam pra ficha técnica já apagada), ${jaCertos} já estavam certos, ${semFichaCorrespondente} sem ficha técnica de mesmo nome.</p>`;
 }
 
-// ---------- Carrossel — destaques manuais (usado enquanto não há venda suficiente
-// pra calcular os mais vendidos de verdade automaticamente) ----------
+// ---------- Carrossel — modo Manual, Automático ou Misto ----------
 let destaquesManuaisAtuais = [];
+let carrosselModoAtual = 'automatico'; // mantém o comportamento antigo até o lojista escolher outro modo
+let carrosselAutoAtual = [];
+
+function normalizarListaFirebase(valor) {
+    if (Array.isArray(valor)) return valor.filter(Boolean);
+    return valor ? Object.values(valor).filter(Boolean) : [];
+}
 
 function escutarDestaquesManuais() {
     db.ref('configuracao/destaquesManuais').on('value', snap => {
-        destaquesManuaisAtuais = snap.val() || [];
+        destaquesManuaisAtuais = normalizarListaFirebase(snap.val());
         renderizarListaDestaquesManuais();
+        atualizarStatusCarrosselPainel();
+    });
+    db.ref('configuracao/carrosselModo').on('value', snap => {
+        const modo = snap.val();
+        carrosselModoAtual = ['manual','automatico','misto'].includes(modo) ? modo : 'automatico';
+        const select = document.getElementById('carrosselModoSelect');
+        if (select) select.value = carrosselModoAtual;
+        atualizarAjudaModoCarrossel();
+        atualizarStatusCarrosselPainel();
     });
     db.ref('configuracao/carrosselDestaquesAuto').on('value', snap => {
-        const auto = snap.val();
-        const statusEl = document.getElementById('statusCarrosselAtual');
-        if (!statusEl) return;
-        statusEl.textContent = (auto && auto.length > 0)
-            ? `✅ No momento, o carrossel está mostrando os MAIS VENDIDOS reais da semana (calculado automaticamente).`
-            : `🟡 Ainda não há venda suficiente essa semana — o carrossel está mostrando os destaques escolhidos na mão abaixo.`;
+        carrosselAutoAtual = normalizarListaFirebase(snap.val());
+        atualizarStatusCarrosselPainel();
     });
+}
+
+function atualizarAjudaModoCarrossel() {
+    const select = document.getElementById('carrosselModoSelect');
+    const ajuda = document.getElementById('ajudaModoCarrossel');
+    const bloco = document.getElementById('blocoDestaquesManuais');
+    if (!select) return;
+    const modo = select.value;
+    if (ajuda) {
+        ajuda.textContent = modo === 'manual'
+            ? '✋ Manual: aparecem somente os produtos que você escolher abaixo.'
+            : modo === 'misto'
+                ? '🔀 Misto: seus escolhidos aparecem primeiro; as vagas restantes, até 5, são preenchidas pelos mais vendidos disponíveis.'
+                : '⚙️ Automático: o sistema usa até 5 dos mais vendidos da semana que estiverem disponíveis no cardápio.';
+    }
+    if (bloco) bloco.style.display = modo === 'automatico' ? 'none' : 'block';
+}
+
+function atualizarStatusCarrosselPainel() {
+    const statusEl = document.getElementById('statusCarrosselAtual');
+    if (!statusEl) return;
+    const qtdAuto = carrosselAutoAtual.length;
+    const qtdManual = destaquesManuaisAtuais.length;
+    if (carrosselModoAtual === 'manual') {
+        statusEl.textContent = `✋ Modo MANUAL ativo — ${qtdManual} produto(s) escolhido(s). Só os disponíveis aparecem no site.`;
+    } else if (carrosselModoAtual === 'misto') {
+        statusEl.textContent = `🔀 Modo MISTO ativo — ${qtdManual} manual(is) + preenchimento automático com os mais vendidos disponíveis, até 5.`;
+    } else {
+        statusEl.textContent = qtdAuto > 0
+            ? `⚙️ Modo AUTOMÁTICO ativo — o sistema tem ${qtdAuto} destaque(s) calculado(s) da semana e usa até 5 disponíveis.`
+            : `⚙️ Modo AUTOMÁTICO ativo — ainda não há destaques automáticos suficientes; o carrossel pode ficar oculto até haver dados.`;
+    }
 }
 
 function renderizarListaDestaquesManuais() {
@@ -4415,30 +4458,44 @@ function renderizarListaDestaquesManuais() {
     const produtos = Object.entries(ultimoValProdutosAdmin || {});
     if (produtos.length === 0) { container.innerHTML = '<p class="dica-secao">Cadastre produtos primeiro.</p>'; return; }
 
-    container.innerHTML = produtos.map(([id, produto]) => `
-        <label class="produto-disponivel-check" style="display:block; margin-top:4px;">
-            <input type="checkbox" class="check-destaque-manual" value="${id}" ${destaquesManuaisAtuais.includes(id) ? 'checked' : ''} onchange="limitarSelecaoDestaques(this)">
-            ${produto.nome}
-        </label>
-    `).join('');
+    container.innerHTML = produtos.map(([id, produto]) => {
+        const disponivel = produto && produto.disponivel === true && !produto.escondido;
+        const marcado = destaquesManuaisAtuais.includes(id);
+        return `
+        <label class="produto-disponivel-check" style="display:block; margin-top:4px; ${disponivel ? '' : 'opacity:.55;'}">
+            <input type="checkbox" class="check-destaque-manual" value="${id}" ${marcado ? 'checked' : ''} ${disponivel ? '' : 'disabled'} onchange="limitarSelecaoDestaques(this)">
+            ${produto.nome}${disponivel ? '' : ' — indisponível no cardápio'}
+        </label>`;
+    }).join('');
 }
 
-// Trava a seleção em no máximo 3 — uma vitrine curta converte melhor e não empurra o cardápio pra baixo
+// Até 5 destaques. Como aparece um slide por vez, 5 dá variedade sem aumentar a altura da página.
 function limitarSelecaoDestaques(checkboxClicado) {
     const marcados = document.querySelectorAll('.check-destaque-manual:checked');
-    if (marcados.length > 3) {
+    if (marcados.length > 5) {
         checkboxClicado.checked = false;
-        alert('Máximo de 3 destaques por vez — desmarca algum antes de escolher outro.');
+        alert('Máximo de 5 destaques por vez — desmarque algum antes de escolher outro.');
     }
 }
 
-function salvarDestaquesManuais() {
+async function salvarConfiguracaoCarrossel() {
     const msgEl = document.getElementById('msgDestaquesManuais');
-    const marcados = [...document.querySelectorAll('.check-destaque-manual:checked')].map(c => c.value);
-    db.ref('configuracao/destaquesManuais').set(marcados)
-        .then(() => { msgEl.textContent = `Salvo! ${marcados.length} destaque(s) escolhido(s).`; })
-        .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+    const select = document.getElementById('carrosselModoSelect');
+    const modo = select ? select.value : 'automatico';
+    const marcados = [...document.querySelectorAll('.check-destaque-manual:checked')].map(c => c.value).slice(0, 5);
+    try {
+        await Promise.all([
+            db.ref('configuracao/carrosselModo').set(modo),
+            db.ref('configuracao/destaquesManuais').set(marcados)
+        ]);
+        if (msgEl) msgEl.textContent = `Salvo! Modo ${modo.toUpperCase()} com ${marcados.length} destaque(s) manual(is).`;
+    } catch (err) {
+        if (msgEl) msgEl.textContent = 'Erro ao salvar: ' + err.message;
+    }
 }
+
+// Mantém compatibilidade com qualquer botão/chamada antiga.
+function salvarDestaquesManuais() { return salvarConfiguracaoCarrossel(); }
 
 function escutarProdutos() {
     db.ref('produtos').on('value', snap => {
