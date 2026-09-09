@@ -1678,10 +1678,13 @@ let lembreteCarrinhoJaMostradoNessaSessao = false;
 // Avalia todas as ofertas válidas nesse exato momento — junta a config antiga (campo
 // simples de frete grátis) com as novas ofertas configuráveis do painel, filtra o que
 // não pode aparecer, ordena por prioridade, e devolve no máximo 2
-function avaliarOfertasCarrinho(subtotalAtual, jaTemFreteGratis) {
+function avaliarOfertasCarrinho(subtotalAtual, jaTemFreteGratis, pedidoMinimoAindaFaltando) {
     if (carrinho.length === 0) return [];
     const hoje = new Date().toISOString().slice(0, 10); // "AAAA-MM-DD", pra comparar com dataInicio/dataFim
-    const faltaPoucoPraFreteGratis = !jaTemFreteGratis && freteGratisAcimaValor > 0 && subtotalAtual < freteGratisAcimaValor;
+    // Enquanto o pedido mínimo ainda não foi atingido, a sugestão de frete grátis fica
+    // em espera — mesma prioridade que a mensagem visível já usa (pedido mínimo primeiro),
+    // pra nunca mostrar "complete o frete grátis" junto de "faltam pro pedido mínimo"
+    const faltaPoucoPraFreteGratis = !pedidoMinimoAindaFaltando && !jaTemFreteGratis && freteGratisAcimaValor > 0 && subtotalAtual < freteGratisAcimaValor;
 
     // Junta a config antiga (se configurada) como se fosse mais uma "oferta", com
     // prioridade baixa (aparece por último se outra oferta configurada também servir)
@@ -1874,7 +1877,8 @@ function atualizarCarrinhoHTML() {
     // mas continua funcionando exatamente igual pra quem só tem aquele campo simples
     const sugestaoEl = document.getElementById('sugestaoProdutoCarrinho');
     if (sugestaoEl) {
-        const sugestoes = avaliarOfertasCarrinho(subtotalComDesconto, freteGratis);
+        const pedidoMinimoAindaFaltando = pedidoMinimoValor > 0 && subtotalComDesconto < pedidoMinimoValor;
+        const sugestoes = avaliarOfertasCarrinho(subtotalComDesconto, freteGratis, pedidoMinimoAindaFaltando);
         if (sugestoes.length > 0) {
             sugestaoEl.innerHTML = sugestoes.map(s => `
                 <div class="sugestao-produto-linha">
