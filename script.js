@@ -1913,14 +1913,22 @@ function atualizarCarrinhoHTML() {
         carrinho.forEach((item, index) => {
             const itemDiv = document.createElement('div');
             itemDiv.classList.add('carrinho-item');
+            const produtoDoItem = item.produtoId ? produtos.find(p => p.id === item.produtoId) : null;
+            const foto = produtoDoItem ? (produtoDoItem.imagem || (produtoDoItem.imagens && produtoDoItem.imagens[0])) : null;
             itemDiv.innerHTML = `
-                <span>${item.nome}${item.observacao ? ` <em class="obs-mini">(${item.observacao})</em>` : ''}${item.adicionaisTexto ? ` <em class="obs-mini">— ${item.adicionaisTexto}</em>` : ''}</span>
-                <div class="quantidade-controle">
-                    <button class="btn-quantidade" data-index="${index}" data-acao="diminuir">-</button>
-                    <span>${item.quantidade}</span>
-                    <button class="btn-quantidade" data-index="${index}" data-acao="aumentar">+</button>
+                ${foto ? `<img src="${foto}" alt="${item.nome}" class="carrinho-item-foto">` : '<div class="carrinho-item-foto carrinho-item-foto-vazia">🍰</div>'}
+                <div class="carrinho-item-info">
+                    <span>${item.nome}${item.observacao ? ` <em class="obs-mini">(${item.observacao})</em>` : ''}${item.adicionaisTexto ? ` <em class="obs-mini">— ${item.adicionaisTexto}</em>` : ''}</span>
+                    <div class="quantidade-controle">
+                        <button class="btn-quantidade" data-index="${index}" data-acao="diminuir">-</button>
+                        <span>${item.quantidade}</span>
+                        <button class="btn-quantidade" data-index="${index}" data-acao="aumentar">+</button>
+                    </div>
                 </div>
-                <span>R$ ${(item.preco * item.quantidade).toFixed(2).replace('.', ',')}</span>
+                <div class="carrinho-item-direita">
+                    <span>R$ ${(item.preco * item.quantidade).toFixed(2).replace('.', ',')}</span>
+                    <button type="button" class="btn-remover-item" data-index="${index}" title="Remover">🗑️</button>
+                </div>
             `;
             carrinhoItensDiv.appendChild(itemDiv);
             totalGeral += item.preco * item.quantidade;
@@ -2004,6 +2012,24 @@ function atualizarCarrinhoHTML() {
             gerenciarQuantidade(index, acao);
         });
     });
+
+    document.querySelectorAll('.btn-remover-item').forEach(botao => {
+        botao.addEventListener('click', (event) => {
+            const index = parseInt(event.currentTarget.dataset.index);
+            removerItemCarrinho(index);
+        });
+    });
+}
+
+// Remove um item do carrinho direto, sem precisar ficar diminuindo a quantidade até
+// zero — mais claro pra quem já sabe que quer tirar aquele item de vez
+function removerItemCarrinho(index) {
+    const item = carrinho[index];
+    if (!item) return;
+    if (!confirm(`Deseja remover "${item.nome}" do carrinho?`)) return;
+    carrinho.splice(index, 1);
+    salvarCarrinho();
+    atualizarCarrinhoHTML();
 }
 
 // Função para gerenciar a quantidade de um item no carrinho
