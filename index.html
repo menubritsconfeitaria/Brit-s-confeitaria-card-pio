@@ -27,6 +27,42 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+
+    <style>
+        /* Vendedor Inteligente — sugestão discreta antes do carrinho */
+        .vendedor-inteligente {
+            position: fixed;
+            left: 16px;
+            bottom: 18px;
+            width: min(390px, calc(100vw - 32px));
+            z-index: 1190;
+            background: #fffaf5;
+            border: 1px solid rgba(160,82,45,.22);
+            border-radius: 18px;
+            box-shadow: 0 16px 45px rgba(62,35,20,.22);
+            padding: 14px;
+            gap: 12px;
+            align-items: center;
+            transform: translateY(22px);
+            opacity: 0;
+            transition: opacity .25s ease, transform .25s ease;
+        }
+        .vendedor-inteligente.mostrar { opacity: 1; transform: translateY(0); }
+        .vendedor-inteligente-foto { width: 86px; height: 86px; border-radius: 14px; object-fit: cover; flex: 0 0 86px; background: #f1e7df; }
+        .vendedor-inteligente-conteudo { min-width: 0; flex: 1; }
+        .vendedor-inteligente-kicker { display:block; font-size:.78rem; font-weight:700; color:#a0522d; margin-bottom:3px; }
+        .vendedor-inteligente-nome { display:block; color:#3f261b; font-size:1rem; line-height:1.2; margin-right:22px; }
+        .vendedor-inteligente-texto { margin:5px 0 7px; font-size:.82rem; line-height:1.35; color:#6f574b; }
+        .vendedor-inteligente-preco { display:inline-block; margin-right:8px; font-weight:800; color:#6f3a24; }
+        .vendedor-inteligente-preco-original { font-size:.78rem; color:#8d827d; text-decoration:line-through; margin-right:4px; }
+        .vendedor-inteligente-acao { border:0; border-radius:10px; padding:8px 11px; font:inherit; font-weight:700; cursor:pointer; background:#a0522d; color:white; }
+        .vendedor-inteligente-fechar { position:absolute; top:7px; right:8px; border:0; background:transparent; color:#806d64; font-size:1rem; cursor:pointer; padding:5px; }
+        @media (max-width: 560px) {
+            .vendedor-inteligente { left:12px; bottom:12px; width:calc(100vw - 24px); padding:12px; }
+            .vendedor-inteligente-foto { width:76px; height:76px; flex-basis:76px; }
+        }
+    </style>
+
 </head>
 <body>
     <div id="telaBoasVindas" class="tela-boas-vindas" style="display:none;">
@@ -89,6 +125,22 @@
                 <div class="convite-notificacoes-acoes">
                     <button type="button" class="convite-notificacoes-aceitar" onclick="aceitarConviteNotificacoes()">Quero receber 😍</button>
                     <button type="button" class="convite-notificacoes-agora-nao" onclick="adiarConviteNotificacoes()">Agora não</button>
+                </div>
+            </div>
+        </div>
+
+
+        <div id="vendedorInteligente" class="vendedor-inteligente" style="display:none;" aria-live="polite">
+            <button type="button" class="vendedor-inteligente-fechar" onclick="fecharVendedorInteligente()" aria-label="Fechar sugestão">✕</button>
+            <img id="vendedorInteligenteFoto" class="vendedor-inteligente-foto" src="" alt="" style="display:none;">
+            <div class="vendedor-inteligente-conteudo">
+                <span id="vendedorInteligenteKicker" class="vendedor-inteligente-kicker">😍 Uma sugestão pra você</span>
+                <strong id="vendedorInteligenteNome" class="vendedor-inteligente-nome"></strong>
+                <p id="vendedorInteligenteTexto" class="vendedor-inteligente-texto"></p>
+                <div>
+                    <span id="vendedorInteligentePrecoOriginal" class="vendedor-inteligente-preco-original" style="display:none;"></span>
+                    <span id="vendedorInteligentePreco" class="vendedor-inteligente-preco"></span>
+                    <button type="button" id="vendedorInteligenteAcao" class="vendedor-inteligente-acao">Adicionar ao carrinho</button>
                 </div>
             </div>
         </div>

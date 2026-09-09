@@ -581,6 +581,153 @@ function fecharAvisoOferta() {
     if (banner) banner.style.display = 'none';
 }
 
+
+// ---------- Vendedor Inteligente ----------
+// Faz uma sugestão proativa somente quando o visitante ainda não colocou nada no carrinho.
+// Prioriza promoção real do cardápio; sem promoção, usa os destaques já escolhidos/calculados.
+let vendedorInteligenteTimer = null;
+let vendedorInteligenteTentativas = 0;
+let vendedorInteligenteProdutoAtual = null;
+const CHAVE_VENDEDOR_INTELIGENTE = 'vendedorInteligenteMostradoBritS';
+
+function formatarPrecoVendedor(valor) {
+    return `R$ ${Number(valor || 0).toFixed(2).replace('.', ',')}`;
+}
+
+function vendedorInteligenteJaFoiMostrado() {
+    try { return sessionStorage.getItem(CHAVE_VENDEDOR_INTELIGENTE) === '1'; }
+    catch (e) { return false; }
+}
+
+function marcarVendedorInteligenteComoMostrado() {
+    try { sessionStorage.setItem(CHAVE_VENDEDOR_INTELIGENTE, '1'); } catch (e) { /* ignora */ }
+}
+
+function fecharVendedorInteligente() {
+    const card = document.getElementById('vendedorInteligente');
+    if (!card) return;
+    card.classList.remove('mostrar');
+    setTimeout(() => { card.style.display = 'none'; }, 220);
+}
+
+function produtoEhSimplesParaVendaRapida(produto) {
+    if (!produto) return false;
+    const temVariantes = Array.isArray(produto.variantes) && produto.variantes.length > 0;
+    const temAdicionais = adicionaisAtivo && Array.isArray(produto.grupoAdicionais) && produto.grupoAdicionais.length > 0;
+    return !temVariantes && !temAdicionais && !produto.disponivelParaEncomenda;
+}
+
+async function escolherProdutoVendedorInteligente() {
+    const disponiveis = produtos.filter(p => p && p.disponivel === true && !p.escondido);
+    if (!disponiveis.length) return null;
+
+    // 1) Promoção visível de verdade: prioriza a maior economia percentual.
+    const promocoes = disponiveis
+        .filter(p => Number(p.precoOriginal) > Number(p.preco) && Number(p.preco) > 0)
+        .sort((a, b) => ((Number(b.precoOriginal)-Number(b.preco))/Number(b.precoOriginal)) - ((Number(a.precoOriginal)-Number(a.preco))/Number(a.precoOriginal)));
+    if (promocoes.length) return { produto: promocoes[0], tipo: 'oferta' };
+
+    // 2) Sem promoção: aproveita o mesmo cérebro do carrossel (auto/manual/misto).
+    try {
+        if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) {
+            const db = firebase.database();
+            const [modoSnap, autoSnap, manualSnap] = await Promise.all([
+                db.ref('configuracao/carrosselModo').once('value'),
+                db.ref('configuracao/carrosselDestaquesAuto').once('value'),
+                db.ref('configuracao/destaquesManuais').once('value')
+            ]);
+            const modo = ['manual','automatico','misto'].includes(modoSnap.val()) ? modoSnap.val() : 'automatico';
+            const idsAuto = idsDaListaCarrossel(autoSnap.val() || []);
+            const idsManual = idsDaListaCarrossel(manualSnap.val() || []);
+            const ordem = modo === 'manual' ? idsManual : modo === 'misto' ? [...new Set([...idsManual, ...idsAuto])] : idsAuto;
+            for (const id of ordem) {
+                const produto = disponiveis.find(p => p.id === id);
+                if (produto) return { produto, tipo: 'destaque' };
+            }
+        }
+    } catch (e) {
+        console.log('Vendedor inteligente: não foi possível ler destaques, usando produto disponível.', e);
+    }
+
+    // 3) Reserva: escolhe um produto disponível com foto; se não houver, o primeiro disponível.
+    return { produto: disponiveis.find(p => p.imagem || (Array.isArray(p.imagens) && p.imagens.length)) || disponiveis[0], tipo: 'sugestao' };
+}
+
+async function mostrarVendedorInteligente() {
+    if (vendedorInteligenteJaFoiMostrado() || carrinho.length > 0 || produtos.length === 0) return;
+
+    // Não disputa atenção com o convite de notificações nem com outro aviso comercial aberto.
+    const convite = document.getElementById('conviteNotificacoes');
+    const conviteAberto = convite && convite.style.display !== 'none';
+    if (conviteAberto) {
+        vendedorInteligenteTentativas += 1;
+        if (vendedorInteligenteTentativas <= 6) vendedorInteligenteTimer = setTimeout(mostrarVendedorInteligente, 5000);
+        return;
+    }
+
+    const escolha = await escolherProdutoVendedorInteligente();
+    if (!escolha || carrinho.length > 0) return;
+    const { produto, tipo } = escolha;
+    vendedorInteligenteProdutoAtual = produto;
+
+    const card = document.getElementById('vendedorInteligente');
+    const foto = document.getElementById('vendedorInteligenteFoto');
+    const kicker = document.getElementById('vendedorInteligenteKicker');
+    const nome = document.getElementById('vendedorInteligenteNome');
+    const texto = document.getElementById('vendedorInteligenteTexto');
+    const preco = document.getElementById('vendedorInteligentePreco');
+    const precoOriginal = document.getElementById('vendedorInteligentePrecoOriginal');
+    const botao = document.getElementById('vendedorInteligenteAcao');
+    if (!card || !nome || !texto || !preco || !botao) return;
+
+    const imagem = produto.imagemCarrossel || produto.imagem || (Array.isArray(produto.imagens) ? produto.imagens[0] : null);
+    if (foto) {
+        if (imagem) { foto.src = imagem; foto.alt = produto.nome || 'Produto sugerido'; foto.style.display = 'block'; }
+        else { foto.removeAttribute('src'); foto.style.display = 'none'; }
+    }
+
+    nome.textContent = produto.nome || 'Sugestão de hoje';
+    preco.textContent = formatarPrecoVendedor(produto.preco);
+    const simples = produtoEhSimplesParaVendaRapida(produto);
+    botao.textContent = simples ? 'Adicionar ao carrinho' : 'Ver produto';
+
+    if (tipo === 'oferta') {
+        kicker.textContent = '🔥 Oferta de hoje';
+        texto.textContent = 'Aproveite enquanto essa condição está disponível.';
+        if (precoOriginal) {
+            precoOriginal.textContent = formatarPrecoVendedor(produto.precoOriginal);
+            precoOriginal.style.display = 'inline-block';
+        }
+    } else {
+        kicker.textContent = tipo === 'destaque' ? '😍 Um destaque pra você' : '✨ Uma sugestão pra você';
+        texto.textContent = tipo === 'destaque' ? 'Um dos destaques do cardápio hoje. Que tal experimentar?' : 'Que tal incluir essa opção no seu pedido de hoje?';
+        if (precoOriginal) precoOriginal.style.display = 'none';
+    }
+
+    botao.onclick = () => {
+        marcarVendedorInteligenteComoMostrado();
+        fecharVendedorInteligente();
+        if (produtoEhSimplesParaVendaRapida(produto)) {
+            finalizarAdicaoAoCarrinho(produto.id, produto.nome, produto.preco, 1, null, null);
+        } else {
+            irParaProdutoDestaque(produto.id);
+        }
+    };
+
+    marcarVendedorInteligenteComoMostrado();
+    card.style.display = 'flex';
+    requestAnimationFrame(() => card.classList.add('mostrar'));
+}
+
+function agendarVendedorInteligente() {
+    if (vendedorInteligenteJaFoiMostrado()) return;
+    clearTimeout(vendedorInteligenteTimer);
+    // O convite de notificações entra antes (9s). A sugestão comercial espera mais um pouco.
+    vendedorInteligenteTimer = setTimeout(() => {
+        if (document.visibilityState === 'visible') mostrarVendedorInteligente();
+    }, 18000);
+}
+
 // Carrega os cupons de desconto cadastrados no painel
 function escutarCupons() {
     if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
@@ -2839,6 +2986,7 @@ function mostrarToastNotificacao(titulo, corpo) {
 
 atualizarBotaoNotificacao();
 agendarConviteNotificacoes();
+agendarVendedorInteligente();
 
 /* ===================================================================
    PERSONALIZAR CARDÁPIO — prévia ao vivo pra quem quer contratar um
