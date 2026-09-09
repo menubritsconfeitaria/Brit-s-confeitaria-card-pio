@@ -4471,7 +4471,7 @@ function renderizarListaDestaquesManuais() {
 
 // Até 5 destaques. Como aparece um slide por vez, 5 dá variedade sem aumentar a altura da página.
 function limitarSelecaoDestaques(checkboxClicado) {
-    const marcados = document.querySelectorAll('.check-destaque-manual:checked');
+    const marcados = document.querySelectorAll('.check-destaque-manual:checked:not(:disabled)');
     if (marcados.length > 5) {
         checkboxClicado.checked = false;
         alert('Máximo de 5 destaques por vez — desmarque algum antes de escolher outro.');
@@ -4482,7 +4482,9 @@ async function salvarConfiguracaoCarrossel() {
     const msgEl = document.getElementById('msgDestaquesManuais');
     const select = document.getElementById('carrosselModoSelect');
     const modo = select ? select.value : 'automatico';
-    const marcados = [...document.querySelectorAll('.check-destaque-manual:checked')].map(c => c.value).slice(0, 5);
+    const marcados = [...document.querySelectorAll('.check-destaque-manual:checked:not(:disabled)')]
+        .map(c => c.value)
+        .slice(0, 5);
     try {
         await Promise.all([
             db.ref('configuracao/carrosselModo').set(modo),

@@ -630,80 +630,86 @@ function salvarPedidoNoPainel(dadosPedido, statusInicial) {
 let refStatusPedidoAtual = null;
 let pedidoIdParaPagarRestante = null;
 
-// Carrossel de destaques — usa os "mais vendidos da semana" calculados automaticamente
-// (Cloud Function, 1x por dia) se já tiver dado suficiente; senão, cai pros destaques
-// escolhidos na mão no painel. Troca de slide sozinho a cada alguns segundos.
+// Carrossel de destaques — funciona nos modos Manual, Automático ou Misto.
+// Sempre cruza a configuração com o cadastro atual dos produtos e atualiza em tempo real.
 let carrosselTimer = null;
 let carrosselIndiceAtual = 0;
 
-async function carregarCarrosselDestaques() {
-    if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
-    try {
-        // Sempre cruza os destaques com o cadastro ATUAL dos produtos.
-        // Item indisponível ou escondido nunca entra no carrossel, em nenhum modo.
-        const [produtosSnap, modoSnap, autoSnap, manuaisSnap] = await Promise.all([
-            firebase.database().ref('produtos').once('value'),
-            firebase.database().ref('configuracao/carrosselModo').once('value'),
-            firebase.database().ref('configuracao/carrosselDestaquesAuto').once('value'),
-            firebase.database().ref('configuracao/destaquesManuais').once('value')
-        ]);
-        const produtosVal = produtosSnap.val() || {};
-        const modoSalvo = modoSnap.val();
-        // Sem configuração nova, preserva o comportamento antigo: automático.
-        const modo = ['manual','automatico','misto'].includes(modoSalvo) ? modoSalvo : 'automatico';
+let refsCarrosselDestaques = [];
+let carrosselRealtimeAtivo = false;
 
-        const produtoPodeAparecer = (p) => !!(p && p.disponivel === true && !p.escondido);
-        const montarDestaqueDoProduto = (id) => {
-            const p = produtosVal[id];
-            if (!produtoPodeAparecer(p)) return null;
-            return {
-                id,
-                nome: p.nome,
-                preco: p.preco,
-                imagem: p.imagemCarrossel || p.imagem || (p.imagens && p.imagens[0]) || null
-            };
+function normalizarListaCarrossel(valor) {
+    if (Array.isArray(valor)) return valor;
+    return valor ? Object.values(valor) : [];
+}
+
+function idsDaListaCarrossel(valor) {
+    return normalizarListaCarrossel(valor)
+        .map(item => typeof item === 'string' ? item : (item && (item.id || item.produtoId)))
+        .filter(Boolean);
+}
+
+function recalcularCarrosselDestaques(produtosVal, modoSalvo, autoVal, manuaisVal) {
+    const modo = ['manual','automatico','misto'].includes(modoSalvo) ? modoSalvo : 'automatico';
+    const produtoPodeAparecer = (p) => !!(p && p.disponivel === true && !p.escondido);
+    const montarDestaqueDoProduto = (id) => {
+        const p = produtosVal[id];
+        if (!produtoPodeAparecer(p)) return null;
+        return {
+            id,
+            nome: p.nome,
+            preco: p.preco,
+            imagem: p.imagemCarrossel || p.imagem || (p.imagens && p.imagens[0]) || null
         };
-        const idsDaLista = (valor) => {
-            const lista = Array.isArray(valor) ? valor : (valor ? Object.values(valor) : []);
-            return lista
-                .map(item => typeof item === 'string' ? item : (item && (item.id || item.produtoId)))
-                .filter(Boolean);
-        };
-        const unicos = (lista) => [...new Set(lista)];
+    };
+    const idsAuto = idsDaListaCarrossel(autoVal);
+    const idsManuais = idsDaListaCarrossel(manuaisVal);
+    const unicos = (lista) => [...new Set(lista)];
 
-        const idsAuto = idsDaLista(autoSnap.val());
-        const idsManuais = idsDaLista(manuaisSnap.val());
-        let idsEscolhidos = [];
+    let idsEscolhidos = [];
+    if (modo === 'manual') idsEscolhidos = idsManuais;
+    else if (modo === 'misto') idsEscolhidos = unicos([...idsManuais, ...idsAuto]);
+    else idsEscolhidos = idsAuto;
 
-        if (modo === 'manual') {
-            idsEscolhidos = idsManuais;
-        } else if (modo === 'misto') {
-            // Os escolhidos pelo lojista têm prioridade; o automático só completa vagas.
-            idsEscolhidos = unicos([...idsManuais, ...idsAuto]);
-        } else {
-            idsEscolhidos = idsAuto;
-        }
+    const destaques = idsEscolhidos
+        .map(montarDestaqueDoProduto)
+        .filter(Boolean)
+        .slice(0, 5);
 
-        const destaques = idsEscolhidos
-            .map(montarDestaqueDoProduto)
-            .filter(Boolean)
-            .slice(0, 5);
-
-        if (destaques.length > 0) {
-            montarCarrossel(destaques);
-            return;
-        }
-
-        // Nenhum destaque válido no modo escolhido: esconde a vitrine.
-        const container = document.getElementById('carrosselDestaques');
-        if (container) container.style.display = 'none';
-        if (carrosselTimer) {
-            clearInterval(carrosselTimer);
-            carrosselTimer = null;
-        }
-    } catch (err) {
-        console.log('Não foi possível carregar o carrossel de destaques:', err.message);
+    if (destaques.length > 0) {
+        montarCarrossel(destaques);
+        return;
     }
+
+    const container = document.getElementById('carrosselDestaques');
+    if (container) container.style.display = 'none';
+    if (carrosselTimer) {
+        clearInterval(carrosselTimer);
+        carrosselTimer = null;
+    }
+}
+
+function carregarCarrosselDestaques() {
+    if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
+    if (carrosselRealtimeAtivo) return;
+    carrosselRealtimeAtivo = true;
+
+    const db = firebase.database();
+    const refs = {
+        produtos: db.ref('produtos'),
+        modo: db.ref('configuracao/carrosselModo'),
+        auto: db.ref('configuracao/carrosselDestaquesAuto'),
+        manuais: db.ref('configuracao/destaquesManuais')
+    };
+    refsCarrosselDestaques = Object.values(refs);
+
+    const estado = { produtos: {}, modo: 'automatico', auto: [], manuais: [] };
+    const atualizar = () => recalcularCarrosselDestaques(estado.produtos, estado.modo, estado.auto, estado.manuais);
+
+    refs.produtos.on('value', snap => { estado.produtos = snap.val() || {}; atualizar(); });
+    refs.modo.on('value', snap => { estado.modo = snap.val(); atualizar(); });
+    refs.auto.on('value', snap => { estado.auto = snap.val() || []; atualizar(); });
+    refs.manuais.on('value', snap => { estado.manuais = snap.val() || []; atualizar(); });
 }
 
 function montarCarrossel(destaques) {
