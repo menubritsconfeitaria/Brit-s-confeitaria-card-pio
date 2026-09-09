@@ -4423,12 +4423,12 @@ function renderizarListaDestaquesManuais() {
     `).join('');
 }
 
-// Trava a seleção em no máximo 5 — desmarca sozinho se tentar marcar o 6º
+// Trava a seleção em no máximo 3 — uma vitrine curta converte melhor e não empurra o cardápio pra baixo
 function limitarSelecaoDestaques(checkboxClicado) {
     const marcados = document.querySelectorAll('.check-destaque-manual:checked');
-    if (marcados.length > 5) {
+    if (marcados.length > 3) {
         checkboxClicado.checked = false;
-        alert('Máximo de 5 destaques por vez — desmarca algum antes de escolher outro.');
+        alert('Máximo de 3 destaques por vez — desmarca algum antes de escolher outro.');
     }
 }
 

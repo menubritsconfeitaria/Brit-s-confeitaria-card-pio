@@ -668,29 +668,36 @@ function montarCarrossel(destaques) {
     const bolinhas = document.getElementById('carrosselBolinhas');
     if (!container || !trilho || !bolinhas) return;
 
-    trilho.innerHTML = destaques.map(d => `
-        <div class="carrossel-slide" onclick="document.getElementById('produtos-destaque').scrollIntoView({behavior:'smooth'})">
+    // Mantém a vitrine curta: no máximo 3 destaques de alto impacto.
+    const destaquesVisiveis = (Array.isArray(destaques) ? destaques : []).filter(Boolean).slice(0, 3);
+    if (destaquesVisiveis.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+
+    trilho.innerHTML = destaquesVisiveis.map(d => `
+        <div class="carrossel-slide" data-produto-id="${d.id || ''}" onclick="irParaProdutoDestaque('${d.id || ''}')">
             ${d.imagem ? `<img class="carrossel-fundo" src="${d.imagem}" alt="" aria-hidden="true">` : ''}
-            ${d.imagem ? `<img class="carrossel-foto" src="${d.imagem}" alt="${d.nome}">` : ''}
+            ${d.imagem ? `<img class="carrossel-foto" src="${d.imagem}" alt="${d.nome || 'Produto em destaque'}">` : ''}
             <div class="carrossel-slide-info">
-                <strong>${d.nome}</strong>
-                ${d.preco != null ? `<span>R$ ${d.preco.toFixed(2).replace('.', ',')}</span>` : ''}
+                <span class="carrossel-kicker">✨ DESTAQUE DE HOJE</span>
+                <strong>${d.nome || 'Delícia em destaque'}</strong>
+                ${d.preco != null ? `<span class="carrossel-preco">R$ ${Number(d.preco).toFixed(2).replace('.', ',')}</span>` : ''}
+                <span class="carrossel-microcopy">Peça direto pelo site, é rapidinho.</span>
+                <button type="button" class="carrossel-cta" onclick="event.stopPropagation(); acaoCarrosselDestaque('${d.id || ''}')">+ Adicionar ao carrinho</button>
             </div>
         </div>
     `).join('');
-    bolinhas.innerHTML = destaques.map((_, i) => `<span class="carrossel-bolinha ${i === 0 ? 'ativa' : ''}"></span>`).join('');
+    bolinhas.innerHTML = destaquesVisiveis.map((_, i) => `<button type="button" class="carrossel-bolinha ${i === 0 ? 'ativa' : ''}" onclick="irParaSlideCarrossel(${i})" aria-label="Ir para destaque ${i + 1}"></button>`).join('');
 
+    container.dataset.totalSlides = String(destaquesVisiveis.length);
     container.style.display = 'block';
+    container.querySelectorAll('.carrossel-destaque-seta').forEach(btn => {
+        btn.style.display = destaquesVisiveis.length > 1 ? 'flex' : 'none';
+    });
     carrosselIndiceAtual = 0;
     atualizarPosicaoCarrossel();
-
-    if (carrosselTimer) clearInterval(carrosselTimer);
-    if (destaques.length > 1) {
-        carrosselTimer = setInterval(() => {
-            carrosselIndiceAtual = (carrosselIndiceAtual + 1) % destaques.length;
-            atualizarPosicaoCarrossel();
-        }, 4000);
-    }
+    reiniciarTimerCarrossel();
 }
 
 function atualizarPosicaoCarrossel() {
@@ -699,6 +706,68 @@ function atualizarPosicaoCarrossel() {
     if (!trilho) return;
     trilho.style.transform = `translateX(-${carrosselIndiceAtual * 100}%)`;
     bolinhas.forEach((b, i) => b.classList.toggle('ativa', i === carrosselIndiceAtual));
+}
+
+function totalSlidesCarrossel() {
+    const container = document.getElementById('carrosselDestaques');
+    return Math.max(0, parseInt(container?.dataset.totalSlides || '0', 10) || 0);
+}
+
+function reiniciarTimerCarrossel() {
+    if (carrosselTimer) clearInterval(carrosselTimer);
+    const total = totalSlidesCarrossel();
+    if (total > 1) {
+        carrosselTimer = setInterval(() => {
+            carrosselIndiceAtual = (carrosselIndiceAtual + 1) % total;
+            atualizarPosicaoCarrossel();
+        }, 5000);
+    }
+}
+
+function mudarSlideCarrossel(delta) {
+    const total = totalSlidesCarrossel();
+    if (total <= 1) return;
+    carrosselIndiceAtual = (carrosselIndiceAtual + delta + total) % total;
+    atualizarPosicaoCarrossel();
+    reiniciarTimerCarrossel();
+}
+
+function irParaSlideCarrossel(indice) {
+    const total = totalSlidesCarrossel();
+    if (indice < 0 || indice >= total) return;
+    carrosselIndiceAtual = indice;
+    atualizarPosicaoCarrossel();
+    reiniciarTimerCarrossel();
+}
+
+function irParaProdutoDestaque(produtoId) {
+    const card = produtoId ? document.getElementById('produto-' + produtoId) : null;
+    if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.classList.add('produto-destaque-pulso');
+        setTimeout(() => card.classList.remove('produto-destaque-pulso'), 1800);
+    } else {
+        document.getElementById('produtos-destaque')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function acaoCarrosselDestaque(produtoId) {
+    const produto = produtos.find(p => p.id === produtoId);
+    if (!produto || produto.disponivel === false) {
+        irParaProdutoDestaque(produtoId);
+        return;
+    }
+
+    // Produtos com escolha obrigatória, adicionais ou encomenda precisam passar pelo card
+    // para não pular nenhuma regra da compra. Os simples entram direto no carrinho.
+    const temVariantes = Array.isArray(produto.variantes) && produto.variantes.length > 0;
+    const temAdicionais = adicionaisAtivo && Array.isArray(produto.grupoAdicionais) && produto.grupoAdicionais.length > 0;
+    if (temVariantes || temAdicionais || produto.disponivelParaEncomenda) {
+        irParaProdutoDestaque(produtoId);
+        return;
+    }
+
+    finalizarAdicaoAoCarrinho(produto.id, produto.nome, produto.preco, 1, null, null);
 }
 
 function mostrarStatusPedido(pedidoId) {
