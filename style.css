@@ -1719,9 +1719,8 @@ footer {
     box-shadow: var(--shadow);
     z-index: 90;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    flex-direction: column;
+    gap: 8px;
     animation: lembreteCarrinhoEntrada 0.3s ease-out;
 }
 @keyframes lembreteCarrinhoEntrada {
@@ -1730,13 +1729,12 @@ footer {
 }
 .lembrete-carrinho-banner span {
     font-size: 0.9em;
-    flex: 1;
 }
 .lembrete-carrinho-botoes {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 8px;
-    flex-shrink: 0;
 }
 .lembrete-carrinho-botoes button:first-child {
     background: var(--primary);
@@ -1744,6 +1742,7 @@ footer {
     border: none;
     border-radius: 8px;
     padding: 6px 12px;
+    flex: 1;
     font-size: 0.85em;
     font-weight: 600;
     cursor: pointer;
