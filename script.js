@@ -2732,10 +2732,55 @@ function atualizarBotaoNotificacao() {
     const ativado = localStorage.getItem('notificacoesAtivasBritS') === '1';
     const btnGrande = document.getElementById('btnAtivarNotificacoesGrande');
     const sino = document.getElementById('btnAtivarNotificacoesSino');
+    const convite = document.getElementById('conviteNotificacoes');
     if (ativado) {
         if (btnGrande) btnGrande.style.display = 'none';
         if (sino) sino.style.display = 'flex';
+        if (convite) { convite.classList.remove('mostrar'); convite.style.display = 'none'; }
+    } else {
+        if (btnGrande) btnGrande.style.display = '';
+        if (sino) sino.style.display = 'none';
     }
+}
+
+// Mostra um convite amigável antes da permissão técnica do navegador.
+// Só aparece quando faz sentido: compatível, ainda não ativado, permissão não bloqueada
+// e sem insistir por 7 dias depois que a pessoa escolhe “Agora não”.
+function podeMostrarConviteNotificacoes() {
+    if (!podeReceberNotificacoes()) return false;
+    if (localStorage.getItem('notificacoesAtivasBritS') === '1') return false;
+    if (typeof Notification !== 'undefined' && Notification.permission === 'denied') return false;
+    const adiadoEm = Number(localStorage.getItem('conviteNotificacoesAdiadoBritS') || 0);
+    const seteDias = 7 * 24 * 60 * 60 * 1000;
+    return !adiadoEm || (Date.now() - adiadoEm >= seteDias);
+}
+
+function mostrarConviteNotificacoes() {
+    if (!podeMostrarConviteNotificacoes()) return;
+    const convite = document.getElementById('conviteNotificacoes');
+    if (!convite) return;
+    convite.style.display = 'flex';
+    requestAnimationFrame(() => convite.classList.add('mostrar'));
+}
+
+function adiarConviteNotificacoes() {
+    const convite = document.getElementById('conviteNotificacoes');
+    if (convite) { convite.classList.remove('mostrar'); convite.style.display = 'none'; }
+    try { localStorage.setItem('conviteNotificacoesAdiadoBritS', String(Date.now())); } catch (e) { /* ignora */ }
+}
+
+async function aceitarConviteNotificacoes() {
+    const convite = document.getElementById('conviteNotificacoes');
+    if (convite) { convite.classList.remove('mostrar'); convite.style.display = 'none'; }
+    await ativarNotificacoes();
+}
+
+function agendarConviteNotificacoes() {
+    if (!podeMostrarConviteNotificacoes()) return;
+    // Dá tempo para a pessoa entender o cardápio antes de pedir a ativação.
+    setTimeout(() => {
+        if (document.visibilityState === 'visible') mostrarConviteNotificacoes();
+    }, 9000);
 }
 
 async function ativarNotificacoes() {
@@ -2762,7 +2807,9 @@ async function ativarNotificacoes() {
             });
             localStorage.setItem('notificacoesAtivasBritS', '1');
             localStorage.setItem('notificacaoTokenBritS', token); // guarda o token pra anexar aos pedidos depois
+            localStorage.removeItem('conviteNotificacoesAdiadoBritS');
             atualizarBotaoNotificacao();
+            mostrarToastNotificacao('✅ Notificações ativadas!', "Agora você pode receber novidades, promoções e avisos da Brit's.");
         }
     } catch (err) {
         console.log('Erro ao ativar notificações:', err);
@@ -2783,6 +2830,7 @@ function mostrarToastNotificacao(titulo, corpo) {
 }
 
 atualizarBotaoNotificacao();
+agendarConviteNotificacoes();
 
 /* ===================================================================
    PERSONALIZAR CARDÁPIO — prévia ao vivo pra quem quer contratar um

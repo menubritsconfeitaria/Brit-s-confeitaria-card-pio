@@ -80,6 +80,19 @@
             <button id="btnAtivarNotificacoesGrande" class="btn-notificacoes" onclick="ativarNotificacoes()">🔔 Ativar notificações de ofertas e novidades</button>
         </div>
 
+        <div id="conviteNotificacoes" class="convite-notificacoes" style="display:none;" role="dialog" aria-live="polite" aria-labelledby="conviteNotificacoesTitulo">
+            <button type="button" class="convite-notificacoes-fechar" onclick="adiarConviteNotificacoes()" aria-label="Fechar">✕</button>
+            <div class="convite-notificacoes-icone">🔔</div>
+            <div class="convite-notificacoes-conteudo">
+                <strong id="conviteNotificacoesTitulo">Quer saber primeiro quando sair uma delícia nova? 😍</strong>
+                <p>Ative as notificações e receba avisos de produtos fresquinhos, promoções e novidades da Brit's.</p>
+                <div class="convite-notificacoes-acoes">
+                    <button type="button" class="convite-notificacoes-aceitar" onclick="aceitarConviteNotificacoes()">Quero receber 😍</button>
+                    <button type="button" class="convite-notificacoes-agora-nao" onclick="adiarConviteNotificacoes()">Agora não</button>
+                </div>
+            </div>
+        </div>
+
         <div id="carrosselDestaques" class="carrossel-destaques container" style="display:none;">
             <div id="carrosselTrilho" class="carrossel-trilho"></div>
             <button type="button" class="carrossel-destaque-seta carrossel-destaque-anterior" onclick="mudarSlideCarrossel(-1)" aria-label="Destaque anterior">‹</button>
