@@ -5552,7 +5552,7 @@ function iniciarEscutaPedidos() {
         });
     });
 
-    // Histórico: pedidos das últimas 24 horas (qualquer status), só pra consulta.
+    // Histórico: pedidos das últimas 24 horas, exceto rascunhos aguardando pagamento.
     // Usa a ordenação padrão por chave (o Firebase já cria as chaves em ordem cronológica sozinho),
     // em vez de orderByChild('timestamp'), que exigiria um índice configurado na regra pra ser confiável.
     db.ref('pedidos').limitToLast(60).on('value', snapshot => {
@@ -5562,6 +5562,10 @@ function iniciarEscutaPedidos() {
         snapshot.forEach(child => {
             const p = child.val();
             const ts = typeof p.timestamp === 'number' ? p.timestamp : 0;
+            // Pedido online ainda aguardando confirmação de pagamento fica totalmente
+            // invisível no painel. Ele só entra no histórico depois que o webhook/consulta
+            // da InfinitePay confirmar o pagamento e mudar o status.
+            if (p.status === 'aguardando_pagamento') return;
             if (ts >= limite24h) itens.push({ id: child.key, pedido: p });
         });
         itens.reverse();
