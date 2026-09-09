@@ -204,6 +204,11 @@
                     <input type="text" inputmode="decimal" id="valorPedidoMinimo" placeholder="Ex: 20 (deixa vazio pra não ter mínimo)">
                     <label class="campo-label" style="margin-top:10px;">Frete grátis a partir de (R$)</label>
                     <input type="text" inputmode="decimal" id="valorFreteGratisAcima" placeholder="Ex: 80 (deixa vazio pra não ter frete grátis)">
+                    <label class="campo-label" style="margin-top:10px;">Produto sugerido pra completar o frete grátis (opcional)</label>
+                    <select id="produtoSugeridoFreteGratis">
+                        <option value="">— Nenhum (só mostra a mensagem, sem sugestão) —</option>
+                    </select>
+                    <p class="dica-secao">Quando o cliente estiver perto do valor do frete grátis, o sistema sugere esse produto pra completar — só aparece se ele ainda não estiver no carrinho e estiver disponível.</p>
                     <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="salvarPedidoMinimoEFreteGratis()">💾 Salvar</button>
                     <p id="pedidoMinimoMsg" class="ordem-categorias-msg"></p>
                 </div>

@@ -339,6 +339,7 @@ let percentualSinalEncomenda = 0; // 0 = não exige sinal, encomenda segue o flu
 let prazoPagamentoHorasEfetivo = 24; // prazo padrão, sobrescrito pela config do painel
 let pedidoMinimoValor = 0; // 0 = sem pedido mínimo configurado
 let freteGratisAcimaValor = 0; // 0 = sem frete grátis por valor configurado
+let produtoSugeridoFreteGratisId = null; // produto que a loja escolheu sugerir pra completar o frete grátis
 let modoDemoAtivo = false; // true enquanto a prévia personalizada está ativa
 let ultimaConfigLojaReal = null; // guarda a última config de verdade, pra restaurar depois do modo demo
 
@@ -411,6 +412,7 @@ function atualizarStatusLoja(config) {
     }
     pedidoMinimoValor = (config && config.pedidoMinimo) || 0;
     freteGratisAcimaValor = (config && config.freteGratisAcima) || 0;
+    produtoSugeridoFreteGratisId = (config && config.produtoSugeridoFreteGratis) || null;
 
     // Durante a prévia personalizada, sempre mostra "aberta" — não importa o horário
     // real da Brit's, a pessoa vendo a prévia precisa ver o site "no seu melhor momento"
@@ -1659,6 +1661,14 @@ function iniciarObservadorCategorias() {
 let timerInatividadeCarrinho = null;
 let lembreteCarrinhoJaMostradoNessaSessao = false;
 
+// Adiciona o produto sugerido de "completar o frete grátis" direto ao carrinho —
+// reaproveita a mesma função de adicionar normal, só busca os dados do produto primeiro
+function adicionarSugestaoFreteGratisAoCarrinho() {
+    const produto = produtos.find(p => p.id === produtoSugeridoFreteGratisId);
+    if (!produto) return;
+    finalizarAdicaoAoCarrinho(produto.id, produto.nome, produto.preco, 1, null, null);
+}
+
 function agendarLembreteCarrinhoPorInatividade() {
     clearTimeout(timerInatividadeCarrinho);
     if (carrinho.length === 0 || lembreteCarrinhoJaMostradoNessaSessao) return;
@@ -1671,6 +1681,18 @@ function mostrarLembreteCarrinho() {
     if (lembreteCarrinhoJaMostradoNessaSessao || carrinho.length === 0) return;
     const banner = document.getElementById('lembreteCarrinhoBanner');
     if (!banner) return;
+
+    // Se a sugestão de "completar o frete grátis" estiver ativa nesse momento,
+    // mostra ela também aqui — reaproveita o que já foi calculado, não recalcula nada
+    const sugestaoOriginal = document.getElementById('sugestaoProdutoCarrinho');
+    const sugestaoNoLembrete = document.getElementById('lembreteCarrinhoSugestao');
+    if (sugestaoOriginal && sugestaoNoLembrete && sugestaoOriginal.style.display !== 'none' && sugestaoOriginal.innerHTML.trim()) {
+        sugestaoNoLembrete.innerHTML = sugestaoOriginal.innerHTML;
+        sugestaoNoLembrete.style.display = 'flex';
+    } else if (sugestaoNoLembrete) {
+        sugestaoNoLembrete.style.display = 'none';
+    }
+
     banner.style.display = 'flex';
     lembreteCarrinhoJaMostradoNessaSessao = true; // só incomoda uma vez por visita
 }
@@ -1786,6 +1808,30 @@ function atualizarCarrinhoHTML() {
             incentivoEl.style.display = 'block';
         } else {
             incentivoEl.style.display = 'none';
+        }
+    }
+
+    // Sugestão de produto pra completar o frete grátis — só aparece quando falta pouco
+    // (mesma condição da mensagem "Faltam R$X"), o produto não estiver já no carrinho,
+    // e estiver disponível/não escondido. Não mexe em nada da lógica de frete acima,
+    // só olha pro mesmo estado que ela já calculou
+    const sugestaoEl = document.getElementById('sugestaoProdutoCarrinho');
+    if (sugestaoEl) {
+        const faltaPoucoPraFreteGratis = carrinho.length > 0 && !freteGratis && freteGratisAcimaValor > 0 && subtotalComDesconto < freteGratisAcimaValor;
+        const produtoSugerido = faltaPoucoPraFreteGratis && produtoSugeridoFreteGratisId
+            ? produtos.find(p => p.id === produtoSugeridoFreteGratisId)
+            : null;
+        const jaEstaNoCarrinho = produtoSugerido && carrinho.some(item => item.produtoId === produtoSugerido.id);
+        const disponivel = produtoSugerido && produtoSugerido.disponivel !== false && !produtoSugerido.escondido;
+
+        if (produtoSugerido && !jaEstaNoCarrinho && disponivel) {
+            sugestaoEl.innerHTML = `
+                <span>➕ Adicione <strong>${produtoSugerido.nome}</strong> por ${formatarPrecoTexto(produtoSugerido.preco)} e complete o frete grátis!</span>
+                <button type="button" onclick="adicionarSugestaoFreteGratisAoCarrinho()">+ Adicionar</button>
+            `;
+            sugestaoEl.style.display = 'flex';
+        } else {
+            sugestaoEl.style.display = 'none';
         }
     }
 

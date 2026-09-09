@@ -104,7 +104,8 @@
         </button>
 
         <div id="lembreteCarrinhoBanner" class="lembrete-carrinho-banner" style="display:none;">
-            <span>🛒 Você tem itens esperando no carrinho — não esquece de finalizar seu pedido!</span>
+            <span>🛒 Seu pedido ainda está aqui 😊 Quer finalizar?</span>
+            <div id="lembreteCarrinhoSugestao" class="sugestao-produto-carrinho" style="display:none; margin-top:8px;"></div>
             <div class="lembrete-carrinho-botoes">
                 <button type="button" onclick="document.getElementById('carrinho').scrollIntoView({behavior:'smooth', block:'start'}); fecharLembreteCarrinho();">Ver carrinho</button>
                 <button type="button" class="lembrete-carrinho-fechar" onclick="fecharLembreteCarrinho()">✕</button>
@@ -123,6 +124,7 @@
             </div>
             <p id="cupomMensagem" class="cupom-mensagem"></p>
             <p id="incentivoCarrinhoMsg" class="cupom-mensagem" style="display:none;"></p>
+            <div id="sugestaoProdutoCarrinho" class="sugestao-produto-carrinho" style="display:none;"></div>
 
             <div class="carrinho-total">
                 <p>Subtotal: <span id="subtotal-carrinho">R$ 0,00</span></p>

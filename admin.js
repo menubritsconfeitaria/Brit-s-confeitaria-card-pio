@@ -1377,9 +1377,10 @@ function importarBairrosAntigos() {
 function salvarPedidoMinimoEFreteGratis() {
     const pedidoMinimo = paraNumeroFlexivel(document.getElementById('valorPedidoMinimo').value);
     const freteGratisAcima = paraNumeroFlexivel(document.getElementById('valorFreteGratisAcima').value);
+    const produtoSugeridoFreteGratis = document.getElementById('produtoSugeridoFreteGratis').value || null;
     const msgEl = document.getElementById('pedidoMinimoMsg');
 
-    db.ref('configuracao/loja').update({ pedidoMinimo, freteGratisAcima })
+    db.ref('configuracao/loja').update({ pedidoMinimo, freteGratisAcima, produtoSugeridoFreteGratis })
         .then(() => { msgEl.textContent = 'Salvo!'; })
         .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
 }
@@ -4081,6 +4082,10 @@ function escutarConfigLoja() {
         const campoFreteGratis = document.getElementById('valorFreteGratisAcima');
         if (campoPedidoMinimo) campoPedidoMinimo.value = config.pedidoMinimo || '';
         if (campoFreteGratis) campoFreteGratis.value = config.freteGratisAcima || '';
+        // Guarda o valor salvo — o dropdown de produtos só existe depois dos produtos
+        // carregarem, então aplicamos essa seleção assim que ele for montado
+        produtoSugeridoFreteGratisSalvo = config.produtoSugeridoFreteGratis || '';
+        aplicarSelecaoProdutoSugeridoFreteGratis();
     });
 }
 
@@ -4435,6 +4440,32 @@ function escutarProdutos() {
     });
 }
 
+// Guarda o valor salvo até o dropdown de produtos existir (populado só depois dos
+// produtos carregarem) — sem isso, tentar selecionar antes das opções existirem falha
+let produtoSugeridoFreteGratisSalvo = '';
+
+function atualizarSelectProdutoSugeridoFreteGratis() {
+    const sel = document.getElementById('produtoSugeridoFreteGratis');
+    if (!sel) return;
+    const atual = sel.value;
+    sel.innerHTML = '<option value="">— Nenhum (só mostra a mensagem, sem sugestão) —</option>';
+    Object.entries(ultimoValProdutosAdmin || {}).forEach(([id, produto]) => {
+        if (!produto.nome) return;
+        const opt = document.createElement('option');
+        opt.value = id; opt.textContent = produto.nome;
+        sel.appendChild(opt);
+    });
+    sel.value = atual; // preserva a seleção se já tinha uma antes de repopular
+}
+
+function aplicarSelecaoProdutoSugeridoFreteGratis() {
+    const sel = document.getElementById('produtoSugeridoFreteGratis');
+    if (!sel || !produtoSugeridoFreteGratisSalvo) return;
+    if ([...sel.options].some(o => o.value === produtoSugeridoFreteGratisSalvo)) {
+        sel.value = produtoSugeridoFreteGratisSalvo;
+    }
+}
+
 function renderizarListaProdutosAdmin() {
     const lista = document.getElementById('produtosAdminList');
     const btnImportar = document.getElementById('btnImportarDados');
@@ -4449,6 +4480,8 @@ function renderizarListaProdutosAdmin() {
     atualizarDatalistCategorias();
     atualizarPreviaOrdemCategorias();
     atualizarSelectProdutoRecompensa();
+    atualizarSelectProdutoSugeridoFreteGratis();
+    aplicarSelecaoProdutoSugeridoFreteGratis();
 
     btnImportar.style.display = itens.length === 0 ? 'block' : 'none';
 

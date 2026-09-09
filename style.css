@@ -791,6 +791,31 @@ footer {
 .cupom-mensagem.sucesso { color: #1e6b34; }
 .cupom-mensagem.erro { color: #c0392b; }
 
+.sugestao-produto-carrinho {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    padding: 10px 12px;
+    background: var(--card);
+    border: 1px dashed var(--primary);
+    border-radius: 10px;
+    font-size: 0.85em;
+}
+.sugestao-produto-carrinho span { color: var(--text); }
+.sugestao-produto-carrinho button {
+    flex-shrink: 0;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-weight: 700;
+    font-size: 0.9em;
+    cursor: pointer;
+}
+
 #linhaDesconto span { color: #1e6b34; font-weight: 600; }
 
 /* Observação por item (personalização) */
