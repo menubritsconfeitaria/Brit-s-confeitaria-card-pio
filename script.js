@@ -340,6 +340,18 @@ let prazoPagamentoHorasEfetivo = 24; // prazo padrão, sobrescrito pela config d
 let pedidoMinimoValor = 0; // 0 = sem pedido mínimo configurado
 let freteGratisAcimaValor = 0; // 0 = sem frete grátis por valor configurado
 let produtoSugeridoFreteGratisId = null; // produto que a loja escolheu sugerir pra completar o frete grátis
+let ofertasCarrinhoConfig = []; // lista de ofertas configuráveis (produto → produto), carregada do Firebase
+
+function escutarOfertasCarrinho() {
+    if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
+    firebase.database().ref('configuracao/ofertasCarrinho').on('value', snap => {
+        const val = snap.val() || {};
+        ofertasCarrinhoConfig = Object.entries(val)
+            .filter(([id, o]) => o.ativo !== false)
+            .map(([id, o]) => ({ id, ...o }));
+        atualizarCarrinhoHTML(); // reavalia as sugestões com a config nova
+    });
+}
 let modoDemoAtivo = false; // true enquanto a prévia personalizada está ativa
 let ultimaConfigLojaReal = null; // guarda a última config de verdade, pra restaurar depois do modo demo
 
@@ -1663,10 +1675,54 @@ let lembreteCarrinhoJaMostradoNessaSessao = false;
 
 // Adiciona o produto sugerido de "completar o frete grátis" direto ao carrinho —
 // reaproveita a mesma função de adicionar normal, só busca os dados do produto primeiro
-function adicionarSugestaoFreteGratisAoCarrinho() {
-    const produto = produtos.find(p => p.id === produtoSugeridoFreteGratisId);
+// Avalia todas as ofertas válidas nesse exato momento — junta a config antiga (campo
+// simples de frete grátis) com as novas ofertas configuráveis do painel, filtra o que
+// não pode aparecer, ordena por prioridade, e devolve no máximo 2
+function avaliarOfertasCarrinho(subtotalAtual, jaTemFreteGratis) {
+    if (carrinho.length === 0) return [];
+    const hoje = new Date().toISOString().slice(0, 10); // "AAAA-MM-DD", pra comparar com dataInicio/dataFim
+    const faltaPoucoPraFreteGratis = !jaTemFreteGratis && freteGratisAcimaValor > 0 && subtotalAtual < freteGratisAcimaValor;
+
+    // Junta a config antiga (se configurada) como se fosse mais uma "oferta", com
+    // prioridade baixa (aparece por último se outra oferta configurada também servir)
+    const candidatas = [...ofertasCarrinhoConfig];
+    if (produtoSugeridoFreteGratisId) {
+        candidatas.push({ tipoGatilho: 'freteGratis', produtoSugerido: produtoSugeridoFreteGratisId, prioridade: 999, precoEspecial: null, dataInicio: null, dataFim: null });
+    }
+
+    const validas = candidatas.filter(o => {
+        if (o.dataInicio && hoje < o.dataInicio) return false;
+        if (o.dataFim && hoje > o.dataFim) return false;
+        const gatilhoOk = o.tipoGatilho === 'freteGratis'
+            ? faltaPoucoPraFreteGratis
+            : carrinho.some(item => item.produtoId === o.produtoGatilhoId);
+        if (!gatilhoOk) return false;
+        const produto = produtos.find(p => p.id === o.produtoSugerido);
+        if (!produto) return false;
+        if (carrinho.some(item => item.produtoId === produto.id)) return false; // já está no carrinho
+        if (produto.disponivel === false || produto.escondido) return false;
+        return true;
+    });
+
+    validas.sort((a, b) => (a.prioridade ?? 10) - (b.prioridade ?? 10));
+
+    return validas.slice(0, 2).map(o => {
+        const produto = produtos.find(p => p.id === o.produtoSugerido);
+        const preco = o.precoEspecial != null ? o.precoEspecial : produto.preco;
+        const texto = o.tipoGatilho === 'freteGratis'
+            ? `➕ Adicione <strong>${produto.nome}</strong> por ${formatarPrecoTexto(preco)} e complete o frete grátis!`
+            : `🎁 Que tal adicionar <strong>${produto.nome}</strong> por ${formatarPrecoTexto(preco)}?`;
+        return { produto, texto, precoEspecial: o.precoEspecial != null ? o.precoEspecial : null };
+    });
+}
+
+// Adiciona um produto sugerido (de qualquer oferta) direto ao carrinho — usa o preço
+// especial da oferta, se tiver configurado, senão o preço normal do produto
+function adicionarOfertaAoCarrinho(produtoId, precoEspecial) {
+    const produto = produtos.find(p => p.id === produtoId);
     if (!produto) return;
-    finalizarAdicaoAoCarrinho(produto.id, produto.nome, produto.preco, 1, null, null);
+    const preco = precoEspecial != null ? precoEspecial : produto.preco;
+    finalizarAdicaoAoCarrinho(produto.id, produto.nome, preco, 1, null, null);
 }
 
 function agendarLembreteCarrinhoPorInatividade() {
@@ -1811,24 +1867,21 @@ function atualizarCarrinhoHTML() {
         }
     }
 
-    // Sugestão de produto pra completar o frete grátis — só aparece quando falta pouco
-    // (mesma condição da mensagem "Faltam R$X"), o produto não estiver já no carrinho,
-    // e estiver disponível/não escondido. Não mexe em nada da lógica de frete acima,
-    // só olha pro mesmo estado que ela já calculou
+    // Avalia todas as ofertas válidas nesse momento (a antiga config simples de frete
+    // grátis + as novas ofertas configuráveis do painel) e mostra até 2 no carrinho —
+    // nunca sugere o que já está no carrinho, esgotado, escondido, ou fora do período
+    // configurado. Isso substitui a versão anterior que só olhava pro frete grátis,
+    // mas continua funcionando exatamente igual pra quem só tem aquele campo simples
     const sugestaoEl = document.getElementById('sugestaoProdutoCarrinho');
     if (sugestaoEl) {
-        const faltaPoucoPraFreteGratis = carrinho.length > 0 && !freteGratis && freteGratisAcimaValor > 0 && subtotalComDesconto < freteGratisAcimaValor;
-        const produtoSugerido = faltaPoucoPraFreteGratis && produtoSugeridoFreteGratisId
-            ? produtos.find(p => p.id === produtoSugeridoFreteGratisId)
-            : null;
-        const jaEstaNoCarrinho = produtoSugerido && carrinho.some(item => item.produtoId === produtoSugerido.id);
-        const disponivel = produtoSugerido && produtoSugerido.disponivel !== false && !produtoSugerido.escondido;
-
-        if (produtoSugerido && !jaEstaNoCarrinho && disponivel) {
-            sugestaoEl.innerHTML = `
-                <span>➕ Adicione <strong>${produtoSugerido.nome}</strong> por ${formatarPrecoTexto(produtoSugerido.preco)} e complete o frete grátis!</span>
-                <button type="button" onclick="adicionarSugestaoFreteGratisAoCarrinho()">+ Adicionar</button>
-            `;
+        const sugestoes = avaliarOfertasCarrinho(subtotalComDesconto, freteGratis);
+        if (sugestoes.length > 0) {
+            sugestaoEl.innerHTML = sugestoes.map(s => `
+                <div class="sugestao-produto-linha">
+                    <span>${s.texto}</span>
+                    <button type="button" onclick="adicionarOfertaAoCarrinho('${s.produto.id}', ${s.precoEspecial != null ? s.precoEspecial : 'null'})">+ Adicionar</button>
+                </div>
+            `).join('');
             sugestaoEl.style.display = 'flex';
         } else {
             sugestaoEl.style.display = 'none';
@@ -2386,6 +2439,7 @@ function sincronizarPrecosCarrinho() {
 escutarProdutos(); // Carrega o cardápio do Firebase (e re-renderiza sozinho quando o painel mudar algo)
 escutarConfigFrete(); // Carrega a configuração de bairros/valor por km do painel
 carregarCarrosselDestaques();
+escutarOfertasCarrinho();
 escutarOrdemCategorias(); // Carrega a ordem de categorias definida no painel
 
 // Clube Brit's: recupera o cliente já identificado nesse navegador (se houver) e escuta a configuração
