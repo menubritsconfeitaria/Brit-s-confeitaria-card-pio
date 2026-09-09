@@ -4390,6 +4390,30 @@ async function autoVincularFichaTecnicaPorNome() {
     msgEl.innerHTML = `<p class="dica-secao">✅ ${vinculados} vinculado(s) novo(s), ${corrigidos} corrigido(s) (apontavam pra ficha técnica já apagada), ${jaCertos} já estavam certos, ${semFichaCorrespondente} sem ficha técnica de mesmo nome.</p>`;
 }
 
+// ---------- Diagnóstico rápido das integrações ----------
+async function executarDiagnosticoSistema() {
+    const el = document.getElementById('resultadoDiagnosticoSistema');
+    if (!el) return;
+    el.textContent = 'Verificando...';
+    try {
+        const diagnosticar = firebase.functions().httpsCallable('diagnosticarSistema');
+        const resposta = await diagnosticar();
+        const d = resposta.data || {};
+        const linha = (ok, texto) => `${ok ? '✅' : '⚠️'} ${texto}`;
+        el.innerHTML = [
+            linha(!!d.functionsOk, 'Firebase Functions respondendo'),
+            linha(!!d.infinitePayConfigurada, d.infinitePayConfigurada ? 'InfinitePay configurada' : 'InfinitePay sem InfiniteTag configurada'),
+            linha(true, `${Number(d.tokensNotificacao || 0)} aparelho(s) cadastrado(s) para notificações`),
+            linha(Number(d.destaquesAutomaticos || 0) > 0, Number(d.destaquesAutomaticos || 0) > 0
+                ? `${d.destaquesAutomaticos} destaque(s) automático(s) calculado(s)`
+                : 'Carrossel automático ainda sem destaques calculados'),
+            linha(true, `Servidor: ${d.horaServidor || 'respondendo'}`)
+        ].join('<br>');
+    } catch (err) {
+        el.textContent = '❌ Não foi possível concluir o diagnóstico: ' + err.message;
+    }
+}
+
 // ---------- Carrossel — modo Manual, Automático ou Misto ----------
 let destaquesManuaisAtuais = [];
 let carrosselModoAtual = 'automatico'; // mantém o comportamento antigo até o lojista escolher outro modo

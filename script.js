@@ -621,15 +621,6 @@ function salvarPedidoNoPainel(dadosPedido, statusInicial) {
                     timestamp: firebase.database.ServerValue.TIMESTAMP
                 });
             })
-            .then(() => {
-                // Conta o uso do cupom só depois que o pedido salvou com sucesso — usa
-                // transaction pra ser seguro mesmo com vários pedidos ao mesmo tempo
-                if (dadosPedido.cupom) {
-                    firebase.database().ref('cupons/' + dadosPedido.cupom + '/usosContados')
-                        .transaction(atual => (atual || 0) + 1)
-                        .catch(err => console.log('Não foi possível contar o uso do cupom:', err));
-                }
-            })
             .catch(err2 => console.log('Não foi possível salvar o pedido no painel:', err2));
 
         return { id: novoPedidoRef.key, promessaSalvo };
@@ -2458,8 +2449,8 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         } : null,
         // Se o cliente já ativou notificações nesse aparelho, guarda o token junto do pedido,
         // pra poder avisar ele (só ele, não todo mundo) quando o status do pedido mudar
-        notificacaoToken: (localStorage.getItem('notificacoesAtivas') === '1')
-            ? localStorage.getItem('notificacaoToken')
+        notificacaoToken: (localStorage.getItem('notificacoesAtivasBritS') === '1')
+            ? localStorage.getItem('notificacaoTokenBritS')
             : null
     }, statusInicialPedido);
 
@@ -2744,7 +2735,7 @@ function podeReceberNotificacoes() {
 }
 
 function atualizarBotaoNotificacao() {
-    const ativado = localStorage.getItem('notificacoesAtivas') === '1';
+    const ativado = localStorage.getItem('notificacoesAtivasBritS') === '1';
     const btnGrande = document.getElementById('btnAtivarNotificacoesGrande');
     const sino = document.getElementById('btnAtivarNotificacoesSino');
     const convite = document.getElementById('conviteNotificacoes');
@@ -2763,9 +2754,9 @@ function atualizarBotaoNotificacao() {
 // e sem insistir por 7 dias depois que a pessoa escolhe “Agora não”.
 function podeMostrarConviteNotificacoes() {
     if (!podeReceberNotificacoes()) return false;
-    if (localStorage.getItem('notificacoesAtivas') === '1') return false;
+    if (localStorage.getItem('notificacoesAtivasBritS') === '1') return false;
     if (typeof Notification !== 'undefined' && Notification.permission === 'denied') return false;
-    const adiadoEm = Number(localStorage.getItem('conviteNotificacoesAdiado') || 0);
+    const adiadoEm = Number(localStorage.getItem('conviteNotificacoesAdiadoBritS') || 0);
     const seteDias = 7 * 24 * 60 * 60 * 1000;
     return !adiadoEm || (Date.now() - adiadoEm >= seteDias);
 }
@@ -2781,7 +2772,7 @@ function mostrarConviteNotificacoes() {
 function adiarConviteNotificacoes() {
     const convite = document.getElementById('conviteNotificacoes');
     if (convite) { convite.classList.remove('mostrar'); convite.style.display = 'none'; }
-    try { localStorage.setItem('conviteNotificacoesAdiado', String(Date.now())); } catch (e) { /* ignora */ }
+    try { localStorage.setItem('conviteNotificacoesAdiadoBritS', String(Date.now())); } catch (e) { /* ignora */ }
 }
 
 async function aceitarConviteNotificacoes() {
@@ -2817,12 +2808,13 @@ async function ativarNotificacoes() {
         const messaging = firebase.messaging();
         const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
         if (token) {
-            await firebase.database().ref('notificacaoTokens/' + token).set({
-                criadoEm: firebase.database.ServerValue.TIMESTAMP
-            });
-            localStorage.setItem('notificacoesAtivas', '1');
-            localStorage.setItem('notificacaoToken', token); // guarda o token pra anexar aos pedidos depois
-            localStorage.removeItem('conviteNotificacoesAdiado');
+            // O token é registrado pelo servidor, em vez de escrever direto no banco.
+            // Isso permite deixar as regras do Firebase mais fechadas sem quebrar o push.
+            const registrarToken = firebase.functions().httpsCallable('registrarTokenNotificacao');
+            await registrarToken({ token });
+            localStorage.setItem('notificacoesAtivasBritS', '1');
+            localStorage.setItem('notificacaoTokenBritS', token); // guarda o token pra anexar aos pedidos depois
+            localStorage.removeItem('conviteNotificacoesAdiadoBritS');
             atualizarBotaoNotificacao();
             mostrarToastNotificacao('✅ Notificações ativadas!', "Agora você pode receber novidades, promoções e avisos da Brit's.");
         }
@@ -2831,6 +2823,7 @@ async function ativarNotificacoes() {
         alert('Não foi possível ativar as notificações agora. Tente de novo mais tarde.');
     }
 }
+
 
 // Mostra um aviso na tela quando a notificação chega com o site já aberto
 function mostrarToastNotificacao(titulo, corpo) {
