@@ -639,24 +639,60 @@ let carrosselIndiceAtual = 0;
 async function carregarCarrosselDestaques() {
     if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
     try {
-        const autoSnap = await firebase.database().ref('configuracao/carrosselDestaquesAuto').once('value');
-        const auto = autoSnap.val();
-        if (auto && auto.length > 0) { montarCarrossel(auto); return; }
-
-        const manuaisSnap = await firebase.database().ref('configuracao/destaquesManuais').once('value');
-        const idsManuais = manuaisSnap.val() || [];
-        if (idsManuais.length === 0) return; // nada configurado ainda — carrossel fica escondido
-
+        // Sempre cruza os destaques com o cadastro ATUAL dos produtos.
+        // Assim, um item só aparece no carrossel se também estiver visível e disponível no cardápio.
         const produtosSnap = await firebase.database().ref('produtos').once('value');
         const produtosVal = produtosSnap.val() || {};
-        const destaquesManuais = idsManuais
-            .map(id => {
-                const p = produtosVal[id];
-                if (!p || p.disponivel === false) return null;
-                return { id, nome: p.nome, preco: p.preco, imagem: p.imagemCarrossel || p.imagem || (p.imagens && p.imagens[0]) || null };
-            })
+
+        const produtoPodeAparecer = (p) => !!(p && p.disponivel === true && !p.escondido);
+        const montarDestaqueDoProduto = (id) => {
+            const p = produtosVal[id];
+            if (!produtoPodeAparecer(p)) return null;
+            return {
+                id,
+                nome: p.nome,
+                preco: p.preco,
+                imagem: p.imagemCarrossel || p.imagem || (p.imagens && p.imagens[0]) || null
+            };
+        };
+
+        // Primeiro tenta os destaques automáticos, mas NUNCA confia no snapshot antigo
+        // para disponibilidade: usa apenas o ID e relê o produto atual.
+        const autoSnap = await firebase.database().ref('configuracao/carrosselDestaquesAuto').once('value');
+        const autoRaw = autoSnap.val();
+        const autoLista = Array.isArray(autoRaw) ? autoRaw : (autoRaw ? Object.values(autoRaw) : []);
+        const idsAuto = autoLista
+            .map(item => typeof item === 'string' ? item : (item && (item.id || item.produtoId)))
             .filter(Boolean);
-        if (destaquesManuais.length > 0) montarCarrossel(destaquesManuais);
+        const destaquesAuto = idsAuto.map(montarDestaqueDoProduto).filter(Boolean).slice(0, 3);
+        if (destaquesAuto.length > 0) {
+            montarCarrossel(destaquesAuto);
+            return;
+        }
+
+        // Se os automáticos estiverem indisponíveis/escondidos, usa os manuais válidos.
+        const manuaisSnap = await firebase.database().ref('configuracao/destaquesManuais').once('value');
+        const manuaisRaw = manuaisSnap.val();
+        const idsManuais = Array.isArray(manuaisRaw) ? manuaisRaw : (manuaisRaw ? Object.values(manuaisRaw) : []);
+        const destaquesManuais = idsManuais
+            .map(id => typeof id === 'string' ? id : (id && (id.id || id.produtoId)))
+            .filter(Boolean)
+            .map(montarDestaqueDoProduto)
+            .filter(Boolean)
+            .slice(0, 3);
+
+        if (destaquesManuais.length > 0) {
+            montarCarrossel(destaquesManuais);
+            return;
+        }
+
+        // Nenhum destaque está realmente disponível no site: esconde o carrossel.
+        const container = document.getElementById('carrosselDestaques');
+        if (container) container.style.display = 'none';
+        if (carrosselTimer) {
+            clearInterval(carrosselTimer);
+            carrosselTimer = null;
+        }
     } catch (err) {
         console.log('Não foi possível carregar o carrossel de destaques:', err.message);
     }
