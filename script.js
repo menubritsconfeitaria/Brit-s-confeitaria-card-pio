@@ -5,7 +5,7 @@ console.log("O script.js foi carregado com sucesso!");
 let produtos = [];
 
 // Carrega o carrinho do Local Storage ou inicializa como vazio
-let carrinho = JSON.parse(localStorage.getItem('carrinhoBritS')) || [];
+let carrinho = JSON.parse(localStorage.getItem('carrinho')) || [];
 
 /* ===================================================================
    TABELA DE BAIRROS E DISTÂNCIA EM KM ATÉ A CONFEITARIA
@@ -289,6 +289,21 @@ function aplicarConfigDaLoja(config) {
     document.documentElement.style.setProperty('--accent', config.corAccent);
 
     document.title = `${config.nome} - Cardápio Online`;
+    // Atualiza também a prévia de compartilhamento (WhatsApp/redes sociais) — sem isso,
+    // ela sempre mostrava o texto fixo do HTML, mesmo pra outros clientes
+    const ogTitleTag = document.querySelector('meta[property="og:title"]');
+    if (ogTitleTag) ogTitleTag.setAttribute('content', `${config.nome} - Cardápio Online`);
+    // Mesma lógica pra imagem e URL da prévia de compartilhamento — evita que o link
+    // de um cliente novo continue mostrando a logo/site de outro cliente por engano
+    if (config.urlCardapio && config.logo) {
+        const baseUrl = config.urlCardapio.endsWith('/') ? config.urlCardapio : config.urlCardapio + '/';
+        const ogImageTag = document.querySelector('meta[property="og:image"]');
+        if (ogImageTag) ogImageTag.setAttribute('content', baseUrl + config.logo);
+    }
+    if (config.urlCardapio) {
+        const ogUrlTag = document.querySelector('meta[property="og:url"]');
+        if (ogUrlTag) ogUrlTag.setAttribute('content', config.urlCardapio);
+    }
 
     const headerH1 = document.querySelector('header h1');
     if (headerH1) headerH1.textContent = `Bem-vindo à ${config.nome}!`;
@@ -916,16 +931,16 @@ function fecharStatusPedido() {
         refStatusPedidoAtual = null;
     }
     pedidoIdParaPagarRestante = null;
-    localStorage.removeItem('ultimoPedidoBritS');
+    localStorage.removeItem('ultimoPedido');
 }
 
 // Guarda o pedido na lista local de "Meus Pedidos" — mantém só os 10 mais recentes,
 // o mais novo primeiro. Fica só nesse navegador (não depende de login nem telefone).
 function adicionarAoHistoricoLocal(pedidoId) {
     try {
-        const historico = JSON.parse(localStorage.getItem('historicoPedidosBritS')) || [];
+        const historico = JSON.parse(localStorage.getItem('historicoPedidos')) || [];
         historico.unshift({ id: pedidoId, criadoEm: Date.now() });
-        localStorage.setItem('historicoPedidosBritS', JSON.stringify(historico.slice(0, 10)));
+        localStorage.setItem('historicoPedidos', JSON.stringify(historico.slice(0, 10)));
     } catch (e) {
         // localStorage bloqueado ou cheio — não é crítico, só não guarda o histórico
     }
@@ -950,7 +965,7 @@ async function abrirMeusPedidos() {
 
     let historico = [];
     try {
-        historico = JSON.parse(localStorage.getItem('historicoPedidosBritS')) || [];
+        historico = JSON.parse(localStorage.getItem('historicoPedidos')) || [];
     } catch (e) { /* ignora */ }
 
     if (historico.length === 0) {
@@ -1005,13 +1020,13 @@ function fecharMeusPedidos() {
 // Se o cliente tem um pedido recente rastreado (últimas 48h), volta a mostrar o status dele
 function verificarPedidoSalvo() {
     try {
-        const dados = JSON.parse(localStorage.getItem('ultimoPedidoBritS'));
+        const dados = JSON.parse(localStorage.getItem('ultimoPedido'));
         if (dados && dados.id) {
             const QUARENTA_OITO_HORAS = 48 * 60 * 60 * 1000;
             if (Date.now() - dados.criadoEm < QUARENTA_OITO_HORAS) {
                 mostrarStatusPedido(dados.id);
             } else {
-                localStorage.removeItem('ultimoPedidoBritS');
+                localStorage.removeItem('ultimoPedido');
             }
         }
     } catch (e) {
@@ -1025,7 +1040,7 @@ function verificarPedidoSalvo() {
 // fecha o navegador sem terminar já tem os dados guardados na próxima visita
 function salvarDadosClienteParcial() {
     try {
-        localStorage.setItem('dadosClienteBritS', JSON.stringify({
+        localStorage.setItem('dadosCliente', JSON.stringify({
             nome: nomeClienteInput.value,
             telefone: telefoneClienteInput.value,
             rua: ruaClienteInput.value,
@@ -1047,7 +1062,7 @@ function salvarDadosClienteParcial() {
 
 function carregarDadosClienteSalvos() {
     try {
-        const dados = JSON.parse(localStorage.getItem('dadosClienteBritS'));
+        const dados = JSON.parse(localStorage.getItem('dadosCliente'));
         if (!dados) return;
         if (dados.nome) nomeClienteInput.value = dados.nome;
         if (dados.telefone) telefoneClienteInput.value = dados.telefone;
@@ -1070,7 +1085,7 @@ function carregarDadosClienteSalvos() {
 
 // Função para salvar o carrinho no Local Storage
 function salvarCarrinho() {
-    localStorage.setItem('carrinhoBritS', JSON.stringify(carrinho));
+    localStorage.setItem('carrinho', JSON.stringify(carrinho));
 }
 
 // Alterna entre "Retirar no local" e "Entrega", mostrando/escondendo o endereço
@@ -2102,7 +2117,7 @@ function escutarConfigClube() {
     if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
     firebase.database().ref('configuracao/fidelidade').on('value', snap => {
         configFidelidade = snap.val() || {};
-        const card = document.getElementById('clubeBritsCard');
+        const card = document.getElementById('clubeFidelidadeCard');
         if (card) card.style.display = configFidelidade.ativo ? 'block' : 'none';
         atualizarUIClube();
     });
@@ -2128,7 +2143,7 @@ function entrarNoClube() {
         return;
     }
     clubeIdentificado = { nome, telefone };
-    localStorage.setItem('clubeBritS', JSON.stringify(clubeIdentificado));
+    localStorage.setItem('clubeFidelidade', JSON.stringify(clubeIdentificado));
 
     if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) {
         const ref = firebase.database().ref('fidelidade/' + telefone);
@@ -2146,7 +2161,7 @@ function entrarNoClube() {
 
 function sairDoClube() {
     clubeIdentificado = null;
-    localStorage.removeItem('clubeBritS');
+    localStorage.removeItem('clubeFidelidade');
     if (refFidelidadeCliente) { refFidelidadeCliente.off(); refFidelidadeCliente = null; }
     dadosFidelidadeCliente = { pontos: 0, totalGasto: 0 };
     atualizarUIClube();
@@ -2443,14 +2458,14 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         } : null,
         // Se o cliente já ativou notificações nesse aparelho, guarda o token junto do pedido,
         // pra poder avisar ele (só ele, não todo mundo) quando o status do pedido mudar
-        notificacaoToken: (localStorage.getItem('notificacoesAtivasBritS') === '1')
-            ? localStorage.getItem('notificacaoTokenBritS')
+        notificacaoToken: (localStorage.getItem('notificacoesAtivas') === '1')
+            ? localStorage.getItem('notificacaoToken')
             : null
     }, statusInicialPedido);
 
     // Guarda esse pedido pra mostrar o status (pendente/aceito/em rota/entregue/recusado) pro cliente
     if (pedidoId) {
-        localStorage.setItem('ultimoPedidoBritS', JSON.stringify({ id: pedidoId, criadoEm: Date.now() }));
+        localStorage.setItem('ultimoPedido', JSON.stringify({ id: pedidoId, criadoEm: Date.now() }));
         adicionarAoHistoricoLocal(pedidoId);
         mostrarStatusPedido(pedidoId);
     }
@@ -2460,7 +2475,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
     recompensaSelecionada = null;
 
     // Guarda os dados do cliente pra já vir preenchido na próxima compra
-    localStorage.setItem('dadosClienteBritS', JSON.stringify({
+    localStorage.setItem('dadosCliente', JSON.stringify({
         nome, telefone, rua, numero, complemento, bairro, cidade, estado, cep,
         tipoEntrega: tipoEntregaAtual
     }));
@@ -2584,7 +2599,7 @@ escutarOrdemCategorias(); // Carrega a ordem de categorias definida no painel
 
 // Clube Brit's: recupera o cliente já identificado nesse navegador (se houver) e escuta a configuração
 try {
-    const salvo = JSON.parse(localStorage.getItem('clubeBritS'));
+    const salvo = JSON.parse(localStorage.getItem('clubeFidelidade'));
     if (salvo && salvo.telefone) {
         clubeIdentificado = salvo;
         escutarDadosFidelidadeCliente();
@@ -2599,10 +2614,10 @@ function iniciarRastreioVisitantes() {
     if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
 
     // Cada aba/sessão do navegador tem um ID único, criado uma vez e reaproveitado
-    let sessionId = sessionStorage.getItem('sessaoVisitanteBritS');
+    let sessionId = sessionStorage.getItem('sessaoVisitante');
     if (!sessionId) {
         sessionId = 'v_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
-        sessionStorage.setItem('sessaoVisitanteBritS', sessionId);
+        sessionStorage.setItem('sessaoVisitante', sessionId);
     }
 
     const presencaRef = firebase.database().ref('presenca/' + sessionId);
@@ -2618,8 +2633,8 @@ function iniciarRastreioVisitantes() {
     });
 
     // Conta essa visita no histórico do dia, só uma vez por sessão (não infla recarregando a página)
-    if (!sessionStorage.getItem('visitaContadaBritS')) {
-        sessionStorage.setItem('visitaContadaBritS', '1');
+    if (!sessionStorage.getItem('visitaContada')) {
+        sessionStorage.setItem('visitaContada', '1');
         const hoje = new Date();
         const hojeFormatado = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0');
         firebase.database().ref('visitasPorDia/' + hojeFormatado).transaction(atual => (atual || 0) + 1);
@@ -2644,7 +2659,7 @@ if ('serviceWorker' in navigator) {
 // Tela de boas-vindas: aparece só na primeira vez que o cliente abre o site nessa visita
 function mostrarBoasVindas() {
     try {
-        if (sessionStorage.getItem('boasVindasBritS')) return;
+        if (sessionStorage.getItem('boasVindas')) return;
     } catch (e) {
         return; // sessionStorage bloqueado (ex: navegação privada restrita) — não mostra pra não travar
     }
@@ -2656,7 +2671,7 @@ function fecharBoasVindas() {
     const tela = document.getElementById('telaBoasVindas');
     if (!tela) return;
     tela.classList.add('fechando');
-    try { sessionStorage.setItem('boasVindasBritS', '1'); } catch (e) { /* ignora */ }
+    try { sessionStorage.setItem('boasVindas', '1'); } catch (e) { /* ignora */ }
     setTimeout(() => { tela.style.display = 'none'; }, 300);
 }
 
@@ -2669,7 +2684,7 @@ let scrollParaVendaPendente = veioPeloLinkDeVenda; // vira false depois de rolar
 let scrollParaProdutoPendente = true; // vira false depois da primeira tentativa de rolar pro produto do link
 
 if (veioPeloLinkDeVenda || veioPeloLinkDeProduto) {
-    try { sessionStorage.setItem('boasVindasBritS', '1'); } catch (e) { /* ignora */ } // pula a tela de boas-vindas
+    try { sessionStorage.setItem('boasVindas', '1'); } catch (e) { /* ignora */ } // pula a tela de boas-vindas
 } else {
     mostrarBoasVindas();
 }
@@ -2729,7 +2744,7 @@ function podeReceberNotificacoes() {
 }
 
 function atualizarBotaoNotificacao() {
-    const ativado = localStorage.getItem('notificacoesAtivasBritS') === '1';
+    const ativado = localStorage.getItem('notificacoesAtivas') === '1';
     const btnGrande = document.getElementById('btnAtivarNotificacoesGrande');
     const sino = document.getElementById('btnAtivarNotificacoesSino');
     const convite = document.getElementById('conviteNotificacoes');
@@ -2748,9 +2763,9 @@ function atualizarBotaoNotificacao() {
 // e sem insistir por 7 dias depois que a pessoa escolhe “Agora não”.
 function podeMostrarConviteNotificacoes() {
     if (!podeReceberNotificacoes()) return false;
-    if (localStorage.getItem('notificacoesAtivasBritS') === '1') return false;
+    if (localStorage.getItem('notificacoesAtivas') === '1') return false;
     if (typeof Notification !== 'undefined' && Notification.permission === 'denied') return false;
-    const adiadoEm = Number(localStorage.getItem('conviteNotificacoesAdiadoBritS') || 0);
+    const adiadoEm = Number(localStorage.getItem('conviteNotificacoesAdiado') || 0);
     const seteDias = 7 * 24 * 60 * 60 * 1000;
     return !adiadoEm || (Date.now() - adiadoEm >= seteDias);
 }
@@ -2766,7 +2781,7 @@ function mostrarConviteNotificacoes() {
 function adiarConviteNotificacoes() {
     const convite = document.getElementById('conviteNotificacoes');
     if (convite) { convite.classList.remove('mostrar'); convite.style.display = 'none'; }
-    try { localStorage.setItem('conviteNotificacoesAdiadoBritS', String(Date.now())); } catch (e) { /* ignora */ }
+    try { localStorage.setItem('conviteNotificacoesAdiado', String(Date.now())); } catch (e) { /* ignora */ }
 }
 
 async function aceitarConviteNotificacoes() {
@@ -2805,9 +2820,9 @@ async function ativarNotificacoes() {
             await firebase.database().ref('notificacaoTokens/' + token).set({
                 criadoEm: firebase.database.ServerValue.TIMESTAMP
             });
-            localStorage.setItem('notificacoesAtivasBritS', '1');
-            localStorage.setItem('notificacaoTokenBritS', token); // guarda o token pra anexar aos pedidos depois
-            localStorage.removeItem('conviteNotificacoesAdiadoBritS');
+            localStorage.setItem('notificacoesAtivas', '1');
+            localStorage.setItem('notificacaoToken', token); // guarda o token pra anexar aos pedidos depois
+            localStorage.removeItem('conviteNotificacoesAdiado');
             atualizarBotaoNotificacao();
             mostrarToastNotificacao('✅ Notificações ativadas!', "Agora você pode receber novidades, promoções e avisos da Brit's.");
         }

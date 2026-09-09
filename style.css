@@ -1239,7 +1239,7 @@ footer {
 }
 
 /* Clube Brit's (fidelidade) */
-.clube-brits-card {
+.clube-fidelidade-card {
     background: linear-gradient(135deg, #fff8ec, #fdf1de);
     border: 1px solid var(--accent);
     border-radius: 12px;
@@ -1247,17 +1247,17 @@ footer {
     text-align: center;
     font-size: 0.9em;
 }
-.clube-brits-card h3 {
+.clube-fidelidade-card h3 {
     margin: 0 0 2px;
     color: var(--primary);
     font-size: 1em;
 }
-.clube-brits-card > div > p {
+.clube-fidelidade-card > div > p {
     margin: 0 0 8px;
     color: var(--muted);
     font-size: 0.85em;
 }
-.clube-brits-card button {
+.clube-fidelidade-card button {
     background: var(--primary);
     color: #fff;
     border: none;
@@ -1268,7 +1268,7 @@ footer {
     font-size: 0.9em;
     cursor: pointer;
 }
-.clube-brits-card button:hover { background: var(--primary-dark); }
+.clube-fidelidade-card button:hover { background: var(--primary-dark); }
 
 #clubeFormIdentificacao input {
     width: 100%;
