@@ -4046,123 +4046,6 @@ function carregarClientesInativos() {
     });
 }
 
-// ---------- OFERTAS NO CARRINHO ----------
-let ofertasCarrinhoAtuais = {}; // guarda o último valor carregado, pra editar sem reler
-
-function escutarOfertasCarrinho() {
-    db.ref('configuracao/ofertasCarrinho').on('value', snap => {
-        ofertasCarrinhoAtuais = snap.val() || {};
-        renderizarListaOfertasCarrinho();
-    });
-}
-
-function renderizarListaOfertasCarrinho() {
-    const container = document.getElementById('listaOfertasCarrinho');
-    if (!container) return;
-    const entradas = Object.entries(ofertasCarrinhoAtuais);
-    if (entradas.length === 0) {
-        container.innerHTML = '<p class="dica-secao">Nenhuma oferta cadastrada ainda.</p>';
-        return;
-    }
-    const produtosVal = ultimoValProdutosAdmin || {};
-    container.innerHTML = entradas.map(([id, o]) => {
-        const nomeGatilho = o.tipoGatilho === 'freteGratis' ? '🚚 Perto do frete grátis' : `🛒 ${(produtosVal[o.produtoGatilhoId] || {}).nome || '(produto removido)'}`;
-        const nomeSugerido = (produtosVal[o.produtoSugerido] || {}).nome || '(produto removido)';
-        return `
-            <div class="pedido-card" style="margin-top:8px;">
-                <strong>${o.nome || 'Sem nome'}</strong> ${o.ativo === false ? '<span class="pedido-tag tag-status-recusado">Inativa</span>' : ''}
-                <p style="margin:4px 0; font-size:0.85em; color:var(--muted);">${nomeGatilho} → sugere ${nomeSugerido}${o.precoEspecial ? ` por ${formatarPreco(o.precoEspecial)}` : ''} · prioridade ${o.prioridade ?? 10}</p>
-                <button class="btn-secondary" onclick="editarOfertaCarrinho('${id}')">✏️ Editar</button>
-                <button class="btn-excluir-cupom" onclick="excluirOfertaCarrinho('${id}')">🗑️</button>
-            </div>
-        `;
-    }).join('');
-}
-
-function popularSelectsOfertaCarrinho() {
-    const produtosVal = ultimoValProdutosAdmin || {};
-    [document.getElementById('ofertaProdutoGatilho'), document.getElementById('ofertaProdutoSugerido')].forEach(sel => {
-        if (!sel) return;
-        const atual = sel.value;
-        sel.innerHTML = '';
-        Object.entries(produtosVal).forEach(([id, produto]) => {
-            if (!produto.nome) return;
-            const opt = document.createElement('option');
-            opt.value = id; opt.textContent = produto.nome;
-            sel.appendChild(opt);
-        });
-        if (atual) sel.value = atual;
-    });
-}
-
-function abrirNovaOfertaCarrinho() {
-    document.getElementById('ofertaEditandoId').value = '';
-    document.getElementById('ofertaNome').value = '';
-    document.getElementById('ofertaTipoGatilho').value = 'produto';
-    document.getElementById('blocoOfertaProdutoGatilho').style.display = 'block';
-    document.getElementById('ofertaPrecoEspecial').value = '';
-    document.getElementById('ofertaDataInicio').value = '';
-    document.getElementById('ofertaDataFim').value = '';
-    document.getElementById('ofertaPrioridade').value = '10';
-    document.getElementById('msgOfertaCarrinho').textContent = '';
-    popularSelectsOfertaCarrinho();
-    document.getElementById('formOfertaCarrinho').style.display = 'block';
-}
-
-function editarOfertaCarrinho(id) {
-    const o = ofertasCarrinhoAtuais[id];
-    if (!o) return;
-    popularSelectsOfertaCarrinho();
-    document.getElementById('ofertaEditandoId').value = id;
-    document.getElementById('ofertaNome').value = o.nome || '';
-    document.getElementById('ofertaTipoGatilho').value = o.tipoGatilho || 'produto';
-    document.getElementById('blocoOfertaProdutoGatilho').style.display = (o.tipoGatilho === 'freteGratis') ? 'none' : 'block';
-    if (o.produtoGatilhoId) document.getElementById('ofertaProdutoGatilho').value = o.produtoGatilhoId;
-    if (o.produtoSugerido) document.getElementById('ofertaProdutoSugerido').value = o.produtoSugerido;
-    document.getElementById('ofertaPrecoEspecial').value = o.precoEspecial || '';
-    document.getElementById('ofertaDataInicio').value = o.dataInicio || '';
-    document.getElementById('ofertaDataFim').value = o.dataFim || '';
-    document.getElementById('ofertaPrioridade').value = (o.prioridade != null ? o.prioridade : 10);
-    document.getElementById('msgOfertaCarrinho').textContent = '';
-    document.getElementById('formOfertaCarrinho').style.display = 'block';
-}
-
-function salvarOfertaCarrinho() {
-    const msgEl = document.getElementById('msgOfertaCarrinho');
-    const id = document.getElementById('ofertaEditandoId').value;
-    const nome = document.getElementById('ofertaNome').value.trim();
-    const tipoGatilho = document.getElementById('ofertaTipoGatilho').value;
-    const produtoGatilhoId = tipoGatilho === 'produto' ? document.getElementById('ofertaProdutoGatilho').value : null;
-    const produtoSugerido = document.getElementById('ofertaProdutoSugerido').value;
-    const precoEspecial = paraNumeroFlexivel(document.getElementById('ofertaPrecoEspecial').value) || null;
-    const dataInicio = document.getElementById('ofertaDataInicio').value || null;
-    const dataFim = document.getElementById('ofertaDataFim').value || null;
-    const prioridade = parseInt(document.getElementById('ofertaPrioridade').value, 10) || 10;
-
-    if (!nome || !produtoSugerido || (tipoGatilho === 'produto' && !produtoGatilhoId)) {
-        msgEl.textContent = 'Preenche o nome, o gatilho e o produto sugerido antes de salvar.';
-        return;
-    }
-    if (tipoGatilho === 'produto' && produtoGatilhoId === produtoSugerido) {
-        msgEl.textContent = 'O produto sugerido não pode ser o mesmo que dispara a oferta.';
-        return;
-    }
-
-    const dados = { nome, tipoGatilho, produtoGatilhoId, produtoSugerido, precoEspecial, dataInicio, dataFim, prioridade, ativo: true };
-    const ref = id ? db.ref('configuracao/ofertasCarrinho/' + id) : db.ref('configuracao/ofertasCarrinho').push();
-    ref.set(dados)
-        .then(() => {
-            msgEl.textContent = 'Oferta salva!';
-            document.getElementById('formOfertaCarrinho').style.display = 'none';
-        })
-        .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
-}
-
-function excluirOfertaCarrinho(id) {
-    if (!confirm('Excluir essa oferta?')) return;
-    db.ref('configuracao/ofertasCarrinho/' + id).remove().catch(err => alert('Erro ao excluir: ' + err.message));
-}
-
 function escutarConfigLoja() {
     db.ref('configuracao/loja').on('value', snap => {
         const config = snap.val() || {};
@@ -4266,6 +4149,13 @@ function montarLinhaProduto(id, produto) {
                 ${fichaTecnica.map(ft => `<option value="${ft.id}" ${produto.fichaTecnicaId === ft.id ? 'selected' : ''}>${ft.nome}</option>`).join('')}
             </select>
             ${!produto.fichaTecnicaId ? `<button type="button" class="btn-secondary" style="margin-top:6px;" onclick="criarFichaTecnicaAPartirDoProduto('${id}')">📋 Criar Ficha Técnica pra esse produto</button>` : ''}
+        </div>
+
+        <div class="campo-oferta-carrinho" style="margin-top:8px;">
+            <label class="produto-disponivel-check">
+                <input type="checkbox" id="prodOfertaAtiva_${id}" ${produto.ofertaAtiva ? 'checked' : ''}> 🎁 Sugerir esse produto como oferta no carrinho
+            </label>
+            <input type="text" inputmode="decimal" id="prodOfertaPreco_${id}" value="${produto.ofertaPrecoEspecial != null ? produto.ofertaPrecoEspecial : ''}" placeholder="Preço especial na oferta (opcional — deixa vazio pra usar o preço normal)" style="margin-top:4px;">
         </div>
         <textarea id="prodDesc_${id}" placeholder="Descrição" rows="2">${produto.descricao || ''}</textarea>
 
@@ -4599,7 +4489,6 @@ function renderizarListaProdutosAdmin() {
     atualizarSelectProdutoRecompensa();
     atualizarSelectProdutoSugeridoFreteGratis();
     aplicarSelecaoProdutoSugeridoFreteGratis();
-    if (document.getElementById('listaOfertasCarrinho')) renderizarListaOfertasCarrinho();
 
     btnImportar.style.display = itens.length === 0 ? 'block' : 'none';
 
@@ -4689,6 +4578,8 @@ function salvarProduto(id) {
     const campoFichaTecnica = document.getElementById('prodFichaTecnica_' + id);
     const fichaTecnicaId = campoFichaTecnica ? (campoFichaTecnica.value || null) : null;
     const imagemCarrossel = document.getElementById('prodImagemCarrossel_' + id).value.trim() || null;
+    const ofertaAtiva = document.getElementById('prodOfertaAtiva_' + id).checked;
+    const ofertaPrecoEspecial = paraNumeroFlexivel(document.getElementById('prodOfertaPreco_' + id).value) || null;
     const variantesTexto = document.getElementById('prodVariantes_' + id).value.trim();
     const adicionaisTexto = document.getElementById('prodAdicionais_' + id).value.trim();
 
@@ -4699,7 +4590,7 @@ function salvarProduto(id) {
         return;
     }
 
-    const dados = { nome, descricao, preco, imagem: imagens[0], imagens, categoria, disponivel, escondido, disponivelParaEncomenda, fichaTecnicaId, imagemCarrossel, precoOriginal: null, variantes: null, grupoAdicionais: null };
+    const dados = { nome, descricao, preco, imagem: imagens[0], imagens, categoria, disponivel, escondido, disponivelParaEncomenda, fichaTecnicaId, imagemCarrossel, ofertaAtiva, ofertaPrecoEspecial, precoOriginal: null, variantes: null, grupoAdicionais: null };
 
     if (!isNaN(precoOriginal) && precoOriginal > preco) {
         dados.precoOriginal = precoOriginal;
@@ -5437,7 +5328,6 @@ function iniciarEscutaPedidos() {
     document.getElementById('statusConexao').textContent = 'Conectado — atualizando em tempo real';
 
     escutarConfigLoja();
-    escutarOfertasCarrinho();
     escutarProdutos();
     escutarCupons();
     escutarOrdemCategorias();

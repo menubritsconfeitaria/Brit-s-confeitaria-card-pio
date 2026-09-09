@@ -213,59 +213,6 @@
                     <p id="pedidoMinimoMsg" class="ordem-categorias-msg"></p>
                 </div>
 
-                <div class="loja-status-card" id="cardOfertasCarrinho" style="margin-top:16px;">
-                    <h3>🎁 Ofertas no Carrinho</h3>
-                    <p class="dica-secao">
-                        Configure sugestões inteligentes que aparecem no carrinho do cliente — por exemplo,
-                        "quem compra Bolo, sugere Coxinha". No máximo 2 ofertas aparecem por vez, e nunca
-                        sugere um produto que já está no carrinho, esgotado ou escondido.
-                    </p>
-                    <div id="listaOfertasCarrinho" style="margin-top:10px;"></div>
-                    <button class="btn-secondary" style="margin-top:10px;" onclick="abrirNovaOfertaCarrinho()">+ Nova Oferta</button>
-
-                    <div id="formOfertaCarrinho" style="display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
-                        <input type="hidden" id="ofertaEditandoId">
-                        <label class="campo-label">Nome da oferta (só pra você identificar)</label>
-                        <input type="text" id="ofertaNome" placeholder="Ex: Bolo → Coxinha">
-
-                        <label class="campo-label" style="margin-top:10px;">Quando dispara?</label>
-                        <select id="ofertaTipoGatilho" onchange="document.getElementById('blocoOfertaProdutoGatilho').style.display = this.value === 'produto' ? 'block' : 'none';">
-                            <option value="produto">Quando um produto específico está no carrinho</option>
-                            <option value="freteGratis">Quando falta pouco pro frete grátis</option>
-                        </select>
-
-                        <div id="blocoOfertaProdutoGatilho" style="margin-top:10px;">
-                            <label class="campo-label">Produto que dispara a oferta</label>
-                            <select id="ofertaProdutoGatilho"></select>
-                        </div>
-
-                        <label class="campo-label" style="margin-top:10px;">Produto sugerido</label>
-                        <select id="ofertaProdutoSugerido"></select>
-
-                        <label class="campo-label" style="margin-top:10px;">Preço especial nessa oferta (opcional)</label>
-                        <input type="text" inputmode="decimal" id="ofertaPrecoEspecial" placeholder="Deixa vazio pra usar o preço normal do produto">
-
-                        <div class="produto-admin-linha" style="margin-top:10px;">
-                            <div class="campo-com-label">
-                                <label class="campo-label">Início (opcional)</label>
-                                <input type="date" id="ofertaDataInicio">
-                            </div>
-                            <div class="campo-com-label">
-                                <label class="campo-label">Fim (opcional)</label>
-                                <input type="date" id="ofertaDataFim">
-                            </div>
-                        </div>
-
-                        <label class="campo-label" style="margin-top:10px;">Prioridade (menor número aparece primeiro, se houver mais de uma oferta válida)</label>
-                        <input type="text" inputmode="numeric" id="ofertaPrioridade" value="10">
-
-                        <div style="margin-top:10px;">
-                            <button class="btn-salvar-ordem" onclick="salvarOfertaCarrinho()">💾 Salvar Oferta</button>
-                            <button class="btn-secondary" onclick="document.getElementById('formOfertaCarrinho').style.display='none';">Cancelar</button>
-                        </div>
-                        <p id="msgOfertaCarrinho" class="ordem-categorias-msg"></p>
-                    </div>
-                </div>
 
                 <div class="loja-status-card" id="cardAreasDeEntrega" style="margin-top:16px;">
                     <h3>🚚 Áreas de Entrega</h3>

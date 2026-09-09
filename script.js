@@ -340,18 +340,6 @@ let prazoPagamentoHorasEfetivo = 24; // prazo padrão, sobrescrito pela config d
 let pedidoMinimoValor = 0; // 0 = sem pedido mínimo configurado
 let freteGratisAcimaValor = 0; // 0 = sem frete grátis por valor configurado
 let produtoSugeridoFreteGratisId = null; // produto que a loja escolheu sugerir pra completar o frete grátis
-let ofertasCarrinhoConfig = []; // lista de ofertas configuráveis (produto → produto), carregada do Firebase
-
-function escutarOfertasCarrinho() {
-    if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
-    firebase.database().ref('configuracao/ofertasCarrinho').on('value', snap => {
-        const val = snap.val() || {};
-        ofertasCarrinhoConfig = Object.entries(val)
-            .filter(([id, o]) => o.ativo !== false)
-            .map(([id, o]) => ({ id, ...o }));
-        atualizarCarrinhoHTML(); // reavalia as sugestões com a config nova
-    });
-}
 let modoDemoAtivo = false; // true enquanto a prévia personalizada está ativa
 let ultimaConfigLojaReal = null; // guarda a última config de verdade, pra restaurar depois do modo demo
 
@@ -1680,43 +1668,47 @@ let lembreteCarrinhoJaMostradoNessaSessao = false;
 // não pode aparecer, ordena por prioridade, e devolve no máximo 2
 function avaliarOfertasCarrinho(subtotalAtual, jaTemFreteGratis, pedidoMinimoAindaFaltando) {
     if (carrinho.length === 0) return [];
-    const hoje = new Date().toISOString().slice(0, 10); // "AAAA-MM-DD", pra comparar com dataInicio/dataFim
     // Enquanto o pedido mínimo ainda não foi atingido, a sugestão de frete grátis fica
     // em espera — mesma prioridade que a mensagem visível já usa (pedido mínimo primeiro),
     // pra nunca mostrar "complete o frete grátis" junto de "faltam pro pedido mínimo"
     const faltaPoucoPraFreteGratis = !pedidoMinimoAindaFaltando && !jaTemFreteGratis && freteGratisAcimaValor > 0 && subtotalAtual < freteGratisAcimaValor;
 
-    // Junta a config antiga (se configurada) como se fosse mais uma "oferta", com
-    // prioridade baixa (aparece por último se outra oferta configurada também servir)
-    const candidatas = [...ofertasCarrinhoConfig];
-    if (produtoSugeridoFreteGratisId) {
-        candidatas.push({ tipoGatilho: 'freteGratis', produtoSugerido: produtoSugeridoFreteGratisId, prioridade: 999, precoEspecial: null, dataInicio: null, dataFim: null });
+    const sugestoes = [];
+
+    // 1) Produto específico configurado pra completar o frete grátis (sempre em
+    // primeiro, quando aplicável — é o mais direcionado dos dois)
+    if (faltaPoucoPraFreteGratis && produtoSugeridoFreteGratisId) {
+        const produto = produtos.find(p => p.id === produtoSugeridoFreteGratisId);
+        if (produto && produto.disponivel !== false && !produto.escondido && !carrinho.some(item => item.produtoId === produto.id)) {
+            sugestoes.push({
+                produto,
+                texto: `➕ Adicione <strong>${produto.nome}</strong> por ${formatarPrecoTexto(produto.preco)} e complete o frete grátis!`,
+                precoEspecial: null
+            });
+        }
     }
 
-    const validas = candidatas.filter(o => {
-        if (o.dataInicio && hoje < o.dataInicio) return false;
-        if (o.dataFim && hoje > o.dataFim) return false;
-        const gatilhoOk = o.tipoGatilho === 'freteGratis'
-            ? faltaPoucoPraFreteGratis
-            : carrinho.some(item => item.produtoId === o.produtoGatilhoId);
-        if (!gatilhoOk) return false;
-        const produto = produtos.find(p => p.id === o.produtoSugerido);
-        if (!produto) return false;
-        if (carrinho.some(item => item.produtoId === produto.id)) return false; // já está no carrinho
-        if (produto.disponivel === false || produto.escondido) return false;
-        return true;
-    });
+    // 2) Produtos marcados como "sugestão de oferta" (qualquer produto no carrinho já
+    // dispara) — pega os que ainda não estão no carrinho, disponíveis, e completa até 2
+    // sugestões no total (mistura com a de cima, se ela também apareceu)
+    if (sugestoes.length < 2) {
+        const candidatosOferta = produtos.filter(p =>
+            p.ofertaAtiva &&
+            p.disponivel !== false && !p.escondido &&
+            !carrinho.some(item => item.produtoId === p.id) &&
+            !sugestoes.some(s => s.produto.id === p.id)
+        );
+        candidatosOferta.slice(0, 2 - sugestoes.length).forEach(produto => {
+            const preco = produto.ofertaPrecoEspecial != null ? produto.ofertaPrecoEspecial : produto.preco;
+            sugestoes.push({
+                produto,
+                texto: `🎁 Que tal adicionar <strong>${produto.nome}</strong> por ${formatarPrecoTexto(preco)}?`,
+                precoEspecial: produto.ofertaPrecoEspecial != null ? produto.ofertaPrecoEspecial : null
+            });
+        });
+    }
 
-    validas.sort((a, b) => (a.prioridade ?? 10) - (b.prioridade ?? 10));
-
-    return validas.slice(0, 2).map(o => {
-        const produto = produtos.find(p => p.id === o.produtoSugerido);
-        const preco = o.precoEspecial != null ? o.precoEspecial : produto.preco;
-        const texto = o.tipoGatilho === 'freteGratis'
-            ? `➕ Adicione <strong>${produto.nome}</strong> por ${formatarPrecoTexto(preco)} e complete o frete grátis!`
-            : `🎁 Que tal adicionar <strong>${produto.nome}</strong> por ${formatarPrecoTexto(preco)}?`;
-        return { produto, texto, precoEspecial: o.precoEspecial != null ? o.precoEspecial : null };
-    });
+    return sugestoes;
 }
 
 // Adiciona um produto sugerido (de qualquer oferta) direto ao carrinho — usa o preço
@@ -2443,7 +2435,6 @@ function sincronizarPrecosCarrinho() {
 escutarProdutos(); // Carrega o cardápio do Firebase (e re-renderiza sozinho quando o painel mudar algo)
 escutarConfigFrete(); // Carrega a configuração de bairros/valor por km do painel
 carregarCarrosselDestaques();
-escutarOfertasCarrinho();
 escutarOrdemCategorias(); // Carrega a ordem de categorias definida no painel
 
 // Clube Brit's: recupera o cliente já identificado nesse navegador (se houver) e escuta a configuração
