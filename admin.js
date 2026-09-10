@@ -1570,6 +1570,23 @@ function salvarPagamentoOnlineAtivo(ativo) {
         .catch(err => alert('Erro ao atualizar o pagamento online: ' + err.message));
 }
 
+function salvarNotificacaoAberturaAtiva(ativo) {
+    const msgEl = document.getElementById('msgNotificacaoAbertura');
+    if (msgEl) msgEl.textContent = 'Salvando...';
+
+    db.ref('configuracao/loja/notificacaoAberturaAtiva').set(!!ativo)
+        .then(() => {
+            if (msgEl) {
+                msgEl.textContent = ativo
+                    ? '✅ Aviso automático de abertura ativado.'
+                    : '🔕 Aviso automático de abertura desativado.';
+            }
+        })
+        .catch(err => {
+            if (msgEl) msgEl.textContent = 'Erro ao salvar: ' + err.message;
+        });
+}
+
 function marcarModoSelecionado(modo) {
     document.getElementById('btnModoAuto').classList.toggle('selecionado', modo === 'auto');
     document.getElementById('btnModoAberto').classList.toggle('selecionado', modo === 'aberto');
@@ -4631,6 +4648,11 @@ function escutarConfigLoja() {
 
         const chkPagamento = document.getElementById('chkPagamentoOnlineAtivo');
         if (chkPagamento) chkPagamento.checked = !!config.pagamentoOnlineAtivo;
+
+        const chkNotificacaoAbertura = document.getElementById('chkNotificacaoAberturaAtiva');
+        if (chkNotificacaoAbertura) {
+            chkNotificacaoAbertura.checked = config.notificacaoAberturaAtiva !== false;
+        }
 
         adicionaisAtivo = !!config.adicionaisAtivo;
         const chkAdicionais = document.getElementById('chkAdicionaisAtivo');

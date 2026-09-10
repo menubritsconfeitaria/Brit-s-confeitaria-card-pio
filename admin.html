@@ -119,6 +119,19 @@
                     <h3>📢 Notificações</h3>
                     <p class="dica-secao">Envie novidades, promoções e avisos direto pra quem já ativou notificação no cardápio.</p>
 
+                    <div style="margin:14px 0 18px; padding:12px; border:1px solid var(--border); border-radius:12px;">
+                        <strong>🟢 Aviso automático quando a loja abrir</strong>
+                        <p class="dica-secao" style="margin:6px 0 10px;">
+                            Desative temporariamente para abrir a loja durante testes sem avisar os clientes.
+                            As outras notificações continuam funcionando normalmente.
+                        </p>
+                        <label class="switch-linha">
+                            <input type="checkbox" id="chkNotificacaoAberturaAtiva" onchange="salvarNotificacaoAberturaAtiva(this.checked)">
+                            Enviar notificação automática de abertura
+                        </label>
+                        <p id="msgNotificacaoAbertura" class="ordem-categorias-msg" style="margin-top:6px;"></p>
+                    </div>
+
                     <label class="campo-label">Título <span id="contadorTitulo" class="dica-secao">0/50</span></label>
                     <input type="text" id="notifPersonalizadaTitulo" maxlength="50" placeholder="Ex: 📢 Horário especial hoje!" oninput="atualizarPreviaNotificacao()">
 
