@@ -2672,43 +2672,262 @@ function salvarClienteGestao() {
     }).catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
 }
 
-// Monta a lista de botões "enviar" pro WhatsApp, um por cliente com telefone
-// cadastrado — o WhatsApp não permite envio em massa de graça, então isso é o
-// jeito prático: cada clique abre o WhatsApp já com a mensagem pronta, só falta
-// apertar enviar lá. Marca quem já foi "enviado" (guardado no navegador, só
-// pra ajudar a não perder onde parou — não é enviado de verdade sozinho)
-function montarListaMensagemMassa() {
-    const texto = document.getElementById('mmTexto').value.trim();
+// ---------- Mensagem em Massa (WhatsApp) — campanha sincronizada entre aparelhos ----------
+let campanhaWhatsappAtivaId = null;
+let campanhaWhatsappAtiva = null;
+let refCampanhaWhatsappAtiva = null;
+let refHistoricoCampanhasWhatsapp = null;
+
+function chaveCampanhaWhatsapp() {
+    return db.ref('campanhasWhatsapp/campanhas').push().key;
+}
+
+function normalizarEnviadosCampanha(valor) {
+    return valor && typeof valor === 'object' ? valor : {};
+}
+
+async function obterOuCriarCampanhaWhatsapp(texto) {
+    const ativaSnap = await db.ref('campanhasWhatsapp/ativaId').once('value');
+    const ativaId = ativaSnap.val();
+
+    if (ativaId) {
+        const snap = await db.ref('campanhasWhatsapp/campanhas/' + ativaId).once('value');
+        const atual = snap.val();
+        if (atual && String(atual.texto || '').trim() === texto) {
+            return { id: ativaId, campanha: atual };
+        }
+    }
+
+    const id = chaveCampanhaWhatsapp();
+    const agora = firebase.database.ServerValue.TIMESTAMP;
+    const campanha = {
+        texto,
+        criadoEm: agora,
+        atualizadoEm: agora,
+        status: 'ativa',
+        enviados: {}
+    };
+
+    const updates = {};
+    updates['campanhasWhatsapp/campanhas/' + id] = campanha;
+    updates['campanhasWhatsapp/ativaId'] = id;
+    await db.ref().update(updates);
+
+    const novoSnap = await db.ref('campanhasWhatsapp/campanhas/' + id).once('value');
+    return { id, campanha: novoSnap.val() || { texto, enviados: {} } };
+}
+
+function pararEscutaCampanhaWhatsappAtiva() {
+    if (refCampanhaWhatsappAtiva) {
+        refCampanhaWhatsappAtiva.off();
+        refCampanhaWhatsappAtiva = null;
+    }
+}
+
+function escutarCampanhaWhatsappAtiva(id) {
+    pararEscutaCampanhaWhatsappAtiva();
+    campanhaWhatsappAtivaId = id;
+
+    if (!id) {
+        campanhaWhatsappAtiva = null;
+        return;
+    }
+
+    refCampanhaWhatsappAtiva = db.ref('campanhasWhatsapp/campanhas/' + id);
+    refCampanhaWhatsappAtiva.on('value', snap => {
+        campanhaWhatsappAtiva = snap.val() || null;
+        renderListaMensagemMassaSincronizada();
+    });
+}
+
+async function montarListaMensagemMassa() {
+    const textoEl = document.getElementById('mmTexto');
+    const texto = textoEl.value.trim();
+    if (!texto) {
+        alert('Escreve a mensagem primeiro.');
+        return;
+    }
+
+    try {
+        const { id, campanha } = await obterOuCriarCampanhaWhatsapp(texto);
+        campanhaWhatsappAtivaId = id;
+        campanhaWhatsappAtiva = campanha;
+        escutarCampanhaWhatsappAtiva(id);
+
+        // Remove a marcação antiga local para não haver duas fontes de verdade.
+        localStorage.removeItem('mensagemMassaEnviados');
+        renderListaMensagemMassaSincronizada();
+    } catch (err) {
+        console.error('Erro ao abrir campanha do WhatsApp:', err);
+        alert('Não foi possível abrir a campanha agora: ' + err.message);
+    }
+}
+
+function renderListaMensagemMassaSincronizada() {
     const listaEl = document.getElementById('mmLista');
     const contadorEl = document.getElementById('mmContador');
-    if (!texto) { alert('Escreve a mensagem primeiro.'); return; }
+    if (!listaEl || !contadorEl) return;
 
+    if (!campanhaWhatsappAtivaId || !campanhaWhatsappAtiva) {
+        listaEl.innerHTML = '<p class="dica-secao">Escreva a mensagem e clique em “Gerar / continuar campanha”.</p>';
+        contadorEl.textContent = '';
+        return;
+    }
+
+    const texto = String(campanhaWhatsappAtiva.texto || '').trim();
     const comTelefone = clientesGestao.filter(c => normalizarTelefone(c.telefone));
     const semTelefone = clientesGestao.length - comTelefone.length;
-    const jaEnviados = JSON.parse(localStorage.getItem('mensagemMassaEnviados') || '[]');
+    const enviados = normalizarEnviadosCampanha(campanhaWhatsappAtiva.enviados);
+    const totalEnviados = comTelefone.filter(c => !!enviados[c.id]).length;
 
-    contadorEl.textContent = `${comTelefone.length} cliente(s) com telefone (${semTelefone} sem telefone, não aparecem aqui).`;
+    contadorEl.textContent =
+        `${totalEnviados}/${comTelefone.length} marcado(s) como enviado(s)` +
+        (semTelefone ? ` · ${semTelefone} sem telefone` : '');
 
     const ordenados = [...comTelefone].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
     listaEl.innerHTML = ordenados.map(c => {
         const numero = formatarTelefoneWhatsAppGestao(c.telefone);
-        const jaFoi = jaEnviados.includes(c.id);
+        const jaFoi = !!enviados[c.id];
         return `
-            <div class="pedido-card" style="margin-top:6px; display:flex; justify-content:space-between; align-items:center; ${jaFoi ? 'opacity:0.5;' : ''}">
+            <div class="pedido-card" style="margin-top:6px; display:flex; justify-content:space-between; align-items:center; ${jaFoi ? 'opacity:0.55;' : ''}">
                 <span>${jaFoi ? '✅' : ''} ${c.nome}</span>
-                <a href="https://api.whatsapp.com/send?phone=${numero}&text=${encodeURIComponent(texto)}" target="_blank" class="btn-secondary" style="text-decoration:none;" onclick="marcarEnviadoMensagemMassa('${c.id}')">📲 Enviar</a>
+                <a href="https://api.whatsapp.com/send?phone=${numero}&text=${encodeURIComponent(texto)}"
+                   target="_blank"
+                   class="btn-secondary"
+                   style="text-decoration:none;"
+                   onclick="marcarEnviadoMensagemMassa('${c.id}')">${jaFoi ? '✅ Enviado' : '📲 Enviar'}</a>
             </div>
         `;
     }).join('') || '<p class="dica-secao">Nenhum cliente com telefone cadastrado.</p>';
 }
 
-function marcarEnviadoMensagemMassa(clienteId) {
-    const jaEnviados = JSON.parse(localStorage.getItem('mensagemMassaEnviados') || '[]');
-    if (!jaEnviados.includes(clienteId)) {
-        jaEnviados.push(clienteId);
-        localStorage.setItem('mensagemMassaEnviados', JSON.stringify(jaEnviados));
+async function marcarEnviadoMensagemMassa(clienteId) {
+    if (!campanhaWhatsappAtivaId) return;
+
+    const cliente = clientesGestao.find(c => c.id === clienteId);
+    const registro = {
+        marcadoEm: firebase.database.ServerValue.TIMESTAMP,
+        nome: cliente ? cliente.nome || '' : '',
+        telefone: cliente ? normalizarTelefone(cliente.telefone) : ''
+    };
+
+    try {
+        await db.ref(`campanhasWhatsapp/campanhas/${campanhaWhatsappAtivaId}/enviados/${clienteId}`).set(registro);
+        await db.ref(`campanhasWhatsapp/campanhas/${campanhaWhatsappAtivaId}/atualizadoEm`).set(firebase.database.ServerValue.TIMESTAMP);
+    } catch (err) {
+        console.log('Não foi possível marcar o envio no Firebase:', err);
     }
-    setTimeout(montarListaMensagemMassa, 300); // atualiza o visual (marca com ✅) depois do clique
+}
+
+async function novaCampanhaMensagemMassa() {
+    if (campanhaWhatsappAtivaId) {
+        const enviados = normalizarEnviadosCampanha(campanhaWhatsappAtiva && campanhaWhatsappAtiva.enviados);
+        const qtd = Object.keys(enviados).length;
+        if (!confirm(`Iniciar uma nova campanha? A campanha atual (${qtd} marcado(s) como enviado(s)) continuará guardada no histórico.`)) {
+            return;
+        }
+
+        try {
+            await db.ref(`campanhasWhatsapp/campanhas/${campanhaWhatsappAtivaId}`).update({
+                status: 'encerrada',
+                encerradaEm: firebase.database.ServerValue.TIMESTAMP
+            });
+        } catch (e) {
+            console.log('Não foi possível encerrar a campanha anterior:', e);
+        }
+    }
+
+    pararEscutaCampanhaWhatsappAtiva();
+    campanhaWhatsappAtivaId = null;
+    campanhaWhatsappAtiva = null;
+
+    try {
+        await db.ref('campanhasWhatsapp/ativaId').remove();
+    } catch (e) {}
+
+    const textoEl = document.getElementById('mmTexto');
+    if (textoEl) textoEl.value = '';
+    renderListaMensagemMassaSincronizada();
+}
+
+function escutarCampanhasWhatsapp() {
+    const historicoEl = document.getElementById('mmHistorico');
+    if (!historicoEl) return;
+
+    db.ref('campanhasWhatsapp/ativaId').on('value', async snap => {
+        const id = snap.val();
+        if (!id) {
+            pararEscutaCampanhaWhatsappAtiva();
+            campanhaWhatsappAtivaId = null;
+            campanhaWhatsappAtiva = null;
+            renderListaMensagemMassaSincronizada();
+            return;
+        }
+
+        if (id !== campanhaWhatsappAtivaId) {
+            try {
+                const campanhaSnap = await db.ref('campanhasWhatsapp/campanhas/' + id).once('value');
+                const campanha = campanhaSnap.val();
+                if (campanha) {
+                    const textoEl = document.getElementById('mmTexto');
+                    if (textoEl && !textoEl.value.trim()) textoEl.value = campanha.texto || '';
+                    campanhaWhatsappAtiva = campanha;
+                    escutarCampanhaWhatsappAtiva(id);
+                }
+            } catch (err) {
+                console.log('Não foi possível recuperar a campanha ativa:', err);
+            }
+        }
+    });
+
+    if (refHistoricoCampanhasWhatsapp) refHistoricoCampanhasWhatsapp.off();
+    refHistoricoCampanhasWhatsapp = db.ref('campanhasWhatsapp/campanhas').limitToLast(15);
+    refHistoricoCampanhasWhatsapp.on('value', snap => {
+        const dados = snap.val() || {};
+        const lista = Object.entries(dados)
+            .map(([id, c]) => ({ id, ...(c || {}) }))
+            .sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
+
+        if (!lista.length) {
+            historicoEl.innerHTML = '<p class="dica-secao">Nenhuma campanha criada ainda.</p>';
+            return;
+        }
+
+        historicoEl.innerHTML = lista.map(c => {
+            const enviados = Object.keys(normalizarEnviadosCampanha(c.enviados)).length;
+            const data = c.criadoEm ? new Date(c.criadoEm).toLocaleString('pt-BR') : '—';
+            const textoCurto = String(c.texto || '').replace(/\s+/g, ' ').slice(0, 110);
+            const ativa = c.id === campanhaWhatsappAtivaId;
+            return `
+                <div class="pedido-card" style="margin-top:8px;">
+                    <strong>${ativa ? '🟢 Campanha atual' : '📣 Campanha'}</strong>
+                    <p style="margin:5px 0; font-size:0.85em; color:var(--muted);">${data} · ${enviados} marcado(s) como enviado(s)</p>
+                    <p style="margin:0;">${textoCurto}${String(c.texto || '').length > 110 ? '…' : ''}</p>
+                    ${!ativa ? `<button class="btn-secondary" style="margin-top:8px;" onclick="retomarCampanhaWhatsapp('${c.id}')">↩️ Retomar</button>` : ''}
+                </div>
+            `;
+        }).join('');
+    });
+}
+
+async function retomarCampanhaWhatsapp(id) {
+    try {
+        const snap = await db.ref('campanhasWhatsapp/campanhas/' + id).once('value');
+        const campanha = snap.val();
+        if (!campanha) return;
+
+        await db.ref('campanhasWhatsapp/ativaId').set(id);
+        await db.ref(`campanhasWhatsapp/campanhas/${id}/status`).set('ativa');
+
+        const textoEl = document.getElementById('mmTexto');
+        if (textoEl) textoEl.value = campanha.texto || '';
+
+        campanhaWhatsappAtivaId = id;
+        campanhaWhatsappAtiva = campanha;
+        escutarCampanhaWhatsappAtiva(id);
+    } catch (err) {
+        alert('Não foi possível retomar esta campanha: ' + err.message);
+    }
 }
 
 function renderClientesGestao() {
@@ -5777,6 +5996,7 @@ function iniciarEscutaPedidos() {
     escutarBases();
     escutarFichaTecnica();
     escutarClientesGestao();
+    escutarCampanhasWhatsapp();
     escutarDestaquesManuais();
     escutarPedidosManuais();
     const previaLojaNomeEl = document.getElementById('previaLojaNome');

@@ -851,11 +851,17 @@
                         </p>
                         <label class="campo-label">Mensagem</label>
                         <textarea id="mmTexto" class="campo-adicionais" rows="5" placeholder="Ex: Oi! Passando pra contar uma novidade maravilhosa: nosso cardápio digital já está no ar! 🙌 Agora você pode fazer seu pedido direto por ele..."></textarea>
-                        <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="montarListaMensagemMassa()">Gerar lista de envio</button>
-                        <button class="btn-secondary" style="margin-top:10px;" onclick="localStorage.removeItem('mensagemMassaEnviados'); montarListaMensagemMassa();">🔄 Limpar marcações de "enviado" (nova campanha)</button>
+                        <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="montarListaMensagemMassa()">Gerar / continuar campanha</button>
+                        <button class="btn-secondary" style="margin-top:10px;" onclick="novaCampanhaMensagemMassa()">➕ Nova campanha</button>
 
                         <p class="dica-secao" id="mmContador" style="margin-top:10px;"></p>
                         <div id="mmLista" style="margin-top:10px;"></div>
+
+                        <div style="margin-top:20px;">
+                            <h4>🕘 Histórico de campanhas</h4>
+                            <p class="dica-secao">O progresso fica salvo no Firebase e aparece igual em todos os aparelhos conectados ao painel.</p>
+                            <div id="mmHistorico" style="margin-top:10px;"></div>
+                        </div>
                     </div>
                 </div>
 
