@@ -716,6 +716,17 @@ function inicializarAudioContext() {
 }
 document.addEventListener('click', inicializarAudioContext, { once: true });
 
+// Botão explícito pra destravar o som no aparelho — o navegador só libera áudio depois
+// de um clique de verdade da pessoa; isso já acontecia sozinho no primeiro clique em
+// qualquer lugar da tela, mas esse botão dá uma confirmação visível de que funcionou.
+function ativarAlertasPainel() {
+    const status = document.getElementById('statusAlertasPainel');
+    inicializarAudioContext();
+    if (audioCtxGlobal && audioCtxGlobal.state === 'suspended') audioCtxGlobal.resume();
+    tocarAlerta();
+    if (status) status.textContent = audioCtxGlobal ? '✅ Alertas ativados nesse aparelho!' : '⚠️ Não foi possível ativar (navegador bloqueou).';
+}
+
 // Cada som é uma sequência de notas (frequência, atraso em ms, e duração em segundos)
 const PRESETS_SOM_ALERTA = {
     classico: [{ freq: 880, atraso: 0, duracao: 0.45 }, { freq: 1046, atraso: 260, duracao: 0.45 }],
@@ -2510,15 +2521,56 @@ function salvarClienteGestao() {
 // jeito prático: cada clique abre o WhatsApp já com a mensagem pronta, só falta
 // apertar enviar lá. Marca quem já foi "enviado" (guardado no navegador, só
 // pra ajudar a não perder onde parou — não é enviado de verdade sozinho)
-function montarListaMensagemMassa() {
+// ---------- Mensagem em Massa — campanhas salvas no Firebase ----------
+// Antes, o controle de "quem já recebeu" ficava só no localStorage (sumia se trocasse
+// de aparelho ou limpasse os dados do navegador). Agora fica salvo em
+// campanhasMensagemMassa/{id}, sincronizado em tempo real entre todos os aparelhos
+// conectados ao painel — e guarda um histórico de campanhas anteriores.
+let campanhaMensagemMassaAtualId = null;
+
+function obterOuCriarCampanhaAtual() {
+    return new Promise((resolve) => {
+        campanhaMensagemMassaAtualId = localStorage.getItem('campanhaMensagemMassaAtualId') || null;
+        if (campanhaMensagemMassaAtualId) {
+            db.ref('campanhasMensagemMassa/' + campanhaMensagemMassaAtualId).once('value').then(snap => {
+                if (snap.exists()) { resolve(); return; }
+                criarNovaCampanhaMensagemMassa().then(resolve);
+            });
+        } else {
+            criarNovaCampanhaMensagemMassa().then(resolve);
+        }
+    });
+}
+
+function criarNovaCampanhaMensagemMassa() {
+    const ref = db.ref('campanhasMensagemMassa').push();
+    campanhaMensagemMassaAtualId = ref.key;
+    localStorage.setItem('campanhaMensagemMassaAtualId', campanhaMensagemMassaAtualId);
+    return ref.set({ criadaEm: Date.now(), texto: '', enviados: {} });
+}
+
+async function novaCampanhaMensagemMassa() {
+    if (!confirm('Começar uma campanha nova? A campanha atual fica salva no histórico, e a marcação de "enviado" reinicia do zero.')) return;
+    await criarNovaCampanhaMensagemMassa();
+    document.getElementById('mmTexto').value = '';
+    document.getElementById('mmLista').innerHTML = '';
+    document.getElementById('mmContador').textContent = '';
+    renderHistoricoCampanhasMensagemMassa();
+}
+
+async function montarListaMensagemMassa() {
     const texto = document.getElementById('mmTexto').value.trim();
     const listaEl = document.getElementById('mmLista');
     const contadorEl = document.getElementById('mmContador');
     if (!texto) { alert('Escreve a mensagem primeiro.'); return; }
 
+    if (!campanhaMensagemMassaAtualId) await obterOuCriarCampanhaAtual();
+    await db.ref('campanhasMensagemMassa/' + campanhaMensagemMassaAtualId + '/texto').set(texto);
+
     const comTelefone = clientesGestao.filter(c => normalizarTelefone(c.telefone));
     const semTelefone = clientesGestao.length - comTelefone.length;
-    const jaEnviados = JSON.parse(localStorage.getItem('mensagemMassaEnviados') || '[]');
+    const campanhaSnap = await db.ref('campanhasMensagemMassa/' + campanhaMensagemMassaAtualId + '/enviados').once('value');
+    const jaEnviados = Object.keys(campanhaSnap.val() || {});
 
     contadorEl.textContent = `${comTelefone.length} cliente(s) com telefone (${semTelefone} sem telefone, não aparecem aqui).`;
 
@@ -2536,12 +2588,38 @@ function montarListaMensagemMassa() {
 }
 
 function marcarEnviadoMensagemMassa(clienteId) {
-    const jaEnviados = JSON.parse(localStorage.getItem('mensagemMassaEnviados') || '[]');
-    if (!jaEnviados.includes(clienteId)) {
-        jaEnviados.push(clienteId);
-        localStorage.setItem('mensagemMassaEnviados', JSON.stringify(jaEnviados));
-    }
-    setTimeout(montarListaMensagemMassa, 300); // atualiza o visual (marca com ✅) depois do clique
+    if (!campanhaMensagemMassaAtualId) return;
+    db.ref('campanhasMensagemMassa/' + campanhaMensagemMassaAtualId + '/enviados/' + clienteId).set(true)
+        .then(() => setTimeout(montarListaMensagemMassa, 300)); // atualiza o visual (marca com ✅) depois do clique
+}
+
+function renderHistoricoCampanhasMensagemMassa() {
+    const container = document.getElementById('mmHistorico');
+    if (!container) return;
+    db.ref('campanhasMensagemMassa').once('value').then(snap => {
+        const val = snap.val() || {};
+        const campanhas = Object.entries(val)
+            .filter(([id]) => id !== campanhaMensagemMassaAtualId)
+            .map(([id, c]) => ({ id, ...c }))
+            .sort((a, b) => (b.criadaEm || 0) - (a.criadaEm || 0))
+            .slice(0, 15);
+
+        if (campanhas.length === 0) {
+            container.innerHTML = '<p class="dica-secao">Nenhuma campanha anterior ainda.</p>';
+            return;
+        }
+        container.innerHTML = campanhas.map(c => {
+            const qtdEnviados = Object.keys(c.enviados || {}).length;
+            const data = c.criadaEm ? new Date(c.criadaEm).toLocaleDateString('pt-BR') : '—';
+            const prevTexto = (c.texto || '(sem mensagem)').slice(0, 60);
+            return `
+                <div class="pedido-card" style="margin-top:6px;">
+                    <strong>${data}</strong> — ${qtdEnviados} enviado(s)
+                    <p style="margin:4px 0 0; font-size:0.85em; color:var(--muted);">${prevTexto}${(c.texto || '').length > 60 ? '…' : ''}</p>
+                </div>
+            `;
+        }).join('');
+    });
 }
 
 function renderClientesGestao() {
@@ -3341,27 +3419,68 @@ function baixarOrcamentoJPG() {
 // ---------- Sistema de Gestão — Backup completo ----------
 // Baixa TUDO que já está no Firebase (ingredientes, bases, fichaTecnica, clientesGestao)
 // num arquivo JSON — cópia extra, útil offline; os dados já ficam salvos na nuvem sozinhos
+// Baixa e restaura o backup completo chamando as Cloud Functions dedicadas
+// (baixarBackupCompleto / restaurarBackupCompleto) — são bem mais completas e seguras
+// que ler os dados direto do navegador: autenticam com o login do painel, e a
+// restauração só aceita os caminhos conhecidos (nunca dado arbitrário do arquivo).
+function urlFunctionHttp(nome) {
+    const projectId = firebase.app().options.projectId;
+    return `https://us-central1-${projectId}.cloudfunctions.net/${nome}`;
+}
+
 async function exportarBackupGestaoCompleto() {
     const msgEl = document.getElementById('msgExportarBackupGestao');
+    const btn = document.getElementById('btnBackupCompleto');
+    if (btn) btn.disabled = true;
     msgEl.textContent = 'Preparando backup...';
     try {
-        const backup = {
-            ingredientes,
-            bases,
-            fichaTecnica,
-            clientesGestao,
-            exportadoEm: new Date().toISOString()
-        };
-        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const token = await firebase.auth().currentUser.getIdToken();
+        const resposta = await fetch(urlFunctionHttp('baixarBackupCompleto'), {
+            headers: { Authorization: 'Bearer ' + token }
+        });
+        if (!resposta.ok) throw new Error(await resposta.text());
+        const blob = await resposta.blob();
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `backup-gestao-${new Date().toISOString().slice(0, 10)}.json`;
+        link.download = `backup-completo-loja-${new Date().toISOString().slice(0, 10)}.json`;
         link.click();
         URL.revokeObjectURL(url);
-        msgEl.textContent = 'Backup baixado!';
+        msgEl.textContent = 'Backup completo baixado!';
     } catch (err) {
         msgEl.textContent = 'Erro ao gerar backup: ' + err.message;
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+async function restaurarBackupCompleto() {
+    const msgEl = document.getElementById('msgRestaurarBackupCompleto');
+    const inputEl = document.getElementById('inputRestaurarBackupCompleto');
+    const btn = document.getElementById('btnRestaurarBackupCompleto');
+    const arquivo = inputEl && inputEl.files && inputEl.files[0];
+    if (!arquivo) { msgEl.textContent = 'Escolhe um arquivo de backup primeiro.'; return; }
+    if (!confirm('Isso substitui os dados atuais da loja pelos dados desse arquivo de backup. Essa ação não pode ser desfeita. Tem certeza que já baixou um backup atual antes de continuar?')) return;
+
+    if (btn) btn.disabled = true;
+    msgEl.textContent = 'Restaurando...';
+    try {
+        const texto = await arquivo.text();
+        const dadosBackup = JSON.parse(texto);
+        const token = await firebase.auth().currentUser.getIdToken();
+        const resposta = await fetch(urlFunctionHttp('restaurarBackupCompleto'), {
+            method: 'POST',
+            headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify(dadosBackup)
+        });
+        const resultado = await resposta.json();
+        if (!resposta.ok || !resultado.ok) throw new Error(resultado.erro || 'Erro ao restaurar.');
+        msgEl.textContent = '✅ Backup restaurado com sucesso! Recarregando a página...';
+        setTimeout(() => location.reload(), 1500);
+    } catch (err) {
+        msgEl.textContent = 'Erro ao restaurar: ' + err.message;
+    } finally {
+        if (btn) btn.disabled = false;
     }
 }
 
@@ -4124,6 +4243,27 @@ function carregarClientesInativos() {
     }).catch(err => {
         container.innerHTML = '<p class="dica-secao">Não foi possível carregar a lista agora.</p>';
         console.log('Erro ao carregar clientes inativos:', err);
+    });
+}
+
+// Ativa/desativa o aviso automático de "loja abriu" — pensado pra quem precisa abrir
+// a loja durante testes sem disparar notificação de verdade pros clientes. Salva no
+// mesmo caminho que a Cloud Function já lê (configuracao/notificacoes/avisoAberturaAtivo).
+function salvarNotificacaoAberturaAtiva(ativo) {
+    const msgEl = document.getElementById('msgNotificacaoAbertura');
+    db.ref('configuracao/notificacoes/avisoAberturaAtivo').set(!!ativo)
+        .then(() => { if (msgEl) msgEl.textContent = 'Salvo!'; })
+        .catch(err => { if (msgEl) msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+}
+
+// Carrega o estado atual do toggle, pra marcar o checkbox certo já na abertura do
+// painel (sem isso, sempre apareceria desmarcado, mesmo se já tivesse sido ativado antes)
+function escutarNotificacaoAberturaAtiva() {
+    db.ref('configuracao/notificacoes/avisoAberturaAtivo').on('value', snap => {
+        const chk = document.getElementById('chkNotificacaoAberturaAtiva');
+        if (!chk) return;
+        // Mesma regra da Cloud Function: se nunca foi configurado, considera ativo por padrão
+        chk.checked = snap.exists() ? !!snap.val() : true;
     });
 }
 
@@ -5458,6 +5598,8 @@ function iniciarEscutaPedidos() {
     document.getElementById('statusConexao').textContent = 'Conectado — atualizando em tempo real';
 
     escutarConfigLoja();
+    escutarNotificacaoAberturaAtiva();
+    obterOuCriarCampanhaAtual().then(renderHistoricoCampanhasMensagemMassa);
     escutarProdutos();
     escutarCupons();
     escutarOrdemCategorias();
