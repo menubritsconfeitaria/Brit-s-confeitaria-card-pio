@@ -81,6 +81,8 @@
                     </select>
                     <button class="btn-secondary" onclick="inicializarAudioContext(); tocarAlerta(document.getElementById('selectSomAlerta').value);">▶️ Testar</button>
                     <button class="btn-secondary" onclick="salvarSomAlerta()">💾 Salvar som</button>
+                    <button id="btnAtivarAlertasPainel" class="btn-secondary" onclick="ativarAlertasPainel()">🔔 Ativar alertas neste aparelho</button>
+                    <span id="statusAlertasPainel" class="dica-secao" style="align-self:center;"></span>
                 </div>
                 <div id="listaPendentes" class="lista-pedidos">
                     <p class="vazio">Nenhum pedido novo no momento.</p>

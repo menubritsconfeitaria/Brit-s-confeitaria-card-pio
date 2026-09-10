@@ -689,6 +689,7 @@ auth.onAuthStateChanged(user => {
         document.getElementById('telaLogin').style.display = 'none';
         document.getElementById('painel').style.display = 'block';
         iniciarEscutaPedidos();
+        setTimeout(atualizarEstadoAlertasPainel, 0);
         verificarSeEhDonoDoServico(user.email); // roda sempre, inclusive com sessão já salva
     } else {
         document.getElementById('telaLogin').style.display = 'flex';
@@ -705,16 +706,34 @@ auth.onAuthStateChanged(user => {
 // criamos o "contexto de áudio" uma vez só, e destravamos ele no primeiro clique.
 let audioCtxGlobal = null;
 let configAlertaSonoro = 'classico';
+const CHAVE_ALERTAS_PAINEL = 'alertasPainelAtivosV1';
 
 function inicializarAudioContext() {
-    if (audioCtxGlobal) return;
+    if (audioCtxGlobal) return audioCtxGlobal;
     try {
         audioCtxGlobal = new (window.AudioContext || window.webkitAudioContext)();
     } catch (e) {
         console.log('AudioContext indisponível:', e);
     }
+    return audioCtxGlobal;
 }
-document.addEventListener('click', inicializarAudioContext, { once: true });
+
+async function garantirAudioAtivo() {
+    const ctx = inicializarAudioContext();
+    if (!ctx) return false;
+    try {
+        if (ctx.state === 'suspended') await ctx.resume();
+        return ctx.state === 'running';
+    } catch (e) {
+        console.log('Não foi possível liberar o áudio neste aparelho:', e);
+        return false;
+    }
+}
+
+// Qualquer interação real com o painel tenta destravar o áudio deste aparelho.
+document.addEventListener('click', () => {
+    garantirAudioAtivo().then(() => atualizarEstadoAlertasPainel());
+}, { once: true });
 
 // Cada som é uma sequência de notas (frequência, atraso em ms, e duração em segundos)
 const PRESETS_SOM_ALERTA = {
@@ -724,32 +743,161 @@ const PRESETS_SOM_ALERTA = {
     sino: [{ freq: 1318, atraso: 0, duracao: 0.9 }]
 };
 
-function tocarAlerta(presetForcado) {
-    if (!audioCtxGlobal) inicializarAudioContext();
-    if (!audioCtxGlobal) return;
-    if (audioCtxGlobal.state === 'suspended') audioCtxGlobal.resume();
+async function tocarAlerta(presetForcado) {
+    const audioOk = await garantirAudioAtivo();
+    if (!audioOk || !audioCtxGlobal) {
+        atualizarEstadoAlertasPainel();
+        return false;
+    }
 
     const notas = PRESETS_SOM_ALERTA[presetForcado || configAlertaSonoro] || PRESETS_SOM_ALERTA.classico;
     try {
         notas.forEach(nota => {
             setTimeout(() => {
-                const osc = audioCtxGlobal.createOscillator();
-                const gain = audioCtxGlobal.createGain();
-                osc.type = 'sine';
-                osc.frequency.value = nota.freq;
-                gain.gain.setValueAtTime(0.001, audioCtxGlobal.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.3, audioCtxGlobal.currentTime + 0.02);
-                gain.gain.exponentialRampToValueAtTime(0.001, audioCtxGlobal.currentTime + nota.duracao);
-                osc.connect(gain);
-                gain.connect(audioCtxGlobal.destination);
-                osc.start();
-                osc.stop(audioCtxGlobal.currentTime + nota.duracao);
+                try {
+                    const osc = audioCtxGlobal.createOscillator();
+                    const gain = audioCtxGlobal.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = nota.freq;
+                    gain.gain.setValueAtTime(0.001, audioCtxGlobal.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.3, audioCtxGlobal.currentTime + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtxGlobal.currentTime + nota.duracao);
+                    osc.connect(gain);
+                    gain.connect(audioCtxGlobal.destination);
+                    osc.start();
+                    osc.stop(audioCtxGlobal.currentTime + nota.duracao);
+                } catch (e) {
+                    console.log('Falha ao gerar uma nota do alerta:', e);
+                }
             }, nota.atraso);
         });
+        return true;
     } catch (e) {
         console.log('Não foi possível tocar o alerta sonoro:', e);
+        return false;
     }
 }
+
+function atualizarEstadoAlertasPainel() {
+    const status = document.getElementById('statusAlertasPainel');
+    const botao = document.getElementById('btnAtivarAlertasPainel');
+    if (!status || !botao) return;
+
+    const preferenciaAtiva = localStorage.getItem(CHAVE_ALERTAS_PAINEL) === '1';
+    const audioAtivo = !!audioCtxGlobal && audioCtxGlobal.state === 'running';
+    const notificacaoPermitida = typeof Notification !== 'undefined' && Notification.permission === 'granted';
+
+    if (preferenciaAtiva && audioAtivo) {
+        status.textContent = notificacaoPermitida
+            ? '✅ Som + aviso do navegador ativos neste aparelho'
+            : '✅ Som ativo neste aparelho';
+        botao.textContent = '🔔 Alertas ativos';
+    } else {
+        status.textContent = '⚠️ Toque em “Ativar alertas” neste aparelho';
+        botao.textContent = '🔔 Ativar alertas neste aparelho';
+    }
+}
+
+async function ativarAlertasPainel() {
+    const audioOk = await garantirAudioAtivo();
+    let notificacaoPermitida = false;
+
+    if (typeof Notification !== 'undefined') {
+        try {
+            if (Notification.permission === 'default') {
+                const permissao = await Notification.requestPermission();
+                notificacaoPermitida = permissao === 'granted';
+            } else {
+                notificacaoPermitida = Notification.permission === 'granted';
+            }
+        } catch (e) {
+            console.log('Não foi possível pedir permissão de notificação:', e);
+        }
+    }
+
+    if (audioOk) {
+        localStorage.setItem(CHAVE_ALERTAS_PAINEL, '1');
+        await tocarAlerta('suave');
+    } else {
+        localStorage.removeItem(CHAVE_ALERTAS_PAINEL);
+    }
+
+    atualizarEstadoAlertasPainel();
+
+    if (!audioOk) {
+        alert('O navegador não liberou o som neste aparelho. Verifique se a aba/site não está silenciado e tente novamente.');
+    } else if (!notificacaoPermitida && typeof Notification !== 'undefined' && Notification.permission === 'denied') {
+        alert('✅ O som está ativo. As notificações do navegador estão bloqueadas neste aparelho, mas o painel continuará tentando apitar normalmente.');
+    }
+}
+
+function mostrarAvisoVisualPedidoNovo(pedido) {
+    let aviso = document.getElementById('avisoVisualPedidoNovo');
+    if (!aviso) {
+        aviso = document.createElement('div');
+        aviso.id = 'avisoVisualPedidoNovo';
+        aviso.style.cssText = [
+            'position:fixed',
+            'top:16px',
+            'left:50%',
+            'transform:translateX(-50%)',
+            'z-index:99999',
+            'max-width:92vw',
+            'min-width:280px',
+            'padding:14px 18px',
+            'border-radius:12px',
+            'background:#fff',
+            'color:#222',
+            'box-shadow:0 10px 35px rgba(0,0,0,.28)',
+            'border:2px solid #d6a85f',
+            'font-weight:600',
+            'text-align:center'
+        ].join(';');
+        document.body.appendChild(aviso);
+    }
+
+    const numero = pedido && pedido.numero ? ` #${pedido.numero}` : '';
+    const nome = pedido && pedido.nome ? ` — ${pedido.nome}` : '';
+    aviso.textContent = `🔔 Novo pedido${numero}${nome}`;
+    aviso.style.display = 'block';
+
+    clearTimeout(window._timerAvisoVisualPedidoNovo);
+    window._timerAvisoVisualPedidoNovo = setTimeout(() => {
+        aviso.style.display = 'none';
+    }, 10000);
+}
+
+function mostrarNotificacaoNativaPedidoNovo(pedido) {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    try {
+        const numero = pedido && pedido.numero ? ` #${pedido.numero}` : '';
+        const nome = pedido && pedido.nome ? pedido.nome : 'Novo cliente';
+        const notificacao = new Notification(`🔔 Novo pedido${numero}`, {
+            body: `${nome} — abra o painel para conferir.`,
+            tag: pedido && pedido.numero ? `pedido-${pedido.numero}` : 'novo-pedido',
+            requireInteraction: true
+        });
+        notificacao.onclick = () => {
+            window.focus();
+            notificacao.close();
+        };
+    } catch (e) {
+        console.log('Não foi possível mostrar a notificação do painel:', e);
+    }
+}
+
+function dispararAlertaNovoPedido(pedido) {
+    // Cada painel/aparelho reage de forma independente ao mesmo evento em tempo real.
+    // O aviso visual não depende de permissão do navegador; o som e a notificação
+    // usam as permissões disponíveis naquele dispositivo.
+    mostrarAvisoVisualPedidoNovo(pedido);
+    tocarAlerta();
+    mostrarNotificacaoNativaPedidoNovo(pedido);
+    atualizarEstadoAlertasPainel();
+}
+
+window.addEventListener('focus', atualizarEstadoAlertasPainel);
+document.addEventListener('visibilitychange', atualizarEstadoAlertasPainel);
 
 function escutarConfigSomAlerta() {
     db.ref('configuracao/alertaSonoro').on('value', snap => {
@@ -5569,7 +5717,7 @@ function iniciarEscutaPedidos() {
             listaPendentesEl.prepend(montarCardPedido(snap.key, pedido, true));
             idsRenderizados.add(snap.key);
             atualizarContador();
-            if (primeiraCargaConcluida && pedido.status === 'pendente' && !window._importandoBackupGestao) tocarAlerta();
+            if (primeiraCargaConcluida && pedido.status === 'pendente' && !window._importandoBackupGestao) dispararAlertaNovoPedido(pedido);
         });
 
         // Quando o status do pedido muda (aceitar, sair pra entrega, entregar, recusar)
@@ -5609,7 +5757,7 @@ function iniciarEscutaPedidos() {
                 if (listaPendentesEl.querySelector('.vazio')) listaPendentesEl.innerHTML = '';
                 listaPendentesEl.insertBefore(montarCardPedido(snap.key, pedido, true), listaPendentesEl.firstChild);
                 idsRenderizados.add(snap.key);
-                if (pedido.status === 'pendente' && !window._importandoBackupGestao) tocarAlerta();
+                if (pedido.status === 'pendente' && !window._importandoBackupGestao) dispararAlertaNovoPedido(pedido);
             }
             atualizarContador();
         });
