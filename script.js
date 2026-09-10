@@ -1209,30 +1209,68 @@ function verificarPedidoSalvo() {
     }
 }
 
-// Preenche o formulário com os dados salvos da última compra (nome, telefone, endereço)
-// Salva os dados do cliente conforme ele vai digitando — antes, só salvava depois
-// de finalizar um pedido de verdade. Assim, mesmo quem só começa a preencher e
-// fecha o navegador sem terminar já tem os dados guardados na próxima visita
-function salvarDadosClienteParcial() {
+// Dados do cliente ficam persistidos campo a campo.
+// IMPORTANTE: não salvamos o formulário inteiro a cada tecla. Antes, ao editar apenas
+// nome/telefone enquanto o endereço ainda estava vazio no DOM, o site podia sobrescrever
+// no localStorage um endereço que já tinha sido salvo. Agora só o campo realmente alterado
+// é atualizado, preservando todos os demais dados já cadastrados.
+function lerDadosClientePersistidos() {
     try {
-        localStorage.setItem('dadosCliente', JSON.stringify({
-            nome: nomeClienteInput.value,
-            telefone: telefoneClienteInput.value,
-            rua: ruaClienteInput.value,
-            numero: numeroClienteInput.value,
-            complemento: complementoClienteInput.value,
-            bairro: bairroClienteInput.value,
-            cidade: cidadeClienteInput.value,
-            estado: estadoClienteInput.value,
-            cep: cepClienteInput.value,
-            tipoEntrega: tipoEntregaAtual
-        }));
+        return JSON.parse(localStorage.getItem('dadosCliente')) || {};
+    } catch (e) {
+        return {};
+    }
+}
+
+function salvarCampoCliente(campo, valor) {
+    try {
+        const dados = lerDadosClientePersistidos();
+        dados[campo] = valor;
+        dados.tipoEntrega = tipoEntregaAtual;
+        localStorage.setItem('dadosCliente', JSON.stringify(dados));
     } catch (e) {
         // localStorage indisponível (ex: modo privado/cheio) — ignora, não é crítico
     }
 }
-[nomeClienteInput, telefoneClienteInput, ruaClienteInput, numeroClienteInput, complementoClienteInput, bairroClienteInput, cidadeClienteInput, estadoClienteInput, cepClienteInput].forEach(input => {
-    if (input) input.addEventListener('input', salvarDadosClienteParcial);
+
+function salvarDadosClienteCompleto() {
+    try {
+        const anterior = lerDadosClientePersistidos();
+        const atual = {
+            ...anterior,
+            nome: nomeClienteInput ? nomeClienteInput.value : (anterior.nome || ''),
+            telefone: telefoneClienteInput ? telefoneClienteInput.value : (anterior.telefone || ''),
+            rua: ruaClienteInput ? ruaClienteInput.value : (anterior.rua || ''),
+            numero: numeroClienteInput ? numeroClienteInput.value : (anterior.numero || ''),
+            complemento: complementoClienteInput ? complementoClienteInput.value : (anterior.complemento || ''),
+            bairro: bairroClienteInput ? bairroClienteInput.value : (anterior.bairro || ''),
+            cidade: cidadeClienteInput ? cidadeClienteInput.value : (anterior.cidade || ''),
+            estado: estadoClienteInput ? estadoClienteInput.value : (anterior.estado || ''),
+            cep: cepClienteInput ? cepClienteInput.value : (anterior.cep || ''),
+            tipoEntrega: tipoEntregaAtual
+        };
+        localStorage.setItem('dadosCliente', JSON.stringify(atual));
+    } catch (e) {
+        // não interrompe a compra se o armazenamento local estiver indisponível
+    }
+}
+
+const camposPersistentesCliente = [
+    ['nome', nomeClienteInput],
+    ['telefone', telefoneClienteInput],
+    ['rua', ruaClienteInput],
+    ['numero', numeroClienteInput],
+    ['complemento', complementoClienteInput],
+    ['bairro', bairroClienteInput],
+    ['cidade', cidadeClienteInput],
+    ['estado', estadoClienteInput],
+    ['cep', cepClienteInput]
+];
+
+camposPersistentesCliente.forEach(([campo, input]) => {
+    if (!input) return;
+    input.addEventListener('input', () => salvarCampoCliente(campo, input.value));
+    input.addEventListener('change', () => salvarCampoCliente(campo, input.value));
 });
 
 function carregarDadosClienteSalvos() {
@@ -1266,6 +1304,11 @@ function salvarCarrinho() {
 // Alterna entre "Retirar no local" e "Entrega", mostrando/escondendo o endereço
 function selecionarTipoEntrega(tipo) {
     tipoEntregaAtual = tipo;
+    try {
+        const dados = lerDadosClientePersistidos();
+        dados.tipoEntrega = tipo;
+        localStorage.setItem('dadosCliente', JSON.stringify(dados));
+    } catch (e) { /* não interrompe a navegação */ }
     document.getElementById('btnRetirada').classList.toggle('selecionado', tipo === 'retirada');
     document.getElementById('btnEntrega').classList.toggle('selecionado', tipo === 'entrega');
     areaEntregaDiv.style.display = tipo === 'entrega' ? 'block' : 'none';
@@ -1423,6 +1466,9 @@ async function calcularFrete() {
             if (dados.bairro) bairroClienteInput.value = dados.bairro;
             if (dados.localidade) cidadeClienteInput.value = dados.localidade;
             if (dados.uf) estadoClienteInput.value = dados.uf;
+            // Esses valores são preenchidos por JavaScript, então o evento 'input' não dispara.
+            // Gravamos explicitamente para que o endereço continue disponível nas próximas visitas.
+            salvarDadosClienteCompleto();
 
             const bairroNormalizado = normalizar(dados.bairro || '');
             if (bairrosEntrega.hasOwnProperty(bairroNormalizado)) {
@@ -2666,11 +2712,9 @@ botaoFinalizarCompra.addEventListener('click', async () => {
     // que o pedido foi entregue, lá no painel. Isso evita creditar pontos de pedidos recusados.
     recompensaSelecionada = null;
 
-    // Guarda os dados do cliente pra já vir preenchido na próxima compra
-    localStorage.setItem('dadosCliente', JSON.stringify({
-        nome, telefone, rua, numero, complemento, bairro, cidade, estado, cep,
-        tipoEntrega: tipoEntregaAtual
-    }));
+    // Confirma a persistência do cadastro ao finalizar a compra.
+    // Nome, telefone e endereço permanecem disponíveis nas próximas visitas.
+    salvarDadosClienteCompleto();
 
     // Se é uma encomenda agendada E a loja exige sinal de confirmação, o fluxo cobra só
     // uma % do valor (nunca o pedido inteiro) — funciona independente da forma de
