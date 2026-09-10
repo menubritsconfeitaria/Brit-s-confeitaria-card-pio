@@ -689,7 +689,6 @@ auth.onAuthStateChanged(user => {
         document.getElementById('telaLogin').style.display = 'none';
         document.getElementById('painel').style.display = 'block';
         iniciarEscutaPedidos();
-        setTimeout(restaurarAlertasPainel, 0);
         verificarSeEhDonoDoServico(user.email); // roda sempre, inclusive com sessão já salva
     } else {
         document.getElementById('telaLogin').style.display = 'flex';
@@ -706,36 +705,16 @@ auth.onAuthStateChanged(user => {
 // criamos o "contexto de áudio" uma vez só, e destravamos ele no primeiro clique.
 let audioCtxGlobal = null;
 let configAlertaSonoro = 'classico';
-const CHAVE_ALERTAS_PAINEL = 'alertasPainelAtivosV1';
 
 function inicializarAudioContext() {
-    if (audioCtxGlobal) return audioCtxGlobal;
+    if (audioCtxGlobal) return;
     try {
         audioCtxGlobal = new (window.AudioContext || window.webkitAudioContext)();
     } catch (e) {
         console.log('AudioContext indisponível:', e);
     }
-    return audioCtxGlobal;
 }
-
-async function garantirAudioAtivo() {
-    const ctx = inicializarAudioContext();
-    if (!ctx) return false;
-    try {
-        if (ctx.state === 'suspended') await ctx.resume();
-        return ctx.state === 'running';
-    } catch (e) {
-        console.log('Não foi possível liberar o áudio neste aparelho:', e);
-        return false;
-    }
-}
-
-// Qualquer interação real com o painel tenta destravar o áudio deste aparelho.
-document.addEventListener('click', () => {
-    if (localStorage.getItem(CHAVE_ALERTAS_PAINEL) === '1') {
-        garantirAudioAtivo().then(() => atualizarEstadoAlertasPainel());
-    }
-}, { passive: true });
+document.addEventListener('click', inicializarAudioContext, { once: true });
 
 // Cada som é uma sequência de notas (frequência, atraso em ms, e duração em segundos)
 const PRESETS_SOM_ALERTA = {
@@ -745,186 +724,32 @@ const PRESETS_SOM_ALERTA = {
     sino: [{ freq: 1318, atraso: 0, duracao: 0.9 }]
 };
 
-async function tocarAlerta(presetForcado) {
-    const audioOk = await garantirAudioAtivo();
-    if (!audioOk || !audioCtxGlobal) {
-        atualizarEstadoAlertasPainel();
-        return false;
-    }
+function tocarAlerta(presetForcado) {
+    if (!audioCtxGlobal) inicializarAudioContext();
+    if (!audioCtxGlobal) return;
+    if (audioCtxGlobal.state === 'suspended') audioCtxGlobal.resume();
 
     const notas = PRESETS_SOM_ALERTA[presetForcado || configAlertaSonoro] || PRESETS_SOM_ALERTA.classico;
     try {
         notas.forEach(nota => {
             setTimeout(() => {
-                try {
-                    const osc = audioCtxGlobal.createOscillator();
-                    const gain = audioCtxGlobal.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.value = nota.freq;
-                    gain.gain.setValueAtTime(0.001, audioCtxGlobal.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.3, audioCtxGlobal.currentTime + 0.02);
-                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtxGlobal.currentTime + nota.duracao);
-                    osc.connect(gain);
-                    gain.connect(audioCtxGlobal.destination);
-                    osc.start();
-                    osc.stop(audioCtxGlobal.currentTime + nota.duracao);
-                } catch (e) {
-                    console.log('Falha ao gerar uma nota do alerta:', e);
-                }
+                const osc = audioCtxGlobal.createOscillator();
+                const gain = audioCtxGlobal.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = nota.freq;
+                gain.gain.setValueAtTime(0.001, audioCtxGlobal.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.3, audioCtxGlobal.currentTime + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtxGlobal.currentTime + nota.duracao);
+                osc.connect(gain);
+                gain.connect(audioCtxGlobal.destination);
+                osc.start();
+                osc.stop(audioCtxGlobal.currentTime + nota.duracao);
             }, nota.atraso);
         });
-        return true;
     } catch (e) {
         console.log('Não foi possível tocar o alerta sonoro:', e);
-        return false;
     }
 }
-
-function atualizarEstadoAlertasPainel() {
-    const status = document.getElementById('statusAlertasPainel');
-    const botao = document.getElementById('btnAtivarAlertasPainel');
-    if (!status || !botao) return;
-
-    const preferenciaAtiva = localStorage.getItem(CHAVE_ALERTAS_PAINEL) === '1';
-    const audioAtivo = !!audioCtxGlobal && audioCtxGlobal.state === 'running';
-    const notificacaoPermitida = typeof Notification !== 'undefined' && Notification.permission === 'granted';
-
-    if (preferenciaAtiva) {
-        botao.textContent = '🔔 Alertas configurados';
-        if (audioAtivo) {
-            status.textContent = notificacaoPermitida
-                ? '✅ Som + aviso do navegador ativos neste aparelho'
-                : '✅ Som ativo neste aparelho';
-        } else {
-            // A configuração continua salva. Alguns navegadores exigem uma interação
-            // depois de recarregar a página para liberar SOM, mas não é preciso ativar tudo de novo.
-            status.textContent = notificacaoPermitida
-                ? '✅ Alertas salvos • o som será retomado automaticamente quando o navegador permitir'
-                : '✅ Alertas salvos neste aparelho';
-        }
-    } else {
-        status.textContent = '⚠️ Ative os alertas uma vez neste aparelho';
-        botao.textContent = '🔔 Ativar alertas neste aparelho';
-    }
-}
-
-async function restaurarAlertasPainel() {
-    if (localStorage.getItem(CHAVE_ALERTAS_PAINEL) !== '1') {
-        atualizarEstadoAlertasPainel();
-        return;
-    }
-    // Tenta restaurar sem incomodar o usuário. Se o navegador bloquear autoplay após
-    // recarregar, o primeiro toque/clique em QUALQUER lugar do painel destrava o áudio.
-    await garantirAudioAtivo().catch(() => false);
-    atualizarEstadoAlertasPainel();
-}
-
-async function ativarAlertasPainel() {
-    const audioOk = await garantirAudioAtivo();
-    let notificacaoPermitida = false;
-
-    if (typeof Notification !== 'undefined') {
-        try {
-            if (Notification.permission === 'default') {
-                const permissao = await Notification.requestPermission();
-                notificacaoPermitida = permissao === 'granted';
-            } else {
-                notificacaoPermitida = Notification.permission === 'granted';
-            }
-        } catch (e) {
-            console.log('Não foi possível pedir permissão de notificação:', e);
-        }
-    }
-
-    if (audioOk) {
-        localStorage.setItem(CHAVE_ALERTAS_PAINEL, '1');
-        await tocarAlerta('suave');
-    } else {
-        localStorage.removeItem(CHAVE_ALERTAS_PAINEL);
-    }
-
-    atualizarEstadoAlertasPainel();
-
-    if (!audioOk) {
-        alert('O navegador não liberou o som neste aparelho. Verifique se a aba/site não está silenciado e tente novamente.');
-    } else if (!notificacaoPermitida && typeof Notification !== 'undefined' && Notification.permission === 'denied') {
-        alert('✅ O som está ativo. As notificações do navegador estão bloqueadas neste aparelho, mas o painel continuará tentando apitar normalmente.');
-    }
-}
-
-function mostrarAvisoVisualPedidoNovo(pedido) {
-    let aviso = document.getElementById('avisoVisualPedidoNovo');
-    if (!aviso) {
-        aviso = document.createElement('div');
-        aviso.id = 'avisoVisualPedidoNovo';
-        aviso.style.cssText = [
-            'position:fixed',
-            'top:16px',
-            'left:50%',
-            'transform:translateX(-50%)',
-            'z-index:99999',
-            'max-width:92vw',
-            'min-width:280px',
-            'padding:14px 18px',
-            'border-radius:12px',
-            'background:#fff',
-            'color:#222',
-            'box-shadow:0 10px 35px rgba(0,0,0,.28)',
-            'border:2px solid #d6a85f',
-            'font-weight:600',
-            'text-align:center'
-        ].join(';');
-        document.body.appendChild(aviso);
-    }
-
-    const numero = pedido && pedido.numero ? ` #${pedido.numero}` : '';
-    const nome = pedido && pedido.nome ? ` — ${pedido.nome}` : '';
-    aviso.textContent = `🔔 Novo pedido${numero}${nome}`;
-    aviso.style.display = 'block';
-
-    clearTimeout(window._timerAvisoVisualPedidoNovo);
-    window._timerAvisoVisualPedidoNovo = setTimeout(() => {
-        aviso.style.display = 'none';
-    }, 10000);
-}
-
-function mostrarNotificacaoNativaPedidoNovo(pedido) {
-    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
-    try {
-        const numero = pedido && pedido.numero ? ` #${pedido.numero}` : '';
-        const nome = pedido && pedido.nome ? pedido.nome : 'Novo cliente';
-        const notificacao = new Notification(`🔔 Novo pedido${numero}`, {
-            body: `${nome} — abra o painel para conferir.`,
-            tag: pedido && pedido.numero ? `pedido-${pedido.numero}` : 'novo-pedido',
-            requireInteraction: true
-        });
-        notificacao.onclick = () => {
-            window.focus();
-            notificacao.close();
-        };
-    } catch (e) {
-        console.log('Não foi possível mostrar a notificação do painel:', e);
-    }
-}
-
-function dispararAlertaNovoPedido(pedido) {
-    // Cada painel/aparelho reage de forma independente ao mesmo evento em tempo real.
-    // O aviso visual não depende de permissão do navegador; o som e a notificação
-    // usam as permissões disponíveis naquele dispositivo.
-    mostrarAvisoVisualPedidoNovo(pedido);
-    tocarAlerta();
-    mostrarNotificacaoNativaPedidoNovo(pedido);
-    atualizarEstadoAlertasPainel();
-}
-
-window.addEventListener('focus', () => {
-    if (localStorage.getItem(CHAVE_ALERTAS_PAINEL) === '1') restaurarAlertasPainel();
-    else atualizarEstadoAlertasPainel();
-});
-document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && localStorage.getItem(CHAVE_ALERTAS_PAINEL) === '1') restaurarAlertasPainel();
-    else atualizarEstadoAlertasPainel();
-});
 
 function escutarConfigSomAlerta() {
     db.ref('configuracao/alertaSonoro').on('value', snap => {
@@ -1570,25 +1395,6 @@ function salvarPagamentoOnlineAtivo(ativo) {
         .catch(err => alert('Erro ao atualizar o pagamento online: ' + err.message));
 }
 
-function salvarNotificacaoAberturaAtiva(ativo) {
-    const msgEl = document.getElementById('msgNotificacaoAbertura');
-    if (msgEl) msgEl.textContent = 'Salvando...';
-
-    // Preferência isolada da configuração da loja:
-    // alterar este botão NÃO dispara o gatilho de abertura.
-    db.ref('configuracao/notificacoes/avisoAberturaAtivo').set(!!ativo)
-        .then(() => {
-            if (msgEl) {
-                msgEl.textContent = ativo
-                    ? '✅ Aviso automático de abertura ativado.'
-                    : '🔕 Aviso automático de abertura desativado.';
-            }
-        })
-        .catch(err => {
-            if (msgEl) msgEl.textContent = 'Erro ao salvar: ' + err.message;
-        });
-}
-
 function marcarModoSelecionado(modo) {
     document.getElementById('btnModoAuto').classList.toggle('selecionado', modo === 'auto');
     document.getElementById('btnModoAberto').classList.toggle('selecionado', modo === 'aberto');
@@ -2154,7 +1960,7 @@ function calcularBase(base, visitados) {
     visitados.add(base.id);
 
     let custoTotal = 0;
-    base.componentes.forEach(c => {
+    (base.componentes || []).forEach(c => {
         const baseId = idBaseComponente(c);
         if (baseId) {
             const subBase = getBase(baseId);
@@ -2285,7 +2091,7 @@ function editarBase(id) {
     document.getElementById('baseTipo').value = b.tipo;
     document.getElementById('baseRendimento').value = b.rendimento;
     document.getElementById('baseUnidadeRendimento').value = b.unidadeRendimento;
-    tempBaseComponentes = b.componentes.map(c => ({ ...c }));
+    tempBaseComponentes = (b.componentes || []).map(c => ({ ...c }));
     editingBaseId = id;
     document.getElementById('btnSalvarBase').textContent = 'Atualizar Base';
     popularSelectComponenteBase();
@@ -2334,7 +2140,10 @@ function getFichaTecnica(id) { return fichaTecnica.find(p => p.id === id); }
 function calcularCustoFichaTecnica(produto) {
     let custoComponentes = 0;
     const detalhes = [];
-    produto.componentes.forEach(c => {
+    // Proteção: se por algum motivo essa ficha técnica não tiver "componentes" (undefined),
+    // trata como lista vazia em vez de travar — isso já travou o painel inteiro, já que
+    // esse cálculo roda logo no carregamento inicial da tela.
+    (produto.componentes || []).forEach(c => {
         let nome = '', custoItem = 0, unidade = '';
         if (c.tipo === 'base') {
             const base = getBase(c.id);
@@ -2579,7 +2388,7 @@ function editarFichaTecnica(id) {
     document.getElementById('ftMargemCasal').value = p.margemCasal || '';
     document.getElementById('ftTaxaVenda').value = p.taxaVenda || '';
     document.getElementById('ftPrecoManual').value = p.precoVendaManual || '';
-    tempFichaTecnicaComponentes = p.componentes.map(c => ({ ...c }));
+    tempFichaTecnicaComponentes = (p.componentes || []).map(c => ({ ...c }));
     editingFichaTecnicaId = id;
     document.getElementById('btnSalvarFichaTecnica').textContent = 'Atualizar';
     renderTempComponentesFichaTecnica();
@@ -2691,262 +2500,43 @@ function salvarClienteGestao() {
     }).catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
 }
 
-// ---------- Mensagem em Massa (WhatsApp) — campanha sincronizada entre aparelhos ----------
-let campanhaWhatsappAtivaId = null;
-let campanhaWhatsappAtiva = null;
-let refCampanhaWhatsappAtiva = null;
-let refHistoricoCampanhasWhatsapp = null;
-
-function chaveCampanhaWhatsapp() {
-    return db.ref('campanhasWhatsapp/campanhas').push().key;
-}
-
-function normalizarEnviadosCampanha(valor) {
-    return valor && typeof valor === 'object' ? valor : {};
-}
-
-async function obterOuCriarCampanhaWhatsapp(texto) {
-    const ativaSnap = await db.ref('campanhasWhatsapp/ativaId').once('value');
-    const ativaId = ativaSnap.val();
-
-    if (ativaId) {
-        const snap = await db.ref('campanhasWhatsapp/campanhas/' + ativaId).once('value');
-        const atual = snap.val();
-        if (atual && String(atual.texto || '').trim() === texto) {
-            return { id: ativaId, campanha: atual };
-        }
-    }
-
-    const id = chaveCampanhaWhatsapp();
-    const agora = firebase.database.ServerValue.TIMESTAMP;
-    const campanha = {
-        texto,
-        criadoEm: agora,
-        atualizadoEm: agora,
-        status: 'ativa',
-        enviados: {}
-    };
-
-    const updates = {};
-    updates['campanhasWhatsapp/campanhas/' + id] = campanha;
-    updates['campanhasWhatsapp/ativaId'] = id;
-    await db.ref().update(updates);
-
-    const novoSnap = await db.ref('campanhasWhatsapp/campanhas/' + id).once('value');
-    return { id, campanha: novoSnap.val() || { texto, enviados: {} } };
-}
-
-function pararEscutaCampanhaWhatsappAtiva() {
-    if (refCampanhaWhatsappAtiva) {
-        refCampanhaWhatsappAtiva.off();
-        refCampanhaWhatsappAtiva = null;
-    }
-}
-
-function escutarCampanhaWhatsappAtiva(id) {
-    pararEscutaCampanhaWhatsappAtiva();
-    campanhaWhatsappAtivaId = id;
-
-    if (!id) {
-        campanhaWhatsappAtiva = null;
-        return;
-    }
-
-    refCampanhaWhatsappAtiva = db.ref('campanhasWhatsapp/campanhas/' + id);
-    refCampanhaWhatsappAtiva.on('value', snap => {
-        campanhaWhatsappAtiva = snap.val() || null;
-        renderListaMensagemMassaSincronizada();
-    });
-}
-
-async function montarListaMensagemMassa() {
-    const textoEl = document.getElementById('mmTexto');
-    const texto = textoEl.value.trim();
-    if (!texto) {
-        alert('Escreve a mensagem primeiro.');
-        return;
-    }
-
-    try {
-        const { id, campanha } = await obterOuCriarCampanhaWhatsapp(texto);
-        campanhaWhatsappAtivaId = id;
-        campanhaWhatsappAtiva = campanha;
-        escutarCampanhaWhatsappAtiva(id);
-
-        // Remove a marcação antiga local para não haver duas fontes de verdade.
-        localStorage.removeItem('mensagemMassaEnviados');
-        renderListaMensagemMassaSincronizada();
-    } catch (err) {
-        console.error('Erro ao abrir campanha do WhatsApp:', err);
-        alert('Não foi possível abrir a campanha agora: ' + err.message);
-    }
-}
-
-function renderListaMensagemMassaSincronizada() {
+// Monta a lista de botões "enviar" pro WhatsApp, um por cliente com telefone
+// cadastrado — o WhatsApp não permite envio em massa de graça, então isso é o
+// jeito prático: cada clique abre o WhatsApp já com a mensagem pronta, só falta
+// apertar enviar lá. Marca quem já foi "enviado" (guardado no navegador, só
+// pra ajudar a não perder onde parou — não é enviado de verdade sozinho)
+function montarListaMensagemMassa() {
+    const texto = document.getElementById('mmTexto').value.trim();
     const listaEl = document.getElementById('mmLista');
     const contadorEl = document.getElementById('mmContador');
-    if (!listaEl || !contadorEl) return;
+    if (!texto) { alert('Escreve a mensagem primeiro.'); return; }
 
-    if (!campanhaWhatsappAtivaId || !campanhaWhatsappAtiva) {
-        listaEl.innerHTML = '<p class="dica-secao">Escreva a mensagem e clique em “Gerar / continuar campanha”.</p>';
-        contadorEl.textContent = '';
-        return;
-    }
-
-    const texto = String(campanhaWhatsappAtiva.texto || '').trim();
     const comTelefone = clientesGestao.filter(c => normalizarTelefone(c.telefone));
     const semTelefone = clientesGestao.length - comTelefone.length;
-    const enviados = normalizarEnviadosCampanha(campanhaWhatsappAtiva.enviados);
-    const totalEnviados = comTelefone.filter(c => !!enviados[c.id]).length;
+    const jaEnviados = JSON.parse(localStorage.getItem('mensagemMassaEnviados') || '[]');
 
-    contadorEl.textContent =
-        `${totalEnviados}/${comTelefone.length} marcado(s) como enviado(s)` +
-        (semTelefone ? ` · ${semTelefone} sem telefone` : '');
+    contadorEl.textContent = `${comTelefone.length} cliente(s) com telefone (${semTelefone} sem telefone, não aparecem aqui).`;
 
     const ordenados = [...comTelefone].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
     listaEl.innerHTML = ordenados.map(c => {
         const numero = formatarTelefoneWhatsAppGestao(c.telefone);
-        const jaFoi = !!enviados[c.id];
+        const jaFoi = jaEnviados.includes(c.id);
         return `
-            <div class="pedido-card" style="margin-top:6px; display:flex; justify-content:space-between; align-items:center; ${jaFoi ? 'opacity:0.55;' : ''}">
+            <div class="pedido-card" style="margin-top:6px; display:flex; justify-content:space-between; align-items:center; ${jaFoi ? 'opacity:0.5;' : ''}">
                 <span>${jaFoi ? '✅' : ''} ${c.nome}</span>
-                <a href="https://api.whatsapp.com/send?phone=${numero}&text=${encodeURIComponent(texto)}"
-                   target="_blank"
-                   class="btn-secondary"
-                   style="text-decoration:none;"
-                   onclick="marcarEnviadoMensagemMassa('${c.id}')">${jaFoi ? '✅ Enviado' : '📲 Enviar'}</a>
+                <a href="https://api.whatsapp.com/send?phone=${numero}&text=${encodeURIComponent(texto)}" target="_blank" class="btn-secondary" style="text-decoration:none;" onclick="marcarEnviadoMensagemMassa('${c.id}')">📲 Enviar</a>
             </div>
         `;
     }).join('') || '<p class="dica-secao">Nenhum cliente com telefone cadastrado.</p>';
 }
 
-async function marcarEnviadoMensagemMassa(clienteId) {
-    if (!campanhaWhatsappAtivaId) return;
-
-    const cliente = clientesGestao.find(c => c.id === clienteId);
-    const registro = {
-        marcadoEm: firebase.database.ServerValue.TIMESTAMP,
-        nome: cliente ? cliente.nome || '' : '',
-        telefone: cliente ? normalizarTelefone(cliente.telefone) : ''
-    };
-
-    try {
-        await db.ref(`campanhasWhatsapp/campanhas/${campanhaWhatsappAtivaId}/enviados/${clienteId}`).set(registro);
-        await db.ref(`campanhasWhatsapp/campanhas/${campanhaWhatsappAtivaId}/atualizadoEm`).set(firebase.database.ServerValue.TIMESTAMP);
-    } catch (err) {
-        console.log('Não foi possível marcar o envio no Firebase:', err);
+function marcarEnviadoMensagemMassa(clienteId) {
+    const jaEnviados = JSON.parse(localStorage.getItem('mensagemMassaEnviados') || '[]');
+    if (!jaEnviados.includes(clienteId)) {
+        jaEnviados.push(clienteId);
+        localStorage.setItem('mensagemMassaEnviados', JSON.stringify(jaEnviados));
     }
-}
-
-async function novaCampanhaMensagemMassa() {
-    if (campanhaWhatsappAtivaId) {
-        const enviados = normalizarEnviadosCampanha(campanhaWhatsappAtiva && campanhaWhatsappAtiva.enviados);
-        const qtd = Object.keys(enviados).length;
-        if (!confirm(`Iniciar uma nova campanha? A campanha atual (${qtd} marcado(s) como enviado(s)) continuará guardada no histórico.`)) {
-            return;
-        }
-
-        try {
-            await db.ref(`campanhasWhatsapp/campanhas/${campanhaWhatsappAtivaId}`).update({
-                status: 'encerrada',
-                encerradaEm: firebase.database.ServerValue.TIMESTAMP
-            });
-        } catch (e) {
-            console.log('Não foi possível encerrar a campanha anterior:', e);
-        }
-    }
-
-    pararEscutaCampanhaWhatsappAtiva();
-    campanhaWhatsappAtivaId = null;
-    campanhaWhatsappAtiva = null;
-
-    try {
-        await db.ref('campanhasWhatsapp/ativaId').remove();
-    } catch (e) {}
-
-    const textoEl = document.getElementById('mmTexto');
-    if (textoEl) textoEl.value = '';
-    renderListaMensagemMassaSincronizada();
-}
-
-function escutarCampanhasWhatsapp() {
-    const historicoEl = document.getElementById('mmHistorico');
-    if (!historicoEl) return;
-
-    db.ref('campanhasWhatsapp/ativaId').on('value', async snap => {
-        const id = snap.val();
-        if (!id) {
-            pararEscutaCampanhaWhatsappAtiva();
-            campanhaWhatsappAtivaId = null;
-            campanhaWhatsappAtiva = null;
-            renderListaMensagemMassaSincronizada();
-            return;
-        }
-
-        if (id !== campanhaWhatsappAtivaId) {
-            try {
-                const campanhaSnap = await db.ref('campanhasWhatsapp/campanhas/' + id).once('value');
-                const campanha = campanhaSnap.val();
-                if (campanha) {
-                    const textoEl = document.getElementById('mmTexto');
-                    if (textoEl && !textoEl.value.trim()) textoEl.value = campanha.texto || '';
-                    campanhaWhatsappAtiva = campanha;
-                    escutarCampanhaWhatsappAtiva(id);
-                }
-            } catch (err) {
-                console.log('Não foi possível recuperar a campanha ativa:', err);
-            }
-        }
-    });
-
-    if (refHistoricoCampanhasWhatsapp) refHistoricoCampanhasWhatsapp.off();
-    refHistoricoCampanhasWhatsapp = db.ref('campanhasWhatsapp/campanhas').limitToLast(15);
-    refHistoricoCampanhasWhatsapp.on('value', snap => {
-        const dados = snap.val() || {};
-        const lista = Object.entries(dados)
-            .map(([id, c]) => ({ id, ...(c || {}) }))
-            .sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
-
-        if (!lista.length) {
-            historicoEl.innerHTML = '<p class="dica-secao">Nenhuma campanha criada ainda.</p>';
-            return;
-        }
-
-        historicoEl.innerHTML = lista.map(c => {
-            const enviados = Object.keys(normalizarEnviadosCampanha(c.enviados)).length;
-            const data = c.criadoEm ? new Date(c.criadoEm).toLocaleString('pt-BR') : '—';
-            const textoCurto = String(c.texto || '').replace(/\s+/g, ' ').slice(0, 110);
-            const ativa = c.id === campanhaWhatsappAtivaId;
-            return `
-                <div class="pedido-card" style="margin-top:8px;">
-                    <strong>${ativa ? '🟢 Campanha atual' : '📣 Campanha'}</strong>
-                    <p style="margin:5px 0; font-size:0.85em; color:var(--muted);">${data} · ${enviados} marcado(s) como enviado(s)</p>
-                    <p style="margin:0;">${textoCurto}${String(c.texto || '').length > 110 ? '…' : ''}</p>
-                    ${!ativa ? `<button class="btn-secondary" style="margin-top:8px;" onclick="retomarCampanhaWhatsapp('${c.id}')">↩️ Retomar</button>` : ''}
-                </div>
-            `;
-        }).join('');
-    });
-}
-
-async function retomarCampanhaWhatsapp(id) {
-    try {
-        const snap = await db.ref('campanhasWhatsapp/campanhas/' + id).once('value');
-        const campanha = snap.val();
-        if (!campanha) return;
-
-        await db.ref('campanhasWhatsapp/ativaId').set(id);
-        await db.ref(`campanhasWhatsapp/campanhas/${id}/status`).set('ativa');
-
-        const textoEl = document.getElementById('mmTexto');
-        if (textoEl) textoEl.value = campanha.texto || '';
-
-        campanhaWhatsappAtivaId = id;
-        campanhaWhatsappAtiva = campanha;
-        escutarCampanhaWhatsappAtiva(id);
-    } catch (err) {
-        alert('Não foi possível retomar esta campanha: ' + err.message);
-    }
+    setTimeout(montarListaMensagemMassa, 300); // atualiza o visual (marca com ✅) depois do clique
 }
 
 function renderClientesGestao() {
@@ -3743,131 +3333,30 @@ function baixarOrcamentoJPG() {
     }, 200);
 }
 
-// ---------- Sistema de Gestão — Backup completo da loja ----------
-// O arquivo agora é gerado no SERVIDOR com Admin SDK. Assim o backup não depende
-// das permissões públicas do navegador e consegue incluir também dados protegidos,
-// como dispositivos autorizados e métricas.
-function urlFunctionHttp(nome) {
-    const projectId = firebase.app().options.projectId;
-    return `https://us-central1-${projectId}.cloudfunctions.net/${nome}`;
-}
-
+// ---------- Sistema de Gestão — Backup completo ----------
+// Baixa TUDO que já está no Firebase (ingredientes, bases, fichaTecnica, clientesGestao)
+// num arquivo JSON — cópia extra, útil offline; os dados já ficam salvos na nuvem sozinhos
 async function exportarBackupGestaoCompleto() {
     const msgEl = document.getElementById('msgExportarBackupGestao');
-    const botao = document.getElementById('btnBackupCompleto');
-    msgEl.textContent = 'Preparando backup completo...';
-    if (botao) botao.disabled = true;
-
+    msgEl.textContent = 'Preparando backup...';
     try {
-        const user = firebase.auth().currentUser;
-        if (!user) throw new Error('Faça login novamente no painel.');
-
-        const token = await user.getIdToken();
-        const resposta = await fetch(urlFunctionHttp('baixarBackupCompleto'), {
-            method: 'GET',
-            headers: { Authorization: `Bearer ${token}` }
-        });
-
-        if (!resposta.ok) {
-            let detalhe = '';
-            try { detalhe = await resposta.text(); } catch (e) {}
-            throw new Error(detalhe || `Erro ${resposta.status} ao gerar o backup.`);
-        }
-
-        const blob = await resposta.blob();
+        const backup = {
+            ingredientes,
+            bases,
+            fichaTecnica,
+            clientesGestao,
+            exportadoEm: new Date().toISOString()
+        };
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        const hoje = new Date().toISOString().slice(0, 10);
         link.href = url;
-        link.download = `backup-completo-loja-${hoje}.json`;
-        document.body.appendChild(link);
+        link.download = `backup-gestao-${new Date().toISOString().slice(0, 10)}.json`;
         link.click();
-        link.remove();
         URL.revokeObjectURL(url);
-
-        const tamanhoMb = (blob.size / (1024 * 1024)).toFixed(2);
-        msgEl.textContent = `✅ Backup completo baixado (${tamanhoMb} MB). Guarde esse arquivo em local seguro.`;
+        msgEl.textContent = 'Backup baixado!';
     } catch (err) {
-        console.error('Erro no backup completo:', err);
-        msgEl.textContent = '❌ Não foi possível gerar o backup completo: ' + err.message;
-    } finally {
-        if (botao) botao.disabled = false;
-    }
-}
-
-async function restaurarBackupCompleto() {
-    const input = document.getElementById('inputRestaurarBackupCompleto');
-    const msgEl = document.getElementById('msgRestaurarBackupCompleto');
-    const botao = document.getElementById('btnRestaurarBackupCompleto');
-
-    if (!input || !input.files || !input.files.length) {
-        msgEl.textContent = 'Escolha primeiro um arquivo de backup completo (.json).';
-        return;
-    }
-
-    let backup;
-    try {
-        backup = JSON.parse(await input.files[0].text());
-    } catch (err) {
-        msgEl.textContent = '❌ O arquivo escolhido não é um JSON válido.';
-        return;
-    }
-
-    if (!backup || !backup._backup || backup._backup.tipo !== 'backup-completo-loja' || !backup._backup.versao) {
-        msgEl.textContent = '❌ Esse arquivo não é um backup completo válido gerado por este sistema.';
-        return;
-    }
-
-    const dataGeracao = backup._backup.geradoEm
-        ? new Date(backup._backup.geradoEm).toLocaleString('pt-BR')
-        : 'data não informada';
-
-    if (!confirm(
-        `⚠️ RESTAURAÇÃO COMPLETA\n\n` +
-        `Backup gerado em: ${dataGeracao}\n\n` +
-        `Isso vai SUBSTITUIR os dados atuais da loja pelos dados deste arquivo. ` +
-        `Pedidos e alterações feitas depois desse backup podem ser perdidos.\n\n` +
-        `Você já baixou um backup atual e quer continuar?`
-    )) return;
-
-    const confirmacao = prompt('Para confirmar a restauração, digite exatamente: RESTAURAR');
-    if (confirmacao !== 'RESTAURAR') {
-        msgEl.textContent = 'Restauração cancelada.';
-        return;
-    }
-
-    msgEl.textContent = '⏳ Restaurando... não feche esta página.';
-    if (botao) botao.disabled = true;
-
-    try {
-        const user = firebase.auth().currentUser;
-        if (!user) throw new Error('Faça login novamente no painel.');
-        const token = await user.getIdToken();
-
-        const resposta = await fetch(urlFunctionHttp('restaurarBackupCompleto'), {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(backup)
-        });
-
-        const texto = await resposta.text();
-        let dados = {};
-        try { dados = texto ? JSON.parse(texto) : {}; } catch (e) {}
-
-        if (!resposta.ok || !dados.ok) {
-            throw new Error(dados.erro || texto || `Erro ${resposta.status} na restauração.`);
-        }
-
-        msgEl.textContent = `✅ Backup restaurado com sucesso (${dados.caminhosRestaurados || 0} grupos de dados). A página será atualizada.`;
-        setTimeout(() => location.reload(), 1800);
-    } catch (err) {
-        console.error('Erro ao restaurar backup:', err);
-        msgEl.textContent = '❌ Não foi possível restaurar: ' + err.message;
-    } finally {
-        if (botao) botao.disabled = false;
+        msgEl.textContent = 'Erro ao gerar backup: ' + err.message;
     }
 }
 
@@ -4634,24 +4123,7 @@ function carregarClientesInativos() {
 }
 
 function escutarConfigLoja() {
-    // ---------- Preferência isolada: aviso automático de abertura ----------
-(function iniciarControleAvisoAbertura() {
-    const refNova = db.ref('configuracao/notificacoes/avisoAberturaAtivo');
-    const refLegada = db.ref('configuracao/loja/notificacaoAberturaAtiva');
-
-    Promise.all([refNova.once('value'), refLegada.once('value')]).then(([novaSnap, antigaSnap]) => {
-        if (!novaSnap.exists() && antigaSnap.exists() && typeof antigaSnap.val() === 'boolean') {
-            return refNova.set(antigaSnap.val());
-        }
-    }).catch(() => {});
-
-    refNova.on('value', snap => {
-        const chk = document.getElementById('chkNotificacaoAberturaAtiva');
-        if (chk) chk.checked = snap.val() !== false;
-    });
-})();
-
-db.ref('configuracao/loja').on('value', snap => {
+    db.ref('configuracao/loja').on('value', snap => {
         const config = snap.val() || {};
         montarLinhasHorario(config.horarios);
 
@@ -4752,7 +4224,6 @@ function montarLinhaProduto(id, produto) {
                 <option value="">— Nenhuma —</option>
                 ${fichaTecnica.map(ft => `<option value="${ft.id}" ${produto.fichaTecnicaId === ft.id ? 'selected' : ''}>${ft.nome}</option>`).join('')}
             </select>
-            ${!produto.fichaTecnicaId ? `<button type="button" class="btn-secondary" style="margin-top:6px;" onclick="criarFichaTecnicaAPartirDoProduto('${id}')">📋 Criar Ficha Técnica pra esse produto</button>` : ''}
         </div>
 
         <div class="campo-oferta-carrinho" style="margin-top:8px;">
@@ -5313,39 +4784,6 @@ function excluirProduto(id) {
 // Cria o produto no cardápio a partir de uma ficha técnica já pronta — já vem com
 // nome e preço calculado preenchidos e já vinculado a essa ficha técnica. Só falta
 // a pessoa entrar na aba Produtos e completar foto + categoria
-// Caminho inverso do "Migrar pro site" — parte de um produto que JÁ existe no
-// cardápio e cria a ficha técnica dele (começa em branco, sem componentes ainda —
-// a pessoa completa a receita depois), já linkando os dois automaticamente
-async function criarFichaTecnicaAPartirDoProduto(produtoId) {
-    const nome = document.getElementById('prodNome_' + produtoId).value.trim();
-    const precoAtual = parseFloat(document.getElementById('prodPreco_' + produtoId).value.replace(',', '.')) || 0;
-    if (!nome) { alert('Preenche o nome do produto antes de criar a ficha técnica.'); return; }
-
-    if (!confirm(`Criar a Ficha Técnica de "${nome}"? Ela começa em branco (sem ingredientes ainda) — você completa a receita depois na aba Ficha Técnica. O preço atual (${formatarPreco(precoAtual)}) já entra fixado, pra não mudar o preço do cardápio sem querer.`)) return;
-
-    try {
-        const novaFtRef = db.ref('fichaTecnica').push();
-        await novaFtRef.set({
-            nome,
-            rendimento: 1,
-            componentes: [],
-            embalagem: 0, custoFixo: 0, horasTrabalho: 0, valorHora: 0,
-            margemEmpresa: 0, margemCasal: 0, taxaVenda: 0,
-            precoVendaManual: precoAtual > 0 ? precoAtual : null
-        });
-        await db.ref('produtos/' + produtoId + '/fichaTecnicaId').set(novaFtRef.key);
-
-        const botaoAbaGestao = document.querySelector('.painel-tab-btn[data-tab="gestao"]');
-        if (botaoAbaGestao) botaoAbaGestao.click();
-        setTimeout(() => {
-            mostrarSubabaGestao('sub-ficha-tecnica');
-            alert(`Ficha técnica de "${nome}" criada e já vinculada! Agora é só adicionar os ingredientes/bases da receita aqui.`);
-        }, 300);
-    } catch (err) {
-        alert('Erro ao criar a ficha técnica: ' + err.message);
-    }
-}
-
 async function migrarFichaTecnicaParaProduto(id) {
     const ft = getFichaTecnica(id);
     if (!ft) return;
@@ -6032,7 +5470,6 @@ function iniciarEscutaPedidos() {
     escutarBases();
     escutarFichaTecnica();
     escutarClientesGestao();
-    escutarCampanhasWhatsapp();
     escutarDestaquesManuais();
     escutarPedidosManuais();
     const previaLojaNomeEl = document.getElementById('previaLojaNome');
@@ -6101,7 +5538,7 @@ function iniciarEscutaPedidos() {
             listaPendentesEl.prepend(montarCardPedido(snap.key, pedido, true));
             idsRenderizados.add(snap.key);
             atualizarContador();
-            if (primeiraCargaConcluida && pedido.status === 'pendente' && !window._importandoBackupGestao) dispararAlertaNovoPedido(pedido);
+            if (primeiraCargaConcluida && pedido.status === 'pendente' && !window._importandoBackupGestao) tocarAlerta();
         });
 
         // Quando o status do pedido muda (aceitar, sair pra entrega, entregar, recusar)
@@ -6141,7 +5578,7 @@ function iniciarEscutaPedidos() {
                 if (listaPendentesEl.querySelector('.vazio')) listaPendentesEl.innerHTML = '';
                 listaPendentesEl.insertBefore(montarCardPedido(snap.key, pedido, true), listaPendentesEl.firstChild);
                 idsRenderizados.add(snap.key);
-                if (pedido.status === 'pendente' && !window._importandoBackupGestao) dispararAlertaNovoPedido(pedido);
+                if (pedido.status === 'pendente' && !window._importandoBackupGestao) tocarAlerta();
             }
             atualizarContador();
         });
