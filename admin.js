@@ -2278,13 +2278,15 @@ function salvarFichaTecnica() {
     };
     msgEl.textContent = 'Salvando...';
 
-    const promessa = editingFichaTecnicaId
-        ? db.ref('fichaTecnica/' + editingFichaTecnicaId).update(obj)
-        : db.ref('fichaTecnica').push(obj);
+    // Precisa do ID ANTES de montar a prévia pós-salvamento — sem isso, os botões de
+    // "preço redondo" dessa prévia ficavam com id "undefined" (literalmente a palavra),
+    // e clicar neles criava uma ficha técnica fantasma com esse nome no Firebase.
+    const idParaSalvar = editingFichaTecnicaId || db.ref('fichaTecnica').push().key;
+    const promessa = db.ref('fichaTecnica/' + idParaSalvar).update(obj);
 
     promessa.then(() => {
         msgEl.textContent = 'Salvo!';
-        document.getElementById('ftResultado').innerHTML = montarResultadoFichaTecnica(obj);
+        document.getElementById('ftResultado').innerHTML = montarResultadoFichaTecnica({ id: idParaSalvar, ...obj });
         tempFichaTecnicaComponentes = [];
         ['ftNome', 'ftRendimento', 'ftEmbalagem', 'ftCustoFixo', 'ftHoras', 'ftValorHora', 'ftMargemEmpresa', 'ftMargemCasal', 'ftTaxaVenda', 'ftPrecoManual'].forEach(id => document.getElementById(id).value = '');
         renderTempComponentesFichaTecnica();
