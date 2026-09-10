@@ -4620,6 +4620,7 @@ async function executarDiagnosticoSistema() {
         const resposta = await diagnosticar();
         const d = resposta.data || {};
         const linha = (ok, texto) => `${ok ? '✅' : '⚠️'} ${texto}`;
+        const presos = Number(d.pedidosPresosAguardandoPagamento || 0);
         el.innerHTML = [
             linha(!!d.functionsOk, 'Firebase Functions respondendo'),
             linha(!!d.infinitePayConfigurada, d.infinitePayConfigurada ? 'InfinitePay configurada' : 'InfinitePay sem InfiniteTag configurada'),
@@ -4627,6 +4628,9 @@ async function executarDiagnosticoSistema() {
             linha(Number(d.destaquesAutomaticos || 0) > 0, Number(d.destaquesAutomaticos || 0) > 0
                 ? `${d.destaquesAutomaticos} destaque(s) automático(s) calculado(s)`
                 : 'Carrossel automático ainda sem destaques calculados'),
+            linha(presos === 0, presos === 0
+                ? 'Nenhum pedido preso aguardando pagamento'
+                : `${presos} pedido(s) preso(s) há mais de 10min aguardando pagamento — confira se algum cliente já pagou`),
             linha(true, `Servidor: ${d.horaServidor || 'respondendo'}`)
         ].join('<br>');
     } catch (err) {
@@ -4783,7 +4787,8 @@ function renderizarListaProdutosAdmin() {
 
     const val = ultimoValProdutosAdmin || {};
     const itens = Object.entries(val).map(([id, produto]) => ({ id, produto }));
-    itens.sort((a, b) => (a.produto.criadoEm || 0) - (b.produto.criadoEm || 0));
+    // Mais recentes primeiro — mesma lógica já aplicada na Ficha Técnica
+    itens.sort((a, b) => (b.produto.criadoEm || 0) - (a.produto.criadoEm || 0));
 
     categoriasConhecidas = [...new Set(itens.map(i => i.produto.categoria).filter(Boolean))];
     produtosConhecidos = itens.map(i => i.produto.nome).filter(Boolean);
