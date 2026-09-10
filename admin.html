@@ -594,8 +594,7 @@
                     <button class="gestao-subtab-btn" data-subtab="sub-dashboard" onclick="mostrarSubabaGestao('sub-dashboard')">📊 Dashboard</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-relatorios" onclick="mostrarSubabaGestao('sub-relatorios')">📄 Relatórios</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-orcamento" onclick="mostrarSubabaGestao('sub-orcamento')">💰 Orçamento</button>
-                    <button class="gestao-subtab-btn" data-subtab="sub-backup" onclick="mostrarSubabaGestao('sub-backup')">💾 Backup</button>
-                    <button class="gestao-subtab-btn" data-subtab="sub-importar" onclick="mostrarSubabaGestao('sub-importar')">📥 Importar Backup</button>
+                    <button class="gestao-subtab-btn" data-subtab="sub-sistema" onclick="mostrarSubabaGestao('sub-sistema')">🛠️ Sistema</button>
                 </div>
 
                 <div class="gestao-subconteudo" data-subtab-content="sub-ingredientes">
@@ -1011,6 +1010,25 @@
                     </div>
 
                     <div class="loja-status-card" style="margin-top:16px;">
+                        <h3 style="margin-bottom:10px;">🏆 Destaques do período</h3>
+                        <div class="produto-admin-linha" style="gap:10px; flex-wrap:wrap;">
+                            <div style="flex:1; min-width:170px;">
+                                <div class="dica-secao" style="margin:0 0 3px;">Mais vendido</div>
+                                <strong id="dashMaisVendido">—</strong>
+                            </div>
+                            <div style="flex:1; min-width:170px;">
+                                <div class="dica-secao" style="margin:0 0 3px;">Mais faturou em itens</div>
+                                <strong id="dashMaisFaturou">—</strong>
+                            </div>
+                            <div style="flex:1; min-width:170px;">
+                                <div class="dica-secao" style="margin:0 0 3px;">Maior lucro estimado</div>
+                                <strong id="dashMaisLucrativo">—</strong>
+                            </div>
+                        </div>
+                        <p class="dica-secao" style="margin:10px 0 0;">Calculado somente com os pedidos entregues do período selecionado, usando a mesma ficha técnica/CMV do Dashboard.</p>
+                    </div>
+
+                    <div class="loja-status-card" style="margin-top:16px;">
                         <h3>Faturamento por mês</h3>
                         <canvas id="chartFaturamento" height="200"></canvas>
                     </div>
@@ -1105,17 +1123,19 @@
                         <div id="previewOrcamento"></div>
                     </div>
                 </div>
+                <div class="gestao-subconteudo" data-subtab-content="sub-sistema" style="display:none;">
+                    <div class="loja-status-card">
+                        <h3>🛠️ Sistema</h3>
+                        <p class="dica-secao">Backup, diagnóstico e importação reunidos em um só lugar.</p>
+                    </div>
 
-                <div class="gestao-subconteudo" data-subtab-content="sub-backup" style="display:none;">
                     <div class="loja-status-card">
                         <h3>💾 Backup</h3>
                         <p class="dica-secao">Os dados já ficam salvos automaticamente no Firebase — esse backup é uma cópia extra, útil pra guardar offline ou levar pra outro lugar.</p>
                         <button class="btn-salvar-ordem" onclick="exportarBackupGestaoCompleto()">⬇️ Baixar Backup (JSON)</button>
                         <p id="msgExportarBackupGestao" class="ordem-categorias-msg"></p>
                     </div>
-                </div>
 
-                <div class="gestao-subconteudo" data-subtab-content="sub-importar" style="display:none;">
                     <div class="loja-status-card">
                         <h3>🩺 Diagnóstico de dados</h3>
                         <p class="dica-secao">Verifica se alguma base ou ficha técnica está com referência quebrada (aponta pra um ingrediente/base que não existe mais) — útil depois de importar dados antigos.</p>
@@ -1145,7 +1165,6 @@
                         <button class="btn-secondary" style="margin-top:10px;" onclick="autoVincularFichaTecnicaPorNome()">🔗 Vincular produtos à Ficha Técnica (automático, por nome)</button>
                         <button class="btn-secondary" style="margin-top:10px;" onclick="corrigirFichaTecnicaPedidosAntigos()">🔧 Corrigir CMV de pedidos do cardápio já feitos</button>
                         <p id="msgImportarBackup" class="ordem-categorias-msg"></p>
-                    </div>
                 </div>
             </section>
         </main>

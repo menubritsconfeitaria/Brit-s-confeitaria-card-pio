@@ -1887,12 +1887,31 @@ let editingBaseId = null;
 // Troca de sub-aba dentro da mega-aba "Gestão" — mesma lógica das abas
 // principais, só que dentro de um container menor (não mexe na URL/localStorage)
 function mostrarSubabaGestao(subaba) {
+    // Compatibilidade com versões antigas que ainda tinham Backup e Importar separados.
+    if (subaba === 'sub-backup' || subaba === 'sub-importar') subaba = 'sub-sistema';
+
     document.querySelectorAll('.gestao-subtab-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.subtab === subaba);
     });
     document.querySelectorAll('.gestao-subconteudo').forEach(div => {
         div.style.display = div.dataset.subtabContent === subaba ? 'block' : 'none';
     });
+    localStorage.setItem('gestaoSubabaAtiva', subaba);
+}
+
+// Lembra a última área usada dentro da Gestão, evitando ter que procurar de novo.
+function restaurarSubabaGestao() {
+    const salva = localStorage.getItem('gestaoSubabaAtiva');
+    const alvo = salva && document.querySelector(`.gestao-subtab-btn[data-subtab="${salva}"]`)
+        ? salva
+        : 'sub-ingredientes';
+    mostrarSubabaGestao(alvo);
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', restaurarSubabaGestao, { once: true });
+} else {
+    restaurarSubabaGestao();
 }
 
 function escutarBases() {
@@ -3002,6 +3021,7 @@ function carregarDashboard(inicio, fim) {
         let faturamento = 0, cmv = 0, lucroEmpresaTotal = 0, lucroCasalTotal = 0, recebidoDeFato = 0;
         const porMes = {}; // "AAAA-MM" -> { faturamento, lucro }
         const porProduto = {}; // nome -> quantidade vendida
+        const desempenhoProduto = {}; // nome -> { quantidade, faturamentoItens, lucroEstimado }
 
         pedidosDoPeriodo.forEach(p => {
             faturamento += p.total || 0;
@@ -3024,15 +3044,24 @@ function carregarDashboard(inicio, fim) {
 
             let cmvDoPedido = 0, lucroEmpresaDoPedido = 0, lucroCasalDoPedido = 0;
             (p.itens || []).forEach(item => {
-                porProduto[item.nome] = (porProduto[item.nome] || 0) + item.quantidade;
+                const qtd = Number(item.quantidade || 0);
+                const nomeProduto = item.nome || 'Produto';
+                const faturamentoItem = Number(item.preco || 0) * qtd;
+                porProduto[nomeProduto] = (porProduto[nomeProduto] || 0) + qtd;
+                if (!desempenhoProduto[nomeProduto]) desempenhoProduto[nomeProduto] = { quantidade: 0, faturamentoItens: 0, lucroEstimado: 0 };
+                desempenhoProduto[nomeProduto].quantidade += qtd;
+                desempenhoProduto[nomeProduto].faturamentoItens += faturamentoItem;
+
                 const ftId = item.fichaTecnicaId || null;
                 if (ftId) {
                     const ft = getFichaTecnica(ftId);
                     if (ft) {
                         const r = calcularCustoFichaTecnica(ft);
-                        cmvDoPedido += r.custoUnitarioFinal * item.quantidade;
-                        lucroEmpresaDoPedido += r.lucroEmpresa * item.quantidade;
-                        lucroCasalDoPedido += r.lucroCasal * item.quantidade;
+                        const custoItem = r.custoUnitarioFinal * qtd;
+                        cmvDoPedido += custoItem;
+                        lucroEmpresaDoPedido += r.lucroEmpresa * qtd;
+                        lucroCasalDoPedido += r.lucroCasal * qtd;
+                        desempenhoProduto[nomeProduto].lucroEstimado += faturamentoItem - custoItem;
                     }
                 }
             });
@@ -3051,11 +3080,26 @@ function carregarDashboard(inicio, fim) {
         document.getElementById('dashCMV').textContent = formatarPreco(arred(cmv));
         document.getElementById('dashCMVPercent').textContent = `(${cmvPercent}%)`;
         document.getElementById('dashLucro').textContent = formatarPreco(lucro);
+        const margemBrutaPercent = faturamento > 0 ? Math.round((lucro / faturamento) * 1000) / 10 : 0;
+        const lucroLabel = document.querySelector('#dashLucro + .dica-secao');
+        if (lucroLabel) lucroLabel.textContent = `Lucro bruto (${margemBrutaPercent}%)`;
         document.getElementById('dashPedidos').textContent = qtdPedidos;
         document.getElementById('dashTicket').textContent = formatarPreco(ticketMedio);
         document.getElementById('dashLucroEmpresa').textContent = formatarPreco(arred(lucroEmpresaTotal));
         document.getElementById('dashLucroCasal').textContent = formatarPreco(arred(lucroCasalTotal));
         document.getElementById('dashRecebido').textContent = formatarPreco(arred(recebidoDeFato));
+
+        const desempenho = Object.entries(desempenhoProduto);
+        const maisVendido = desempenho.slice().sort((a, b) => b[1].quantidade - a[1].quantidade)[0];
+        const maisFaturou = desempenho.slice().sort((a, b) => b[1].faturamentoItens - a[1].faturamentoItens)[0];
+        const maisLucrativo = desempenho.filter(([, d]) => Number.isFinite(d.lucroEstimado)).sort((a, b) => b[1].lucroEstimado - a[1].lucroEstimado)[0];
+
+        const elMaisVendido = document.getElementById('dashMaisVendido');
+        const elMaisFaturou = document.getElementById('dashMaisFaturou');
+        const elMaisLucrativo = document.getElementById('dashMaisLucrativo');
+        if (elMaisVendido) elMaisVendido.textContent = maisVendido ? `${maisVendido[0]} · ${maisVendido[1].quantidade} un.` : '—';
+        if (elMaisFaturou) elMaisFaturou.textContent = maisFaturou ? `${maisFaturou[0]} · ${formatarPreco(arred(maisFaturou[1].faturamentoItens))}` : '—';
+        if (elMaisLucrativo) elMaisLucrativo.textContent = maisLucrativo ? `${maisLucrativo[0]} · ${formatarPreco(arred(maisLucrativo[1].lucroEstimado))}` : '—';
 
         desenharGraficosDashboard(porMes, porProduto);
     });
