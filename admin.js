@@ -1574,7 +1574,9 @@ function salvarNotificacaoAberturaAtiva(ativo) {
     const msgEl = document.getElementById('msgNotificacaoAbertura');
     if (msgEl) msgEl.textContent = 'Salvando...';
 
-    db.ref('configuracao/loja/notificacaoAberturaAtiva').set(!!ativo)
+    // Preferência isolada da configuração da loja:
+    // alterar este botão NÃO dispara o gatilho de abertura.
+    db.ref('configuracao/notificacoes/avisoAberturaAtivo').set(!!ativo)
         .then(() => {
             if (msgEl) {
                 msgEl.textContent = ativo
@@ -4632,7 +4634,24 @@ function carregarClientesInativos() {
 }
 
 function escutarConfigLoja() {
-    db.ref('configuracao/loja').on('value', snap => {
+    // ---------- Preferência isolada: aviso automático de abertura ----------
+(function iniciarControleAvisoAbertura() {
+    const refNova = db.ref('configuracao/notificacoes/avisoAberturaAtivo');
+    const refLegada = db.ref('configuracao/loja/notificacaoAberturaAtiva');
+
+    Promise.all([refNova.once('value'), refLegada.once('value')]).then(([novaSnap, antigaSnap]) => {
+        if (!novaSnap.exists() && antigaSnap.exists() && typeof antigaSnap.val() === 'boolean') {
+            return refNova.set(antigaSnap.val());
+        }
+    }).catch(() => {});
+
+    refNova.on('value', snap => {
+        const chk = document.getElementById('chkNotificacaoAberturaAtiva');
+        if (chk) chk.checked = snap.val() !== false;
+    });
+})();
+
+db.ref('configuracao/loja').on('value', snap => {
         const config = snap.val() || {};
         montarLinhasHorario(config.horarios);
 
@@ -4648,11 +4667,6 @@ function escutarConfigLoja() {
 
         const chkPagamento = document.getElementById('chkPagamentoOnlineAtivo');
         if (chkPagamento) chkPagamento.checked = !!config.pagamentoOnlineAtivo;
-
-        const chkNotificacaoAbertura = document.getElementById('chkNotificacaoAberturaAtiva');
-        if (chkNotificacaoAbertura) {
-            chkNotificacaoAbertura.checked = config.notificacaoAberturaAtiva !== false;
-        }
 
         adicionaisAtivo = !!config.adicionaisAtivo;
         const chkAdicionais = document.getElementById('chkAdicionaisAtivo');
