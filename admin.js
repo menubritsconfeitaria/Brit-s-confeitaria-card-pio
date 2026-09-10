@@ -4252,7 +4252,7 @@ function carregarClientesInativos() {
 function salvarNotificacaoAberturaAtiva(ativo) {
     const msgEl = document.getElementById('msgNotificacaoAbertura');
     db.ref('configuracao/notificacoes/avisoAberturaAtivo').set(!!ativo)
-        .then(() => { if (msgEl) msgEl.textContent = 'Salvo!'; })
+        .then(() => { if (msgEl) msgEl.textContent = (ativo ? 'Notificações Ativada' : 'Notificações Desativada') + ' — Salvo!'; })
         .catch(err => { if (msgEl) msgEl.textContent = 'Erro ao salvar: ' + err.message; });
 }
 
