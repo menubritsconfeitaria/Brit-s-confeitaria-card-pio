@@ -2124,7 +2124,10 @@ let editingFichaTecnicaId = null;
 function escutarFichaTecnica() {
     db.ref('fichaTecnica').on('value', snap => {
         const val = snap.val() || {};
-        fichaTecnica = Object.entries(val).map(([id, p]) => ({ id, ...p }));
+        // As chaves do Firebase já vêm em ordem cronológica crescente (mais antiga
+        // primeiro) — inverte pra mostrar as fichas técnicas criadas mais recentemente
+        // no topo da lista, sem precisar de um campo de data separado
+        fichaTecnica = Object.entries(val).map(([id, p]) => ({ id, ...p })).reverse();
         renderFichaTecnica();
         if (typeof popularSelectProdutoPedidoManual === 'function') popularSelectProdutoPedidoManual();
         if (typeof renderRelatorioCustos === 'function') renderRelatorioCustos();
