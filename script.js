@@ -583,6 +583,25 @@ function fecharAvisoOferta() {
 
 
 
+// ---------- Token de identidade do cliente (pra "Meus Pedidos" por telefone) ----------
+// Identifica esse aparelho de forma anônima, sem senha nem login. É gerado uma vez,
+// guardado permanentemente (localStorage, não sessionStorage), e enviado toda vez que
+// o cliente faz um pedido novo — isso "registra" esse token como o dono atual daquele
+// telefone no servidor, então só quem realmente fez um pedido recente com aquele número
+// consegue depois consultar o histórico dele por telefone (evita que alguém que só saiba
+// o WhatsApp de outra pessoa consiga ver os pedidos dela).
+const CHAVE_TOKEN_CLIENTE = 'tokenCliente';
+function obterTokenCliente() {
+    try {
+        let token = localStorage.getItem(CHAVE_TOKEN_CLIENTE);
+        if (!token) {
+            token = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            localStorage.setItem(CHAVE_TOKEN_CLIENTE, token);
+        }
+        return token;
+    } catch (e) { return null; } // localStorage bloqueado — segue sem token, só perde a busca por telefone
+}
+
 // ---------- Métricas de conversão (sem dados pessoais) ----------
 // Registra somente etapas do funil. A Cloud Function faz a gravação pelo servidor,
 // então não é preciso abrir novas permissões públicas no Realtime Database.
@@ -1184,7 +1203,7 @@ async function buscarPedidosPorTelefone(telefone) {
     // A consulta do histórico é feita no servidor. Assim o navegador não precisa consultar
     // diretamente a coleção /pedidos, e recebemos somente os campos necessários para a tela.
     const buscar = firebase.functions().httpsCallable('buscarPedidosCliente');
-    const resposta = await buscar({ telefone: telefoneNormalizado });
+    const resposta = await buscar({ telefone: telefoneNormalizado, token: obterTokenCliente() });
     const pedidos = resposta && resposta.data && Array.isArray(resposta.data.pedidos)
         ? resposta.data.pedidos
         : [];
@@ -2797,6 +2816,9 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         } : null,
         // Metadados anônimos de atribuição: não mudam o fluxo do pedido/pagamento.
         sessaoConversaoId: obterSessaoConversaoId(),
+        // Token do aparelho — registra esse aparelho como "dono" do telefone informado,
+        // pra permitir consultar "Meus Pedidos" com segurança depois (ver Cloud Function)
+        tokenCliente: obterTokenCliente(),
         origemVendedorInteligente: (() => { try { return sessionStorage.getItem('vendedorInteligenteClicado') === '1'; } catch (e) { return false; } })(),
         vendedorInteligenteProdutoId: (() => { try { return sessionStorage.getItem('vendedorInteligenteProdutoId') || null; } catch (e) { return null; } })(),
         vendedorInteligenteProdutoNome: (() => { try { return sessionStorage.getItem('vendedorInteligenteProdutoNome') || null; } catch (e) { return null; } })(),
