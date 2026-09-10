@@ -1175,23 +1175,23 @@ function variantesTelefoneMeusPedidos(telefone) {
 }
 
 async function buscarPedidosPorTelefone(telefone) {
-    if (!telefone || typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return [];
-    const variantes = variantesTelefoneMeusPedidos(telefone);
-    const consultas = variantes.map(valor =>
-        firebase.database().ref('pedidos').orderByChild('telefone').equalTo(valor).once('value')
-            .then(snap => {
-                const itens = [];
-                snap.forEach(filho => itens.push({ id: filho.key, pedido: filho.val(), origem: 'telefone' }));
-                return itens;
-            })
-            .catch(() => [])
-    );
-    const grupos = await Promise.all(consultas);
-    const unicos = new Map();
-    grupos.flat().forEach(item => {
-        if (item && item.id && item.pedido) unicos.set(item.id, item);
-    });
-    return Array.from(unicos.values());
+    const telefoneNormalizado = normalizarTelefone(telefone);
+    if (!telefoneNormalizado || telefoneNormalizado.length < 10) return [];
+    if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length || !firebase.functions) {
+        throw new Error('Cloud Functions indisponível para consultar Meus Pedidos.');
+    }
+
+    // A consulta do histórico é feita no servidor. Assim o navegador não precisa consultar
+    // diretamente a coleção /pedidos, e recebemos somente os campos necessários para a tela.
+    const buscar = firebase.functions().httpsCallable('buscarPedidosCliente');
+    const resposta = await buscar({ telefone: telefoneNormalizado });
+    const pedidos = resposta && resposta.data && Array.isArray(resposta.data.pedidos)
+        ? resposta.data.pedidos
+        : [];
+
+    return pedidos
+        .filter(item => item && item.id && item.pedido)
+        .map(item => ({ ...item, origem: 'telefone-servidor' }));
 }
 
 function formaPagamentoPedidoTexto(pedido) {
