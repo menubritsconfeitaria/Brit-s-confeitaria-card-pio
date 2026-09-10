@@ -58,11 +58,14 @@
 
     <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-functions-compat.js"></script>
     <script src="loja-config.js"></script>
     <script src="firebase-config.js"></script>
     <script>
-        // Nunca confia só no fato do cliente ter voltado pra essa página — sempre escuta
-        // o status real do pedido no Firebase (que só o Webhook da InfinitePay atualiza de verdade)
+        // Essa página é pública (o cliente chega aqui sem estar logado) — por isso não lê
+        // o pedido direto do banco. Consulta pela Cloud Function consultarStatusPedidoCliente,
+        // que só devolve o status (sanitizado) pra quem tiver o token certo desse aparelho —
+        // o mesmo token que já foi usado quando o pedido foi criado, no cardápio.
         const parametros = new URLSearchParams(window.location.search);
         // Aceita tanto o "pedido" que eu mesmo mando quanto o "order_nsu" que a InfinitePay
         // sempre inclui no retorno (é o mesmo valor) — cobre o caso de um dos dois "sumir"
@@ -72,37 +75,70 @@
         const statusTexto = document.getElementById('statusTexto');
         const statusBadge = document.getElementById('statusBadge');
 
+        // Mesma chave usada no cardápio (script.js) — precisa ser idêntica, senão esse
+        // aparelho não é reconhecido como o dono do pedido que acabou de criar
+        function obterTokenCliente() {
+            try {
+                let token = localStorage.getItem('tokenCliente');
+                if (!token) {
+                    token = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+                    localStorage.setItem('tokenCliente', token);
+                }
+                return token;
+            } catch (e) { return null; }
+        }
+
+        function atualizarTelaComPedido(pedido) {
+            if (!pedido) return;
+            numeroTexto.textContent = pedido.numero ? `Pedido #${String(pedido.numero).padStart(3, '0')}` : '';
+
+            const status = pedido.pagamento && pedido.pagamento.status;
+            const ehSinal = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal';
+            if (status === 'pago') {
+                statusBadge.className = 'status-badge status-pago';
+                if (ehSinal) {
+                    statusBadge.innerHTML = '🟢 Sinal confirmado!';
+                    statusTexto.textContent = 'Recebemos o sinal e sua encomenda está confirmada! O restante fica combinado pra hora da entrega.';
+                } else {
+                    statusBadge.innerHTML = '🟢 Pagamento confirmado!';
+                    statusTexto.textContent = `${typeof LOJA_CONFIG !== 'undefined' && LOJA_CONFIG ? LOJA_CONFIG.nome : 'A loja'} já recebeu seu pagamento e vai preparar seu pedido.`;
+                }
+                return true; // pode parar de consultar
+            } else if (status === 'divergente') {
+                statusBadge.className = 'status-badge status-divergente';
+                statusBadge.innerHTML = '⚠️ Precisa de atenção';
+                statusTexto.textContent = 'Encontramos uma diferença no valor do pagamento. A loja vai entrar em contato com você.';
+                return true; // pode parar de consultar
+            } else {
+                statusBadge.className = 'status-badge status-aguardando';
+                statusBadge.innerHTML = '<span class="girando">🔄</span> Confirmando pagamento...';
+                statusTexto.textContent = 'Isso costuma ser rápido — pode aguardar aqui, a página se atualiza sozinha.';
+                return false; // continua consultando
+            }
+        }
+
+        let intervaloConsulta = null;
+        async function consultarStatusUmaVez() {
+            try {
+                const consultar = firebase.functions().httpsCallable('consultarStatusPedidoCliente');
+                const resposta = await consultar({ pedidoId, token: obterTokenCliente() });
+                const pedido = resposta && resposta.data ? resposta.data.pedido : null;
+                if (!pedido) return; // ainda não achou (ou aparelho não autorizado) — tenta de novo no próximo ciclo
+                const resolvido = atualizarTelaComPedido(pedido);
+                if (resolvido && intervaloConsulta) {
+                    clearInterval(intervaloConsulta);
+                    intervaloConsulta = null;
+                }
+            } catch (err) {
+                console.log('Não foi possível consultar o status agora:', err.message);
+            }
+        }
+
         if (!pedidoId) {
             statusTexto.textContent = 'Não conseguimos identificar seu pedido automaticamente. Se você pagou, não se preocupe — a loja já foi avisada.';
         } else if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) {
-            firebase.database().ref('pedidos/' + pedidoId).on('value', snap => {
-                const pedido = snap.val();
-                if (!pedido) return;
-
-                numeroTexto.textContent = pedido.numero ? `Pedido #${String(pedido.numero).padStart(3, '0')}` : '';
-
-                const status = pedido.pagamento && pedido.pagamento.status;
-                const ehSinal = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal';
-                if (status === 'pago') {
-                    statusBadge.className = 'status-badge status-pago';
-                    if (ehSinal) {
-                        const valorSinalTexto = `R$ ${Number(pedido.pagamento.valorSinal).toFixed(2).replace('.', ',')}`;
-                        statusBadge.innerHTML = '🟢 Sinal confirmado!';
-                        statusTexto.textContent = `Recebemos o sinal de ${valorSinalTexto} e sua encomenda pro dia ${pedido.dataEncomenda ? pedido.dataEncomenda.split('-').reverse().join('/') : ''} está confirmada! O restante fica combinado pra hora da entrega.`;
-                    } else {
-                        statusBadge.innerHTML = '🟢 Pagamento confirmado!';
-                        statusTexto.textContent = `${LOJA_CONFIG ? LOJA_CONFIG.nome : 'A loja'} já recebeu seu pagamento e vai preparar seu pedido.`;
-                    }
-                } else if (status === 'divergente') {
-                    statusBadge.className = 'status-badge status-divergente';
-                    statusBadge.innerHTML = '⚠️ Precisa de atenção';
-                    statusTexto.textContent = 'Encontramos uma diferença no valor do pagamento. A loja vai entrar em contato com você.';
-                } else {
-                    statusBadge.className = 'status-badge status-aguardando';
-                    statusBadge.innerHTML = '<span class="girando">🔄</span> Confirmando pagamento...';
-                    statusTexto.textContent = 'Isso costuma ser rápido — pode aguardar aqui, a página se atualiza sozinha.';
-                }
-            });
+            consultarStatusUmaVez(); // primeira consulta imediata
+            intervaloConsulta = setInterval(consultarStatusUmaVez, 4000); // depois, a cada 4s até resolver
         }
     </script>
 </body>
