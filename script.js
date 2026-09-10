@@ -2786,10 +2786,11 @@ botaoFinalizarCompra.addEventListener('click', async () => {
     const { id: pedidoId, promessaSalvo } = salvarPedidoNoPainel({
         nome, telefone,
         tipoEntrega: tipoEntregaAtual,
-        // Salva o endereço sempre que tiver algum dado disponível, mesmo em retirada —
-        // o cliente pode já ter endereço cadastrado, e isso ajuda a pré-preencher o
-        // checkout de pagamento depois (CEP/número), mesmo quando não é usado pra frete.
-        endereco: (rua || numero || bairro || cep) ? { rua, numero, complemento, bairro, cidade, estado, cep } : null,
+        // Revertido: manda endereço pro checkout SÓ em pedidos de entrega, como sempre
+        // foi. Tentamos mandar também em retirada quando havia endereço salvo, mas isso
+        // coincidiu com o pagamento parar de funcionar — voltando pro comportamento
+        // que estava confirmado funcionando, até investigar a causa com mais detalhe.
+        endereco: tipoEntregaAtual === 'entrega' ? { rua, numero, complemento, bairro, cidade, estado, cep } : null,
         formaPagamento: formaPagamentoAtual,
         troco: (formaPagamentoAtual === 'Dinheiro' && troco) ? troco : null,
         observacoes: obs || null,
