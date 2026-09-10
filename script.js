@@ -792,24 +792,41 @@ function escutarCupons() {
     });
 }
 
-async function salvarPedidoNoPainel(dadosPedido, statusInicial) {
+function salvarPedidoNoPainel(dadosPedido, statusInicial) {
     statusInicial = statusInicial || 'pendente';
     try {
-        if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length || !firebase.functions) {
-            throw new Error('Firebase/Cloud Functions indisponível.');
+        if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) {
+            console.log('Firebase indisponível — pedido seguirá só pelo WhatsApp.');
+            return { id: null, promessaSalvo: Promise.resolve() };
         }
+        const novoPedidoRef = firebase.database().ref('pedidos').push();
 
-        const criarPedido = firebase.functions().httpsCallable('criarPedidoCliente');
-        const resposta = await criarPedido({
-            pedido: dadosPedido,
-            statusInicial,
-            token: obterTokenCliente()
-        });
+        // Gera um número sequencial pro pedido (nunca reinicia, nem no dia seguinte) usando uma
+        // transação atômica — garante que dois pedidos nunca recebam o mesmo número por coincidência.
+        // "promessaSalvo" só resolve quando o pedido REALMENTE terminou de ser escrito no banco —
+        // importante pro fluxo de pagamento online, que precisa ter certeza que o pedido já existe
+        // antes de pedir pra Cloud Function ler ele (senão corre o risco de "pedido não encontrado")
+        const promessaSalvo = firebase.database().ref('contadores/proximoPedido').transaction(atual => (atual || 0) + 1)
+            .then(resultado => {
+                const numeroAtribuido = resultado.committed ? resultado.snapshot.val() : null;
+                return novoPedidoRef.set({
+                    ...dadosPedido,
+                    numero: numeroAtribuido,
+                    status: statusInicial,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
+            })
+            .catch(err => {
+                console.log('Não foi possível gerar o número do pedido, salvando sem numeração:', err);
+                return novoPedidoRef.set({
+                    ...dadosPedido,
+                    status: statusInicial,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
+            })
+            .catch(err2 => console.log('Não foi possível salvar o pedido no painel:', err2));
 
-        const pedidoId = resposta && resposta.data && resposta.data.pedidoId;
-        if (!pedidoId) throw new Error('O servidor não devolveu o ID do pedido.');
-
-        return { id: pedidoId, promessaSalvo: Promise.resolve() };
+        return { id: novoPedidoRef.key, promessaSalvo };
     } catch (err) {
         console.log('Não foi possível salvar o pedido no painel:', err);
         return { id: null, promessaSalvo: Promise.resolve() };
@@ -1012,83 +1029,67 @@ function acaoCarrosselDestaque(produtoId) {
     finalizarAdicaoAoCarrinho(produto.id, produto.nome, produto.preco, 1, null, null);
 }
 
-async function consultarStatusPedidoSeguro(pedidoId) {
-    if (!pedidoId || typeof firebase === 'undefined' || !firebase.functions) return null;
-    const consultar = firebase.functions().httpsCallable('consultarStatusPedidoCliente');
-    const resposta = await consultar({ pedidoId, token: obterTokenCliente() });
-    return resposta && resposta.data && resposta.data.pedido ? resposta.data.pedido : null;
-}
-
-function renderizarStatusPedido(pedido) {
+function mostrarStatusPedido(pedidoId) {
+    if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
     const banner = document.getElementById('statusPedidoBanner');
     const texto = document.getElementById('statusPedidoTexto');
     const btnRestante = document.getElementById('btnPagarRestante');
-    if (!banner || !texto || !pedido || !pedido.status) return;
-
-    const status = pedido.status;
-    banner.classList.remove('status-pendente', 'status-aceito', 'status-recusado', 'status-em_rota', 'status-pronto_retirada', 'status-entregue', 'status-aguardando_pagamento');
-
-    if (status === 'aguardando_pagamento') {
-        banner.classList.add('status-aguardando_pagamento');
-        texto.textContent = '💳 Aguardando a confirmação do seu pagamento...';
-    } else if (status === 'pendente') {
-        banner.classList.add('status-pendente');
-        texto.textContent = '🕒 Pedido enviado! Aguardando a confirmação da loja...';
-    } else if (status === 'aceito') {
-        banner.classList.add('status-aceito');
-        texto.textContent = '✅ Seu pedido foi aceito e já está sendo preparado!';
-    } else if (status === 'em_rota') {
-        banner.classList.add('status-em_rota');
-        texto.textContent = '🛵 Seu pedido saiu para entrega!';
-    } else if (status === 'pronto_retirada') {
-        banner.classList.add('status-pronto_retirada');
-        texto.textContent = `🛍️ Seu pedido está pronto! Pode vir buscar na ${LOJA_CONFIG.nome}.`;
-    } else if (status === 'entregue') {
-        banner.classList.add('status-entregue');
-        texto.textContent = `🎉 Pedido entregue! Seus pontos do Clube ${LOJA_CONFIG.nomeCurto} já foram creditados. Bom apetite!`;
-    } else if (status === 'recusado') {
-        banner.classList.add('status-recusado');
-        texto.textContent = '❌ Seu pedido foi recusado. Fale com a gente pelo WhatsApp para mais detalhes.';
-    }
-
-    const sinalPago = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' && pedido.pagamento.status === 'pago';
-    const restanteJaPago = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'pago';
-
-    if (btnRestante) {
-        if (sinalPago && !restanteJaPago && status !== 'recusado') {
-            const valorRestante = pedido.pagamentoRestante ? Number(pedido.pagamentoRestante.valorRestante) : null;
-            btnRestante.textContent = Number.isFinite(valorRestante)
-                ? `💳 Pagar o restante (R$ ${valorRestante.toFixed(2).replace('.', ',')})`
-                : '💳 Pagar o restante';
-            btnRestante.style.display = 'block';
-        } else {
-            btnRestante.style.display = 'none';
-        }
-    }
-
-    banner.style.display = 'flex';
-}
-
-function mostrarStatusPedido(pedidoId) {
-    if (!pedidoId) return;
-    pedidoIdParaPagarRestante = pedidoId;
+    if (!banner || !texto) return;
 
     if (refStatusPedidoAtual) {
-        clearInterval(refStatusPedidoAtual);
-        refStatusPedidoAtual = null;
+        refStatusPedidoAtual.off();
     }
 
-    const atualizar = async () => {
-        try {
-            const pedido = await consultarStatusPedidoSeguro(pedidoId);
-            if (pedido) renderizarStatusPedido(pedido);
-        } catch (err) {
-            console.log('Não foi possível atualizar o status do pedido agora:', err);
-        }
-    };
+    const ref = firebase.database().ref('pedidos/' + pedidoId);
+    refStatusPedidoAtual = ref;
+    pedidoIdParaPagarRestante = pedidoId;
 
-    atualizar();
-    refStatusPedidoAtual = setInterval(atualizar, 3500);
+    ref.on('value', snap => {
+        const pedido = snap.val();
+        if (!pedido || !pedido.status) return;
+        const status = pedido.status;
+        banner.classList.remove('status-pendente', 'status-aceito', 'status-recusado', 'status-em_rota', 'status-pronto_retirada', 'status-entregue', 'status-aguardando_pagamento');
+        if (status === 'aguardando_pagamento') {
+            banner.classList.add('status-aguardando_pagamento');
+            texto.textContent = '💳 Aguardando a confirmação do seu pagamento...';
+        } else if (status === 'pendente') {
+            banner.classList.add('status-pendente');
+            texto.textContent = '🕒 Pedido enviado! Aguardando a confirmação da loja...';
+        } else if (status === 'aceito') {
+            banner.classList.add('status-aceito');
+            texto.textContent = '✅ Seu pedido foi aceito e já está sendo preparado!';
+        } else if (status === 'em_rota') {
+            banner.classList.add('status-em_rota');
+            texto.textContent = '🛵 Seu pedido saiu para entrega!';
+        } else if (status === 'pronto_retirada') {
+            banner.classList.add('status-pronto_retirada');
+            texto.textContent = `🛍️ Seu pedido está pronto! Pode vir buscar na ${LOJA_CONFIG.nome}.`;
+        } else if (status === 'entregue') {
+            banner.classList.add('status-entregue');
+            texto.textContent = `🎉 Pedido entregue! Seus pontos do Clube ${LOJA_CONFIG.nomeCurto} já foram creditados. Bom apetite!`;
+        } else if (status === 'recusado') {
+            banner.classList.add('status-recusado');
+            texto.textContent = '❌ Seu pedido foi recusado. Fale com a gente pelo WhatsApp para mais detalhes.';
+        }
+
+        // Mostra o botão de pagar o restante só quando: o sinal já foi pago, o
+        // restante ainda não foi pago, e o pedido ainda não foi recusado
+        const sinalPago = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' && pedido.pagamento.status === 'pago';
+        const restanteJaPago = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'pago';
+        if (btnRestante) {
+            if (sinalPago && !restanteJaPago && status !== 'recusado') {
+                const valorRestante = pedido.pagamentoRestante ? pedido.pagamentoRestante.valorRestante : null;
+                btnRestante.textContent = valorRestante
+                    ? `💳 Pagar o restante (R$ ${valorRestante.toFixed(2).replace('.', ',')})`
+                    : '💳 Pagar o restante';
+                btnRestante.style.display = 'block';
+            } else {
+                btnRestante.style.display = 'none';
+            }
+        }
+
+        banner.style.display = 'flex';
+    });
 }
 
 // Chamado pelo botão "Pagar o restante" no banner de acompanhamento — cria o
@@ -1120,7 +1121,7 @@ function fecharStatusPedido() {
     const banner = document.getElementById('statusPedidoBanner');
     if (banner) banner.style.display = 'none';
     if (refStatusPedidoAtual) {
-        clearInterval(refStatusPedidoAtual);
+        refStatusPedidoAtual.off();
         refStatusPedidoAtual = null;
     }
     pedidoIdParaPagarRestante = null;
@@ -1203,17 +1204,13 @@ async function buscarPedidosPorTelefone(telefone) {
     // diretamente a coleção /pedidos, e recebemos somente os campos necessários para a tela.
     const buscar = firebase.functions().httpsCallable('buscarPedidosCliente');
     const resposta = await buscar({ telefone: telefoneNormalizado, token: obterTokenCliente() });
-    const autorizado = !!(resposta && resposta.data && resposta.data.autorizado);
     const pedidos = resposta && resposta.data && Array.isArray(resposta.data.pedidos)
         ? resposta.data.pedidos
         : [];
 
-    return {
-        autorizado,
-        pedidos: pedidos
-            .filter(item => item && item.id && item.pedido)
-            .map(item => ({ ...item, origem: 'telefone-servidor' }))
-    };
+    return pedidos
+        .filter(item => item && item.id && item.pedido)
+        .map(item => ({ ...item, origem: 'telefone-servidor' }));
 }
 
 function formaPagamentoPedidoTexto(pedido) {
@@ -1244,11 +1241,20 @@ async function abrirMeusPedidos() {
 
     try {
         const telefone = telefoneParaBuscaMeusPedidos();
-        const resultadoServidor = await buscarPedidosPorTelefone(telefone);
+        const [resultadosLocais, resultadosTelefone] = await Promise.all([
+            Promise.all(historico.slice(0, 10).map(item =>
+                firebase.database().ref('pedidos/' + item.id).once('value')
+                    .then(snap => snap.exists() ? { id: item.id, pedido: snap.val(), meta: item, origem: 'local' } : null)
+                    .catch(() => null)
+            )),
+            buscarPedidosPorTelefone(telefone)
+        ]);
 
         const unicos = new Map();
-        resultadoServidor.pedidos.forEach(item => {
-            unicos.set(item.id, item);
+        resultadosLocais.filter(Boolean).forEach(item => unicos.set(item.id, item));
+        resultadosTelefone.forEach(item => {
+            const anterior = unicos.get(item.id);
+            unicos.set(item.id, anterior ? { ...item, meta: anterior.meta } : item);
         });
 
         const pedidos = Array.from(unicos.values())
@@ -1268,13 +1274,9 @@ async function abrirMeusPedidos() {
 
         if (pedidos.length === 0) {
             const temTelefone = normalizarTelefone(telefone).length >= 10;
-            if (temTelefone && !resultadoServidor.autorizado) {
-                lista.innerHTML = '<p style="text-align:center; color:var(--muted); padding:20px 0;">🔒 Este aparelho ainda não foi autorizado para abrir o histórico. A liberação acontece automaticamente após uma compra online confirmada ou, no pagamento na entrega, quando o pedido for marcado como entregue.</p>';
-            } else {
-                lista.innerHTML = temTelefone
-                    ? '<p style="text-align:center; color:var(--muted); padding:20px 0;">Nenhum pedido encontrado para este WhatsApp.</p>'
-                    : '<p style="text-align:center; color:var(--muted); padding:20px 0;">Faça seu primeiro pedido para acompanhar tudo por aqui.</p>';
-            }
+            lista.innerHTML = temTelefone
+                ? '<p style="text-align:center; color:var(--muted); padding:20px 0;">Nenhum pedido encontrado para este WhatsApp.</p>'
+                : '<p style="text-align:center; color:var(--muted); padding:20px 0;">Faça seu primeiro pedido para acompanhar tudo por aqui.</p>';
             return;
         }
 
@@ -1716,7 +1718,7 @@ function atualizarPrecoModalAdicionais() {
 
 // Adiciona o item de verdade no carrinho — usada tanto pelo caminho direto (produto sem
 // adicionais) quanto pelo modal de adicionais, depois que a pessoa confirma as escolhas
-function finalizarAdicaoAoCarrinho(produtoId, nomeProduto, precoEfetivo, quantidade, observacao, adicionaisTexto, adicionaisEscolhidos) {
+function finalizarAdicaoAoCarrinho(produtoId, nomeProduto, precoEfetivo, quantidade, observacao, adicionaisTexto) {
     const carrinhoEstavaVazio = carrinho.length === 0;
     // Só agrupa como "mesmo item" se nome, observação E adicionais escolhidos forem
     // idênticos — senão, dois bolos com recheios diferentes viram uma linha só, errado
@@ -1736,8 +1738,7 @@ function finalizarAdicaoAoCarrinho(produtoId, nomeProduto, precoEfetivo, quantid
             preco: precoEfetivo,
             quantidade,
             observacao: observacao || null,
-            adicionaisTexto: adicionaisTexto || null,
-            adicionaisEscolhidos: Array.isArray(adicionaisEscolhidos) ? adicionaisEscolhidos : null
+            adicionaisTexto: adicionaisTexto || null
         });
     }
 
@@ -1772,14 +1773,8 @@ function confirmarAdicionaisEAdicionar() {
         }
     });
     const adicionaisTexto = partesTexto.join(', ');
-    const adicionaisEscolhidos = produto.grupoAdicionais.map((grupo, gi) => ({
-        grupoIndex: gi,
-        opcaoIndices: grupo.obrigatorio
-            ? (selecoesAdicionais[gi] == null ? [] : [selecoesAdicionais[gi]])
-            : Array.from(selecoesAdicionais[gi] || [])
-    }));
 
-    finalizarAdicaoAoCarrinho(produto.id, produto.nome, precoEfetivo, quantidade, observacao, adicionaisTexto, adicionaisEscolhidos);
+    finalizarAdicaoAoCarrinho(produto.id, produto.nome, precoEfetivo, quantidade, observacao, adicionaisTexto);
     fecharModalAdicionais();
 }
 
@@ -2482,79 +2477,59 @@ function abrirFormClube() {
     if (telefoneClienteInput.value) document.getElementById('clubeTelefoneInput').value = telefoneClienteInput.value;
 }
 
-async function entrarNoClube() {
+function entrarNoClube() {
     const nome = document.getElementById('clubeNomeInput').value.trim();
     const telefone = normalizarTelefone(document.getElementById('clubeTelefoneInput').value);
     if (!nome || telefone.length < 10) {
         alert('Preencha seu nome e um WhatsApp válido (com DDD).');
         return;
     }
+    clubeIdentificado = { nome, telefone };
+    localStorage.setItem('clubeFidelidade', JSON.stringify(clubeIdentificado));
 
+    // Mantém a identificação do Clube sincronizada com os dados já usados no checkout.
+    // Assim o cliente informa nome/WhatsApp uma vez e o site reaproveita nas próximas visitas.
     try {
-        const entrar = firebase.functions().httpsCallable('entrarClubeCliente');
-        const resposta = await entrar({ nome, telefone, token: obterTokenCliente() });
-        const dados = resposta && resposta.data ? resposta.data : {};
+        const dadosSalvos = JSON.parse(localStorage.getItem('dadosCliente')) || {};
+        localStorage.setItem('dadosCliente', JSON.stringify({
+            ...dadosSalvos,
+            nome,
+            telefone: dadosSalvos.telefone || telefone
+        }));
+        if (!nomeClienteInput.value) nomeClienteInput.value = nome;
+        if (!telefoneClienteInput.value) telefoneClienteInput.value = dadosSalvos.telefone || telefone;
+    } catch (e) { /* localStorage indisponível — não impede o Clube */ }
 
-        if (!dados.autorizado) {
-            alert('Esse WhatsApp já possui cadastro no Clube. Por segurança, este aparelho só poderá acessar os pontos depois de ser autorizado por uma compra confirmada.');
-            return;
-        }
-
-        clubeIdentificado = { nome, telefone };
-        localStorage.setItem('clubeFidelidade', JSON.stringify(clubeIdentificado));
-
-        try {
-            const dadosSalvos = JSON.parse(localStorage.getItem('dadosCliente')) || {};
-            localStorage.setItem('dadosCliente', JSON.stringify({
-                ...dadosSalvos,
-                nome,
-                telefone: dadosSalvos.telefone || telefone
-            }));
-            if (!nomeClienteInput.value) nomeClienteInput.value = nome;
-            if (!telefoneClienteInput.value) telefoneClienteInput.value = dadosSalvos.telefone || telefone;
-        } catch (e) {}
-
-        escutarDadosFidelidadeCliente();
-        atualizarUIClube();
-    } catch (err) {
-        console.log('Não foi possível entrar no Clube:', err);
-        alert('Não foi possível acessar o Clube agora. Tente novamente em instantes.');
+    if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) {
+        const ref = firebase.database().ref('fidelidade/' + telefone);
+        ref.once('value').then(snap => {
+            if (!snap.exists()) {
+                ref.set({ nome, pontos: 0, totalGasto: 0, criadoEm: firebase.database.ServerValue.TIMESTAMP });
+            } else {
+                ref.update({ nome });
+            }
+        });
     }
+    escutarDadosFidelidadeCliente();
+    atualizarUIClube();
 }
 
 function sairDoClube() {
     clubeIdentificado = null;
     localStorage.removeItem('clubeFidelidade');
-    if (refFidelidadeCliente) { refFidelidadeCliente = null; }
-    if (timerFidelidadeCliente) { clearInterval(timerFidelidadeCliente); timerFidelidadeCliente = null; }
+    if (refFidelidadeCliente) { refFidelidadeCliente.off(); refFidelidadeCliente = null; }
     dadosFidelidadeCliente = { pontos: 0, totalGasto: 0 };
     atualizarUIClube();
 }
 
-let timerFidelidadeCliente = null;
-
-async function atualizarDadosFidelidadeClienteSeguro() {
-    if (!clubeIdentificado || typeof firebase === 'undefined' || !firebase.functions) return;
-    try {
-        const obter = firebase.functions().httpsCallable('obterFidelidadeCliente');
-        const resposta = await obter({
-            telefone: clubeIdentificado.telefone,
-            token: obterTokenCliente()
-        });
-        const dados = resposta && resposta.data ? resposta.data : {};
-        if (!dados.autorizado) return;
-        dadosFidelidadeCliente = dados.fidelidade || { pontos: 0, totalGasto: 0 };
-        atualizarUIClube();
-    } catch (err) {
-        console.log('Não foi possível atualizar os dados do Clube agora:', err);
-    }
-}
-
 function escutarDadosFidelidadeCliente() {
-    if (timerFidelidadeCliente) clearInterval(timerFidelidadeCliente);
-    timerFidelidadeCliente = null;
-    atualizarDadosFidelidadeClienteSeguro();
-    timerFidelidadeCliente = setInterval(atualizarDadosFidelidadeClienteSeguro, 15000);
+    if (!clubeIdentificado || typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
+    if (refFidelidadeCliente) refFidelidadeCliente.off();
+    refFidelidadeCliente = firebase.database().ref('fidelidade/' + clubeIdentificado.telefone);
+    refFidelidadeCliente.on('value', snap => {
+        dadosFidelidadeCliente = snap.val() || { pontos: 0, totalGasto: 0 };
+        atualizarUIClube();
+    });
 }
 
 function calcularNivelClube(pontos, cfg) {
@@ -2808,10 +2783,13 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         || (pagamentoOnlineAtivo && !querAgendar && (formaPagamentoAtual === 'Pix' || formaPagamentoAtual === 'Cartão'));
     const statusInicialPedido = exigePagamentoAntes ? 'aguardando_pagamento' : 'pendente';
 
-    const { id: pedidoId, promessaSalvo } = await salvarPedidoNoPainel({
+    const { id: pedidoId, promessaSalvo } = salvarPedidoNoPainel({
         nome, telefone,
         tipoEntrega: tipoEntregaAtual,
-        endereco: tipoEntregaAtual === 'entrega' ? { rua, numero, complemento, bairro, cidade, estado, cep } : null,
+        // Salva o endereço sempre que tiver algum dado disponível, mesmo em retirada —
+        // o cliente pode já ter endereço cadastrado, e isso ajuda a pré-preencher o
+        // checkout de pagamento depois (CEP/número), mesmo quando não é usado pra frete.
+        endereco: (rua || numero || bairro || cep) ? { rua, numero, complemento, bairro, cidade, estado, cep } : null,
         formaPagamento: formaPagamentoAtual,
         troco: (formaPagamentoAtual === 'Dinheiro' && troco) ? troco : null,
         observacoes: obs || null,
@@ -2825,8 +2803,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
                 preco: item.preco,
                 quantidade: item.quantidade,
                 observacao: item.observacao || null,
-                adicionaisTexto: item.adicionaisTexto || null,
-                adicionaisEscolhidos: Array.isArray(item.adicionaisEscolhidos) ? item.adicionaisEscolhidos : null
+                adicionaisTexto: item.adicionaisTexto || null
             };
         }),
         subtotal: subtotalPedido,
@@ -2992,7 +2969,7 @@ escutarOrdemCategorias(); // Carrega a ordem de categorias definida no painel
 // Clube: reconhece automaticamente quem já entrou antes neste navegador.
 // Primeiro usa a identificação própria do Clube. Se ela não existir, tenta reaproveitar
 // nome/telefone salvos no checkout e confirma no Firebase se esse telefone já pertence ao Clube.
-async function restaurarIdentificacaoClube() {
+function restaurarIdentificacaoClube() {
     try {
         const salvo = JSON.parse(localStorage.getItem('clubeFidelidade'));
         if (salvo && salvo.telefone) {
@@ -3007,22 +2984,20 @@ async function restaurarIdentificacaoClube() {
 
         const dadosCliente = JSON.parse(localStorage.getItem('dadosCliente'));
         const telefone = normalizarTelefone(dadosCliente && dadosCliente.telefone);
-        if (!telefone || telefone.length < 10 || typeof firebase === 'undefined' || !firebase.functions) return;
+        if (!telefone || telefone.length < 10 || typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
 
-        const obter = firebase.functions().httpsCallable('obterFidelidadeCliente');
-        const resposta = await obter({ telefone, token: obterTokenCliente() });
-        const dados = resposta && resposta.data ? resposta.data : {};
-        if (!dados.autorizado || !dados.existe) return;
-
-        clubeIdentificado = {
-            nome: (dados.fidelidade && dados.fidelidade.nome) || dadosCliente.nome || '',
-            telefone
-        };
-        localStorage.setItem('clubeFidelidade', JSON.stringify(clubeIdentificado));
-        dadosFidelidadeCliente = dados.fidelidade || { pontos: 0, totalGasto: 0 };
-        escutarDadosFidelidadeCliente();
-        atualizarUIClube();
-    } catch (e) {}
+        firebase.database().ref('fidelidade/' + telefone).once('value').then(snap => {
+            if (!snap.exists()) return; // nunca entrou no Clube: continua mostrando "Entrar no Clube"
+            const fidelidade = snap.val() || {};
+            clubeIdentificado = {
+                nome: fidelidade.nome || dadosCliente.nome || '',
+                telefone
+            };
+            localStorage.setItem('clubeFidelidade', JSON.stringify(clubeIdentificado));
+            escutarDadosFidelidadeCliente();
+            atualizarUIClube();
+        }).catch(() => {});
+    } catch (e) { /* localStorage vazio/indisponível — segue normalmente */ }
 }
 restaurarIdentificacaoClube();
 escutarConfigClube();
