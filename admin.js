@@ -3505,30 +3505,131 @@ function baixarOrcamentoJPG() {
     }, 200);
 }
 
-// ---------- Sistema de Gestão — Backup completo ----------
-// Baixa TUDO que já está no Firebase (ingredientes, bases, fichaTecnica, clientesGestao)
-// num arquivo JSON — cópia extra, útil offline; os dados já ficam salvos na nuvem sozinhos
+// ---------- Sistema de Gestão — Backup completo da loja ----------
+// O arquivo agora é gerado no SERVIDOR com Admin SDK. Assim o backup não depende
+// das permissões públicas do navegador e consegue incluir também dados protegidos,
+// como dispositivos autorizados e métricas.
+function urlFunctionHttp(nome) {
+    const projectId = firebase.app().options.projectId;
+    return `https://us-central1-${projectId}.cloudfunctions.net/${nome}`;
+}
+
 async function exportarBackupGestaoCompleto() {
     const msgEl = document.getElementById('msgExportarBackupGestao');
-    msgEl.textContent = 'Preparando backup...';
+    const botao = document.getElementById('btnBackupCompleto');
+    msgEl.textContent = 'Preparando backup completo...';
+    if (botao) botao.disabled = true;
+
     try {
-        const backup = {
-            ingredientes,
-            bases,
-            fichaTecnica,
-            clientesGestao,
-            exportadoEm: new Date().toISOString()
-        };
-        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const user = firebase.auth().currentUser;
+        if (!user) throw new Error('Faça login novamente no painel.');
+
+        const token = await user.getIdToken();
+        const resposta = await fetch(urlFunctionHttp('baixarBackupCompleto'), {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (!resposta.ok) {
+            let detalhe = '';
+            try { detalhe = await resposta.text(); } catch (e) {}
+            throw new Error(detalhe || `Erro ${resposta.status} ao gerar o backup.`);
+        }
+
+        const blob = await resposta.blob();
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
+        const hoje = new Date().toISOString().slice(0, 10);
         link.href = url;
-        link.download = `backup-gestao-${new Date().toISOString().slice(0, 10)}.json`;
+        link.download = `backup-completo-loja-${hoje}.json`;
+        document.body.appendChild(link);
         link.click();
+        link.remove();
         URL.revokeObjectURL(url);
-        msgEl.textContent = 'Backup baixado!';
+
+        const tamanhoMb = (blob.size / (1024 * 1024)).toFixed(2);
+        msgEl.textContent = `✅ Backup completo baixado (${tamanhoMb} MB). Guarde esse arquivo em local seguro.`;
     } catch (err) {
-        msgEl.textContent = 'Erro ao gerar backup: ' + err.message;
+        console.error('Erro no backup completo:', err);
+        msgEl.textContent = '❌ Não foi possível gerar o backup completo: ' + err.message;
+    } finally {
+        if (botao) botao.disabled = false;
+    }
+}
+
+async function restaurarBackupCompleto() {
+    const input = document.getElementById('inputRestaurarBackupCompleto');
+    const msgEl = document.getElementById('msgRestaurarBackupCompleto');
+    const botao = document.getElementById('btnRestaurarBackupCompleto');
+
+    if (!input || !input.files || !input.files.length) {
+        msgEl.textContent = 'Escolha primeiro um arquivo de backup completo (.json).';
+        return;
+    }
+
+    let backup;
+    try {
+        backup = JSON.parse(await input.files[0].text());
+    } catch (err) {
+        msgEl.textContent = '❌ O arquivo escolhido não é um JSON válido.';
+        return;
+    }
+
+    if (!backup || !backup._backup || backup._backup.tipo !== 'backup-completo-loja' || !backup._backup.versao) {
+        msgEl.textContent = '❌ Esse arquivo não é um backup completo válido gerado por este sistema.';
+        return;
+    }
+
+    const dataGeracao = backup._backup.geradoEm
+        ? new Date(backup._backup.geradoEm).toLocaleString('pt-BR')
+        : 'data não informada';
+
+    if (!confirm(
+        `⚠️ RESTAURAÇÃO COMPLETA\n\n` +
+        `Backup gerado em: ${dataGeracao}\n\n` +
+        `Isso vai SUBSTITUIR os dados atuais da loja pelos dados deste arquivo. ` +
+        `Pedidos e alterações feitas depois desse backup podem ser perdidos.\n\n` +
+        `Você já baixou um backup atual e quer continuar?`
+    )) return;
+
+    const confirmacao = prompt('Para confirmar a restauração, digite exatamente: RESTAURAR');
+    if (confirmacao !== 'RESTAURAR') {
+        msgEl.textContent = 'Restauração cancelada.';
+        return;
+    }
+
+    msgEl.textContent = '⏳ Restaurando... não feche esta página.';
+    if (botao) botao.disabled = true;
+
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) throw new Error('Faça login novamente no painel.');
+        const token = await user.getIdToken();
+
+        const resposta = await fetch(urlFunctionHttp('restaurarBackupCompleto'), {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(backup)
+        });
+
+        const texto = await resposta.text();
+        let dados = {};
+        try { dados = texto ? JSON.parse(texto) : {}; } catch (e) {}
+
+        if (!resposta.ok || !dados.ok) {
+            throw new Error(dados.erro || texto || `Erro ${resposta.status} na restauração.`);
+        }
+
+        msgEl.textContent = `✅ Backup restaurado com sucesso (${dados.caminhosRestaurados || 0} grupos de dados). A página será atualizada.`;
+        setTimeout(() => location.reload(), 1800);
+    } catch (err) {
+        console.error('Erro ao restaurar backup:', err);
+        msgEl.textContent = '❌ Não foi possível restaurar: ' + err.message;
+    } finally {
+        if (botao) botao.disabled = false;
     }
 }
 

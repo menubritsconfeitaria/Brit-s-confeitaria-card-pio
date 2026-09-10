@@ -1154,10 +1154,25 @@
                     </div>
 
                     <div class="loja-status-card">
-                        <h3>💾 Backup</h3>
-                        <p class="dica-secao">Os dados já ficam salvos automaticamente no Firebase — esse backup é uma cópia extra, útil pra guardar offline ou levar pra outro lugar.</p>
-                        <button class="btn-salvar-ordem" onclick="exportarBackupGestaoCompleto()">⬇️ Baixar Backup (JSON)</button>
+                        <h3>💾 Backup completo da loja</h3>
+                        <p class="dica-secao">
+                            Baixa uma cópia dos dados importantes da loja no Firebase: pedidos, produtos, configurações,
+                            cupons, fidelidade, clientes, estoque/fichas, notificações, métricas e dispositivos autorizados.
+                            Dados temporários de presença online não entram no arquivo.
+                        </p>
+                        <button class="btn-salvar-ordem" id="btnBackupCompleto" onclick="exportarBackupGestaoCompleto()">⬇️ Baixar backup completo (JSON)</button>
                         <p id="msgExportarBackupGestao" class="ordem-categorias-msg"></p>
+
+                        <hr style="margin:18px 0; border:0; border-top:1px solid var(--border);">
+
+                        <h4 style="margin-bottom:8px;">♻️ Restaurar backup completo</h4>
+                        <p class="dica-secao">
+                            Use somente um arquivo gerado pelo botão acima. A restauração substitui os dados atuais
+                            pelos dados daquele backup. Por segurança, baixe um backup atual antes de restaurar.
+                        </p>
+                        <input type="file" id="inputRestaurarBackupCompleto" accept=".json,application/json">
+                        <button class="btn-excluir-cupom" id="btnRestaurarBackupCompleto" style="width:auto; margin-top:10px; padding:8px 14px;" onclick="restaurarBackupCompleto()">♻️ Restaurar este backup</button>
+                        <p id="msgRestaurarBackupCompleto" class="ordem-categorias-msg"></p>
                     </div>
 
                     <div class="loja-status-card">
