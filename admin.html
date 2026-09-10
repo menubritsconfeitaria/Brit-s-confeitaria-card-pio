@@ -375,12 +375,14 @@
             </section>
 
             <section data-tab="produtos">
-                <h2>📦 Produtos</h2>
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px;">
+                    <h2 style="margin:0;">📦 Produtos</h2>
+                    <button class="btn-novo-produto" onclick="adicionarNovoProduto()" style="margin:0; white-space:nowrap;">+ Adicionar produto</button>
+                </div>
                 <button id="btnImportarDados" class="btn-importar-dados" onclick="importarDadosIniciais()" style="display:none;">
                     ⬆️ Importar produtos e cupons que já existiam no cardápio
                 </button>
                 <div id="produtosAdminList" class="produtos-admin-list"></div>
-                <button class="btn-novo-produto" onclick="adicionarNovoProduto()">+ Adicionar produto</button>
             </section>
 
             <section data-tab="produtos">
