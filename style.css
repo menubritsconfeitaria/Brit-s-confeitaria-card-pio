@@ -2015,3 +2015,10 @@ footer {
     .convite-notificacoes-acoes { flex-direction: column; }
     .convite-notificacoes-aceitar, .convite-notificacoes-agora-nao { width: 100%; }
 }
+
+/* Informações complementares de cada pedido em Meus Pedidos */
+.item-meus-pedidos-meta {
+    font-size: 0.78em;
+    color: var(--muted);
+    margin: -2px 0 6px;
+}

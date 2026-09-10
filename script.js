@@ -1109,15 +1109,17 @@ function fecharStatusPedido() {
     localStorage.removeItem('ultimoPedido');
 }
 
-// Guarda o pedido na lista local de "Meus Pedidos" — mantém só os 10 mais recentes,
-// o mais novo primeiro. Fica só nesse navegador (não depende de login nem telefone).
+// Guarda o ID localmente como apoio rápido. A lista de "Meus Pedidos" não depende mais
+// somente desse histórico: quando há um telefone salvo, ela também busca os pedidos reais
+// desse cliente no Firebase e mescla os dois resultados.
 function adicionarAoHistoricoLocal(pedidoId) {
     try {
         const historico = JSON.parse(localStorage.getItem('historicoPedidos')) || [];
-        historico.unshift({ id: pedidoId, criadoEm: Date.now() });
-        localStorage.setItem('historicoPedidos', JSON.stringify(historico.slice(0, 10)));
+        const semDuplicado = historico.filter(item => item && item.id !== pedidoId);
+        semDuplicado.unshift({ id: pedidoId, criadoEm: Date.now() });
+        localStorage.setItem('historicoPedidos', JSON.stringify(semDuplicado.slice(0, 10)));
     } catch (e) {
-        // localStorage bloqueado ou cheio — não é crítico, só não guarda o histórico
+        // localStorage bloqueado ou cheio — o histórico pelo telefone ainda pode funcionar
     }
 }
 
@@ -1131,59 +1133,163 @@ const rotulosStatusPedido = {
     recusado: '❌ Recusado'
 };
 
-// Abre a janela de "Meus Pedidos", buscando os dados atuais de cada pedido guardado
-// localmente — sempre busca fresquinho do Firebase, pra mostrar o status mais atual
+function telefoneParaBuscaMeusPedidos() {
+    try {
+        const dados = JSON.parse(localStorage.getItem('dadosCliente')) || {};
+        if (dados.telefone) return dados.telefone;
+    } catch (e) { /* ignora */ }
+    try {
+        const clube = JSON.parse(localStorage.getItem('clubeFidelidade')) || {};
+        if (clube.telefone) return clube.telefone;
+    } catch (e) { /* ignora */ }
+    return telefoneClienteInput && telefoneClienteInput.value ? telefoneClienteInput.value : '';
+}
+
+// Gera algumas formas comuns do mesmo número para localizar também pedidos antigos que
+// possam ter sido gravados com máscara, espaços ou hífen. A comparação continua usando o
+// índice "telefone" já existente no banco; não lê a coleção inteira.
+function variantesTelefoneMeusPedidos(telefone) {
+    const bruto = (telefone || '').trim();
+    const digitos = normalizarTelefone(bruto);
+    const variantes = new Set();
+    if (bruto) variantes.add(bruto);
+    if (digitos) variantes.add(digitos);
+    if (digitos.length === 11) {
+        const ddd = digitos.slice(0, 2);
+        const parte1 = digitos.slice(2, 7);
+        const parte2 = digitos.slice(7);
+        variantes.add(`(${ddd}) ${parte1}-${parte2}`);
+        variantes.add(`(${ddd})${parte1}-${parte2}`);
+        variantes.add(`${ddd} ${parte1}-${parte2}`);
+        variantes.add(`${ddd}${parte1}-${parte2}`);
+    } else if (digitos.length === 10) {
+        const ddd = digitos.slice(0, 2);
+        const parte1 = digitos.slice(2, 6);
+        const parte2 = digitos.slice(6);
+        variantes.add(`(${ddd}) ${parte1}-${parte2}`);
+        variantes.add(`(${ddd})${parte1}-${parte2}`);
+        variantes.add(`${ddd} ${parte1}-${parte2}`);
+        variantes.add(`${ddd}${parte1}-${parte2}`);
+    }
+    return Array.from(variantes).filter(Boolean);
+}
+
+async function buscarPedidosPorTelefone(telefone) {
+    if (!telefone || typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return [];
+    const variantes = variantesTelefoneMeusPedidos(telefone);
+    const consultas = variantes.map(valor =>
+        firebase.database().ref('pedidos').orderByChild('telefone').equalTo(valor).once('value')
+            .then(snap => {
+                const itens = [];
+                snap.forEach(filho => itens.push({ id: filho.key, pedido: filho.val(), origem: 'telefone' }));
+                return itens;
+            })
+            .catch(() => [])
+    );
+    const grupos = await Promise.all(consultas);
+    const unicos = new Map();
+    grupos.flat().forEach(item => {
+        if (item && item.id && item.pedido) unicos.set(item.id, item);
+    });
+    return Array.from(unicos.values());
+}
+
+function formaPagamentoPedidoTexto(pedido) {
+    const forma = pedido.formaPagamento || (pedido.pagamento && pedido.pagamento.forma) || '';
+    if (!forma) return '';
+    return ` • ${forma}`;
+}
+
+function dataPedidoParaOrdenacao(pedido, meta) {
+    const ts = Number(pedido && (pedido.timestamp || pedido.criadoEm)) || Number(meta && meta.criadoEm) || 0;
+    return ts;
+}
+
+// "Meus Pedidos" usa o telefone já salvo do cliente como fonte principal e mantém o
+// histórico local apenas como apoio. Assim um pedido não desaparece da tela só porque a
+// lista local ficou vazia. Pedidos ainda aguardando pagamento ficam invisíveis aqui também.
 async function abrirMeusPedidos() {
     const modal = document.getElementById('modalMeusPedidos');
     const lista = document.getElementById('listaMeusPedidos');
     modal.style.display = 'flex';
+    lista.innerHTML = '<p style="text-align:center; padding:20px 0;">Carregando seus pedidos...</p>';
 
     let historico = [];
     try {
         historico = JSON.parse(localStorage.getItem('historicoPedidos')) || [];
-    } catch (e) { /* ignora */ }
-
-    if (historico.length === 0) {
-        lista.innerHTML = '<p style="text-align:center; color:var(--muted); padding:20px 0;">Nenhum pedido feito ainda nesse navegador.</p>';
-        return;
-    }
-
-    lista.innerHTML = '<p style="text-align:center; padding:20px 0;">Carregando...</p>';
+        if (!Array.isArray(historico)) historico = [];
+    } catch (e) { historico = []; }
 
     try {
-        const resultados = await Promise.all(
-            historico.map(item => firebase.database().ref('pedidos/' + item.id).once('value'))
-        );
+        const telefone = telefoneParaBuscaMeusPedidos();
+        const [resultadosLocais, resultadosTelefone] = await Promise.all([
+            Promise.all(historico.slice(0, 10).map(item =>
+                firebase.database().ref('pedidos/' + item.id).once('value')
+                    .then(snap => snap.exists() ? { id: item.id, pedido: snap.val(), meta: item, origem: 'local' } : null)
+                    .catch(() => null)
+            )),
+            buscarPedidosPorTelefone(telefone)
+        ]);
 
-        const linhas = resultados
-            .map((snap, i) => ({ pedido: snap.val(), meta: historico[i] }))
-            .filter(r => r.pedido) // ignora se o pedido não existir mais (removido, etc.)
-            .map(({ pedido, meta }) => {
-                const dataFormatada = new Date(meta.criadoEm).toLocaleDateString('pt-BR');
-                const itensTexto = (pedido.itens || []).map(item => `${item.quantidade}x ${item.nome}`).join(', ');
-                const totalTexto = pedido.total != null ? `R$ ${pedido.total.toFixed(2).replace('.', ',')}` : 'A confirmar';
-                const statusTexto = rotulosStatusPedido[pedido.status] || pedido.status || '—';
-                const sinalPago = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' && pedido.pagamento.status === 'pago';
-                const restanteJaPago = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'pago';
-                const mostrarBotaoRestante = sinalPago && !restanteJaPago && pedido.status !== 'recusado';
-                const valorRestanteTexto = pedido.pagamentoRestante ? `R$ ${pedido.pagamentoRestante.valorRestante.toFixed(2).replace('.', ',')}` : '';
-                return `
-                    <div class="item-meus-pedidos">
-                        <div class="item-meus-pedidos-topo">
-                            <strong>${dataFormatada}</strong>
-                            <span>${statusTexto}</span>
-                        </div>
-                        <p class="item-meus-pedidos-itens">${itensTexto}</p>
-                        <p class="item-meus-pedidos-total">${totalTexto}</p>
-                        ${mostrarBotaoRestante ? `<button class="btn-pagar-restante-lista" onclick="pagarRestanteEncomenda('${meta.id}', this)">💳 Pagar o restante ${valorRestanteTexto}</button>` : ''}
+        const unicos = new Map();
+        resultadosLocais.filter(Boolean).forEach(item => unicos.set(item.id, item));
+        resultadosTelefone.forEach(item => {
+            const anterior = unicos.get(item.id);
+            unicos.set(item.id, anterior ? { ...item, meta: anterior.meta } : item);
+        });
+
+        const pedidos = Array.from(unicos.values())
+            .filter(item => item.pedido && item.pedido.status !== 'aguardando_pagamento')
+            .sort((a, b) => dataPedidoParaOrdenacao(b.pedido, b.meta) - dataPedidoParaOrdenacao(a.pedido, a.meta))
+            .slice(0, 10);
+
+        // Reconstitui o apoio local com pedidos reais encontrados. Isso ajuda a manter a
+        // experiência rápida nas próximas aberturas, sem transformar o localStorage na fonte oficial.
+        try {
+            const novoHistorico = pedidos.map(item => ({
+                id: item.id,
+                criadoEm: dataPedidoParaOrdenacao(item.pedido, item.meta) || Date.now()
+            }));
+            localStorage.setItem('historicoPedidos', JSON.stringify(novoHistorico));
+        } catch (e) { /* ignora */ }
+
+        if (pedidos.length === 0) {
+            const temTelefone = normalizarTelefone(telefone).length >= 10;
+            lista.innerHTML = temTelefone
+                ? '<p style="text-align:center; color:var(--muted); padding:20px 0;">Nenhum pedido encontrado para este WhatsApp.</p>'
+                : '<p style="text-align:center; color:var(--muted); padding:20px 0;">Faça seu primeiro pedido para acompanhar tudo por aqui.</p>';
+            return;
+        }
+
+        const linhas = pedidos.map(({ id, pedido, meta }) => {
+            const timestamp = dataPedidoParaOrdenacao(pedido, meta);
+            const dataFormatada = timestamp ? new Date(timestamp).toLocaleDateString('pt-BR') : 'Data não informada';
+            const itensTexto = (pedido.itens || []).map(item => `${item.quantidade}x ${item.nome}`).join(', ');
+            const totalTexto = pedido.total != null ? `R$ ${Number(pedido.total).toFixed(2).replace('.', ',')}` : 'A confirmar';
+            const statusTexto = rotulosStatusPedido[pedido.status] || pedido.status || '—';
+            const numeroTexto = pedido.numero ? `Pedido #${pedido.numero}` : 'Pedido';
+            const sinalPago = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' && pedido.pagamento.status === 'pago';
+            const restanteJaPago = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'pago';
+            const mostrarBotaoRestante = sinalPago && !restanteJaPago && pedido.status !== 'recusado';
+            const valorRestante = pedido.pagamentoRestante && Number(pedido.pagamentoRestante.valorRestante);
+            const valorRestanteTexto = Number.isFinite(valorRestante) ? `R$ ${valorRestante.toFixed(2).replace('.', ',')}` : '';
+            return `
+                <div class="item-meus-pedidos">
+                    <div class="item-meus-pedidos-topo">
+                        <strong>${numeroTexto}</strong>
+                        <span>${statusTexto}</span>
                     </div>
-                `;
-            });
+                    <p class="item-meus-pedidos-meta">${dataFormatada}${formaPagamentoPedidoTexto(pedido)}</p>
+                    <p class="item-meus-pedidos-itens">${itensTexto || 'Itens não informados'}</p>
+                    <p class="item-meus-pedidos-total">${totalTexto}</p>
+                    ${mostrarBotaoRestante ? `<button class="btn-pagar-restante-lista" onclick="pagarRestanteEncomenda('${id}', this)">💳 Pagar o restante ${valorRestanteTexto}</button>` : ''}
+                </div>
+            `;
+        });
 
-        lista.innerHTML = linhas.length > 0
-            ? linhas.join('')
-            : '<p style="text-align:center; color:var(--muted); padding:20px 0;">Nenhum pedido encontrado.</p>';
+        lista.innerHTML = linhas.join('');
     } catch (err) {
+        console.log('Erro ao carregar Meus Pedidos:', err);
         lista.innerHTML = '<p style="text-align:center; color:var(--muted); padding:20px 0;">Não foi possível carregar agora. Tenta de novo em instantes.</p>';
     }
 }
