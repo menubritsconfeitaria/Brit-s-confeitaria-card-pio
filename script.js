@@ -812,8 +812,7 @@ async function salvarPedidoNoPainel(dadosPedido, statusInicial) {
         return { id: pedidoId, promessaSalvo: Promise.resolve() };
     } catch (err) {
         console.log('Não foi possível salvar o pedido no painel:', err);
-        const mensagem = (err && err.message) || 'Não foi possível validar o pedido.';
-        return { id: null, promessaSalvo: Promise.resolve(), erro: mensagem };
+        return { id: null, promessaSalvo: Promise.resolve() };
     }
 }
 
@@ -1104,7 +1103,7 @@ async function pagarRestanteEncomenda(pedidoIdExplicito, botaoClicado) {
     btn.textContent = 'Preparando pagamento...';
     try {
         const criarCheckout = firebase.functions().httpsCallable('criarCheckoutRestanteEncomenda');
-        const resultado = await criarCheckout({ pedidoId, token: obterTokenCliente() });
+        const resultado = await criarCheckout({ pedidoId });
         if (resultado.data && resultado.data.checkoutUrl) {
             window.location.href = resultado.data.checkoutUrl;
         } else {
@@ -1729,8 +1728,7 @@ function finalizarAdicaoAoCarrinho(produtoId, nomeProduto, precoEfetivo, quantid
 
     if (produtoExistente) {
         produtoExistente.quantidade += quantidade;
-        produtoExistente.preco = precoEfetivo; // Exibição local; o servidor recalcula o valor real.
-        if (Array.isArray(adicionaisEscolhidos)) produtoExistente.adicionaisEscolhidos = adicionaisEscolhidos;
+        produtoExistente.preco = precoEfetivo; // Garante que o preço fica sempre atualizado (ex: entrou em oferta)
     } else {
         carrinho.push({
             produtoId: produtoId || null,
@@ -2650,8 +2648,7 @@ function resgatarRecompensa(index) {
             nome: r.produtoNome,
             preco: 0,
             quantidade: 1,
-            observacao: `🎁 Recompensa do Clube ${LOJA_CONFIG.nomeCurto}`,
-            recompensaItem: true
+            observacao: `🎁 Recompensa do Clube ${LOJA_CONFIG.nomeCurto}`
         });
         salvarCarrinho();
     }
@@ -2811,7 +2808,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         || (pagamentoOnlineAtivo && !querAgendar && (formaPagamentoAtual === 'Pix' || formaPagamentoAtual === 'Cartão'));
     const statusInicialPedido = exigePagamentoAntes ? 'aguardando_pagamento' : 'pendente';
 
-    const { id: pedidoId, promessaSalvo, erro: erroCriacaoPedido } = await salvarPedidoNoPainel({
+    const { id: pedidoId, promessaSalvo } = await salvarPedidoNoPainel({
         nome, telefone,
         tipoEntrega: tipoEntregaAtual,
         endereco: tipoEntregaAtual === 'entrega' ? { rua, numero, complemento, bairro, cidade, estado, cep } : null,
@@ -2829,9 +2826,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
                 quantidade: item.quantidade,
                 observacao: item.observacao || null,
                 adicionaisTexto: item.adicionaisTexto || null,
-                adicionaisEscolhidos: Array.isArray(item.adicionaisEscolhidos) ? item.adicionaisEscolhidos : null,
-                recompensaItem: !!item.recompensaItem,
-                precoExibido: item.preco
+                adicionaisEscolhidos: Array.isArray(item.adicionaisEscolhidos) ? item.adicionaisEscolhidos : null
             };
         }),
         subtotal: subtotalPedido,
@@ -2841,9 +2836,6 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         total: (tipoEntregaAtual === 'retirada' || freteConfirmado) ? (subtotalPedido - desconto + frete) : null,
         // Guarda a recompensa resgatada (se houver) — os pontos só são efetivamente creditados/descontados
         // quando a loja marcar o pedido como "Entregue" no painel, não na hora do pedido
-        recompensaIndice: recompensaSelecionada && Number.isInteger(recompensaSelecionada._index)
-            ? recompensaSelecionada._index
-            : null,
         recompensaResgatada: recompensaSelecionada ? {
             pontos: recompensaSelecionada.pontos,
             descricao: recompensaSelecionada.descricao
@@ -2862,11 +2854,6 @@ botaoFinalizarCompra.addEventListener('click', async () => {
             ? localStorage.getItem('notificacaoToken')
             : null
     }, statusInicialPedido);
-
-    if (!pedidoId) {
-        alert(erroCriacaoPedido || 'Não foi possível validar o pedido agora. Atualize o cardápio e tente novamente.');
-        return;
-    }
 
     // Guarda esse pedido pra mostrar o status (pendente/aceito/em rota/entregue/recusado) pro cliente
     if (pedidoId) {
@@ -2896,7 +2883,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         try {
             await promessaSalvo;
             const criarCheckoutSinal = firebase.functions().httpsCallable('criarCheckoutSinalEncomenda');
-            const resultado = await criarCheckoutSinal({ pedidoId, token: obterTokenCliente() });
+            const resultado = await criarCheckoutSinal({ pedidoId });
             registrarEventoConversaoFront('checkout');
             carrinho = [];
             salvarCarrinho();
@@ -2907,7 +2894,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
             console.log('Não foi possível criar o checkout do sinal:', err.message, '| Detalhes:', JSON.stringify(err.details));
             try {
                 const limparPedido = firebase.functions().httpsCallable('limparPedidoFalhoDeCheckout');
-                await limparPedido({ pedidoId, token: obterTokenCliente() });
+                await limparPedido({ pedidoId });
             } catch (e2) { /* segue mesmo se não conseguir limpar */ }
             alert('Não foi possível iniciar o pagamento do sinal. Tente novamente.');
             botaoFinalizarCompra.disabled = false;
@@ -2931,7 +2918,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
             // pra Cloud Function ler ele — senão, ela pode chegar cedo demais e não achar nada
             await promessaSalvo;
             const criarCheckout = firebase.functions().httpsCallable('criarCheckoutInfinitePay');
-            const resultado = await criarCheckout({ pedidoId, token: obterTokenCliente() });
+            const resultado = await criarCheckout({ pedidoId });
             registrarEventoConversaoFront('checkout');
             carrinho = [];
             salvarCarrinho();
@@ -2945,7 +2932,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
             // tentativa ficava empilhando pedidos duplicados no painel
             try {
                 const limparPedido = firebase.functions().httpsCallable('limparPedidoFalhoDeCheckout');
-                await limparPedido({ pedidoId, token: obterTokenCliente() });
+                await limparPedido({ pedidoId });
             } catch (e2) { /* segue mesmo se não conseguir limpar */ }
             alert('Não foi possível iniciar o pagamento. Tente novamente.');
             botaoFinalizarCompra.disabled = false;
@@ -2986,7 +2973,7 @@ function sincronizarPrecosCarrinho() {
     let mudou = false;
     carrinho.forEach(item => {
         const produtoAtual = produtos.find(p => p.nome === item.nome);
-        if (produtoAtual && !item.adicionaisTexto && !item.recompensaItem && produtoAtual.preco !== item.preco) {
+        if (produtoAtual && produtoAtual.preco !== item.preco) {
             item.preco = produtoAtual.preco;
             mudou = true;
         }
