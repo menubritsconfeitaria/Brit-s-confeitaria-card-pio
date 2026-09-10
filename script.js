@@ -582,13 +582,43 @@ function fecharAvisoOferta() {
 }
 
 
+
+// ---------- Métricas de conversão (sem dados pessoais) ----------
+// Registra somente etapas do funil. A Cloud Function faz a gravação pelo servidor,
+// então não é preciso abrir novas permissões públicas no Realtime Database.
+const CHAVE_SESSAO_CONVERSAO = 'sessaoConversaoCardapio';
+function obterSessaoConversaoId() {
+    try {
+        let id = sessionStorage.getItem(CHAVE_SESSAO_CONVERSAO);
+        if (!id) {
+            id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            sessionStorage.setItem(CHAVE_SESSAO_CONVERSAO, id);
+        }
+        return id;
+    } catch (e) { return `${Date.now()}-${Math.random().toString(36).slice(2)}`; }
+}
+function registrarEventoConversaoFront(evento, extra) {
+    try {
+        if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length || !firebase.functions) return;
+        const chaveLocal = `metricaConversao_${evento}`;
+        if (sessionStorage.getItem(chaveLocal) === '1') return;
+        sessionStorage.setItem(chaveLocal, '1');
+        const fn = firebase.functions().httpsCallable('registrarEventoConversao');
+        fn({ sessaoId: obterSessaoConversaoId(), evento, ...(extra || {}) }).catch(err => {
+            // Métrica nunca pode atrapalhar uma compra. Se falhar, libera nova tentativa na sessão.
+            try { sessionStorage.removeItem(chaveLocal); } catch (e) {}
+            console.log('Métrica de conversão indisponível:', evento, err.message);
+        });
+    } catch (e) { /* métrica é opcional e nunca interrompe o cardápio */ }
+}
+
 // ---------- Vendedor Inteligente ----------
 // Faz uma sugestão proativa somente quando o visitante ainda não colocou nada no carrinho.
 // Prioriza promoção real do cardápio; sem promoção, usa os destaques já escolhidos/calculados.
 let vendedorInteligenteTimer = null;
 let vendedorInteligenteTentativas = 0;
 let vendedorInteligenteProdutoAtual = null;
-const CHAVE_VENDEDOR_INTELIGENTE = 'vendedorInteligenteMostradoBritS';
+const CHAVE_VENDEDOR_INTELIGENTE = 'vendedorInteligenteMostrado';
 
 function formatarPrecoVendedor(valor) {
     return `R$ ${Number(valor || 0).toFixed(2).replace('.', ',')}`;
@@ -706,6 +736,12 @@ async function mostrarVendedorInteligente() {
 
     botao.onclick = () => {
         marcarVendedorInteligenteComoMostrado();
+        try {
+            sessionStorage.setItem('vendedorInteligenteClicado', '1');
+            sessionStorage.setItem('vendedorInteligenteProdutoId', produto.id || '');
+            sessionStorage.setItem('vendedorInteligenteProdutoNome', produto.nome || '');
+        } catch (e) {}
+        registrarEventoConversaoFront('vendedor_clicado', { produtoId: produto.id || null, produtoNome: produto.nome || null });
         fecharVendedorInteligente();
         if (produtoEhSimplesParaVendaRapida(produto)) {
             finalizarAdicaoAoCarrinho(produto.id, produto.nome, produto.preco, 1, null, null);
@@ -717,6 +753,7 @@ async function mostrarVendedorInteligente() {
     marcarVendedorInteligenteComoMostrado();
     card.style.display = 'flex';
     requestAnimationFrame(() => card.classList.add('mostrar'));
+    registrarEventoConversaoFront('vendedor_exibido', { produtoId: produto.id || null, produtoNome: produto.nome || null });
 }
 
 function agendarVendedorInteligente() {
@@ -1511,6 +1548,7 @@ function atualizarPrecoModalAdicionais() {
 // Adiciona o item de verdade no carrinho — usada tanto pelo caminho direto (produto sem
 // adicionais) quanto pelo modal de adicionais, depois que a pessoa confirma as escolhas
 function finalizarAdicaoAoCarrinho(produtoId, nomeProduto, precoEfetivo, quantidade, observacao, adicionaisTexto) {
+    const carrinhoEstavaVazio = carrinho.length === 0;
     // Só agrupa como "mesmo item" se nome, observação E adicionais escolhidos forem
     // idênticos — senão, dois bolos com recheios diferentes viram uma linha só, errado
     const produtoExistente = carrinho.find(item =>
@@ -1537,6 +1575,7 @@ function finalizarAdicaoAoCarrinho(produtoId, nomeProduto, precoEfetivo, quantid
     console.log('Carrinho atual:', carrinho);
     salvarCarrinho();
     atualizarCarrinhoHTML();
+    if (carrinhoEstavaVazio && carrinho.length > 0) registrarEventoConversaoFront('carrinho');
 }
 
 function confirmarAdicionaisEAdicionar() {
@@ -2462,6 +2501,9 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         }
     }
 
+    // Chegou ao começo real da finalização (carrinho e pedido mínimo já validados).
+    registrarEventoConversaoFront('finalizacao');
+
     // Só trava o botão DAQUI pra frente — depois desse ponto, todas as validações já
     // passaram e o pedido vai ser enviado de verdade
     botaoFinalizarCompra.disabled = true;
@@ -2594,10 +2636,15 @@ botaoFinalizarCompra.addEventListener('click', async () => {
             pontos: recompensaSelecionada.pontos,
             descricao: recompensaSelecionada.descricao
         } : null,
+        // Metadados anônimos de atribuição: não mudam o fluxo do pedido/pagamento.
+        sessaoConversaoId: obterSessaoConversaoId(),
+        origemVendedorInteligente: (() => { try { return sessionStorage.getItem('vendedorInteligenteClicado') === '1'; } catch (e) { return false; } })(),
+        vendedorInteligenteProdutoId: (() => { try { return sessionStorage.getItem('vendedorInteligenteProdutoId') || null; } catch (e) { return null; } })(),
+        vendedorInteligenteProdutoNome: (() => { try { return sessionStorage.getItem('vendedorInteligenteProdutoNome') || null; } catch (e) { return null; } })(),
         // Se o cliente já ativou notificações nesse aparelho, guarda o token junto do pedido,
         // pra poder avisar ele (só ele, não todo mundo) quando o status do pedido mudar
-        notificacaoToken: (localStorage.getItem('notificacoesAtivasBritS') === '1')
-            ? localStorage.getItem('notificacaoTokenBritS')
+        notificacaoToken: (localStorage.getItem('notificacoesAtivas') === '1')
+            ? localStorage.getItem('notificacaoToken')
             : null
     }, statusInicialPedido);
 
@@ -2632,6 +2679,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
             await promessaSalvo;
             const criarCheckoutSinal = firebase.functions().httpsCallable('criarCheckoutSinalEncomenda');
             const resultado = await criarCheckoutSinal({ pedidoId });
+            registrarEventoConversaoFront('checkout');
             carrinho = [];
             salvarCarrinho();
             atualizarCarrinhoHTML();
@@ -2666,6 +2714,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
             await promessaSalvo;
             const criarCheckout = firebase.functions().httpsCallable('criarCheckoutInfinitePay');
             const resultado = await criarCheckout({ pedidoId });
+            registrarEventoConversaoFront('checkout');
             carrinho = [];
             salvarCarrinho();
             atualizarCarrinhoHTML();
@@ -2882,7 +2931,7 @@ function podeReceberNotificacoes() {
 }
 
 function atualizarBotaoNotificacao() {
-    const ativado = localStorage.getItem('notificacoesAtivasBritS') === '1';
+    const ativado = localStorage.getItem('notificacoesAtivas') === '1';
     const btnGrande = document.getElementById('btnAtivarNotificacoesGrande');
     const sino = document.getElementById('btnAtivarNotificacoesSino');
     const convite = document.getElementById('conviteNotificacoes');
@@ -2901,9 +2950,9 @@ function atualizarBotaoNotificacao() {
 // e sem insistir por 7 dias depois que a pessoa escolhe “Agora não”.
 function podeMostrarConviteNotificacoes() {
     if (!podeReceberNotificacoes()) return false;
-    if (localStorage.getItem('notificacoesAtivasBritS') === '1') return false;
+    if (localStorage.getItem('notificacoesAtivas') === '1') return false;
     if (typeof Notification !== 'undefined' && Notification.permission === 'denied') return false;
-    const adiadoEm = Number(localStorage.getItem('conviteNotificacoesAdiadoBritS') || 0);
+    const adiadoEm = Number(localStorage.getItem('conviteNotificacoesAdiado') || 0);
     const seteDias = 7 * 24 * 60 * 60 * 1000;
     return !adiadoEm || (Date.now() - adiadoEm >= seteDias);
 }
@@ -2919,7 +2968,7 @@ function mostrarConviteNotificacoes() {
 function adiarConviteNotificacoes() {
     const convite = document.getElementById('conviteNotificacoes');
     if (convite) { convite.classList.remove('mostrar'); convite.style.display = 'none'; }
-    try { localStorage.setItem('conviteNotificacoesAdiadoBritS', String(Date.now())); } catch (e) { /* ignora */ }
+    try { localStorage.setItem('conviteNotificacoesAdiado', String(Date.now())); } catch (e) { /* ignora */ }
 }
 
 async function aceitarConviteNotificacoes() {
@@ -2959,9 +3008,9 @@ async function ativarNotificacoes() {
             // Isso permite deixar as regras do Firebase mais fechadas sem quebrar o push.
             const registrarToken = firebase.functions().httpsCallable('registrarTokenNotificacao');
             await registrarToken({ token });
-            localStorage.setItem('notificacoesAtivasBritS', '1');
-            localStorage.setItem('notificacaoTokenBritS', token); // guarda o token pra anexar aos pedidos depois
-            localStorage.removeItem('conviteNotificacoesAdiadoBritS');
+            localStorage.setItem('notificacoesAtivas', '1');
+            localStorage.setItem('notificacaoToken', token); // guarda o token pra anexar aos pedidos depois
+            localStorage.removeItem('conviteNotificacoesAdiado');
             atualizarBotaoNotificacao();
             mostrarToastNotificacao('✅ Notificações ativadas!', "Agora você pode receber novidades, promoções e avisos da Brit's.");
         }
@@ -2986,6 +3035,7 @@ function mostrarToastNotificacao(titulo, corpo) {
 
 atualizarBotaoNotificacao();
 agendarConviteNotificacoes();
+registrarEventoConversaoFront('visita');
 agendarVendedorInteligente();
 
 /* ===================================================================

@@ -3010,6 +3010,34 @@ function filtrarDashboardPeriodo(tipo) {
     carregarDashboard(inicio.getTime(), fim.getTime());
 }
 
+// Carrega as métricas anônimas do funil pelo backend. Não lê nós públicos do banco;
+// o painel autenticado recebe só os totais agregados do período escolhido.
+async function carregarMetricasConversaoDashboard(inicio, fim) {
+    const msg = document.getElementById('funilConversaoMsg');
+    const set = (id, valor) => { const el = document.getElementById(id); if (el) el.textContent = valor; };
+    try {
+        if (msg) msg.textContent = 'Atualizando métricas...';
+        const fn = firebase.functions().httpsCallable('obterMetricasConversao');
+        const r = await fn({ inicio, fim });
+        const m = (r && r.data) || {};
+        const visitas = Number(m.visitas || 0), exib = Number(m.vendedorExibido || 0), cli = Number(m.vendedorClicado || 0);
+        set('funilVisitas', visitas);
+        set('funilCarrinhos', Number(m.carrinhos || 0));
+        set('funilFinalizacoes', Number(m.finalizacoes || 0));
+        set('funilCheckouts', Number(m.checkouts || 0));
+        set('funilPagamentos', Number(m.pagamentosConfirmados || 0));
+        set('funilConversao', visitas > 0 ? ((Number(m.pagamentosConfirmados || 0) / visitas) * 100).toFixed(1).replace('.', ',') + '%' : '0%');
+        set('funilVendedorExibicoes', exib);
+        set('funilVendedorCliques', cli);
+        set('funilVendedorCTR', exib > 0 ? ((cli / exib) * 100).toFixed(1).replace('.', ',') + '%' : '0%');
+        set('funilVendedorVendas', Number(m.vendasVendedor || 0));
+        if (msg) msg.textContent = m.inicioColeta ? `Métricas disponíveis a partir de ${m.inicioColeta}.` : 'As métricas começam a contar depois desta atualização.';
+    } catch (err) {
+        if (msg) msg.textContent = 'As métricas vão aparecer após publicar as novas Functions.';
+        console.log('Não foi possível carregar métricas de conversão:', err.message);
+    }
+}
+
 function carregarDashboard(inicio, fim) {
     db.ref('pedidos').once('value').then(snap => {
         const val = snap.val() || {};
@@ -3102,6 +3130,7 @@ function carregarDashboard(inicio, fim) {
         if (elMaisLucrativo) elMaisLucrativo.textContent = maisLucrativo ? `${maisLucrativo[0]} · ${formatarPreco(arred(maisLucrativo[1].lucroEstimado))}` : '—';
 
         desenharGraficosDashboard(porMes, porProduto);
+        carregarMetricasConversaoDashboard(inicio, fim);
     });
 }
 

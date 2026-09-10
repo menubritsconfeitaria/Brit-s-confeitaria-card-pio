@@ -1040,6 +1040,28 @@
                         <h3>Produtos mais vendidos</h3>
                         <canvas id="chartTopProdutos" height="200"></canvas>
                     </div>
+
+                    <div class="loja-status-card" style="margin-top:16px;">
+                        <h3>🎯 Funil de conversão</h3>
+                        <p class="dica-secao" style="margin-bottom:10px;">Mostra por onde os visitantes estão passando até o pagamento online confirmado. As métricas não guardam nome, telefone ou endereço.</p>
+                        <div class="produto-admin-linha" style="gap:10px; flex-wrap:wrap;">
+                            <div style="flex:1; min-width:125px; text-align:center;"><strong id="funilVisitas" style="font-size:1.35em;">0</strong><div class="dica-secao">Visitas</div></div>
+                            <div style="flex:1; min-width:125px; text-align:center;"><strong id="funilCarrinhos" style="font-size:1.35em;">0</strong><div class="dica-secao">Carrinhos iniciados</div></div>
+                            <div style="flex:1; min-width:125px; text-align:center;"><strong id="funilFinalizacoes" style="font-size:1.35em;">0</strong><div class="dica-secao">Finalizações</div></div>
+                            <div style="flex:1; min-width:125px; text-align:center;"><strong id="funilCheckouts" style="font-size:1.35em;">0</strong><div class="dica-secao">Checkouts online</div></div>
+                            <div style="flex:1; min-width:125px; text-align:center;"><strong id="funilPagamentos" style="font-size:1.35em;">0</strong><div class="dica-secao">Pagamentos confirmados</div></div>
+                            <div style="flex:1; min-width:125px; text-align:center;"><strong id="funilConversao" style="font-size:1.35em;">0%</strong><div class="dica-secao">Conversão visita → pagamento</div></div>
+                        </div>
+                        <hr style="margin:14px 0; border:none; border-top:1px solid var(--border);">
+                        <h3 style="margin-bottom:8px;">🤖 Vendedor Inteligente</h3>
+                        <div class="produto-admin-linha" style="gap:10px; flex-wrap:wrap;">
+                            <div style="flex:1; min-width:135px; text-align:center;"><strong id="funilVendedorExibicoes">0</strong><div class="dica-secao">Exibições</div></div>
+                            <div style="flex:1; min-width:135px; text-align:center;"><strong id="funilVendedorCliques">0</strong><div class="dica-secao">Cliques</div></div>
+                            <div style="flex:1; min-width:135px; text-align:center;"><strong id="funilVendedorCTR">0%</strong><div class="dica-secao">Taxa de clique</div></div>
+                            <div style="flex:1; min-width:135px; text-align:center;"><strong id="funilVendedorVendas">0</strong><div class="dica-secao">Vendas online atribuídas</div></div>
+                        </div>
+                        <p id="funilConversaoMsg" class="dica-secao" style="margin:10px 0 0;"></p>
+                    </div>
                 </div>
 
                 <div class="gestao-subconteudo" data-subtab-content="sub-relatorios" style="display:none;">
@@ -1165,6 +1187,7 @@
                         <button class="btn-secondary" style="margin-top:10px;" onclick="autoVincularFichaTecnicaPorNome()">🔗 Vincular produtos à Ficha Técnica (automático, por nome)</button>
                         <button class="btn-secondary" style="margin-top:10px;" onclick="corrigirFichaTecnicaPedidosAntigos()">🔧 Corrigir CMV de pedidos do cardápio já feitos</button>
                         <p id="msgImportarBackup" class="ordem-categorias-msg"></p>
+                    </div>
                 </div>
             </section>
         </main>
