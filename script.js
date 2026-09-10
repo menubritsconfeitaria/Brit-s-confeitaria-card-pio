@@ -2251,21 +2251,15 @@ function gerenciarQuantidade(index, acao) {
 
 // Função para limpar os campos do formulário de endereço
 function limparFormularioEndereco() {
-    nomeClienteInput.value = '';
-    telefoneClienteInput.value = '';
-    ruaClienteInput.value = '';
-    numeroClienteInput.value = '';
-    complementoClienteInput.value = '';
-    bairroClienteInput.value = '';
-    cidadeClienteInput.value = '';
-    estadoClienteInput.value = '';
-    cepClienteInput.value = '';
+    // Nome, telefone e endereço são dados persistentes do cliente: não apagamos após cada pedido.
+    // Limpamos somente dados específicos daquela compra. Isso evita obrigar o cliente a digitar tudo novamente.
     clienteTrocoInput.value = '';
     definirPrecisaTroco(false);
     clienteObsInput.value = '';
-    infoFreteDiv.style.display = 'none';
-    selecionarTipoEntrega('retirada');
     selecionarPagamento('Pix');
+
+    // Reaplica os dados persistidos (e o último tipo de entrega) caso algum fluxo tenha limpado o DOM.
+    carregarDadosClienteSalvos();
 
     cupomAplicado = null;
     const cupomInput = document.getElementById('cupomInput');
@@ -2321,6 +2315,19 @@ function entrarNoClube() {
     }
     clubeIdentificado = { nome, telefone };
     localStorage.setItem('clubeFidelidade', JSON.stringify(clubeIdentificado));
+
+    // Mantém a identificação do Clube sincronizada com os dados já usados no checkout.
+    // Assim o cliente informa nome/WhatsApp uma vez e o site reaproveita nas próximas visitas.
+    try {
+        const dadosSalvos = JSON.parse(localStorage.getItem('dadosCliente')) || {};
+        localStorage.setItem('dadosCliente', JSON.stringify({
+            ...dadosSalvos,
+            nome,
+            telefone: dadosSalvos.telefone || telefone
+        }));
+        if (!nomeClienteInput.value) nomeClienteInput.value = nome;
+        if (!telefoneClienteInput.value) telefoneClienteInput.value = dadosSalvos.telefone || telefone;
+    } catch (e) { /* localStorage indisponível — não impede o Clube */ }
 
     if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) {
         const ref = firebase.database().ref('fidelidade/' + telefone);
@@ -2784,14 +2791,40 @@ escutarConfigFrete(); // Carrega a configuração de bairros/valor por km do pai
 carregarCarrosselDestaques();
 escutarOrdemCategorias(); // Carrega a ordem de categorias definida no painel
 
-// Clube Brit's: recupera o cliente já identificado nesse navegador (se houver) e escuta a configuração
-try {
-    const salvo = JSON.parse(localStorage.getItem('clubeFidelidade'));
-    if (salvo && salvo.telefone) {
-        clubeIdentificado = salvo;
-        escutarDadosFidelidadeCliente();
-    }
-} catch (e) { /* localStorage vazio ou inválido, ignora */ }
+// Clube: reconhece automaticamente quem já entrou antes neste navegador.
+// Primeiro usa a identificação própria do Clube. Se ela não existir, tenta reaproveitar
+// nome/telefone salvos no checkout e confirma no Firebase se esse telefone já pertence ao Clube.
+function restaurarIdentificacaoClube() {
+    try {
+        const salvo = JSON.parse(localStorage.getItem('clubeFidelidade'));
+        if (salvo && salvo.telefone) {
+            clubeIdentificado = {
+                nome: salvo.nome || '',
+                telefone: normalizarTelefone(salvo.telefone)
+            };
+            escutarDadosFidelidadeCliente();
+            atualizarUIClube();
+            return;
+        }
+
+        const dadosCliente = JSON.parse(localStorage.getItem('dadosCliente'));
+        const telefone = normalizarTelefone(dadosCliente && dadosCliente.telefone);
+        if (!telefone || telefone.length < 10 || typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
+
+        firebase.database().ref('fidelidade/' + telefone).once('value').then(snap => {
+            if (!snap.exists()) return; // nunca entrou no Clube: continua mostrando "Entrar no Clube"
+            const fidelidade = snap.val() || {};
+            clubeIdentificado = {
+                nome: fidelidade.nome || dadosCliente.nome || '',
+                telefone
+            };
+            localStorage.setItem('clubeFidelidade', JSON.stringify(clubeIdentificado));
+            escutarDadosFidelidadeCliente();
+            atualizarUIClube();
+        }).catch(() => {});
+    } catch (e) { /* localStorage vazio/indisponível — segue normalmente */ }
+}
+restaurarIdentificacaoClube();
 escutarConfigClube();
 
 /* ===================================================================
