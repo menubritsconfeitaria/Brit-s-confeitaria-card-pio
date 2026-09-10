@@ -689,7 +689,7 @@ auth.onAuthStateChanged(user => {
         document.getElementById('telaLogin').style.display = 'none';
         document.getElementById('painel').style.display = 'block';
         iniciarEscutaPedidos();
-        setTimeout(atualizarEstadoAlertasPainel, 0);
+        setTimeout(restaurarAlertasPainel, 0);
         verificarSeEhDonoDoServico(user.email); // roda sempre, inclusive com sessão já salva
     } else {
         document.getElementById('telaLogin').style.display = 'flex';
@@ -732,8 +732,10 @@ async function garantirAudioAtivo() {
 
 // Qualquer interação real com o painel tenta destravar o áudio deste aparelho.
 document.addEventListener('click', () => {
-    garantirAudioAtivo().then(() => atualizarEstadoAlertasPainel());
-}, { once: true });
+    if (localStorage.getItem(CHAVE_ALERTAS_PAINEL) === '1') {
+        garantirAudioAtivo().then(() => atualizarEstadoAlertasPainel());
+    }
+}, { passive: true });
 
 // Cada som é uma sequência de notas (frequência, atraso em ms, e duração em segundos)
 const PRESETS_SOM_ALERTA = {
@@ -787,15 +789,34 @@ function atualizarEstadoAlertasPainel() {
     const audioAtivo = !!audioCtxGlobal && audioCtxGlobal.state === 'running';
     const notificacaoPermitida = typeof Notification !== 'undefined' && Notification.permission === 'granted';
 
-    if (preferenciaAtiva && audioAtivo) {
-        status.textContent = notificacaoPermitida
-            ? '✅ Som + aviso do navegador ativos neste aparelho'
-            : '✅ Som ativo neste aparelho';
-        botao.textContent = '🔔 Alertas ativos';
+    if (preferenciaAtiva) {
+        botao.textContent = '🔔 Alertas configurados';
+        if (audioAtivo) {
+            status.textContent = notificacaoPermitida
+                ? '✅ Som + aviso do navegador ativos neste aparelho'
+                : '✅ Som ativo neste aparelho';
+        } else {
+            // A configuração continua salva. Alguns navegadores exigem uma interação
+            // depois de recarregar a página para liberar SOM, mas não é preciso ativar tudo de novo.
+            status.textContent = notificacaoPermitida
+                ? '✅ Alertas salvos • o som será retomado automaticamente quando o navegador permitir'
+                : '✅ Alertas salvos neste aparelho';
+        }
     } else {
-        status.textContent = '⚠️ Toque em “Ativar alertas” neste aparelho';
+        status.textContent = '⚠️ Ative os alertas uma vez neste aparelho';
         botao.textContent = '🔔 Ativar alertas neste aparelho';
     }
+}
+
+async function restaurarAlertasPainel() {
+    if (localStorage.getItem(CHAVE_ALERTAS_PAINEL) !== '1') {
+        atualizarEstadoAlertasPainel();
+        return;
+    }
+    // Tenta restaurar sem incomodar o usuário. Se o navegador bloquear autoplay após
+    // recarregar, o primeiro toque/clique em QUALQUER lugar do painel destrava o áudio.
+    await garantirAudioAtivo().catch(() => false);
+    atualizarEstadoAlertasPainel();
 }
 
 async function ativarAlertasPainel() {
@@ -896,8 +917,14 @@ function dispararAlertaNovoPedido(pedido) {
     atualizarEstadoAlertasPainel();
 }
 
-window.addEventListener('focus', atualizarEstadoAlertasPainel);
-document.addEventListener('visibilitychange', atualizarEstadoAlertasPainel);
+window.addEventListener('focus', () => {
+    if (localStorage.getItem(CHAVE_ALERTAS_PAINEL) === '1') restaurarAlertasPainel();
+    else atualizarEstadoAlertasPainel();
+});
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && localStorage.getItem(CHAVE_ALERTAS_PAINEL) === '1') restaurarAlertasPainel();
+    else atualizarEstadoAlertasPainel();
+});
 
 function escutarConfigSomAlerta() {
     db.ref('configuracao/alertaSonoro').on('value', snap => {

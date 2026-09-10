@@ -1204,13 +1204,17 @@ async function buscarPedidosPorTelefone(telefone) {
     // diretamente a coleção /pedidos, e recebemos somente os campos necessários para a tela.
     const buscar = firebase.functions().httpsCallable('buscarPedidosCliente');
     const resposta = await buscar({ telefone: telefoneNormalizado, token: obterTokenCliente() });
+    const autorizado = !!(resposta && resposta.data && resposta.data.autorizado);
     const pedidos = resposta && resposta.data && Array.isArray(resposta.data.pedidos)
         ? resposta.data.pedidos
         : [];
 
-    return pedidos
-        .filter(item => item && item.id && item.pedido)
-        .map(item => ({ ...item, origem: 'telefone-servidor' }));
+    return {
+        autorizado,
+        pedidos: pedidos
+            .filter(item => item && item.id && item.pedido)
+            .map(item => ({ ...item, origem: 'telefone-servidor' }))
+    };
 }
 
 function formaPagamentoPedidoTexto(pedido) {
@@ -1241,7 +1245,7 @@ async function abrirMeusPedidos() {
 
     try {
         const telefone = telefoneParaBuscaMeusPedidos();
-        const [resultadosLocais, resultadosTelefone] = await Promise.all([
+        const [resultadosLocais, resultadoServidor] = await Promise.all([
             Promise.all(historico.slice(0, 10).map(item =>
                 firebase.database().ref('pedidos/' + item.id).once('value')
                     .then(snap => snap.exists() ? { id: item.id, pedido: snap.val(), meta: item, origem: 'local' } : null)
@@ -1252,7 +1256,7 @@ async function abrirMeusPedidos() {
 
         const unicos = new Map();
         resultadosLocais.filter(Boolean).forEach(item => unicos.set(item.id, item));
-        resultadosTelefone.forEach(item => {
+        resultadoServidor.pedidos.forEach(item => {
             const anterior = unicos.get(item.id);
             unicos.set(item.id, anterior ? { ...item, meta: anterior.meta } : item);
         });
@@ -1274,9 +1278,13 @@ async function abrirMeusPedidos() {
 
         if (pedidos.length === 0) {
             const temTelefone = normalizarTelefone(telefone).length >= 10;
-            lista.innerHTML = temTelefone
-                ? '<p style="text-align:center; color:var(--muted); padding:20px 0;">Nenhum pedido encontrado para este WhatsApp.</p>'
-                : '<p style="text-align:center; color:var(--muted); padding:20px 0;">Faça seu primeiro pedido para acompanhar tudo por aqui.</p>';
+            if (temTelefone && !resultadoServidor.autorizado) {
+                lista.innerHTML = '<p style="text-align:center; color:var(--muted); padding:20px 0;">🔒 Este aparelho ainda não foi autorizado para abrir o histórico. A liberação acontece automaticamente após uma compra online confirmada ou, no pagamento na entrega, quando o pedido for marcado como entregue.</p>';
+            } else {
+                lista.innerHTML = temTelefone
+                    ? '<p style="text-align:center; color:var(--muted); padding:20px 0;">Nenhum pedido encontrado para este WhatsApp.</p>'
+                    : '<p style="text-align:center; color:var(--muted); padding:20px 0;">Faça seu primeiro pedido para acompanhar tudo por aqui.</p>';
+            }
             return;
         }
 
