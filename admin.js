@@ -1445,8 +1445,8 @@ function calcularNivelAdmin(pontos, cfg) {
 function atualizarPreviaNotificacao() {
     const titulo = document.getElementById('notifPersonalizadaTitulo').value;
     const corpo = document.getElementById('notifPersonalizadaCorpo').value;
-    document.getElementById('contadorTitulo').textContent = `${titulo.length}/50`;
-    document.getElementById('contadorMensagem').textContent = `${corpo.length}/200`;
+    document.getElementById('contadorTitulo').textContent = `${titulo.length}/100`;
+    document.getElementById('contadorMensagem').textContent = `${corpo.length}/300`;
     document.getElementById('previaTitulo').textContent = titulo || 'Título aparece aqui';
     document.getElementById('previaCorpo').textContent = corpo || 'A mensagem aparece aqui, do jeito que o cliente vai ver.';
 }
