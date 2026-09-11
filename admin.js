@@ -1879,7 +1879,9 @@ let editingIngredienteId = null;
 function escutarIngredientes() {
     db.ref('ingredientes').on('value', snap => {
         const val = snap.val() || {};
-        ingredientes = Object.entries(val).map(([id, ing]) => ({ id, ...ing }));
+        // As chaves do Firebase já vêm cronológicas (mais antiga primeiro) — inverte
+        // pra mostrar os ingredientes cadastrados mais recentemente no topo
+        ingredientes = Object.entries(val).map(([id, ing]) => ({ id, ...ing })).reverse();
         renderIngredientes();
         if (typeof popularSelectComponenteBase === 'function') popularSelectComponenteBase();
         if (typeof popularSelectComponenteFichaTecnica === 'function') popularSelectComponenteFichaTecnica();
@@ -2010,7 +2012,8 @@ if (document.readyState === 'loading') {
 function escutarBases() {
     db.ref('bases').on('value', snap => {
         const val = snap.val() || {};
-        bases = Object.entries(val).map(([id, b]) => ({ id, ...b }));
+        // Mesma lógica de Ingredientes/Ficha Técnica/Produtos — mais recente no topo
+        bases = Object.entries(val).map(([id, b]) => ({ id, ...b })).reverse();
         renderBases();
         popularSelectComponenteBase();
         if (typeof popularSelectComponenteFichaTecnica === 'function') popularSelectComponenteFichaTecnica();
