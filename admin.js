@@ -5800,7 +5800,9 @@ function iniciarEscutaPedidos() {
         listaPendentesEl.innerHTML = '';
         const itens = [];
         snapshot.forEach(child => itens.push({ id: child.key, pedido: child.val() }));
-        itens.reverse(); // mais recentes primeiro
+        // Fila de atendimento: mais antigo no topo (primeiro a chegar, primeiro a ser
+        // atendido), mais novo embaixo — as chaves do Firebase já vêm cronológicas
+        // ascendentes, então usa a ordem natural, sem inverter
         itens.forEach(({ id, pedido }) => {
             statusPagamentoConhecido.set(id, statusPagamentoAtual(pedido));
             if (ehStatusFinal(pedido)) return;
@@ -5822,7 +5824,7 @@ function iniciarEscutaPedidos() {
             if (ehStatusFinal(pedido)) return; // pedido antigo carregado já finalizado, ignora
             const vazio = listaPendentesEl.querySelector('.vazio');
             if (vazio) vazio.remove();
-            listaPendentesEl.prepend(montarCardPedido(snap.key, pedido, true));
+            listaPendentesEl.appendChild(montarCardPedido(snap.key, pedido, true));
             idsRenderizados.add(snap.key);
             atualizarContador();
             if (primeiraCargaConcluida && pedido.status === 'pendente' && !window._importandoBackupGestao) tocarAlerta();
@@ -5857,13 +5859,16 @@ function iniciarEscutaPedidos() {
                     listaPendentesEl.innerHTML = '<p class="vazio">Nenhum pedido novo no momento.</p>';
                 }
             } else if (idsRenderizados.has(snap.key) && cardAtual) {
-                // Atualiza o card no lugar, com os botões certos pro novo estágio
-                cardAtual.replaceWith(montarCardPedido(snap.key, pedido, true));
+                // Toda mudança de status (aceitar, sair pra entrega, marcar pronto) manda
+                // esse pedido pro final da fila — assim os pedidos ainda parados num
+                // estágio anterior ficam sempre mais visíveis, no topo
+                cardAtual.remove();
+                listaPendentesEl.appendChild(montarCardPedido(snap.key, pedido, true));
             } else if (!idsRenderizados.has(snap.key)) {
                 // Pedido estava escondido (aguardando pagamento confirmar) e agora
-                // passou a valer — entra na fila igual um pedido novo, com alerta
+                // passou a valer — entra no final da fila igual um pedido novo, com alerta
                 if (listaPendentesEl.querySelector('.vazio')) listaPendentesEl.innerHTML = '';
-                listaPendentesEl.insertBefore(montarCardPedido(snap.key, pedido, true), listaPendentesEl.firstChild);
+                listaPendentesEl.appendChild(montarCardPedido(snap.key, pedido, true));
                 idsRenderizados.add(snap.key);
                 if (pedido.status === 'pendente' && !window._importandoBackupGestao) tocarAlerta();
             }
