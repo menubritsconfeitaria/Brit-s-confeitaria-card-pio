@@ -2294,9 +2294,18 @@ function calcularCustoFichaTecnica(produto) {
         lucroEmpresa = lucroLiquido;
     }
 
+    // Peso final — soma só os componentes em g/ml (peso/volume de verdade); "un"
+    // costuma ser embalagem (forminha, potinho, adesivo), que não pesa a receita.
+    // ml tratado como equivalente a g (prática comum em receita — água/líquidos ~1g/ml).
+    const pesoTotalReceita = arred(detalhes
+        .filter(d => d.unidade === 'g' || d.unidade === 'ml')
+        .reduce((soma, d) => soma + d.quantidade, 0));
+    const pesoPorUnidade = produto.rendimento > 0 ? arred(pesoTotalReceita / produto.rendimento) : 0;
+
     return {
         custoComponentes, custoMaoObra, custoTotalReceita, custoUnitarioReceita, custoUnitarioFinal,
         precoVenda, precoVendaCalculado, temPrecoManual, margemRealPercent, lucroLiquido, lucroEmpresa, lucroCasal,
+        pesoTotalReceita, pesoPorUnidade,
         detalhes
     };
 }
@@ -2328,6 +2337,7 @@ function renderTempComponentesFichaTecnica() {
     const div = document.getElementById('ftListaComponentes');
     div.innerHTML = '';
     let total = 0;
+    let pesoTotal = 0;
     tempFichaTecnicaComponentes.forEach((c, i) => {
         let nome = '', custo = 0, unidade = '';
         if (c.tipo === 'base') {
@@ -2340,6 +2350,9 @@ function renderTempComponentesFichaTecnica() {
             else nome = '(removido)';
         }
         total += custo;
+        // Peso final — soma só g/ml (peso/volume de verdade); "un" costuma ser
+        // embalagem (forminha, potinho, adesivo), que não pesa a receita
+        if (unidade === 'g' || unidade === 'ml') pesoTotal += c.quantidade;
         const linha = document.createElement('div');
         linha.style.cssText = 'display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border);';
         linha.innerHTML = `<span>${nome} — ${c.quantidade}${unidade} = ${formatarPreco(custo)}</span>
@@ -2347,6 +2360,8 @@ function renderTempComponentesFichaTecnica() {
         div.appendChild(linha);
     });
     document.getElementById('ftCustoComponentesTemp').textContent = formatarPreco(total);
+    const pesoEl = document.getElementById('ftPesoTotalTemp');
+    if (pesoEl) pesoEl.textContent = arred(pesoTotal) + 'g';
 }
 
 function salvarFichaTecnica() {
@@ -2432,6 +2447,7 @@ function montarResultadoFichaTecnica(produto) {
 
     return `
         <div class="pedido-card">
+            <p>Peso total da receita: <strong>${r.pesoTotalReceita}g</strong> · Peso por unidade: <strong>${r.pesoPorUnidade}g</strong></p>
             <p>Custo total da receita: <strong>${formatarPreco(r.custoTotalReceita)}</strong></p>
             <p>Custo unitário final: <strong>${formatarPreco(r.custoUnitarioFinal)}</strong></p>
             <p>Preço calculado pelas margens: <strong>${formatarPreco(r.precoVendaCalculado)}</strong></p>
