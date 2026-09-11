@@ -1146,6 +1146,11 @@ function responderPedido(id, novoStatus) {
             if (novoStatus === 'entregue') {
                 creditarPontosFidelidade(pedido);
             }
+            // Impressão automática — só dispara se o toggle estiver ativo. Reaproveita a
+            // mesma função do botão manual "🖨️ Imprimir", só chamando ela sozinha.
+            if (novoStatus === 'aceito' && impressaoAutomaticaAtiva) {
+                imprimirPedidoIndividual(id);
+            }
         });
     }).catch(err => alert('Não foi possível atualizar o pedido: ' + err.message));
 }
@@ -4256,6 +4261,24 @@ function salvarNotificacaoAberturaAtiva(ativo) {
         .catch(err => { if (msgEl) msgEl.textContent = 'Erro ao salvar: ' + err.message; });
 }
 
+// Toggle de imprimir automaticamente ao aceitar um pedido — mesmo padrão do toggle
+// de aviso de abertura. Guarda um valor global (impressaoAutomaticaAtiva) que
+// responderPedido() confere antes de chamar a impressão.
+let impressaoAutomaticaAtiva = false;
+function salvarImpressaoAutomaticaAtiva(ativo) {
+    const msgEl = document.getElementById('msgImpressaoAutomatica');
+    db.ref('configuracao/loja/impressaoAutomaticaAtiva').set(!!ativo)
+        .then(() => { if (msgEl) msgEl.textContent = (ativo ? 'Ativada' : 'Desativada') + ' — Salvo!'; })
+        .catch(err => { if (msgEl) msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+}
+function escutarImpressaoAutomaticaAtiva() {
+    db.ref('configuracao/loja/impressaoAutomaticaAtiva').on('value', snap => {
+        impressaoAutomaticaAtiva = !!snap.val();
+        const chk = document.getElementById('chkImpressaoAutomatica');
+        if (chk) chk.checked = impressaoAutomaticaAtiva;
+    });
+}
+
 // Carrega o estado atual do toggle, pra marcar o checkbox certo já na abertura do
 // painel (sem isso, sempre apareceria desmarcado, mesmo se já tivesse sido ativado antes)
 function escutarNotificacaoAberturaAtiva() {
@@ -5604,6 +5627,7 @@ function iniciarEscutaPedidos() {
 
     escutarConfigLoja();
     escutarNotificacaoAberturaAtiva();
+    escutarImpressaoAutomaticaAtiva();
     obterOuCriarCampanhaAtual().then(renderHistoricoCampanhasMensagemMassa);
     escutarProdutos();
     escutarCupons();
