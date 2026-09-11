@@ -5467,7 +5467,7 @@ function creditarPontosFidelidade(pedido) {
             pontos: novosPontos,
             totalGasto: Math.round(((atual.totalGasto || 0) + valorBase) * 100) / 100,
             ultimoPedido: {
-                itens: (pedido.itens || []).map(i => ({ nome: i.nome, preco: i.preco, quantidade: i.quantidade, observacao: i.observacao || null })),
+                itens: (pedido.itens || []).map(i => ({ produtoId: i.produtoId || null, nome: i.nome, preco: i.preco, quantidade: i.quantidade, observacao: i.observacao || null })),
                 tipoEntrega: pedido.tipoEntrega,
                 data: Date.now()
             },
