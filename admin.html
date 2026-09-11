@@ -82,6 +82,10 @@
                     <button class="btn-secondary" onclick="inicializarAudioContext(); tocarAlerta(document.getElementById('selectSomAlerta').value);">▶️ Testar</button>
                     <button class="btn-secondary" onclick="salvarSomAlerta()">💾 Salvar som</button>
                     <button id="btnAtivarAlertasPainel" class="btn-secondary" onclick="ativarAlertasPainel()">🔔 Ativar alertas neste aparelho</button>
+                    <label class="produto-disponivel-check" style="align-self:center; margin:0;">
+                        <input type="checkbox" id="chkImpressaoAutomatica" onchange="salvarImpressaoAutomaticaAtiva(this.checked)"> 🖨️ Imprimir automaticamente ao aceitar
+                    </label>
+                    <span id="msgImpressaoAutomatica" class="dica-secao" style="align-self:center;"></span>
                     <span id="statusAlertasPainel" class="dica-secao" style="align-self:center;"></span>
                 </div>
                 <div id="listaPendentes" class="lista-pedidos">
