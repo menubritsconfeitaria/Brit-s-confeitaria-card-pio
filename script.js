@@ -386,7 +386,7 @@ function atualizarStatusLoja(config) {
     // Enquanto a prévia personalizada estiver ativa, NUNCA reaplica a configuração
     // real por cima — sem isso, essa mesma função (chamada logo depois de ativar o
     // modo demo, pra forçar "loja aberta") podia sobrescrever o nome/logo/cor que a
-    // pessoa acabou de digitar, voltando pros dados reais da Brit's sem avisar
+    // pessoa acabou de digitar, voltando pros dados reais da loja sem avisar
     if (!modoDemoAtivo) {
         const configMesclada = {
             ...LOJA_CONFIG,
@@ -430,7 +430,7 @@ function atualizarStatusLoja(config) {
     produtoSugeridoFreteGratisId = (config && config.produtoSugeridoFreteGratis) || null;
 
     // Durante a prévia personalizada, sempre mostra "aberta" — não importa o horário
-    // real da Brit's, a pessoa vendo a prévia precisa ver o site "no seu melhor momento"
+    // real da loja, a pessoa vendo a prévia precisa ver o site "no seu melhor momento"
     if (modoDemoAtivo) {
         lojaAbertaAtual = true;
         banner.classList.remove('loja-fechada');
@@ -2894,7 +2894,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
             console.log('Não foi possível criar o checkout do sinal:', err.message, '| Detalhes:', JSON.stringify(err.details));
             try {
                 const limparPedido = firebase.functions().httpsCallable('limparPedidoFalhoDeCheckout');
-                await limparPedido({ pedidoId });
+                await limparPedido({ pedidoId, token: obterTokenCliente() });
             } catch (e2) { /* segue mesmo se não conseguir limpar */ }
             alert('Não foi possível iniciar o pagamento do sinal. Tente novamente.');
             botaoFinalizarCompra.disabled = false;
@@ -2932,7 +2932,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
             // tentativa ficava empilhando pedidos duplicados no painel
             try {
                 const limparPedido = firebase.functions().httpsCallable('limparPedidoFalhoDeCheckout');
-                await limparPedido({ pedidoId });
+                await limparPedido({ pedidoId, token: obterTokenCliente() });
             } catch (e2) { /* segue mesmo se não conseguir limpar */ }
             alert('Não foi possível iniciar o pagamento. Tente novamente.');
             botaoFinalizarCompra.disabled = false;
