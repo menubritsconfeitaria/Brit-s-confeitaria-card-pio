@@ -863,11 +863,25 @@ function editarFormaPagamentoPedido(id, elemento) {
     select.focus();
 }
 
-function formatarTrocoLabel(troco) {
+function formatarTrocoLabel(troco, total) {
     if (!troco) return '';
     const normalizado = String(troco).trim().toLowerCase();
     const semTroco = ['sem troco', 'não preciso', 'nao preciso', 'não precisa', 'nao precisa', 'não', 'nao'].includes(normalizado);
-    return semTroco ? 'Sem troco' : `Troco para ${troco}`;
+    if (semTroco) return 'Sem troco';
+
+    // Só calcula quando o texto digitado for CLARAMENTE um valor único (ex: "50",
+    // "R$ 50,00", "50.00") — se tiver qualquer coisa além de número/R$/vírgula/ponto
+    // (tipo "uma nota de 100 e outra de 20"), não arrisca interpretar errado, só
+    // mostra o texto original.
+    const match = String(troco).trim().match(/^R?\$?\s*(\d{1,6}(?:[.,]\d{1,2})?)$/i);
+    if (total != null && match) {
+        const valorDigitado = parseFloat(match[1].replace(',', '.'));
+        if (Number.isFinite(valorDigitado) && valorDigitado > total) {
+            const devolver = arred(valorDigitado - total);
+            return `Troco para ${troco} (devolver ${formatarPreco(devolver)})`;
+        }
+    }
+    return `Troco para ${troco}`;
 }
 
 function formatarHora(timestamp) {
@@ -908,7 +922,7 @@ function montarHtmlTicketImpressao(pedido, numeroPedido) {
         ${itensHtml}
         <hr>
         <p><strong>Forma de pagamento:</strong> ${pedido.formaPagamento || 'Não informado'}</p>
-        ${pedido.troco ? `<p><strong>${formatarTrocoLabel(pedido.troco)}</strong></p>` : ''}
+        ${pedido.troco ? `<p><strong>${formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))}</strong></p>` : ''}
         ${pedido.observacoes ? `<p><strong>Observações:</strong> ${pedido.observacoes}</p>` : ''}
         ${pedido.recompensaResgatada ? `<p><strong>🎁 RESGATE DO CLUBE:</strong> ${pedido.recompensaResgatada.descricao}</p>` : ''}
         ${pedido.dataEncomenda ? `<p><strong>📅 ENCOMENDA PRA:</strong> ${pedido.dataEncomenda.split('-').reverse().join('/')}</p>` : ''}
@@ -1030,7 +1044,7 @@ function montarCardPedido(id, pedido, comAcoes) {
                 <div class="pedido-cliente">${pedido.numero ? `<span class="pedido-numero">🛒Pedido #${String(pedido.numero).padStart(3, '0')}</span> - ` : ''}${pedido.nome || 'Cliente'}</div>
                 <div>
                     <span class="pedido-tag ${pedido.tipoEntrega === 'entrega' ? 'tag-entrega' : 'tag-retirada'}">${pedido.tipoEntrega === 'entrega' ? '🛵 Entrega' : '🏠 Retirada'}</span>
-                    <span class="pedido-tag tag-pagamento" style="cursor:pointer;" onclick="editarFormaPagamentoPedido('${id}', this)" title="Clique pra corrigir a forma de pagamento">💰 ${pedido.formaPagamento || ''}${pedido.troco ? ' (' + formatarTrocoLabel(pedido.troco) + ')' : ''} ✏️</span>
+                    <span class="pedido-tag tag-pagamento" style="cursor:pointer;" onclick="editarFormaPagamentoPedido('${id}', this)" title="Clique pra corrigir a forma de pagamento">💰 ${pedido.formaPagamento || ''}${pedido.troco ? ' (' + formatarTrocoLabel(pedido.troco, totalDoPedido(pedido)) + ')' : ''} ✏️</span>
                     <span class="pedido-tag ${pedido.pagamentoConfirmadoManual ? 'tag-status-entregue' : ''}" style="cursor:pointer;" onclick="alternarPagamentoConfirmadoManual('${id}', ${!pedido.pagamentoConfirmadoManual})" title="Clique pra marcar/desmarcar como pago (uso manual, ex: cliente pagou Pix por fora)">${pedido.pagamentoConfirmadoManual ? '✅ Pago' : '☐ Marcar como pago'}</span>
                     ${montarTagPagamento(pedido)}
                     ${tagStatus}
