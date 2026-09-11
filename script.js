@@ -2666,14 +2666,36 @@ function atualizarBotaoRepetirPedido() {
 function repetirUltimoPedido() {
     const ultimo = dadosFidelidadeCliente.ultimoPedido;
     if (!ultimo || !ultimo.itens || ultimo.itens.length === 0) return;
+
+    let adicionados = 0;
+    let pulados = 0;
     ultimo.itens.forEach(item => {
+        // Confere se o produto ainda existe, está disponível e não está escondido —
+        // um pedido antigo pode ter produtos que já saíram do cardápio ou ficaram
+        // temporariamente indisponíveis. Prefere achar pelo produtoId (mais confiável);
+        // só cai pro nome se for um registro antigo sem produtoId salvo.
+        const produtoAtual = item.produtoId
+            ? produtos.find(p => p.id === item.produtoId)
+            : produtos.find(p => p.nome === item.nome);
+        const disponivel = produtoAtual && produtoAtual.disponivel !== false && !produtoAtual.escondido;
+        if (!disponivel) { pulados++; return; }
+
         const jaExiste = carrinho.find(c => c.nome === item.nome && (c.observacao || '') === (item.observacao || ''));
         if (jaExiste) jaExiste.quantidade += item.quantidade;
-        else carrinho.push({ produtoId: item.produtoId || null, nome: item.nome, preco: item.preco, quantidade: item.quantidade, observacao: item.observacao || null });
+        else carrinho.push({ produtoId: item.produtoId || produtoAtual.id, nome: item.nome, preco: item.preco, quantidade: item.quantidade, observacao: item.observacao || null });
+        adicionados++;
     });
+
     salvarCarrinho();
     atualizarCarrinhoHTML();
-    alert('Itens do seu último pedido foram adicionados ao carrinho!');
+
+    if (adicionados === 0) {
+        alert('Os itens do seu último pedido não estão mais disponíveis no cardápio.');
+    } else if (pulados > 0) {
+        alert(`${adicionados} ite${adicionados > 1 ? 'ns foram' : 'm foi'} adicionado${adicionados > 1 ? 's' : ''} ao carrinho. ${pulados} ite${pulados > 1 ? 'ns não estavam' : 'm não estava'} mais disponível${pulados > 1 ? 'is' : ''}.`);
+    } else {
+        alert('Itens do seu último pedido foram adicionados ao carrinho!');
+    }
 }
 
 botaoFinalizarCompra.addEventListener('click', async () => {
