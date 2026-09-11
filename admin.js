@@ -1452,10 +1452,87 @@ function atualizarPreviaNotificacao() {
 }
 
 // Preenche os campos com um modelo pronto — a pessoa ainda pode editar antes de enviar
-function usarModeloNotificacao(titulo, corpo) {
-    document.getElementById('notifPersonalizadaTitulo').value = titulo;
-    document.getElementById('notifPersonalizadaCorpo').value = corpo;
+// ---------- Modelos de notificação — salvos no Firebase, editáveis ----------
+// Antes eram 6 botões fixos no HTML, sem jeito de adicionar ou editar de verdade.
+// Agora ficam em configuracao/modelosNotificacao — se ainda não existir nada
+// salvo (cliente novo, ou antes dessa atualização), usa os 6 de sempre como
+// ponto de partida, sem quebrar quem já usava.
+const MODELOS_NOTIFICACAO_PADRAO = [
+    { titulo: '🍰 Novidade', mensagem: 'Tem novidade no nosso cardápio! Confira agora.' },
+    { titulo: '🔥 Promoção', mensagem: '🔥 Aproveite nossa promoção especial de hoje! Faça seu pedido pelo nosso cardápio.' },
+    { titulo: '❤️ Sentimos sua falta', mensagem: '❤️ Sentimos sua falta! Que tal pedir novamente aquele seu favorito?' },
+    { titulo: '⏰ Estamos atendendo', mensagem: 'Já estamos atendendo! Faça seu pedido pelo nosso cardápio online.' },
+    { titulo: '🍓 Produto novo', mensagem: '🍓 Temos uma novidade deliciosa esperando por você. Confira nosso cardápio!' },
+    { titulo: '📢 Aviso', mensagem: '📢 Confira nosso horário de atendimento e faça seu pedido.' }
+];
+let modelosNotificacaoAtuais = MODELOS_NOTIFICACAO_PADRAO;
+let modeloEmEdicaoIndex = null;
+
+function escutarModelosNotificacao() {
+    db.ref('configuracao/modelosNotificacao').on('value', snap => {
+        const val = snap.val();
+        modelosNotificacaoAtuais = Array.isArray(val) && val.length > 0 ? val : MODELOS_NOTIFICACAO_PADRAO;
+        renderModelosNotificacao();
+    });
+}
+
+function renderModelosNotificacao() {
+    const container = document.getElementById('listaModelosNotificacao');
+    if (!container) return;
+    container.innerHTML = modelosNotificacaoAtuais.map((m, i) => `
+        <div class="opcao-btn" style="display:flex; align-items:center; gap:6px;">
+            <span style="cursor:pointer;" onclick="usarModeloNotificacao(${i})">${m.titulo}</span>
+            <span style="cursor:pointer;" onclick="editarModeloNotificacao(${i})" title="Editar esse modelo">✏️</span>
+            <span style="cursor:pointer;" onclick="excluirModeloNotificacao(${i})" title="Excluir esse modelo">🗑️</span>
+        </div>
+    `).join('');
+}
+
+function usarModeloNotificacao(index) {
+    const m = modelosNotificacaoAtuais[index];
+    if (!m) return;
+    document.getElementById('notifPersonalizadaTitulo').value = m.titulo;
+    document.getElementById('notifPersonalizadaCorpo').value = m.mensagem;
     atualizarPreviaNotificacao();
+}
+
+function editarModeloNotificacao(index) {
+    const m = modelosNotificacaoAtuais[index];
+    if (!m) return;
+    document.getElementById('notifPersonalizadaTitulo').value = m.titulo;
+    document.getElementById('notifPersonalizadaCorpo').value = m.mensagem;
+    atualizarPreviaNotificacao();
+    modeloEmEdicaoIndex = index;
+    const msgEl = document.getElementById('msgModelosNotificacao');
+    if (msgEl) msgEl.textContent = `Editando "${m.titulo}" — muda o texto acima e clica em "Salvar" pra atualizar esse modelo.`;
+}
+
+function excluirModeloNotificacao(index) {
+    const m = modelosNotificacaoAtuais[index];
+    if (!m || !confirm(`Excluir o modelo "${m.titulo}"?`)) return;
+    const novaLista = modelosNotificacaoAtuais.filter((_, i) => i !== index);
+    db.ref('configuracao/modelosNotificacao').set(novaLista)
+        .catch(err => alert('Erro ao excluir: ' + err.message));
+}
+
+function salvarModeloAtualComoNovo() {
+    const titulo = document.getElementById('notifPersonalizadaTitulo').value.trim();
+    const mensagem = document.getElementById('notifPersonalizadaCorpo').value.trim();
+    const msgEl = document.getElementById('msgModelosNotificacao');
+    if (!titulo || !mensagem) { if (msgEl) msgEl.textContent = 'Escreve o título e a mensagem primeiro.'; return; }
+
+    const novaLista = [...modelosNotificacaoAtuais];
+    if (modeloEmEdicaoIndex !== null) {
+        novaLista[modeloEmEdicaoIndex] = { titulo, mensagem }; // atualiza o modelo que estava sendo editado
+    } else {
+        novaLista.push({ titulo, mensagem }); // cria um modelo novo
+    }
+
+    db.ref('configuracao/modelosNotificacao').set(novaLista)
+        .then(() => { if (msgEl) msgEl.textContent = modeloEmEdicaoIndex !== null ? 'Modelo atualizado!' : 'Modelo novo salvo!'; })
+        .catch(err => { if (msgEl) msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+
+    modeloEmEdicaoIndex = null;
 }
 
 // Mostra, em tempo real, quantos aparelhos estão prontos pra receber notificação —
@@ -5627,6 +5704,7 @@ function iniciarEscutaPedidos() {
 
     escutarConfigLoja();
     escutarNotificacaoAberturaAtiva();
+    escutarModelosNotificacao();
     escutarImpressaoAutomaticaAtiva();
     obterOuCriarCampanhaAtual().then(renderHistoricoCampanhasMensagemMassa);
     escutarProdutos();

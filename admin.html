@@ -143,14 +143,9 @@
                     <textarea id="notifPersonalizadaCorpo" maxlength="200" class="campo-adicionais" style="min-height:60px;" placeholder="Ex: Hoje funcionamos até às 23h!" oninput="atualizarPreviaNotificacao()"></textarea>
 
                     <p class="campo-label" style="margin-top:14px;">⚡ Modelos prontos</p>
-                    <div class="opcoes-radio">
-                        <div class="opcao-btn" onclick="usarModeloNotificacao('🍰 Novidade', 'Tem novidade no nosso cardápio! Confira agora.')">🍰 Novidade</div>
-                        <div class="opcao-btn" onclick="usarModeloNotificacao('🔥 Promoção', '🔥 Aproveite nossa promoção especial de hoje! Faça seu pedido pelo nosso cardápio.')">🔥 Promoção</div>
-                        <div class="opcao-btn" onclick="usarModeloNotificacao('❤️ Sentimos sua falta', '❤️ Sentimos sua falta! Que tal pedir novamente aquele seu favorito?')">❤️ Sentimos sua falta</div>
-                        <div class="opcao-btn" onclick="usarModeloNotificacao('⏰ Estamos atendendo', 'Já estamos atendendo! Faça seu pedido pelo nosso cardápio online.')">⏰ Estamos atendendo</div>
-                        <div class="opcao-btn" onclick="usarModeloNotificacao('🍓 Produto novo', '🍓 Temos uma novidade deliciosa esperando por você. Confira nosso cardápio!')">🍓 Produto novo</div>
-                        <div class="opcao-btn" onclick="usarModeloNotificacao('📢 Aviso', '📢 Confira nosso horário de atendimento e faça seu pedido.')">📢 Aviso</div>
-                    </div>
+                    <div class="opcoes-radio" id="listaModelosNotificacao"></div>
+                    <button class="btn-secondary" style="margin-top:8px;" onclick="salvarModeloAtualComoNovo()">💾 Salvar texto atual como modelo novo</button>
+                    <p id="msgModelosNotificacao" class="ordem-categorias-msg"></p>
 
                     <p class="campo-label" style="margin-top:14px;">Prévia</p>
                     <div class="notif-previa">
