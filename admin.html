@@ -440,6 +440,15 @@
                     <p id="msgLoginMestre" class="ordem-categorias-msg"></p>
                 </div>
 
+                <div class="loja-status-card" id="cardAdicionarClienteMestre" style="margin-top:16px; display:none;">
+                    <h3>Passo 1 de 5 — ➕ Dados da empresa e Firebase (cliente novo)</h3>
+                    <p class="dica-secao">Copia o firebaseConfig do cliente (arquivo firebase-config.js dele) e cola aqui.</p>
+                    <input type="text" id="novoClienteNomeMestre" placeholder="Nome do cliente (ex: Doces da Ana)">
+                    <textarea id="novoClienteConfigMestre" rows="6" placeholder='Cole aqui o conteúdo do firebaseConfig, ex: {"apiKey":"...", "authDomain":"...", ...}' style="width:100%; margin-top:8px; font-family:monospace; font-size:0.85em;"></textarea>
+                    <button class="btn-salvar-ordem" style="margin-top:8px;" onclick="adicionarClienteMestre()">💾 Adicionar cliente</button>
+                    <p id="msgAdicionarClienteMestre" class="ordem-categorias-msg"></p>
+                </div>
+
                 <div class="loja-status-card" id="cardConteudoMestre" style="display:none;">
                     <label class="campo-label">Escolher cliente</label>
                     <select id="seletorClienteMestre" onchange="selecionarClienteMestre()">
@@ -453,6 +462,7 @@
                         <p id="msgLoginClienteMestre" class="ordem-categorias-msg"></p>
                     </div>
                     <div id="areaRecursosClienteMestre" style="display:none; margin-top:14px;">
+                        <h3>Passo 2 de 5 — 🧩 Recursos liberados pra esse cliente</h3>
                         <p id="avisoNuncaConfiguradoMestre" class="dica-secao" style="display:none;">ℹ️ Esse cliente nunca teve nada configurado aqui — hoje ele tem tudo liberado (padrão). Os interruptores já refletem isso.</p>
                         <div id="listaRecursosClienteMestre"></div>
                         <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="aplicarRecursosClienteMestre()">💾 Aplicar nesse cliente</button>
@@ -460,7 +470,7 @@
 
                         <hr style="margin:18px 0; border:none; border-top:1px solid var(--border);">
 
-                        <h3>🏷️ Identidade e Marca desse cliente</h3>
+                        <h3>Passo 3 de 5 — 🏷️ Identidade e Marca desse cliente</h3>
                         <label class="campo-label">Nome completo</label>
                         <input type="text" id="nomeLojaConfigMestre" placeholder="Ex: Doces da Ana">
                         <label class="campo-label" style="margin-top:10px;">Nome curto</label>
@@ -499,14 +509,14 @@
 
                         <hr style="margin:18px 0; border:none; border-top:1px solid var(--border);">
 
-                        <h3>🕐 Horário de funcionamento desse cliente</h3>
+                        <h3>Passo 4 de 5 — 🕐 Horário de funcionamento desse cliente</h3>
                         <div id="listaHorariosMestre"></div>
                         <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="salvarHorariosMestre()">💾 Salvar horários</button>
                         <p id="msgHorariosMestre" class="ordem-categorias-msg"></p>
 
                         <hr style="margin:18px 0; border:none; border-top:1px solid var(--border);">
 
-                        <h3>🚚 Áreas de Entrega desse cliente</h3>
+                        <h3>Passo 5 de 5 — 🚚 Áreas de Entrega desse cliente</h3>
                         <p class="dica-secao">Edita a mesma configuração de frete usada no painel do cliente: valores por km e bairros atendidos.</p>
 
                         <label class="campo-label">Valor por km (R$)</label>
@@ -530,15 +540,6 @@
                         <input type="text" id="buscaBairroMestre" placeholder="🔍 Pesquisar bairro..." oninput="renderizarListaBairrosMestre()">
                         <div id="listaBairrosMestre" style="margin-top:8px; max-height:320px; overflow-y:auto;"></div>
                     </div>
-                </div>
-
-                <div class="loja-status-card" id="cardAdicionarClienteMestre" style="margin-top:16px; display:none;">
-                    <h3>➕ Adicionar cliente ao registro</h3>
-                    <p class="dica-secao">Copia o firebaseConfig do cliente (arquivo firebase-config.js dele) e cola aqui.</p>
-                    <input type="text" id="novoClienteNomeMestre" placeholder="Nome do cliente (ex: Doces da Ana)">
-                    <textarea id="novoClienteConfigMestre" rows="6" placeholder='Cole aqui o conteúdo do firebaseConfig, ex: {"apiKey":"...", "authDomain":"...", ...}' style="width:100%; margin-top:8px; font-family:monospace; font-size:0.85em;"></textarea>
-                    <button class="btn-salvar-ordem" style="margin-top:8px;" onclick="adicionarClienteMestre()">💾 Adicionar cliente</button>
-                    <p id="msgAdicionarClienteMestre" class="ordem-categorias-msg"></p>
                 </div>
 
                 <div class="loja-status-card" id="cardLeadsMestre" style="display:none; margin-top:16px;">
