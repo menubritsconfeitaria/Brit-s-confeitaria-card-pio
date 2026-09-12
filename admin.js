@@ -359,6 +359,24 @@ const RECURSOS_MESTRE = [
     { chave: 'gestaoCompleta', nome: '📊 Gestão Completa (ingredientes, ficha técnica, estoque)' }
 ];
 
+// Definição oficial dos planos PedeAki (mesma do flyer de vendas) — cada plano de cima
+// inclui tudo do de baixo. Só pré-marca os interruptores na tela; ainda precisa clicar
+// em "Aplicar nesse cliente" pra salvar de verdade, e dá pra ajustar manualmente antes
+// de salvar (não trava em plano nenhum).
+const RECURSOS_POR_PLANO = {
+    start: ['areasDeEntrega', 'pedidoMinimo', 'esconderProduto'],
+    pro: ['areasDeEntrega', 'pedidoMinimo', 'esconderProduto', 'cupons', 'fidelidade', 'notificacoes', 'pagamentoOnline', 'adicionais', 'agenda', 'visitantes'],
+    premium: ['areasDeEntrega', 'pedidoMinimo', 'esconderProduto', 'cupons', 'fidelidade', 'notificacoes', 'pagamentoOnline', 'adicionais', 'agenda', 'visitantes', 'gestaoCompleta']
+};
+
+function aplicarPlanoPadraoMestre(plano) {
+    const chavesDoPlano = RECURSOS_POR_PLANO[plano] || [];
+    RECURSOS_MESTRE.forEach(r => {
+        const chk = document.getElementById('recursoMestre_' + r.chave);
+        if (chk) chk.checked = chavesDoPlano.includes(r.chave);
+    });
+}
+
 const appsClientesMestre = {}; // indice -> { app, auth, db, autenticado }
 let clientesRegistroMestre = [];
 let clienteMestreSelecionadoIndice = null;

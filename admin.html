@@ -464,7 +464,13 @@
                     <div id="areaRecursosClienteMestre" style="display:none; margin-top:14px;">
                         <h3>Passo 2 de 5 — 🧩 Recursos liberados pra esse cliente</h3>
                         <p id="avisoNuncaConfiguradoMestre" class="dica-secao" style="display:none;">ℹ️ Esse cliente nunca teve nada configurado aqui — hoje ele tem tudo liberado (padrão). Os interruptores já refletem isso.</p>
-                        <div id="listaRecursosClienteMestre"></div>
+                        <label class="campo-label">Aplicar um plano pronto (marca os interruptores certos — ainda dá pra ajustar manualmente depois)</label>
+                        <div class="opcoes-radio">
+                            <div class="opcao-btn" onclick="aplicarPlanoPadraoMestre('start')">🚀 Start</div>
+                            <div class="opcao-btn" onclick="aplicarPlanoPadraoMestre('pro')">⭐ Pro</div>
+                            <div class="opcao-btn" onclick="aplicarPlanoPadraoMestre('premium')">👑 Premium</div>
+                        </div>
+                        <div id="listaRecursosClienteMestre" style="margin-top:14px;"></div>
                         <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="aplicarRecursosClienteMestre()">💾 Aplicar nesse cliente</button>
                         <p id="msgAplicarRecursosMestre" class="ordem-categorias-msg"></p>
 
