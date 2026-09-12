@@ -271,7 +271,6 @@
                     <p class="clube-saudacao">Olá, <span id="clubeNomeExibido"></span>! 👋 <span id="clubeNivelEmoji"></span> <span id="clubeNivelNome"></span> — <strong id="clubePontosExibido">0</strong> pts</p>
                     <div class="clube-barra-fundo"><div id="clubeBarraProgresso" class="clube-barra-preenchida" style="width:0%;"></div></div>
                     <p id="clubeProgressoTexto" class="note"></p>
-                    <button type="button" id="btnRepetirPedido" class="btn-notificacoes" style="display:none;" onclick="repetirUltimoPedido()">🔄 Repetir último pedido</button>
                     <div id="clubeRecompensas"></div>
                     <button type="button" onclick="sairDoClube()" class="link-sair-clube">Sair / trocar de conta</button>
                 </div>
@@ -288,6 +287,7 @@
                     </a>
                 </div>
                 <button type="button" id="btnMeusPedidos" class="btn-meus-pedidos" onclick="abrirMeusPedidos()">📋 Meus Pedidos</button>
+                <button type="button" id="btnRepetirPedido" class="btn-notificacoes" style="display:none;" onclick="repetirUltimoPedido()">🔄 Repetir último pedido</button>
             </div>
 
             <div id="modalMeusPedidos" class="modal-overlay" style="display:none;" onclick="if(event.target === this) fecharMeusPedidos()">

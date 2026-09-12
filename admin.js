@@ -368,7 +368,7 @@ const RECURSOS_MESTRE = [
 // em "Aplicar nesse cliente" pra salvar de verdade, e dá pra ajustar manualmente antes
 // de salvar (não trava em plano nenhum).
 const RECURSOS_POR_PLANO = {
-    start: ['areasDeEntrega', 'pedidoMinimo', 'esconderProduto'],
+    start: ['areasDeEntrega', 'pedidoMinimo', 'esconderProduto', 'repetirUltimoPedido'],
     pro: ['areasDeEntrega', 'pedidoMinimo', 'esconderProduto', 'cupons', 'fidelidade', 'notificacoes', 'pagamentoOnline', 'adicionais', 'agenda', 'visitantes', 'vendedorInteligente', 'ofertasCarrinho', 'mensagemMassa', 'repetirUltimoPedido'],
     premium: ['areasDeEntrega', 'pedidoMinimo', 'esconderProduto', 'cupons', 'fidelidade', 'notificacoes', 'pagamentoOnline', 'adicionais', 'agenda', 'visitantes', 'vendedorInteligente', 'ofertasCarrinho', 'mensagemMassa', 'repetirUltimoPedido', 'gestaoCompleta']
 };

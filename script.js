@@ -2683,6 +2683,28 @@ function atualizarBotaoRepetirPedido() {
     btn.style.display = podeMostrar ? 'block' : 'none';
 }
 
+// "Repetir Último Pedido" funciona pra qualquer cliente que já tenha feito um pedido
+// antes, independente de ter entrado no Clube de Fidelidade — os dados de "último
+// pedido" já são gravados sempre (mesmo com Fidelidade desativada pra loja), então só
+// precisa do telefone salvo (mesma função já usada em "Meus Pedidos") pra buscar.
+async function verificarRepetirUltimoPedidoIndependente() {
+    if (!recursoLiberado('repetirUltimoPedido')) return;
+    if (clubeIdentificado) return; // já é tratado pelo fluxo normal do Clube nesse caso
+    const telefone = telefoneParaBuscaMeusPedidos();
+    if (!telefone || typeof firebase === 'undefined' || !firebase.functions) return;
+    try {
+        const obter = firebase.functions().httpsCallable('obterFidelidadeCliente');
+        const resposta = await obter({ telefone, token: obterTokenCliente() });
+        const dados = resposta && resposta.data ? resposta.data : {};
+        if (dados.autorizado && dados.fidelidade) {
+            dadosFidelidadeCliente = dados.fidelidade;
+            atualizarBotaoRepetirPedido();
+        }
+    } catch (err) {
+        console.log('Não foi possível verificar o último pedido agora:', err);
+    }
+}
+
 function repetirUltimoPedido() {
     if (!recursoLiberado('repetirUltimoPedido')) return;
     const ultimo = dadosFidelidadeCliente.ultimoPedido;
@@ -3067,7 +3089,7 @@ async function restaurarIdentificacaoClube() {
         atualizarUIClube();
     } catch (e) {}
 }
-restaurarIdentificacaoClube();
+restaurarIdentificacaoClube().then(verificarRepetirUltimoPedidoIndependente).catch(() => verificarRepetirUltimoPedidoIndependente());
 escutarConfigClube();
 
 /* ===================================================================
