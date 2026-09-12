@@ -440,12 +440,6 @@
                     <p id="msgLoginMestre" class="ordem-categorias-msg"></p>
                 </div>
 
-                <div class="loja-status-card" id="cardLeadsMestre" style="display:none; margin-top:16px;">
-                    <h3>📋 Leads do Cardápio</h3>
-                    <p class="dica-secao">Todo mundo que preencheu "Quero meu cardápio assim" em qualquer cardápio seu.</p>
-                    <div id="listaLeadsMestre"></div>
-                </div>
-
                 <div class="loja-status-card" id="cardConteudoMestre" style="display:none;">
                     <label class="campo-label">Escolher cliente</label>
                     <select id="seletorClienteMestre" onchange="selecionarClienteMestre()">
@@ -519,6 +513,12 @@
                     <textarea id="novoClienteConfigMestre" rows="6" placeholder='Cole aqui o conteúdo do firebaseConfig, ex: {"apiKey":"...", "authDomain":"...", ...}' style="width:100%; margin-top:8px; font-family:monospace; font-size:0.85em;"></textarea>
                     <button class="btn-salvar-ordem" style="margin-top:8px;" onclick="adicionarClienteMestre()">💾 Adicionar cliente</button>
                     <p id="msgAdicionarClienteMestre" class="ordem-categorias-msg"></p>
+                </div>
+
+                <div class="loja-status-card" id="cardLeadsMestre" style="display:none; margin-top:16px;">
+                    <h3>📋 Leads do Cardápio</h3>
+                    <p class="dica-secao">Todo mundo que preencheu "Quero meu cardápio assim" em qualquer cardápio seu.</p>
+                    <div id="listaLeadsMestre"></div>
                 </div>
             </section>
 
