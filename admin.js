@@ -492,6 +492,7 @@ async function carregarIdentidadeClienteMestre(registro) {
     document.getElementById('urlCardapioLojaConfigMestre').value = config.urlCardapioLoja || '';
     document.getElementById('corPrimariaLojaConfigMestre').value = config.corPrimariaLoja || '#a0522d';
     document.getElementById('corAccentLojaConfigMestre').value = config.corAccentLoja || '#c9974c';
+    montarLinhasHorarioMestre(config.horarios);
 
     const previewLogo = document.getElementById('previewLogoMestre');
     if (config.logoUrl) {
@@ -580,6 +581,45 @@ async function salvarIdentidadeClienteMestre() {
     } catch (err) {
         msgEl.textContent = 'Erro ao salvar: ' + err.message;
     }
+}
+
+// Horário remoto — mesma estrutura de dados e mesmos nomes de dia já usados no
+// editor normal (horariosPadraoAdmin/diasSemana), só com sufixo "Mestre" nos IDs
+// pra não colidir com os campos do painel normal do cliente.
+function montarLinhasHorarioMestre(horarios) {
+    const container = document.getElementById('listaHorariosMestre');
+    if (!container) return;
+    container.innerHTML = '';
+    diasSemana.forEach((nomeDia, i) => {
+        const dia = (horarios && horarios[i]) || horariosPadraoAdmin[i];
+        const linha = document.createElement('div');
+        linha.classList.add('linha-horario');
+        linha.innerHTML = `
+            <label class="dia-checkbox">
+                <input type="checkbox" id="diaAbertoMestre${i}" ${dia.aberto ? 'checked' : ''}> ${nomeDia}
+            </label>
+            <input type="time" id="diaAbreMestre${i}" value="${dia.abre}">
+            <span>até</span>
+            <input type="time" id="diaFechaMestre${i}" value="${dia.fecha}">
+        `;
+        container.appendChild(linha);
+    });
+}
+
+function salvarHorariosMestre() {
+    const registro = appsClientesMestre[nomeAppClienteMestre(clienteMestreSelecionadoIndice)];
+    const msgEl = document.getElementById('msgHorariosMestre');
+    if (!registro || !registro.autenticado) { msgEl.textContent = 'Faz login nesse cliente primeiro.'; return; }
+
+    const horarios = diasSemana.map((_, i) => ({
+        aberto: document.getElementById('diaAbertoMestre' + i).checked,
+        abre: document.getElementById('diaAbreMestre' + i).value || '08:00',
+        fecha: document.getElementById('diaFechaMestre' + i).value || '18:00'
+    }));
+    msgEl.textContent = 'Salvando...';
+    registro.db.ref('configuracao/loja/horarios').set(horarios)
+        .then(() => { msgEl.textContent = 'Horários salvos!'; })
+        .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
 }
 
 async function aplicarRecursosClienteMestre() {
