@@ -489,6 +489,7 @@ async function carregarIdentidadeClienteMestre(registro) {
     document.getElementById('cidadeLojaConfigMestre').value = config.cidadeLoja || '';
     document.getElementById('whatsappLojaConfigMestre').value = config.whatsappLoja || '';
     document.getElementById('instagramLojaConfigMestre').value = config.instagramLoja || '';
+    document.getElementById('urlCardapioLojaConfigMestre').value = config.urlCardapioLoja || '';
     document.getElementById('corPrimariaLojaConfigMestre').value = config.corPrimariaLoja || '#a0522d';
     document.getElementById('corAccentLojaConfigMestre').value = config.corAccentLoja || '#c9974c';
 
@@ -562,9 +563,16 @@ async function salvarIdentidadeClienteMestre() {
         cidadeLoja: document.getElementById('cidadeLojaConfigMestre').value.trim() || null,
         whatsappLoja: document.getElementById('whatsappLojaConfigMestre').value.trim() || null,
         instagramLoja: document.getElementById('instagramLojaConfigMestre').value.trim() || null,
+        urlCardapioLoja: document.getElementById('urlCardapioLojaConfigMestre').value.trim() || null,
         corPrimariaLoja: document.getElementById('corPrimariaLojaConfigMestre').value || null,
         corAccentLoja: document.getElementById('corAccentLojaConfigMestre').value || null
     };
+    // Essa URL alimenta o retorno do pagamento (redirect_url) — um erro de digitação
+    // aqui só apareceria pro cliente na hora de pagar, então vale travar antes.
+    if (dados.urlCardapioLoja && !/^https?:\/\/.+/.test(dados.urlCardapioLoja)) {
+        msgEl.textContent = 'A URL do Cardápio precisa começar com http:// ou https://';
+        return;
+    }
     msgEl.textContent = 'Salvando...';
     try {
         await registro.db.ref('configuracao/loja').update(dados);
