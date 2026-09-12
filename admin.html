@@ -503,6 +503,32 @@
                         <div id="listaHorariosMestre"></div>
                         <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="salvarHorariosMestre()">💾 Salvar horários</button>
                         <p id="msgHorariosMestre" class="ordem-categorias-msg"></p>
+
+                        <hr style="margin:18px 0; border:none; border-top:1px solid var(--border);">
+
+                        <h3>🚚 Áreas de Entrega desse cliente</h3>
+                        <p class="dica-secao">Edita a mesma configuração de frete usada no painel do cliente: valores por km e bairros atendidos.</p>
+
+                        <label class="campo-label">Valor por km (R$)</label>
+                        <input type="text" inputmode="decimal" id="valorPorKmMestre" placeholder="Ex: 0.70">
+
+                        <label class="campo-label" style="margin-top:10px;">Valor por km pra ENCOMENDA (R$)</label>
+                        <input type="text" inputmode="decimal" id="valorPorKmEncomendaMestre" placeholder="Ex: 2.30">
+
+                        <button class="btn-salvar-ordem" style="margin-top:8px;" onclick="salvarValoresFreteMestre()">💾 Salvar valores por km</button>
+                        <p id="msgValoresFreteMestre" class="ordem-categorias-msg"></p>
+
+                        <label class="campo-label" style="margin-top:14px;">Adicionar/editar um bairro</label>
+                        <div class="produto-admin-linha">
+                            <input type="text" id="novoBairroNomeMestre" placeholder="Nome do bairro">
+                            <input type="text" inputmode="decimal" id="novoBairroKmMestre" placeholder="Distância (km)" style="max-width:140px;">
+                        </div>
+                        <button class="btn-secondary" style="margin-top:6px;" onclick="salvarBairroMestre()">💾 Salvar bairro</button>
+                        <p id="msgBairroMestre" class="ordem-categorias-msg"></p>
+
+                        <label class="campo-label" style="margin-top:14px;">Bairros cadastrados</label>
+                        <input type="text" id="buscaBairroMestre" placeholder="🔍 Pesquisar bairro..." oninput="renderizarListaBairrosMestre()">
+                        <div id="listaBairrosMestre" style="margin-top:8px; max-height:320px; overflow-y:auto;"></div>
                     </div>
                 </div>
 

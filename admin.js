@@ -477,6 +477,7 @@ async function carregarRecursosClienteMestre() {
     document.getElementById('areaRecursosClienteMestre').style.display = 'block';
 
     carregarIdentidadeClienteMestre(registro);
+    carregarFreteClienteMestre(registro);
 }
 
 async function carregarIdentidadeClienteMestre(registro) {
@@ -620,6 +621,115 @@ function salvarHorariosMestre() {
     registro.db.ref('configuracao/loja/horarios').set(horarios)
         .then(() => { msgEl.textContent = 'Horários salvos!'; })
         .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+}
+
+// Frete remoto — lê e grava exatamente o mesmo nó configuracao/frete usado pela aba Loja
+// do cliente. Nenhuma regra de cálculo é duplicada aqui; o Mestre apenas edita os dados.
+let configFreteMestreAtual = {};
+
+async function carregarFreteClienteMestre(registro) {
+    if (!registro || !registro.autenticado) return;
+    try {
+        const snap = await registro.db.ref('configuracao/frete').once('value');
+        configFreteMestreAtual = snap.val() || {};
+
+        const campoNormal = document.getElementById('valorPorKmMestre');
+        const campoEncomenda = document.getElementById('valorPorKmEncomendaMestre');
+        if (campoNormal) campoNormal.value = configFreteMestreAtual.valorPorKm != null ? configFreteMestreAtual.valorPorKm : '';
+        if (campoEncomenda) campoEncomenda.value = configFreteMestreAtual.valorPorKmEncomenda != null ? configFreteMestreAtual.valorPorKmEncomenda : '';
+
+        renderizarListaBairrosMestre();
+    } catch (err) {
+        console.log('Erro ao carregar frete do cliente no Mestre:', err.message);
+        configFreteMestreAtual = {};
+        renderizarListaBairrosMestre();
+    }
+}
+
+function salvarValoresFreteMestre() {
+    const registro = appsClientesMestre[nomeAppClienteMestre(clienteMestreSelecionadoIndice)];
+    const msgEl = document.getElementById('msgValoresFreteMestre');
+    if (!registro || !registro.autenticado) { msgEl.textContent = 'Faz login nesse cliente primeiro.'; return; }
+
+    const valor = parseFloat(String(document.getElementById('valorPorKmMestre').value).replace(',', '.'));
+    const valorEncomenda = parseFloat(String(document.getElementById('valorPorKmEncomendaMestre').value).replace(',', '.'));
+    if (isNaN(valor) || valor < 0) { msgEl.textContent = 'Digita um valor válido pro km normal.'; return; }
+    if (isNaN(valorEncomenda) || valorEncomenda < 0) { msgEl.textContent = 'Digita um valor válido pro km de encomenda.'; return; }
+
+    msgEl.textContent = 'Salvando...';
+    registro.db.ref('configuracao/frete').update({ valorPorKm: valor, valorPorKmEncomenda: valorEncomenda })
+        .then(() => {
+            configFreteMestreAtual.valorPorKm = valor;
+            configFreteMestreAtual.valorPorKmEncomenda = valorEncomenda;
+            msgEl.textContent = 'Valores salvos!';
+        })
+        .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+}
+
+function salvarBairroMestre() {
+    const registro = appsClientesMestre[nomeAppClienteMestre(clienteMestreSelecionadoIndice)];
+    const msgEl = document.getElementById('msgBairroMestre');
+    if (!registro || !registro.autenticado) { msgEl.textContent = 'Faz login nesse cliente primeiro.'; return; }
+
+    const nome = document.getElementById('novoBairroNomeMestre').value.trim().toLowerCase();
+    const km = parseFloat(String(document.getElementById('novoBairroKmMestre').value).replace(',', '.'));
+    if (!nome) { msgEl.textContent = 'Digita o nome do bairro.'; return; }
+    if (isNaN(km) || km < 0) { msgEl.textContent = 'Digita uma distância válida (em km).'; return; }
+
+    const nomeCodificado = encodeURIComponent(nome);
+    registro.db.ref('configuracao/frete/bairros/' + nomeCodificado).set(km)
+        .then(() => {
+            if (!configFreteMestreAtual.bairros) configFreteMestreAtual.bairros = {};
+            configFreteMestreAtual.bairros[nomeCodificado] = km;
+            document.getElementById('novoBairroNomeMestre').value = '';
+            document.getElementById('novoBairroKmMestre').value = '';
+            msgEl.textContent = 'Bairro salvo!';
+            renderizarListaBairrosMestre();
+        })
+        .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+}
+
+function removerBairroMestre(nomeCodificado) {
+    const registro = appsClientesMestre[nomeAppClienteMestre(clienteMestreSelecionadoIndice)];
+    if (!registro || !registro.autenticado) return;
+    if (!confirm('Remover esse bairro da lista de entrega desse cliente?')) return;
+
+    registro.db.ref('configuracao/frete/bairros/' + nomeCodificado).remove()
+        .then(() => {
+            if (configFreteMestreAtual.bairros) delete configFreteMestreAtual.bairros[nomeCodificado];
+            renderizarListaBairrosMestre();
+        })
+        .catch(err => alert('Erro ao remover: ' + err.message));
+}
+
+function renderizarListaBairrosMestre() {
+    const container = document.getElementById('listaBairrosMestre');
+    if (!container) return;
+
+    const campoBusca = document.getElementById('buscaBairroMestre');
+    const busca = normalizarTexto(campoBusca ? campoBusca.value : '');
+    const bairros = configFreteMestreAtual.bairros || {};
+    const entradas = Object.entries(bairros)
+        .map(([nomeCodificado, km]) => ({ nomeCodificado, nome: decodeURIComponent(nomeCodificado), km }))
+        .filter(b => normalizarTexto(b.nome).includes(busca))
+        .sort((a, b) => a.nome.localeCompare(b.nome));
+
+    if (entradas.length === 0) {
+        container.innerHTML = '<p class="dica-secao">Nenhum bairro encontrado.</p>';
+        return;
+    }
+
+    container.innerHTML = entradas.map((b, i) => `
+        <div class="loja-status-card" style="margin-bottom:6px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="text-transform:capitalize;">${b.nome} <span class="dica-secao">(${b.km} km)</span></span>
+            <button class="btn-secondary btn-remover-bairro-mestre" data-indice="${i}">Remover</button>
+        </div>
+    `).join('');
+
+    container.querySelectorAll('.btn-remover-bairro-mestre').forEach(btn => {
+        const item = entradas[Number(btn.dataset.indice)];
+        if (item) btn.addEventListener('click', () => removerBairroMestre(item.nomeCodificado));
+    });
 }
 
 async function aplicarRecursosClienteMestre() {
