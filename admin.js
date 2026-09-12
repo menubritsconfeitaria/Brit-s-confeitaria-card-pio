@@ -356,7 +356,11 @@ const RECURSOS_MESTRE = [
     { chave: 'pedidoMinimo', nome: '🛒 Pedido Mínimo e Frete Grátis' },
     { chave: 'areasDeEntrega', nome: '🚚 Áreas de Entrega' },
     { chave: 'esconderProduto', nome: '🙈 Esconder Produto do cardápio' },
-    { chave: 'gestaoCompleta', nome: '📊 Gestão Completa (ingredientes, ficha técnica, estoque)' }
+    { chave: 'gestaoCompleta', nome: '📊 Gestão Completa (ingredientes, ficha técnica, estoque)' },
+    { chave: 'vendedorInteligente', nome: '🧠 Vendedor Inteligente' },
+    { chave: 'ofertasCarrinho', nome: '🛒 Ofertas no Carrinho' },
+    { chave: 'mensagemMassa', nome: '💬 Mensagem em Massa' },
+    { chave: 'repetirUltimoPedido', nome: '🔁 Repetir Último Pedido' }
 ];
 
 // Definição oficial dos planos PedeAki (mesma do flyer de vendas) — cada plano de cima
@@ -365,8 +369,8 @@ const RECURSOS_MESTRE = [
 // de salvar (não trava em plano nenhum).
 const RECURSOS_POR_PLANO = {
     start: ['areasDeEntrega', 'pedidoMinimo', 'esconderProduto'],
-    pro: ['areasDeEntrega', 'pedidoMinimo', 'esconderProduto', 'cupons', 'fidelidade', 'notificacoes', 'pagamentoOnline', 'adicionais', 'agenda', 'visitantes'],
-    premium: ['areasDeEntrega', 'pedidoMinimo', 'esconderProduto', 'cupons', 'fidelidade', 'notificacoes', 'pagamentoOnline', 'adicionais', 'agenda', 'visitantes', 'gestaoCompleta']
+    pro: ['areasDeEntrega', 'pedidoMinimo', 'esconderProduto', 'cupons', 'fidelidade', 'notificacoes', 'pagamentoOnline', 'adicionais', 'agenda', 'visitantes', 'vendedorInteligente', 'ofertasCarrinho', 'mensagemMassa', 'repetirUltimoPedido'],
+    premium: ['areasDeEntrega', 'pedidoMinimo', 'esconderProduto', 'cupons', 'fidelidade', 'notificacoes', 'pagamentoOnline', 'adicionais', 'agenda', 'visitantes', 'vendedorInteligente', 'ofertasCarrinho', 'mensagemMassa', 'repetirUltimoPedido', 'gestaoCompleta']
 };
 
 function aplicarPlanoPadraoMestre(plano) {
@@ -1762,7 +1766,8 @@ const MAPA_RECURSOS = {
     pedidoMinimo: { cards: ['cardPedidoMinimoFreteGratis'] },
     areasDeEntrega: { cards: ['cardAreasDeEntrega'] },
     esconderProduto: { classesCorpo: ['ocultar-campo-esconder-produto'] },
-    gestaoCompleta: { abas: ['gestao'], classesCorpo: ['ocultar-campo-ficha-tecnica'] }
+    gestaoCompleta: { abas: ['gestao'], classesCorpo: ['ocultar-campo-ficha-tecnica'] },
+    mensagemMassa: { subabasGestao: ['sub-mensagem-massa'] }
 };
 
 function aplicarRecursosLiberados(recursos) {
@@ -1777,6 +1782,10 @@ function aplicarRecursosLiberados(recursos) {
 
         (alvos.abas || []).forEach(aba => {
             const botao = document.querySelector(`.painel-tab-btn[data-tab="${aba}"]`);
+            if (botao) botao.style.display = liberado ? '' : 'none';
+        });
+        (alvos.subabasGestao || []).forEach(subaba => {
+            const botao = document.querySelector(`.gestao-subtab-btn[data-subtab="${subaba}"]`);
             if (botao) botao.style.display = liberado ? '' : 'none';
         });
         (alvos.cards || []).forEach(id => {

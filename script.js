@@ -703,6 +703,7 @@ async function escolherProdutoVendedorInteligente() {
 }
 
 async function mostrarVendedorInteligente() {
+    if (!recursoLiberado('vendedorInteligente')) return;
     if (vendedorInteligenteJaFoiMostrado() || carrinho.length > 0 || produtos.length === 0) return;
 
     // Não disputa atenção com o convite de notificações nem com outro aviso comercial aberto.
@@ -2154,6 +2155,7 @@ let lembreteCarrinhoJaMostradoNessaSessao = false;
 // simples de frete grátis) com as novas ofertas configuráveis do painel, filtra o que
 // não pode aparecer, ordena por prioridade, e devolve no máximo 2
 function avaliarOfertasCarrinho(subtotalAtual, jaTemFreteGratis, pedidoMinimoAindaFaltando) {
+    if (!recursoLiberado('ofertasCarrinho')) return [];
     if (carrinho.length === 0) return [];
     // Enquanto o pedido mínimo ainda não foi atingido, a sugestão de frete grátis fica
     // em espera — mesma prioridade que a mensagem visível já usa (pedido mínimo primeiro),
@@ -2451,6 +2453,23 @@ function limparFormularioEndereco() {
    =================================================================== */
 let clubeIdentificado = null; // { nome, telefone }
 let configFidelidade = {};
+
+// Recursos liberados por plano — mesmo padrão de segurança já usado no painel: se o nó
+// nunca foi criado no Firebase desse cliente, trata TUDO como liberado (não quebra quem
+// já usava o cardápio antes desse recurso existir). Só depois que o painel Mestre criar
+// o nó, cada recurso liberado individualmente passa a valer.
+let recursosLiberadosCardapio = null; // null = ainda não carregou / nunca configurado = tudo liberado
+function recursoLiberado(nome) {
+    return recursosLiberadosCardapio == null || !!recursosLiberadosCardapio[nome];
+}
+function escutarRecursosLiberadosCardapio() {
+    if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
+    firebase.database().ref('configuracao/recursosLiberados').on('value', snap => {
+        recursosLiberadosCardapio = snap.val();
+    });
+}
+escutarRecursosLiberadosCardapio();
+
 let recompensasFidelidade = [];
 let dadosFidelidadeCliente = { pontos: 0, totalGasto: 0 };
 let refFidelidadeCliente = null;
@@ -2660,10 +2679,12 @@ function atualizarBotaoRepetirPedido() {
     const btn = document.getElementById('btnRepetirPedido');
     if (!btn) return;
     const ultimo = dadosFidelidadeCliente.ultimoPedido;
-    btn.style.display = (ultimo && ultimo.itens && ultimo.itens.length > 0) ? 'block' : 'none';
+    const podeMostrar = recursoLiberado('repetirUltimoPedido') && ultimo && ultimo.itens && ultimo.itens.length > 0;
+    btn.style.display = podeMostrar ? 'block' : 'none';
 }
 
 function repetirUltimoPedido() {
+    if (!recursoLiberado('repetirUltimoPedido')) return;
     const ultimo = dadosFidelidadeCliente.ultimoPedido;
     if (!ultimo || !ultimo.itens || ultimo.itens.length === 0) return;
 
