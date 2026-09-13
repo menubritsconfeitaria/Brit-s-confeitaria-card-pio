@@ -6091,14 +6091,15 @@ function iniciarEscutaPedidos() {
             atualizarContador();
             if (primeiraCargaConcluida && pedido.status === 'pendente' && !window._importandoBackupGestao) {
                 tocarAlerta();
-                // Pagamento com Cartão às vezes confirma tão rápido que o painel só vê
-                // o pedido já pago de cara (nunca viu o momento "ainda aguardando") — por
-                // isso, além da detecção de transição (child_changed), confere aqui também
-                // se já chega com sinal/restante pago, pra mostrar o mesmo aviso nesse caso.
+                // Cobre QUALQUER pagamento online já confirmado quando o painel vê o
+                // pedido pela primeira vez — sinal, restante, ou pagamento à vista normal
+                // (Cartão às vezes confirma tão rápido que o painel nunca viu o momento
+                // "ainda aguardando", só a versão já paga).
                 const sinalJaPago = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' && pedido.pagamento.status === 'pago';
                 const restanteJaPago = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'pago';
-                if (sinalJaPago || restanteJaPago) {
-                    const tipoTexto = restanteJaPago && sinalJaPago ? 'Sinal e restante' : (restanteJaPago ? 'Restante' : 'Sinal');
+                const pagamentoNormalJaPago = pedido.pagamento && pedido.pagamento.tipoPagamento !== 'sinal' && pedido.pagamento.status === 'pago';
+                if (sinalJaPago || restanteJaPago || pagamentoNormalJaPago) {
+                    const tipoTexto = restanteJaPago && sinalJaPago ? 'Sinal e restante' : (restanteJaPago ? 'Restante' : (sinalJaPago ? 'Sinal' : 'Pagamento'));
                     mostrarAvisoFlutuantePagamento(`💰 ${tipoTexto} do pedido #${pedido.numero || ''} (${pedido.nome || ''}) foi confirmado como pago agora!`);
                 }
             }
@@ -6115,11 +6116,12 @@ function iniciarEscutaPedidos() {
             const statusAnterior = statusPagamentoConhecido.get(snap.key) || '';
             const statusNovo = statusPagamentoAtual(pedido);
             if (statusAnterior !== statusNovo) {
-                const sinalAcabouDePagar = pedido.pagamento && pedido.pagamento.status === 'pago' && !statusAnterior.startsWith('pago');
+                const acabouDePagarAlgumaCoisa = pedido.pagamento && pedido.pagamento.status === 'pago' && !statusAnterior.startsWith('pago');
                 const restanteAcabouDePagar = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'pago' && !statusAnterior.endsWith('pago');
-                if ((sinalAcabouDePagar || restanteAcabouDePagar) && !window._importandoBackupGestao) {
+                if ((acabouDePagarAlgumaCoisa || restanteAcabouDePagar) && !window._importandoBackupGestao) {
                     tocarAlerta();
-                    const tipoTexto = restanteAcabouDePagar && sinalAcabouDePagar ? 'Sinal e restante' : (restanteAcabouDePagar ? 'Restante' : 'Sinal');
+                    const ehSinal = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal';
+                    const tipoTexto = restanteAcabouDePagar && acabouDePagarAlgumaCoisa ? 'Sinal e restante' : (restanteAcabouDePagar ? 'Restante' : (ehSinal ? 'Sinal' : 'Pagamento'));
                     mostrarAvisoFlutuantePagamento(`💰 ${tipoTexto} do pedido #${pedido.numero || ''} (${pedido.nome || ''}) foi confirmado como pago agora!`);
                 }
                 statusPagamentoConhecido.set(snap.key, statusNovo);
