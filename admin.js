@@ -887,14 +887,20 @@ let audioCtxGlobal = null;
 let configAlertaSonoro = 'classico';
 
 function inicializarAudioContext() {
-    if (audioCtxGlobal) return;
-    try {
-        audioCtxGlobal = new (window.AudioContext || window.webkitAudioContext)();
-    } catch (e) {
-        console.log('AudioContext indisponível:', e);
+    if (!audioCtxGlobal) {
+        try {
+            audioCtxGlobal = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+            console.log('AudioContext indisponível:', e);
+            return;
+        }
     }
+    // Navegadores mais rigorosos suspendem o áudio de novo depois de um tempo sem uso —
+    // sem isso, o som parava de funcionar depois do primeiro clique do dia. Como isso
+    // roda dentro de um clique de verdade (evento 'click' da página), o navegador libera.
+    if (audioCtxGlobal.state === 'suspended') audioCtxGlobal.resume().catch(() => null);
 }
-document.addEventListener('click', inicializarAudioContext, { once: true });
+document.addEventListener('click', inicializarAudioContext);
 
 // Botão explícito pra destravar o som no aparelho — o navegador só libera áudio depois
 // de um clique de verdade da pessoa; isso já acontecia sozinho no primeiro clique em
@@ -902,9 +908,15 @@ document.addEventListener('click', inicializarAudioContext, { once: true });
 function ativarAlertasPainel() {
     const status = document.getElementById('statusAlertasPainel');
     inicializarAudioContext();
-    if (audioCtxGlobal && audioCtxGlobal.state === 'suspended') audioCtxGlobal.resume();
-    tocarAlerta();
-    if (status) status.textContent = audioCtxGlobal ? '✅ Alertas ativados nesse aparelho!' : '⚠️ Não foi possível ativar (navegador bloqueou).';
+    const prosseguir = () => {
+        tocarAlerta();
+        if (status) status.textContent = audioCtxGlobal ? '✅ Alertas ativados nesse aparelho!' : '⚠️ Não foi possível ativar (navegador bloqueou).';
+    };
+    if (audioCtxGlobal && audioCtxGlobal.state === 'suspended') {
+        audioCtxGlobal.resume().then(prosseguir).catch(prosseguir);
+    } else {
+        prosseguir();
+    }
 }
 
 // Cada som é uma sequência de notas (frequência, atraso em ms, e duração em segundos)
@@ -1528,37 +1540,49 @@ function escutarConfigFrete() {
         const areaRestrito = document.getElementById('areaBairroUnicoAtivo');
         if (chkRestrito) chkRestrito.checked = !!config.modoRestritoAtivo;
         if (areaRestrito) areaRestrito.style.display = config.modoRestritoAtivo ? 'block' : 'none';
-        popularSelectBairroUnico(config.bairros || {}, config.bairroUnicoAtivo);
+        renderizarListaBairrosRestritos(config.bairros || {}, config.bairrosAtivos || {});
 
         renderizarListaBairros();
     });
 }
 
-// Preenche o select com os bairros já cadastrados, marcando o que estiver ativo
-function popularSelectBairroUnico(bairros, bairroAtivoCodificado) {
-    const select = document.getElementById('selectBairroUnicoAtivo');
-    if (!select) return;
+// Mostra um checkbox por bairro já cadastrado, marcando os que já estão na lista de
+// atendidos durante o modo restrito
+function renderizarListaBairrosRestritos(bairros, bairrosAtivos) {
+    const container = document.getElementById('listaBairrosRestritos');
+    if (!container) return;
     const nomes = Object.keys(bairros).map(cod => ({ cod, nome: decodeURIComponent(cod) })).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-    select.innerHTML = nomes.map(b => `<option value="${b.cod}" ${b.cod === bairroAtivoCodificado ? 'selected' : ''}>${b.nome}</option>`).join('') || '<option value="">— Nenhum bairro cadastrado —</option>';
+    container.innerHTML = nomes.map(b => `
+        <label class="produto-disponivel-check" style="display:block; padding:4px 0;">
+            <input type="checkbox" data-bairro-cod="${b.cod}" ${bairrosAtivos[b.cod] ? 'checked' : ''} onchange="salvarBairrosAtivosRestrito()"> ${b.nome}
+        </label>
+    `).join('') || '<p class="dica-secao">Nenhum bairro cadastrado ainda.</p>';
 }
 
 // Liga/desliga o modo restrito — os bairros continuam salvos, só passam a não ser
-// atendidos enquanto isso estiver ativo (exceto o escolhido no select)
+// atendidos enquanto isso estiver ativo (exceto os marcados na lista)
 function alternarModoRestritoBairro(ativo) {
     const areaRestrito = document.getElementById('areaBairroUnicoAtivo');
     if (areaRestrito) areaRestrito.style.display = ativo ? 'block' : 'none';
     const msgEl = document.getElementById('modoRestritoBairroMsg');
     db.ref('configuracao/frete/modoRestritoAtivo').set(ativo)
-        .then(() => { if (msgEl) msgEl.textContent = ativo ? 'Modo restrito ativado — só o bairro escolhido será atendido.' : 'Modo restrito desativado — todos os bairros voltaram a ser atendidos.'; })
+        .then(() => { if (msgEl) msgEl.textContent = ativo ? 'Modo restrito ativado — só os bairros marcados serão atendidos.' : 'Modo restrito desativado — todos os bairros voltaram a ser atendidos.'; })
         .catch(err => { if (msgEl) msgEl.textContent = 'Erro ao salvar: ' + err.message; });
 }
 
-function salvarBairroUnicoAtivo() {
-    const valor = document.getElementById('selectBairroUnicoAtivo').value;
+function salvarBairrosAtivosRestrito() {
     const msgEl = document.getElementById('modoRestritoBairroMsg');
-    db.ref('configuracao/frete/bairroUnicoAtivo').set(valor || null)
-        .then(() => { if (msgEl) msgEl.textContent = 'Bairro atendido atualizado!'; })
+    const checkboxes = document.querySelectorAll('#listaBairrosRestritos input[type="checkbox"]');
+    const bairrosAtivos = {};
+    checkboxes.forEach(chk => { if (chk.checked) bairrosAtivos[chk.dataset.bairroCod] = true; });
+    db.ref('configuracao/frete/bairrosAtivos').set(bairrosAtivos)
+        .then(() => { if (msgEl) msgEl.textContent = 'Bairros atendidos atualizados!'; })
         .catch(err => { if (msgEl) msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+}
+
+function marcarTodosBairrosRestrito(marcar) {
+    document.querySelectorAll('#listaBairrosRestritos input[type="checkbox"]').forEach(chk => { chk.checked = marcar; });
+    salvarBairrosAtivosRestrito();
 }
 
 function salvarValorPorKm() {
