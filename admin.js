@@ -1524,8 +1524,41 @@ function escutarConfigFrete() {
         const temBairros = config.bairros && Object.keys(config.bairros).length > 0;
         if (avisoImportar) avisoImportar.style.display = temBairros ? 'none' : 'block';
 
+        const chkRestrito = document.getElementById('chkModoRestritoBairro');
+        const areaRestrito = document.getElementById('areaBairroUnicoAtivo');
+        if (chkRestrito) chkRestrito.checked = !!config.modoRestritoAtivo;
+        if (areaRestrito) areaRestrito.style.display = config.modoRestritoAtivo ? 'block' : 'none';
+        popularSelectBairroUnico(config.bairros || {}, config.bairroUnicoAtivo);
+
         renderizarListaBairros();
     });
+}
+
+// Preenche o select com os bairros já cadastrados, marcando o que estiver ativo
+function popularSelectBairroUnico(bairros, bairroAtivoCodificado) {
+    const select = document.getElementById('selectBairroUnicoAtivo');
+    if (!select) return;
+    const nomes = Object.keys(bairros).map(cod => ({ cod, nome: decodeURIComponent(cod) })).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    select.innerHTML = nomes.map(b => `<option value="${b.cod}" ${b.cod === bairroAtivoCodificado ? 'selected' : ''}>${b.nome}</option>`).join('') || '<option value="">— Nenhum bairro cadastrado —</option>';
+}
+
+// Liga/desliga o modo restrito — os bairros continuam salvos, só passam a não ser
+// atendidos enquanto isso estiver ativo (exceto o escolhido no select)
+function alternarModoRestritoBairro(ativo) {
+    const areaRestrito = document.getElementById('areaBairroUnicoAtivo');
+    if (areaRestrito) areaRestrito.style.display = ativo ? 'block' : 'none';
+    const msgEl = document.getElementById('modoRestritoBairroMsg');
+    db.ref('configuracao/frete/modoRestritoAtivo').set(ativo)
+        .then(() => { if (msgEl) msgEl.textContent = ativo ? 'Modo restrito ativado — só o bairro escolhido será atendido.' : 'Modo restrito desativado — todos os bairros voltaram a ser atendidos.'; })
+        .catch(err => { if (msgEl) msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+}
+
+function salvarBairroUnicoAtivo() {
+    const valor = document.getElementById('selectBairroUnicoAtivo').value;
+    const msgEl = document.getElementById('modoRestritoBairroMsg');
+    db.ref('configuracao/frete/bairroUnicoAtivo').set(valor || null)
+        .then(() => { if (msgEl) msgEl.textContent = 'Bairro atendido atualizado!'; })
+        .catch(err => { if (msgEl) msgEl.textContent = 'Erro ao salvar: ' + err.message; });
 }
 
 function salvarValorPorKm() {

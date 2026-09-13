@@ -260,6 +260,16 @@
                     <button class="btn-salvar-ordem" style="margin-top:8px;" onclick="salvarValorPorKm()">💾 Salvar valores por km</button>
                     <p id="valorPorKmMsg" class="ordem-categorias-msg"></p>
 
+                    <label class="produto-disponivel-check" style="margin-top:14px; display:block;">
+                        <input type="checkbox" id="chkModoRestritoBairro" onchange="alternarModoRestritoBairro(this.checked)"> Atender só 1 bairro por enquanto (sem apagar os outros)
+                    </label>
+                    <div id="areaBairroUnicoAtivo" style="display:none; margin-top:8px;">
+                        <label class="campo-label">Qual bairro atender</label>
+                        <select id="selectBairroUnicoAtivo" onchange="salvarBairroUnicoAtivo()"></select>
+                        <p class="dica-secao">Os outros bairros continuam salvos, só não vão ser atendidos até você desmarcar essa opção.</p>
+                    </div>
+                    <p id="modoRestritoBairroMsg" class="ordem-categorias-msg"></p>
+
                     <div id="avisoImportarBairros" style="display:none; margin-top:14px;">
                         <p class="dica-secao">⚠️ Você ainda não tem nenhum bairro cadastrado no painel — o site está usando a lista antiga (fixa no código). Clica abaixo pra trazer essa lista pro painel, sem perder nada, e poder editar daqui pra frente.</p>
                         <button class="btn-secondary" onclick="importarBairrosAntigos()">📥 Importar bairros que já existiam</button>

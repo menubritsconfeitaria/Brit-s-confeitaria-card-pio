@@ -540,6 +540,16 @@ function escutarConfigFrete() {
         }
         valorPorKm = (config && config.valorPorKm) || valorPorKmPadrao;
         valorPorKmEncomenda = (config && config.valorPorKmEncomenda) || valorPorKmEncomendaPadrao;
+
+        // Modo restrito: atende só 1 bairro temporariamente, sem apagar os outros do
+        // banco — só filtra quais entram no "bairrosEntrega" que a checagem usa.
+        if (config && config.modoRestritoAtivo && config.bairroUnicoAtivo) {
+            let nomeUnico;
+            try { nomeUnico = decodeURIComponent(config.bairroUnicoAtivo); }
+            catch (e) { nomeUnico = config.bairroUnicoAtivo; }
+            const kmDoUnico = bairrosEntrega[nomeUnico];
+            bairrosEntrega = kmDoUnico != null ? { [nomeUnico]: kmDoUnico } : {};
+        }
     });
 }
 
