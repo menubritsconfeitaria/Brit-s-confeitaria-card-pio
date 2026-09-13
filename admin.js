@@ -915,6 +915,26 @@ const PRESETS_SOM_ALERTA = {
     sino: [{ freq: 1318, atraso: 0, duracao: 0.9 }]
 };
 
+// Aviso flutuante de "sinal/restante confirmado" — mesma informação que o alert()
+// antigo mostrava, mas sem travar o navegador. alert() é bloqueante: pausa até o
+// código que faz o pedido aparecer na tela, então o pedido só "terminava de aparecer"
+// depois de clicar OK. Esse aviso aparece e some sozinho, sem atrapalhar mais nada.
+function mostrarAvisoFlutuantePagamento(texto) {
+    let container = document.getElementById('avisosFlutuantesPagamento');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'avisosFlutuantesPagamento';
+        container.style.cssText = 'position:fixed; top:16px; right:16px; z-index:9999; display:flex; flex-direction:column; gap:8px; max-width:320px;';
+        document.body.appendChild(container);
+    }
+    const aviso = document.createElement('div');
+    aviso.textContent = texto;
+    aviso.style.cssText = 'background:#1e6b34; color:#fff; padding:12px 16px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.25); font-size:0.9em; cursor:pointer;';
+    aviso.onclick = () => aviso.remove();
+    container.appendChild(aviso);
+    setTimeout(() => aviso.remove(), 8000); // some sozinho depois de 8s, se ninguém clicar antes
+}
+
 function tocarAlerta(presetForcado) {
     if (!audioCtxGlobal) inicializarAudioContext();
     if (!audioCtxGlobal) return;
@@ -6012,7 +6032,19 @@ function iniciarEscutaPedidos() {
             listaPendentesEl.appendChild(montarCardPedido(snap.key, pedido, true));
             idsRenderizados.add(snap.key);
             atualizarContador();
-            if (primeiraCargaConcluida && pedido.status === 'pendente' && !window._importandoBackupGestao) tocarAlerta();
+            if (primeiraCargaConcluida && pedido.status === 'pendente' && !window._importandoBackupGestao) {
+                tocarAlerta();
+                // Pagamento com Cartão às vezes confirma tão rápido que o painel só vê
+                // o pedido já pago de cara (nunca viu o momento "ainda aguardando") — por
+                // isso, além da detecção de transição (child_changed), confere aqui também
+                // se já chega com sinal/restante pago, pra mostrar o mesmo aviso nesse caso.
+                const sinalJaPago = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' && pedido.pagamento.status === 'pago';
+                const restanteJaPago = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'pago';
+                if (sinalJaPago || restanteJaPago) {
+                    const tipoTexto = restanteJaPago && sinalJaPago ? 'Sinal e restante' : (restanteJaPago ? 'Restante' : 'Sinal');
+                    mostrarAvisoFlutuantePagamento(`💰 ${tipoTexto} do pedido #${pedido.numero || ''} (${pedido.nome || ''}) foi confirmado como pago agora!`);
+                }
+            }
         });
 
         // Quando o status do pedido muda (aceitar, sair pra entrega, entregar, recusar)
@@ -6031,7 +6063,7 @@ function iniciarEscutaPedidos() {
                 if ((sinalAcabouDePagar || restanteAcabouDePagar) && !window._importandoBackupGestao) {
                     tocarAlerta();
                     const tipoTexto = restanteAcabouDePagar && sinalAcabouDePagar ? 'Sinal e restante' : (restanteAcabouDePagar ? 'Restante' : 'Sinal');
-                    alert(`💰 ${tipoTexto} do pedido #${pedido.numero || ''} (${pedido.nome || ''}) foi confirmado como pago agora!`);
+                    mostrarAvisoFlutuantePagamento(`💰 ${tipoTexto} do pedido #${pedido.numero || ''} (${pedido.nome || ''}) foi confirmado como pago agora!`);
                 }
                 statusPagamentoConhecido.set(snap.key, statusNovo);
             }
