@@ -940,11 +940,18 @@ function mostrarAvisoFlutuantePagamento(texto) {
         document.body.appendChild(container);
     }
     const aviso = document.createElement('div');
-    aviso.innerHTML = `<span style="font-size:1.3em; line-height:1;">💰</span><span style="flex:1;">${texto.replace(/^💰\s*/, '')}</span>`;
-    aviso.style.cssText = 'background:#fff; color:#2d2d2d; padding:14px 16px; border-radius:10px; border-left:5px solid var(--primary, #a0522d); box-shadow:0 4px 16px rgba(0,0,0,0.18); font-size:0.92em; line-height:1.4; cursor:pointer; display:flex; align-items:flex-start; gap:10px; animation:avisoFlutuanteEntrada 0.25s ease-out;';
-    aviso.onclick = () => aviso.remove();
+    aviso.style.cssText = 'background:#fff; color:#2d2d2d; padding:14px 16px; border-radius:10px; border-left:5px solid var(--primary, #a0522d); box-shadow:0 4px 16px rgba(0,0,0,0.18); font-size:0.92em; line-height:1.4; animation:avisoFlutuanteEntrada 0.25s ease-out;';
+    aviso.innerHTML = `
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+            <span style="font-size:1.3em; line-height:1;">💰</span>
+            <span style="flex:1;">${texto.replace(/^💰\s*/, '')}</span>
+        </div>
+        <button class="btn-secondary" style="margin-top:10px; width:100%;">OK</button>
+    `;
+    // Não some sozinho — fica na tela até você clicar em OK, pra não perder o aviso
+    // se não estiver olhando pra tela bem na hora que ele aparecer.
+    aviso.querySelector('button').onclick = () => aviso.remove();
     container.appendChild(aviso);
-    setTimeout(() => aviso.remove(), 8000); // some sozinho depois de 8s, se ninguém clicar antes
 }
 if (!document.getElementById('estiloAvisoFlutuantePagamento')) {
     const estilo = document.createElement('style');
