@@ -79,6 +79,7 @@ const bairrosEntregaPadrao = {
 const valorPorKmPadrao = 0.70;
 const valorPorKmEncomendaPadrao = 2.30; // entrega de encomenda costuma ser de carro, custo por km maior
 let bairrosEntrega = bairrosEntregaPadrao;
+let bairrosEntregaCompletos = bairrosEntregaPadrao; // sem o filtro do modo restrito — usada só pra saber se um bairro existe mas está pausado hoje
 let valorPorKm = valorPorKmPadrao;
 let valorPorKmEncomenda = valorPorKmEncomendaPadrao;
 
@@ -463,7 +464,7 @@ function atualizarStatusLoja(config) {
         }
     } else {
         banner.classList.add('loja-fechada');
-        texto.textContent = '🔴 Estamos fechados no momento. Você pode ver o cardápio, mas os pedidos abrem no nosso próximo horário de funcionamento.';
+        texto.textContent = '🔴 A loja está fechada agora. Você pode ver o cardápio à vontade — os pedidos abrem de novo no nosso próximo horário de funcionamento.';
         if (botaoFinalizarCompra) {
             // Encomenda agendada é pra uma data futura — não depende da loja estar
             // aberta agora, então o botão continua liberado nesse caso específico
@@ -472,7 +473,7 @@ function atualizarStatusLoja(config) {
                 botaoFinalizarCompra.textContent = 'Finalizar Compra';
             } else {
                 botaoFinalizarCompra.disabled = true;
-                botaoFinalizarCompra.textContent = 'Loja fechada no momento';
+                botaoFinalizarCompra.textContent = 'A loja está fechada agora';
             }
         }
     }
@@ -541,14 +542,20 @@ function escutarConfigFrete() {
         valorPorKm = (config && config.valorPorKm) || valorPorKmPadrao;
         valorPorKmEncomenda = (config && config.valorPorKmEncomenda) || valorPorKmEncomendaPadrao;
 
-        // Modo restrito: atende só 1 bairro temporariamente, sem apagar os outros do
-        // banco — só filtra quais entram no "bairrosEntrega" que a checagem usa.
-        if (config && config.modoRestritoAtivo && config.bairroUnicoAtivo) {
-            let nomeUnico;
-            try { nomeUnico = decodeURIComponent(config.bairroUnicoAtivo); }
-            catch (e) { nomeUnico = config.bairroUnicoAtivo; }
-            const kmDoUnico = bairrosEntrega[nomeUnico];
-            bairrosEntrega = kmDoUnico != null ? { [nomeUnico]: kmDoUnico } : {};
+        // Modo restrito: atende só os bairros marcados temporariamente, sem apagar os
+        // outros do banco — só filtra quais entram no "bairrosEntrega" que a checagem usa.
+        // "bairrosEntregaCompletos" guarda a lista sem filtro, pra avisar o cliente
+        // direito quando o bairro existe mas só está pausado por hoje.
+        bairrosEntregaCompletos = bairrosEntrega;
+        if (config && config.modoRestritoAtivo && config.bairrosAtivos) {
+            const bairrosFiltrados = {};
+            Object.keys(config.bairrosAtivos).forEach(codificado => {
+                let nome;
+                try { nome = decodeURIComponent(codificado); }
+                catch (e) { nome = codificado; }
+                if (bairrosEntrega[nome] != null) bairrosFiltrados[nome] = bairrosEntrega[nome];
+            });
+            bairrosEntrega = bairrosFiltrados;
         }
     });
 }
@@ -1489,7 +1496,7 @@ function atualizarResumoEncomendaCheckout() {
             botaoFinalizarCompra.textContent = 'Finalizar Compra';
         } else {
             botaoFinalizarCompra.disabled = true;
-            botaoFinalizarCompra.textContent = 'Loja fechada no momento';
+            botaoFinalizarCompra.textContent = 'A loja está fechada agora';
         }
     }
 
@@ -1615,7 +1622,10 @@ async function calcularFrete() {
             } else {
                 freteAtual = 0;
                 freteConfirmado = false;
-                infoFreteDiv.textContent = `😕 No momento não atendemos entrega no bairro "${dados.bairro || 'informado'}". Se preferir, você pode escolher retirar no local, ou entrar em contato pelo WhatsApp pra confirmar.`;
+                const bairroExisteMasPausado = bairrosEntregaCompletos.hasOwnProperty(bairroNormalizado);
+                infoFreteDiv.textContent = bairroExisteMasPausado
+                    ? `😕 Hoje não estamos atendendo entrega no bairro "${dados.bairro || 'informado'}". Tente novamente outro dia, retire no local, ou fale pelo WhatsApp.`
+                    : `😕 No momento não atendemos entrega no bairro "${dados.bairro || 'informado'}". Se preferir, você pode escolher retirar no local, ou entrar em contato pelo WhatsApp pra confirmar.`;
             }
         }
     } catch (err) {
