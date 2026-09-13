@@ -936,15 +936,21 @@ function mostrarAvisoFlutuantePagamento(texto) {
     if (!container) {
         container = document.createElement('div');
         container.id = 'avisosFlutuantesPagamento';
-        container.style.cssText = 'position:fixed; top:16px; right:16px; z-index:9999; display:flex; flex-direction:column; gap:8px; max-width:320px;';
+        container.style.cssText = 'position:fixed; top:16px; right:16px; z-index:9999; display:flex; flex-direction:column; gap:10px; max-width:340px;';
         document.body.appendChild(container);
     }
     const aviso = document.createElement('div');
-    aviso.textContent = texto;
-    aviso.style.cssText = 'background:#1e6b34; color:#fff; padding:12px 16px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.25); font-size:0.9em; cursor:pointer;';
+    aviso.innerHTML = `<span style="font-size:1.3em; line-height:1;">💰</span><span style="flex:1;">${texto.replace(/^💰\s*/, '')}</span>`;
+    aviso.style.cssText = 'background:#fff; color:#2d2d2d; padding:14px 16px; border-radius:10px; border-left:5px solid var(--primary, #a0522d); box-shadow:0 4px 16px rgba(0,0,0,0.18); font-size:0.92em; line-height:1.4; cursor:pointer; display:flex; align-items:flex-start; gap:10px; animation:avisoFlutuanteEntrada 0.25s ease-out;';
     aviso.onclick = () => aviso.remove();
     container.appendChild(aviso);
     setTimeout(() => aviso.remove(), 8000); // some sozinho depois de 8s, se ninguém clicar antes
+}
+if (!document.getElementById('estiloAvisoFlutuantePagamento')) {
+    const estilo = document.createElement('style');
+    estilo.id = 'estiloAvisoFlutuantePagamento';
+    estilo.textContent = '@keyframes avisoFlutuanteEntrada { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }';
+    document.head.appendChild(estilo);
 }
 
 function tocarAlerta(presetForcado) {
