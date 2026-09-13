@@ -3221,6 +3221,17 @@ function rolarParaProdutoLinkado(tentativa) {
    =================================================================== */
 const VAPID_KEY = 'BLzgcYQb9-2BFMX9J9W8wKW0VaTssEA28cqKzh1diBk2_BCXcC0ekeqcWFyFkdtn2UowufLCOK6G82-vP_oMAdE';
 
+// No iPhone/iPad, notificação push só funciona se o site tiver sido "instalado" na
+// Tela de Início primeiro (decisão da própria Apple, vale pra Safari E Chrome, já que
+// os dois usam o mesmo motor no iOS) — trocar de navegador não resolve nada.
+function ehIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent);
+}
+function ehPWAInstalada() {
+    return window.navigator.standalone === true ||
+        (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+}
+
 function podeReceberNotificacoes() {
     return typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length &&
         typeof firebase.messaging === 'function' &&
@@ -3248,6 +3259,7 @@ function atualizarBotaoNotificacao() {
 // e sem insistir por 7 dias depois que a pessoa escolhe “Agora não”.
 function podeMostrarConviteNotificacoes() {
     if (!podeReceberNotificacoes()) return false;
+    if (ehIOS() && !ehPWAInstalada()) return false; // nunca funcionaria mesmo, evita confusão
     if (localStorage.getItem('notificacoesAtivas') === '1') return false;
     if (typeof Notification !== 'undefined' && Notification.permission === 'denied') return false;
     const adiadoEm = Number(localStorage.getItem('conviteNotificacoesAdiado') || 0);
@@ -3284,8 +3296,12 @@ function agendarConviteNotificacoes() {
 }
 
 async function ativarNotificacoes() {
+    if (ehIOS() && !ehPWAInstalada()) {
+        alert('No iPhone, para receber notificações, primeiro adicione o cardápio à Tela de Início (toque em Compartilhar 📤 → "Adicionar à Tela de Início"). Você pode continuar fazendo seu pedido normalmente enquanto isso.');
+        return;
+    }
     if (!podeReceberNotificacoes()) {
-        alert('Seu navegador não é compatível com notificações. Tente pelo Chrome.');
+        alert('Não foi possível ativar notificações nesse navegador. Você pode continuar fazendo seu pedido normalmente.');
         return;
     }
     if (VAPID_KEY === 'COLE_AQUI_A_SUA_CHAVE_VAPID') {
