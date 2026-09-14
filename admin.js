@@ -4698,6 +4698,9 @@ function escutarConfigLoja() {
         const config = snap.val() || {};
         montarLinhasHorario(config.horarios);
 
+        const nomeBarraPedeaki = document.getElementById('barraPedeakiNomeLoja');
+        if (nomeBarraPedeaki) nomeBarraPedeaki.textContent = config.nomeLoja || (typeof LOJA_CONFIG !== 'undefined' ? LOJA_CONFIG.nome : 'Loja');
+
         const modo = config.modoManual || 'auto';
         marcarModoSelecionado(modo);
 

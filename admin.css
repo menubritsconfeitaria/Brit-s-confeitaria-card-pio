@@ -93,6 +93,28 @@ body {
     min-height: 18px;
 }
 
+/* Barra de identidade PedeAki — sempre no topo do painel, separada da identidade
+   visual do cliente (que continua com a própria logo/cores no cabeçalho abaixo) */
+.barra-pedeaki {
+    background: #1a1a2e;
+    padding: 8px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.barra-pedeaki-logo {
+    height: 28px;
+    width: auto;
+}
+.barra-pedeaki-gerenciando {
+    color: #cfcfe0;
+    font-size: 0.82em;
+    margin: 0;
+}
+.barra-pedeaki-gerenciando strong {
+    color: #ffffff;
+}
+
 /* Painel */
 .painel-header {
     background: var(--card);
