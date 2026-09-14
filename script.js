@@ -464,7 +464,7 @@ function atualizarStatusLoja(config) {
         }
     } else {
         banner.classList.add('loja-fechada');
-        texto.textContent = '🔴 A loja está fechada agora. Você pode ver o cardápio à vontade — os pedidos abrem de novo no nosso próximo horário de funcionamento.';
+        texto.textContent = '🔴 No momento, estamos fechados. Consulte nosso horário de atendimento e volte em breve — você pode ver o cardápio à vontade.';
         if (botaoFinalizarCompra) {
             // Encomenda agendada é pra uma data futura — não depende da loja estar
             // aberta agora, então o botão continua liberado nesse caso específico
@@ -473,7 +473,7 @@ function atualizarStatusLoja(config) {
                 botaoFinalizarCompra.textContent = 'Finalizar Compra';
             } else {
                 botaoFinalizarCompra.disabled = true;
-                botaoFinalizarCompra.textContent = 'A loja está fechada agora';
+                botaoFinalizarCompra.textContent = 'No momento, estamos fechados';
             }
         }
     }
@@ -1496,7 +1496,7 @@ function atualizarResumoEncomendaCheckout() {
             botaoFinalizarCompra.textContent = 'Finalizar Compra';
         } else {
             botaoFinalizarCompra.disabled = true;
-            botaoFinalizarCompra.textContent = 'A loja está fechada agora';
+            botaoFinalizarCompra.textContent = 'No momento, estamos fechados';
         }
     }
 
@@ -3338,6 +3338,18 @@ async function ativarNotificacoes() {
         const messaging = firebase.messaging();
         const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
         if (token) {
+            // Escuta mensagens em primeiro plano (aba aberta) usando esse MESMO
+            // messaging já configurado com o nosso Service Worker — reaproveitar
+            // evita o Firebase tentar registrar um arquivo próprio dele mesmo.
+            try {
+                messaging.onMessage((payload) => {
+                    const titulo = (payload.notification && payload.notification.title) || LOJA_CONFIG.nome;
+                    const corpo = (payload.notification && payload.notification.body) || '';
+                    mostrarToastNotificacao(titulo, corpo);
+                });
+            } catch (e) {
+                console.log('Não foi possível escutar notificações em primeiro plano:', e);
+            }
             // O token é registrado pelo servidor, em vez de escrever direto no banco.
             // Isso permite deixar as regras do Firebase mais fechadas sem quebrar o push.
             const registrarToken = firebase.functions().httpsCallable('registrarTokenNotificacao');
@@ -3538,17 +3550,13 @@ async function enviarInteressePersonalizado() {
     window.open(link, '_blank');
 }
 
-if (podeReceberNotificacoes() && VAPID_KEY !== 'COLE_AQUI_A_SUA_CHAVE_VAPID') {
-    try {
-        firebase.messaging().onMessage((payload) => {
-            const titulo = (payload.notification && payload.notification.title) || LOJA_CONFIG.nome;
-            const corpo = (payload.notification && payload.notification.body) || '';
-            mostrarToastNotificacao(titulo, corpo);
-        });
-    } catch (e) {
-        console.log('Não foi possível escutar notificações em primeiro plano:', e);
-    }
-}
+// A escuta de mensagens em primeiro plano (onMessage) fica dentro de
+// ativarNotificacoes(), reaproveitando o MESMO "messaging" já configurado com o
+// nosso Service Worker — evita criar uma segunda instância separada aqui, que era
+// o que fazia o Firebase tentar registrar um arquivo próprio (firebase-messaging-sw.js,
+// que não existe no projeto) toda vez que a página carregava, mesmo sem o cliente
+// ter ativado nada. Achado real: 404 repetido, contribuindo pro Service Worker
+// travar em "tentando instalar" sem parar.
 
 // Fecha o lightbox clicando fora da imagem, e permite navegar com o teclado (setas e Esc)
 document.addEventListener('DOMContentLoaded', () => {
