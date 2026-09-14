@@ -262,6 +262,19 @@ main {
 }
 .carrossel-destaque-anterior { left: 10px; }
 .carrossel-destaque-proximo { right: 10px; }
+.carrossel-slide-banner { background: #fff; cursor: default; }
+.carrossel-slide-banner.tem-link { cursor: pointer; }
+.carrossel-slide-banner::after { display: none; }
+.carrossel-banner-imagem {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+    background: #fff;
+}
 .produto-destaque-pulso {
     animation: produtoDestaquePulso 1.6s ease;
 }

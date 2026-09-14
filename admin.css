@@ -1059,3 +1059,43 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
     color: #fff;
     border-color: var(--primary);
 }
+
+
+/* Banners de campanha do carrossel */
+.banner-carrossel-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
+}
+.banner-carrossel-campo-largo { grid-column: 1 / -1; }
+.banner-carrossel-ativo { align-self: end; min-height: 40px; }
+.lista-banners-carrossel { display: grid; gap: 10px; }
+.banner-carrossel-item {
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    border: 1px solid #eadfd7;
+    border-radius: 12px;
+    padding: 10px;
+    background: #fffdfb;
+}
+.banner-carrossel-miniatura {
+    width: 150px;
+    height: 78px;
+    object-fit: contain;
+    background: #f7f3ef;
+    border-radius: 9px;
+    border: 1px solid #eee3dc;
+}
+.banner-carrossel-info strong { display: block; margin-bottom: 4px; }
+.banner-carrossel-info .dica-secao { margin: 2px 0; }
+.banner-carrossel-acoes { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+.banner-carrossel-acoes button { white-space: nowrap; }
+@media (max-width: 760px) {
+    .banner-carrossel-form { grid-template-columns: 1fr; }
+    .banner-carrossel-campo-largo { grid-column: auto; }
+    .banner-carrossel-item { grid-template-columns: 92px minmax(0, 1fr); }
+    .banner-carrossel-miniatura { width: 92px; height: 58px; }
+    .banner-carrossel-acoes { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; }
+}

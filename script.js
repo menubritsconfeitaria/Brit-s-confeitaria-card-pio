@@ -859,13 +859,31 @@ function idsDaListaCarrossel(valor) {
         .filter(Boolean);
 }
 
-function recalcularCarrosselDestaques(produtosVal, modoSalvo, autoVal, manuaisVal) {
+function dataLocalISOCarrossel() {
+    const agora = new Date();
+    return agora.getFullYear() + '-' + String(agora.getMonth() + 1).padStart(2, '0') + '-' + String(agora.getDate()).padStart(2, '0');
+}
+
+function bannersAtivosCarrossel(valor) {
+    const hoje = dataLocalISOCarrossel();
+    const itens = valor ? Object.entries(valor) : [];
+    return itens
+        .map(([id, banner]) => ({ id, ...(banner || {}) }))
+        .filter(banner => banner.imagem && banner.ativo !== false)
+        .filter(banner => !banner.inicio || banner.inicio <= hoje)
+        .filter(banner => !banner.fim || banner.fim >= hoje)
+        .sort((a, b) => (Number(a.ordem) || 999) - (Number(b.ordem) || 999) || (Number(a.criadoEm) || 0) - (Number(b.criadoEm) || 0))
+        .map(banner => ({ ...banner, tipo: 'banner' }));
+}
+
+function recalcularCarrosselDestaques(produtosVal, modoSalvo, autoVal, manuaisVal, bannersVal) {
     const modo = ['manual','automatico','misto'].includes(modoSalvo) ? modoSalvo : 'automatico';
     const produtoPodeAparecer = (p) => !!(p && p.disponivel === true && !p.escondido);
     const montarDestaqueDoProduto = (id) => {
         const p = produtosVal[id];
         if (!produtoPodeAparecer(p)) return null;
         return {
+            tipo: 'produto',
             id,
             nome: p.nome,
             preco: p.preco,
@@ -881,10 +899,13 @@ function recalcularCarrosselDestaques(produtosVal, modoSalvo, autoVal, manuaisVa
     else if (modo === 'misto') idsEscolhidos = unicos([...idsManuais, ...idsAuto]);
     else idsEscolhidos = idsAuto;
 
-    const destaques = idsEscolhidos
+    const banners = bannersAtivosCarrossel(bannersVal).slice(0, 5);
+    const vagasProdutos = Math.max(0, 5 - banners.length);
+    const produtosDestaque = idsEscolhidos
         .map(montarDestaqueDoProduto)
         .filter(Boolean)
-        .slice(0, 5);
+        .slice(0, vagasProdutos);
+    const destaques = [...banners, ...produtosDestaque];
 
     if (destaques.length > 0) {
         montarCarrossel(destaques);
@@ -909,17 +930,52 @@ function carregarCarrosselDestaques() {
         produtos: db.ref('produtos'),
         modo: db.ref('configuracao/carrosselModo'),
         auto: db.ref('configuracao/carrosselDestaquesAuto'),
-        manuais: db.ref('configuracao/destaquesManuais')
+        manuais: db.ref('configuracao/destaquesManuais'),
+        banners: db.ref('configuracao/bannersCarrossel')
     };
     refsCarrosselDestaques = Object.values(refs);
 
-    const estado = { produtos: {}, modo: 'automatico', auto: [], manuais: [] };
-    const atualizar = () => recalcularCarrosselDestaques(estado.produtos, estado.modo, estado.auto, estado.manuais);
+    const estado = { produtos: {}, modo: 'automatico', auto: [], manuais: [], banners: {} };
+    const atualizar = () => recalcularCarrosselDestaques(estado.produtos, estado.modo, estado.auto, estado.manuais, estado.banners);
 
     refs.produtos.on('value', snap => { estado.produtos = snap.val() || {}; atualizar(); });
     refs.modo.on('value', snap => { estado.modo = snap.val(); atualizar(); });
     refs.auto.on('value', snap => { estado.auto = snap.val() || []; atualizar(); });
     refs.manuais.on('value', snap => { estado.manuais = snap.val() || []; atualizar(); });
+    refs.banners.on('value', snap => { estado.banners = snap.val() || {}; atualizar(); });
+}
+
+function escaparHtmlCarrossel(valor) {
+    return String(valor == null ? '' : valor)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function escaparAtributoCarrossel(valor) {
+    return escaparHtmlCarrossel(valor);
+}
+
+function escaparJsCarrossel(valor) {
+    return String(valor == null ? '' : valor).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+function acaoBannerCarrossel(link) {
+    if (!link) return;
+    if (link.startsWith('#')) {
+        const alvo = document.querySelector(link);
+        if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+    }
+    try {
+        const url = new URL(link, window.location.href);
+        if (url.origin === window.location.origin) window.location.href = url.href;
+        else window.open(url.href, '_blank', 'noopener');
+    } catch (e) {
+        window.location.href = link;
+    }
 }
 
 function montarCarrossel(destaques) {
@@ -935,19 +991,29 @@ function montarCarrossel(destaques) {
         return;
     }
 
-    trilho.innerHTML = destaquesVisiveis.map(d => `
-        <div class="carrossel-slide" data-produto-id="${d.id || ''}" onclick="irParaProdutoDestaque('${d.id || ''}')">
-            ${d.imagem ? `<img class="carrossel-fundo" src="${d.imagem}" alt="" aria-hidden="true">` : ''}
-            ${d.imagem ? `<img class="carrossel-foto" src="${d.imagem}" alt="${d.nome || 'Produto em destaque'}">` : ''}
-            <div class="carrossel-slide-info">
-                <span class="carrossel-kicker">✨ DESTAQUE DE HOJE</span>
-                <strong>${d.nome || 'Delícia em destaque'}</strong>
-                ${d.preco != null ? `<span class="carrossel-preco">R$ ${Number(d.preco).toFixed(2).replace('.', ',')}</span>` : ''}
-                <span class="carrossel-microcopy">Peça direto pelo site, é rapidinho.</span>
-                <button type="button" class="carrossel-cta" onclick="event.stopPropagation(); acaoCarrosselDestaque('${d.id || ''}')">+ Adicionar ao carrinho</button>
-            </div>
-        </div>
-    `).join('');
+    trilho.innerHTML = destaquesVisiveis.map(d => {
+        if (d.tipo === 'banner') {
+            const linkCodificado = encodeURIComponent(d.link || '');
+            const classeLink = d.link ? ' tem-link' : '';
+            const clique = d.link ? ` onclick="acaoBannerCarrossel(decodeURIComponent('${linkCodificado}'))"` : '';
+            return `
+                <div class="carrossel-slide carrossel-slide-banner${classeLink}"${clique}>
+                    <img class="carrossel-banner-imagem" src="${escaparAtributoCarrossel(d.imagem)}" alt="${escaparAtributoCarrossel(d.titulo || 'Banner de campanha')}">
+                </div>`;
+        }
+        return `
+            <div class="carrossel-slide" data-produto-id="${escaparAtributoCarrossel(d.id || '')}" onclick="irParaProdutoDestaque('${escaparJsCarrossel(d.id || '')}')">
+                ${d.imagem ? `<img class="carrossel-fundo" src="${escaparAtributoCarrossel(d.imagem)}" alt="" aria-hidden="true">` : ''}
+                ${d.imagem ? `<img class="carrossel-foto" src="${escaparAtributoCarrossel(d.imagem)}" alt="${escaparAtributoCarrossel(d.nome || 'Produto em destaque')}">` : ''}
+                <div class="carrossel-slide-info">
+                    <span class="carrossel-kicker">✨ DESTAQUE DE HOJE</span>
+                    <strong>${escaparHtmlCarrossel(d.nome || 'Delícia em destaque')}</strong>
+                    ${d.preco != null ? `<span class="carrossel-preco">R$ ${Number(d.preco).toFixed(2).replace('.', ',')}</span>` : ''}
+                    <span class="carrossel-microcopy">Peça direto pelo site, é rapidinho.</span>
+                    <button type="button" class="carrossel-cta" onclick="event.stopPropagation(); acaoCarrosselDestaque('${escaparJsCarrossel(d.id || '')}')">+ Adicionar ao carrinho</button>
+                </div>
+            </div>`;
+    }).join('');
     bolinhas.innerHTML = destaquesVisiveis.map((_, i) => `<button type="button" class="carrossel-bolinha ${i === 0 ? 'ativa' : ''}" onclick="irParaSlideCarrossel(${i})" aria-label="Ir para destaque ${i + 1}"></button>`).join('');
 
     container.dataset.totalSlides = String(destaquesVisiveis.length);

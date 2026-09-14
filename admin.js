@@ -5176,6 +5176,139 @@ async function salvarConfiguracaoCarrossel() {
 // Mantém compatibilidade com qualquer botão/chamada antiga.
 function salvarDestaquesManuais() { return salvarConfiguracaoCarrossel(); }
 
+
+// ---------- Banners de campanha do carrossel ----------
+let bannersCarrosselAtuais = {};
+
+function escaparHtmlBanner(valor) {
+    return String(valor == null ? '' : valor)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function dataBannerLegivel(valor) {
+    if (!valor) return 'sem limite';
+    const partes = String(valor).split('-');
+    return partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : valor;
+}
+
+function escutarBannersCarrossel() {
+    db.ref('configuracao/bannersCarrossel').on('value', snap => {
+        bannersCarrosselAtuais = snap.val() || {};
+        renderizarBannersCarrosselPainel();
+    });
+}
+
+function renderizarBannersCarrosselPainel() {
+    const container = document.getElementById('listaBannersCarrossel');
+    if (!container) return;
+    const itens = Object.entries(bannersCarrosselAtuais || {})
+        .map(([id, banner]) => ({ id, ...(banner || {}) }))
+        .sort((a, b) => (Number(a.ordem) || 999) - (Number(b.ordem) || 999) || (Number(a.criadoEm) || 0) - (Number(b.criadoEm) || 0));
+
+    if (!itens.length) {
+        container.innerHTML = '<p class="dica-secao">Nenhum banner cadastrado.</p>';
+        return;
+    }
+
+    container.innerHTML = itens.map(banner => {
+        const periodo = `${dataBannerLegivel(banner.inicio)} até ${dataBannerLegivel(banner.fim)}`;
+        const titulo = banner.titulo || 'Campanha sem nome';
+        return `
+        <div class="banner-carrossel-item">
+            <img class="banner-carrossel-miniatura" src="${escaparHtmlBanner(banner.imagem || '')}" alt="${escaparHtmlBanner(titulo)}">
+            <div class="banner-carrossel-info">
+                <strong>${escaparHtmlBanner(titulo)}</strong>
+                <p class="dica-secao">Ordem: ${Number(banner.ordem) || 1} · ${banner.ativo === false ? '⏸️ Inativo' : '✅ Ativo'}</p>
+                <p class="dica-secao">Período: ${escaparHtmlBanner(periodo)}</p>
+                ${banner.link ? `<p class="dica-secao">Link: ${escaparHtmlBanner(banner.link)}</p>` : ''}
+            </div>
+            <div class="banner-carrossel-acoes">
+                <button class="btn-secondary" onclick="alternarBannerCarrossel('${banner.id}', ${banner.ativo === false ? 'true' : 'false'})">${banner.ativo === false ? '▶️ Ativar' : '⏸️ Pausar'}</button>
+                <button class="btn-secondary" onclick="excluirBannerCarrossel('${banner.id}')">🗑️ Excluir</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function salvarBannerCarrossel() {
+    const msgEl = document.getElementById('msgBannerCarrossel');
+    const inputArquivo = document.getElementById('bannerCarrosselArquivo');
+    const arquivo = inputArquivo && inputArquivo.files ? inputArquivo.files[0] : null;
+    const titulo = (document.getElementById('bannerCarrosselTitulo')?.value || '').trim();
+    const link = (document.getElementById('bannerCarrosselLink')?.value || '').trim();
+    const inicio = document.getElementById('bannerCarrosselInicio')?.value || null;
+    const fim = document.getElementById('bannerCarrosselFim')?.value || null;
+    const ordem = Math.max(1, Math.min(99, Number(document.getElementById('bannerCarrosselOrdem')?.value) || 1));
+    const ativo = !!document.getElementById('bannerCarrosselAtivo')?.checked;
+
+    if (!arquivo) { if (msgEl) msgEl.textContent = 'Escolha a imagem do banner primeiro.'; return; }
+    if (!arquivo.type.startsWith('image/')) { if (msgEl) msgEl.textContent = 'O arquivo escolhido não parece ser uma imagem.'; return; }
+    if (arquivo.size > 4 * 1024 * 1024) { if (msgEl) msgEl.textContent = 'Imagem muito grande — use um arquivo de até 4MB.'; return; }
+    if (inicio && fim && fim < inicio) { if (msgEl) msgEl.textContent = 'A data final não pode ser anterior à data inicial.'; return; }
+
+    if (msgEl) msgEl.textContent = 'Enviando banner...';
+    try {
+        const extensao = (arquivo.name.split('.').pop() || 'jpg').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'jpg';
+        const storagePath = `produtos/banner-carrossel-${Date.now()}.${extensao}`;
+        const ref = firebase.storage().ref(storagePath);
+        await ref.put(arquivo);
+        const imagem = await ref.getDownloadURL();
+
+        await db.ref('configuracao/bannersCarrossel').push({
+            imagem,
+            storagePath,
+            titulo: titulo || null,
+            link: link || null,
+            inicio: inicio || null,
+            fim: fim || null,
+            ordem,
+            ativo,
+            criadoEm: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        inputArquivo.value = '';
+        document.getElementById('bannerCarrosselTitulo').value = '';
+        document.getElementById('bannerCarrosselLink').value = '';
+        document.getElementById('bannerCarrosselInicio').value = '';
+        document.getElementById('bannerCarrosselFim').value = '';
+        document.getElementById('bannerCarrosselOrdem').value = '1';
+        document.getElementById('bannerCarrosselAtivo').checked = true;
+        if (msgEl) msgEl.textContent = 'Banner adicionado! Ele entra no carrossel conforme ordem, período e status.';
+    } catch (err) {
+        if (msgEl) msgEl.textContent = 'Erro ao salvar banner: ' + err.message;
+    }
+}
+
+async function alternarBannerCarrossel(id, novoEstado) {
+    const msgEl = document.getElementById('msgBannerCarrossel');
+    try {
+        await db.ref(`configuracao/bannersCarrossel/${id}/ativo`).set(!!novoEstado);
+        if (msgEl) msgEl.textContent = novoEstado ? 'Banner ativado.' : 'Banner pausado.';
+    } catch (err) {
+        if (msgEl) msgEl.textContent = 'Erro ao atualizar banner: ' + err.message;
+    }
+}
+
+async function excluirBannerCarrossel(id) {
+    const banner = bannersCarrosselAtuais[id];
+    if (!banner) return;
+    if (!confirm(`Excluir o banner "${banner.titulo || 'Campanha'}"?`)) return;
+    const msgEl = document.getElementById('msgBannerCarrossel');
+    try {
+        await db.ref(`configuracao/bannersCarrossel/${id}`).remove();
+        if (banner.storagePath) {
+            try { await firebase.storage().ref(banner.storagePath).delete(); } catch (e) { /* arquivo pode já ter sido removido */ }
+        }
+        if (msgEl) msgEl.textContent = 'Banner excluído.';
+    } catch (err) {
+        if (msgEl) msgEl.textContent = 'Erro ao excluir banner: ' + err.message;
+    }
+}
+
 function escutarProdutos() {
     db.ref('produtos').on('value', snap => {
         ultimoValProdutosAdmin = snap.val() || {};
@@ -6054,6 +6187,7 @@ function iniciarEscutaPedidos() {
     escutarFichaTecnica();
     escutarClientesGestao();
     escutarDestaquesManuais();
+    escutarBannersCarrossel();
     escutarPedidosManuais();
     const previaLojaNomeEl = document.getElementById('previaLojaNome');
     if (previaLojaNomeEl) previaLojaNomeEl.textContent = LOJA_CONFIG.nome;

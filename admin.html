@@ -200,6 +200,53 @@
                     <p id="msgDestaquesManuais" class="ordem-categorias-msg"></p>
                 </div>
 
+                <div class="loja-status-card" id="cardBannersCarrossel" style="margin-top:16px;">
+                    <h3>🖼️ Banners de Campanha</h3>
+                    <p class="dica-secao">
+                        Envie uma arte pronta para aparecer no mesmo carrossel dos destaques. Os banners entram primeiro,
+                        conforme a ordem escolhida, e os produtos completam as vagas restantes até 5 slides no total.
+                    </p>
+
+                    <div class="banner-carrossel-form" style="margin-top:12px;">
+                        <div class="campo-com-label banner-carrossel-campo-largo">
+                            <label class="campo-label" for="bannerCarrosselArquivo">Imagem do banner</label>
+                            <input type="file" id="bannerCarrosselArquivo" accept="image/*">
+                            <p class="dica-secao">Use uma arte horizontal. A imagem é exibida inteira, sem texto obrigatório por cima.</p>
+                        </div>
+                        <div class="campo-com-label">
+                            <label class="campo-label" for="bannerCarrosselTitulo">Nome da campanha</label>
+                            <input type="text" id="bannerCarrosselTitulo" maxlength="80" placeholder="Ex.: Semana do Brownie">
+                        </div>
+                        <div class="campo-com-label banner-carrossel-campo-largo">
+                            <label class="campo-label" for="bannerCarrosselLink">Link ao clicar (opcional)</label>
+                            <input type="text" id="bannerCarrosselLink" placeholder="Ex.: #produto-... ou https://...">
+                        </div>
+                        <div class="campo-com-label">
+                            <label class="campo-label" for="bannerCarrosselInicio">Início (opcional)</label>
+                            <input type="date" id="bannerCarrosselInicio">
+                        </div>
+                        <div class="campo-com-label">
+                            <label class="campo-label" for="bannerCarrosselFim">Fim (opcional)</label>
+                            <input type="date" id="bannerCarrosselFim">
+                        </div>
+                        <div class="campo-com-label">
+                            <label class="campo-label" for="bannerCarrosselOrdem">Ordem</label>
+                            <input type="number" id="bannerCarrosselOrdem" min="1" max="99" value="1">
+                        </div>
+                        <label class="switch-linha banner-carrossel-ativo">
+                            <input type="checkbox" id="bannerCarrosselAtivo" checked>
+                            Banner ativo
+                        </label>
+                    </div>
+
+                    <button class="btn-secondary" style="margin-top:10px;" onclick="salvarBannerCarrossel()">📤 Enviar e adicionar banner</button>
+                    <p id="msgBannerCarrossel" class="ordem-categorias-msg"></p>
+
+                    <div id="listaBannersCarrossel" class="lista-banners-carrossel" style="margin-top:14px;">
+                        <p class="dica-secao">Nenhum banner cadastrado.</p>
+                    </div>
+                </div>
+
                 <div class="loja-status-card" id="cardDiagnosticoSistema" style="margin-top:16px;">
                     <h3>🩺 Diagnóstico rápido do sistema</h3>
                     <p class="dica-secao">Confere em poucos segundos se Functions, pagamento, notificações e carrossel automático estão respondendo.</p>
