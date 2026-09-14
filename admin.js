@@ -130,30 +130,118 @@ let primeiraCargaConcluida = false;
  * Se o nó não existir, ou "status" for "ativo"/vazio, nada aparece (comportamento
  * normal — é o caso da Brit's e de qualquer cliente em dia).
  */
+function hojeIsoLocal() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function dataIsoParaDateLocal(dataIso) {
+    if (!dataIso || !/^\d{4}-\d{2}-\d{2}$/.test(dataIso)) return null;
+    const d = new Date(dataIso + 'T12:00:00');
+    return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function formatarDataIsoBr(dataIso) {
+    const d = dataIsoParaDateLocal(dataIso);
+    return d ? d.toLocaleDateString('pt-BR') : '—';
+}
+
+function diferencaDiasDataIso(dataIso) {
+    const alvo = dataIsoParaDateLocal(dataIso);
+    if (!alvo) return null;
+    const hoje = new Date();
+    const hojeMeioDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 12, 0, 0, 0);
+    return Math.ceil((alvo.getTime() - hojeMeioDia.getTime()) / 86400000);
+}
+
+function aplicarVariaveisMensagemAssinatura(texto, dados, dias) {
+    const plano = String((dados && dados.plano) || '').toUpperCase() || 'PedeAki';
+    const nomeLoja = (typeof LOJA_CONFIG !== 'undefined' && LOJA_CONFIG.nome) ? LOJA_CONFIG.nome : 'sua loja';
+    return String(texto || '')
+        .replaceAll('{dias}', String(Math.max(0, Number(dias) || 0)))
+        .replaceAll('{dataVencimento}', formatarDataIsoBr(dados && dados.dataVencimento))
+        .replaceAll('{plano}', plano)
+        .replaceAll('{nomeLoja}', nomeLoja);
+}
+
+/**
+ * Aviso de renovação da assinatura. Continua compatível com o formato antigo
+ * { status: 'atencao'|'bloqueado', mensagem: '...' }, mas agora também calcula
+ * automaticamente o aviso usando data de vencimento + regras editáveis salvas no Firebase.
+ */
 function escutarStatusAssinatura() {
     const banner = document.getElementById('bannerAssinatura');
     if (!banner) return;
 
     db.ref('configuracao/assinatura').on('value', snap => {
         const dados = snap.val();
-        const status = (dados && dados.status) || 'ativo';
-        const mensagemCustom = dados && dados.mensagem;
-
-        if (status === 'ativo') {
+        if (!dados) {
             banner.style.display = 'none';
             return;
         }
 
-        banner.className = 'banner-assinatura banner-assinatura-' + status;
-        banner.style.display = 'block';
-
-        if (status === 'atencao') {
-            banner.textContent = mensagemCustom || '🔔 Existe uma pendência no seu sistema. Qualquer dúvida, é só entrar em contato com o suporte.';
-        } else if (status === 'bloqueado') {
-            banner.textContent = mensagemCustom || '⚠️ Seu acesso está temporariamente limitado. Entre em contato com o suporte pra regularizar e voltar ao normal.';
-        } else {
-            banner.style.display = 'none'; // valor desconhecido — não mostra nada, por segurança
+        // Compatibilidade com o formato antigo enquanto o cliente ainda não tem ciclo configurado.
+        if (!dados.dataVencimento) {
+            const statusLegado = dados.status || 'ativo';
+            const mensagemCustom = dados.mensagem;
+            if (statusLegado === 'atencao' || statusLegado === 'bloqueado') {
+                banner.className = 'banner-assinatura banner-assinatura-' + statusLegado;
+                banner.textContent = mensagemCustom || (statusLegado === 'atencao'
+                    ? '🔔 Existe uma pendência no seu sistema. Qualquer dúvida, é só entrar em contato com o suporte.'
+                    : '⚠️ Seu acesso está temporariamente limitado. Entre em contato com o suporte pra regularizar e voltar ao normal.');
+                banner.style.display = 'block';
+            } else {
+                banner.style.display = 'none';
+            }
+            return;
         }
+
+        const dias = diferencaDiasDataIso(dados.dataVencimento);
+        if (dias == null) { banner.style.display = 'none'; return; }
+        const alertas = dados.alertas || {};
+        const tolerancia = Math.max(0, Number(dados.diasTolerancia) || 0);
+        let tipo = null;
+        let mensagem = '';
+
+        if (dias > 0) {
+            const previos = [alertas.previo1, alertas.previo2, alertas.previo3]
+                .filter(a => a && a.ativo !== false && Number(a.dias) >= dias)
+                .sort((a, b) => Number(a.dias) - Number(b.dias));
+            if (previos.length) {
+                tipo = 'atencao';
+                mensagem = aplicarVariaveisMensagemAssinatura(previos[0].mensagem, dados, dias);
+            }
+        } else if (dias === 0) {
+            const a = alertas.vencimento;
+            if (!a || a.ativo !== false) {
+                tipo = 'atencao';
+                mensagem = aplicarVariaveisMensagemAssinatura((a && a.mensagem) || '📅 Seu plano PedeAki vence hoje. Entre em contato para renovar e manter todos os recursos ativos.', dados, 0);
+            }
+        } else {
+            const atraso = Math.abs(dias);
+            if (atraso <= tolerancia) {
+                const a = alertas.tolerancia;
+                if (!a || a.ativo !== false) {
+                    tipo = 'atencao';
+                    mensagem = aplicarVariaveisMensagemAssinatura((a && a.mensagem) || '⚠️ Seu plano venceu em {dataVencimento} e está no período de tolerância. Regularize a renovação para evitar interrupções.', dados, 0);
+                }
+            } else {
+                const a = alertas.vencido;
+                if (!a || a.ativo !== false) {
+                    tipo = 'bloqueado';
+                    mensagem = aplicarVariaveisMensagemAssinatura((a && a.mensagem) || '🚨 Seu plano PedeAki está vencido. Entre em contato com o suporte para renovar e regularizar o acesso.', dados, 0);
+                }
+            }
+        }
+
+        if (!tipo || !mensagem) {
+            banner.style.display = 'none';
+            return;
+        }
+
+        banner.className = 'banner-assinatura banner-assinatura-' + tipo;
+        banner.textContent = mensagem;
+        banner.style.display = 'block';
     });
 }
 
@@ -313,6 +401,8 @@ function sincronizarTelaDoMestre() {
     document.getElementById('cardAdicionarClienteMestre').style.display = logado ? 'block' : 'none';
     document.getElementById('cardLeadsMestre').style.display = logado ? 'block' : 'none';
     if (logado && clientesRegistroMestre.length === 0) carregarClientesMestre();
+    const dataContratacaoNova = document.getElementById('novoClienteDataContratacaoMestre');
+    if (logado && dataContratacaoNova && !dataContratacaoNova.value) dataContratacaoNova.value = hojeIsoLocal();
 
     // Se já tinha um cliente selecionado e logado antes, mantém a tela dele visível —
     // sem isso, voltar pra essa aba mostraria o login do cliente de novo à toa
@@ -338,6 +428,8 @@ async function fazerLoginNoMestre() {
         document.getElementById('cardConteudoMestre').style.display = 'block';
         document.getElementById('cardAdicionarClienteMestre').style.display = 'block';
         document.getElementById('cardLeadsMestre').style.display = 'block';
+        const dataContratacaoNova = document.getElementById('novoClienteDataContratacaoMestre');
+        if (dataContratacaoNova && !dataContratacaoNova.value) dataContratacaoNova.value = hojeIsoLocal();
         carregarClientesMestre();
         carregarLeadsMestre();
     } catch (err) {
@@ -385,6 +477,215 @@ const appsClientesMestre = {}; // indice -> { app, auth, db, autenticado }
 let clientesRegistroMestre = [];
 let clienteMestreSelecionadoIndice = null;
 
+
+function somarMesesDataIso(dataIso, meses) {
+    const d = dataIsoParaDateLocal(dataIso);
+    if (!d) return '';
+    const diaOriginal = d.getDate();
+    const alvo = new Date(d.getFullYear(), d.getMonth() + (Number(meses) || 1), 1, 12, 0, 0, 0);
+    const ultimoDia = new Date(alvo.getFullYear(), alvo.getMonth() + 1, 0).getDate();
+    alvo.setDate(Math.min(diaOriginal, ultimoDia));
+    return `${alvo.getFullYear()}-${String(alvo.getMonth() + 1).padStart(2, '0')}-${String(alvo.getDate()).padStart(2, '0')}`;
+}
+
+function calcularEstadoAssinatura(dados) {
+    dados = dados || {};
+    if (!dados.dataAtivacao) {
+        return dados.dataContratacao
+            ? { chave: 'implantacao', rotulo: '🟠 Em implantação', dias: null }
+            : { chave: 'sem-config', rotulo: 'Sem configuração', dias: null };
+    }
+    if (!dados.dataVencimento) return { chave: 'ativo', rotulo: '🟢 Ativo', dias: null };
+
+    const dias = diferencaDiasDataIso(dados.dataVencimento);
+    if (dias == null) return { chave: 'sem-config', rotulo: 'Data inválida', dias: null };
+    const tolerancia = Math.max(0, Number(dados.diasTolerancia) || 0);
+    const limites = [dados.alertas && dados.alertas.previo1, dados.alertas && dados.alertas.previo2, dados.alertas && dados.alertas.previo3]
+        .filter(a => a && a.ativo !== false && Number(a.dias) > 0)
+        .map(a => Number(a.dias));
+    const maiorAlerta = limites.length ? Math.max(...limites) : 7;
+
+    if (dias > maiorAlerta) return { chave: 'ativo', rotulo: `🟢 Ativo · faltam ${dias} dias`, dias };
+    if (dias > 0) return { chave: 'vencendo', rotulo: `🟡 Vencendo · faltam ${dias} dias`, dias };
+    if (dias === 0) return { chave: 'vence-hoje', rotulo: '🟠 Vence hoje', dias };
+    const atraso = Math.abs(dias);
+    if (atraso <= tolerancia) return { chave: 'tolerancia', rotulo: `🟠 Em tolerância · ${atraso} dia(s) em atraso`, dias };
+    return { chave: 'vencido', rotulo: `🔴 Vencido · ${atraso} dia(s) em atraso`, dias };
+}
+
+function obterAlertasAssinaturaMestreDoFormulario() {
+    return {
+        previo1: {
+            ativo: document.getElementById('alertaRenovacao1Ativo').checked,
+            dias: Math.max(1, Number(document.getElementById('alertaRenovacao1Dias').value) || 7),
+            mensagem: document.getElementById('alertaRenovacao1Mensagem').value.trim()
+        },
+        previo2: {
+            ativo: document.getElementById('alertaRenovacao2Ativo').checked,
+            dias: Math.max(1, Number(document.getElementById('alertaRenovacao2Dias').value) || 3),
+            mensagem: document.getElementById('alertaRenovacao2Mensagem').value.trim()
+        },
+        previo3: {
+            ativo: document.getElementById('alertaRenovacao3Ativo').checked,
+            dias: Math.max(1, Number(document.getElementById('alertaRenovacao3Dias').value) || 1),
+            mensagem: document.getElementById('alertaRenovacao3Mensagem').value.trim()
+        },
+        vencimento: {
+            ativo: document.getElementById('alertaVencimentoAtivo').checked,
+            mensagem: document.getElementById('alertaVencimentoMensagem').value.trim()
+        },
+        tolerancia: {
+            ativo: document.getElementById('alertaToleranciaAtivo').checked,
+            mensagem: document.getElementById('alertaToleranciaMensagem').value.trim()
+        },
+        vencido: {
+            ativo: document.getElementById('alertaVencidoAtivo').checked,
+            mensagem: document.getElementById('alertaVencidoMensagem').value.trim()
+        }
+    };
+}
+
+function obterAssinaturaMestreDoFormulario() {
+    return {
+        plano: document.getElementById('planoAssinaturaMestre').value || 'pro',
+        dataContratacao: document.getElementById('dataContratacaoAssinaturaMestre').value || null,
+        dataAtivacao: document.getElementById('dataAtivacaoAssinaturaMestre').value || null,
+        dataVencimento: document.getElementById('dataVencimentoAssinaturaMestre').value || null,
+        responsavelAtivacao: document.getElementById('responsavelAtivacaoAssinaturaMestre').value.trim() || null,
+        observacaoInterna: document.getElementById('observacaoAssinaturaMestre').value.trim() || null,
+        diasTolerancia: Math.max(0, Number(document.getElementById('diasToleranciaAssinaturaMestre').value) || 0),
+        alertas: obterAlertasAssinaturaMestreDoFormulario()
+    };
+}
+
+function preencherAlertasAssinaturaMestre(alertas) {
+    alertas = alertas || {};
+    const defs = {
+        previo1: { ativo: true, dias: 7, mensagem: '🔔 Seu plano PedeAki vence em {dias} dias, em {dataVencimento}. Fale com a gente para renovar sem interrupções.' },
+        previo2: { ativo: true, dias: 3, mensagem: '⚠️ Faltam {dias} dias para a renovação do seu plano PedeAki. Vencimento: {dataVencimento}.' },
+        previo3: { ativo: true, dias: 1, mensagem: '⏰ Seu plano PedeAki vence amanhã ({dataVencimento}). Renove para manter o serviço funcionando normalmente.' },
+        vencimento: { ativo: true, mensagem: '📅 Seu plano PedeAki vence hoje. Entre em contato para renovar e manter todos os recursos ativos.' },
+        tolerancia: { ativo: true, mensagem: '⚠️ Seu plano venceu em {dataVencimento} e está no período de tolerância. Regularize a renovação para evitar interrupções.' },
+        vencido: { ativo: true, mensagem: '🚨 Seu plano PedeAki está vencido. Entre em contato com o suporte para renovar e regularizar o acesso.' }
+    };
+    ['previo1','previo2','previo3'].forEach((chave, i) => {
+        const a = { ...defs[chave], ...(alertas[chave] || {}) };
+        document.getElementById(`alertaRenovacao${i+1}Ativo`).checked = a.ativo !== false;
+        document.getElementById(`alertaRenovacao${i+1}Dias`).value = a.dias;
+        document.getElementById(`alertaRenovacao${i+1}Mensagem`).value = a.mensagem || '';
+    });
+    ['vencimento','tolerancia','vencido'].forEach(chave => {
+        const a = { ...defs[chave], ...(alertas[chave] || {}) };
+        const prefixo = chave === 'vencimento' ? 'alertaVencimento' : chave === 'tolerancia' ? 'alertaTolerancia' : 'alertaVencido';
+        document.getElementById(prefixo + 'Ativo').checked = a.ativo !== false;
+        document.getElementById(prefixo + 'Mensagem').value = a.mensagem || '';
+    });
+}
+
+function preencherAssinaturaMestre(dados) {
+    dados = dados || {};
+    document.getElementById('planoAssinaturaMestre').value = dados.plano || 'pro';
+    document.getElementById('dataContratacaoAssinaturaMestre').value = dados.dataContratacao || '';
+    document.getElementById('dataAtivacaoAssinaturaMestre').value = dados.dataAtivacao || '';
+    document.getElementById('dataVencimentoAssinaturaMestre').value = dados.dataVencimento || '';
+    document.getElementById('responsavelAtivacaoAssinaturaMestre').value = dados.responsavelAtivacao || '';
+    document.getElementById('observacaoAssinaturaMestre').value = dados.observacaoInterna || '';
+    document.getElementById('diasToleranciaAssinaturaMestre').value = dados.diasTolerancia != null ? dados.diasTolerancia : 3;
+    preencherAlertasAssinaturaMestre(dados.alertas);
+    atualizarResumoAssinaturaMestre();
+}
+
+function sugerirVencimentoAssinaturaMestre() {
+    const ativacao = document.getElementById('dataAtivacaoAssinaturaMestre').value;
+    const vencimento = document.getElementById('dataVencimentoAssinaturaMestre');
+    if (ativacao && !vencimento.value) vencimento.value = somarMesesDataIso(ativacao, 1);
+    atualizarResumoAssinaturaMestre();
+}
+
+function calcularVencimentoAssinaturaMestre() {
+    const ativacao = document.getElementById('dataAtivacaoAssinaturaMestre').value;
+    if (!ativacao) { alert('Informe primeiro a data de ativação.'); return; }
+    document.getElementById('dataVencimentoAssinaturaMestre').value = somarMesesDataIso(ativacao, 1);
+    atualizarResumoAssinaturaMestre();
+}
+
+function atualizarResumoAssinaturaMestre() {
+    const chip = document.getElementById('resumoStatusAssinaturaMestre');
+    if (!chip) return;
+    const dados = obterAssinaturaMestreDoFormulario();
+    const estado = calcularEstadoAssinatura(dados);
+    chip.className = 'assinatura-status-chip assinatura-status-' + estado.chave;
+    chip.textContent = estado.rotulo;
+}
+
+async function carregarAssinaturaClienteMestre(registro) {
+    const cliente = clientesRegistroMestre[clienteMestreSelecionadoIndice] || {};
+    try {
+        const snapCliente = await registro.db.ref('configuracao/assinatura').once('value');
+        const dadosCliente = snapCliente.val();
+        const dados = dadosCliente && (dadosCliente.dataContratacao || dadosCliente.dataAtivacao || dadosCliente.dataVencimento || dadosCliente.plano)
+            ? dadosCliente
+            : (cliente.assinatura || {});
+        preencherAssinaturaMestre(dados);
+    } catch (err) {
+        preencherAssinaturaMestre(cliente.assinatura || {});
+        console.log('Não foi possível ler assinatura no cliente, usando cadastro Mestre:', err.message);
+    }
+}
+
+async function salvarAssinaturaClienteMestre() {
+    const msgEl = document.getElementById('msgAssinaturaMestre');
+    const registro = appsClientesMestre[nomeAppClienteMestre(clienteMestreSelecionadoIndice)];
+    const cliente = clientesRegistroMestre[clienteMestreSelecionadoIndice];
+    if (!registro || !registro.autenticado || !cliente) { msgEl.textContent = 'Faz login nesse cliente primeiro.'; return; }
+
+    const dados = obterAssinaturaMestreDoFormulario();
+    if (!dados.dataContratacao) { msgEl.textContent = 'Informe a data da contratação.'; return; }
+    if (dados.dataAtivacao && !dados.dataVencimento) dados.dataVencimento = somarMesesDataIso(dados.dataAtivacao, 1);
+    if (dados.dataVencimento && !dados.dataAtivacao) { msgEl.textContent = 'Informe a data de ativação antes do vencimento.'; return; }
+
+    msgEl.textContent = 'Salvando...';
+    try {
+        const dadosCliente = { ...dados, atualizadoEm: firebase.database.ServerValue.TIMESTAMP };
+        await Promise.all([
+            registro.db.ref('configuracao/assinatura').set(dadosCliente),
+            dbMestre.ref('clientes/' + cliente.id + '/assinatura').set(dadosCliente)
+        ]);
+        cliente.assinatura = dados;
+        preencherAssinaturaMestre(dados);
+        renderizarVisaoAssinaturasMestre();
+        msgEl.textContent = '✅ Assinatura e alertas salvos. O aviso do cliente passa a ser calculado automaticamente pelas datas.';
+    } catch (err) {
+        msgEl.textContent = 'Erro ao salvar assinatura: ' + err.message;
+    }
+}
+
+function renderizarVisaoAssinaturasMestre() {
+    const container = document.getElementById('visaoAssinaturasMestre');
+    if (!container) return;
+    if (!clientesRegistroMestre.length) { container.innerHTML = ''; return; }
+
+    const cards = clientesRegistroMestre.map((c, i) => {
+        const a = c.assinatura || {};
+        const estado = calcularEstadoAssinatura(a);
+        const plano = (a.plano || '—').toUpperCase();
+        const venc = a.dataVencimento ? formatarDataIsoBr(a.dataVencimento) : '—';
+        return `<button type="button" class="assinatura-cliente-resumo" onclick="selecionarClienteMestrePeloIndice(${i})">
+            <span><strong>${c.nome}</strong><small>${plano} · Venc.: ${venc}</small></span>
+            <span class="assinatura-status-mini assinatura-status-${estado.chave}">${estado.rotulo}</span>
+        </button>`;
+    }).join('');
+    container.innerHTML = `<div class="visao-assinaturas-titulo">📌 Visão rápida das assinaturas</div>${cards}`;
+}
+
+function selecionarClienteMestrePeloIndice(indice) {
+    const seletor = document.getElementById('seletorClienteMestre');
+    if (!seletor || !clientesRegistroMestre[indice]) return;
+    seletor.value = String(indice);
+    selecionarClienteMestre();
+    seletor.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 // Carrega quem preencheu "Quero meu cardápio assim" em qualquer cardápio — mais
 // recentes primeiro, com um link pronto pra já chamar no WhatsApp
 function carregarLeadsMestre() {
@@ -421,7 +722,11 @@ function carregarClientesMestre() {
         clientesRegistroMestre = Object.entries(dados).map(([id, c]) => ({ id, ...c }));
         const seletor = document.getElementById('seletorClienteMestre');
         seletor.innerHTML = '<option value="">— Selecione —</option>' +
-            clientesRegistroMestre.map((c, i) => `<option value="${i}">${c.nome}</option>`).join('');
+            clientesRegistroMestre.map((c, i) => {
+                const plano = c.assinatura && c.assinatura.plano ? ' · ' + String(c.assinatura.plano).toUpperCase() : '';
+                return `<option value="${i}">${c.nome}${plano}</option>`;
+            }).join('');
+        renderizarVisaoAssinaturasMestre();
     });
 }
 
@@ -498,6 +803,7 @@ async function carregarRecursosClienteMestre() {
     `).join('');
     document.getElementById('areaRecursosClienteMestre').style.display = 'block';
 
+    carregarAssinaturaClienteMestre(registro);
     carregarIdentidadeClienteMestre(registro);
     carregarFreteClienteMestre(registro);
 }
@@ -774,6 +1080,8 @@ async function aplicarRecursosClienteMestre() {
 function adicionarClienteMestre() {
     const nome = document.getElementById('novoClienteNomeMestre').value.trim();
     const configTexto = document.getElementById('novoClienteConfigMestre').value.trim();
+    const plano = document.getElementById('novoClientePlanoMestre').value || 'pro';
+    const dataContratacao = document.getElementById('novoClienteDataContratacaoMestre').value || null;
     const msgEl = document.getElementById('msgAdicionarClienteMestre');
     if (!nome) { msgEl.textContent = 'Digita o nome do cliente.'; return; }
 
@@ -785,11 +1093,20 @@ function adicionarClienteMestre() {
         return;
     }
 
-    dbMestre.ref('clientes').push({ nome, firebaseConfig })
+    const assinatura = {
+        plano,
+        dataContratacao,
+        dataAtivacao: null,
+        dataVencimento: null,
+        diasTolerancia: 3
+    };
+
+    dbMestre.ref('clientes').push({ nome, firebaseConfig, assinatura })
         .then(() => {
-            msgEl.textContent = 'Cliente adicionado!';
+            msgEl.textContent = 'Cliente adicionado! Agora selecione o cliente para concluir ativação e vencimento.';
             document.getElementById('novoClienteNomeMestre').value = '';
             document.getElementById('novoClienteConfigMestre').value = '';
+            document.getElementById('novoClienteDataContratacaoMestre').value = '';
             carregarClientesMestre();
         })
         .catch(err => { msgEl.textContent = 'Erro ao adicionar: ' + err.message; });

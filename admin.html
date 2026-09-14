@@ -537,9 +537,23 @@
                 </div>
 
                 <div class="loja-status-card" id="cardAdicionarClienteMestre" style="margin-top:16px; display:none;">
-                    <h3>Passo 1 de 5 — ➕ Dados da empresa e Firebase (cliente novo)</h3>
+                    <h3>Passo 1 de 6 — ➕ Dados da empresa e Firebase (cliente novo)</h3>
                     <p class="dica-secao">Copia o firebaseConfig do cliente (arquivo firebase-config.js dele) e cola aqui.</p>
                     <input type="text" id="novoClienteNomeMestre" placeholder="Nome do cliente (ex: Doces da Ana)">
+                    <div class="produto-admin-linha" style="margin-top:8px;">
+                        <div class="campo-com-label">
+                            <label class="campo-label">Plano contratado</label>
+                            <select id="novoClientePlanoMestre">
+                                <option value="start">🚀 START</option>
+                                <option value="pro" selected>⭐ PRO</option>
+                                <option value="premium">👑 PREMIUM</option>
+                            </select>
+                        </div>
+                        <div class="campo-com-label">
+                            <label class="campo-label">Data da contratação</label>
+                            <input type="date" id="novoClienteDataContratacaoMestre">
+                        </div>
+                    </div>
                     <textarea id="novoClienteConfigMestre" rows="6" placeholder='Cole aqui o conteúdo do firebaseConfig, ex: {"apiKey":"...", "authDomain":"...", ...}' style="width:100%; margin-top:8px; font-family:monospace; font-size:0.85em;"></textarea>
                     <button class="btn-salvar-ordem" style="margin-top:8px;" onclick="adicionarClienteMestre()">💾 Adicionar cliente</button>
                     <p id="msgAdicionarClienteMestre" class="ordem-categorias-msg"></p>
@@ -550,6 +564,7 @@
                     <select id="seletorClienteMestre" onchange="selecionarClienteMestre()">
                         <option value="">— Selecione —</option>
                     </select>
+                    <div id="visaoAssinaturasMestre" class="visao-assinaturas-mestre" style="margin-top:12px;"></div>
                     <div id="areaLoginClienteMestre" style="display:none; margin-top:12px;">
                         <label class="campo-label" id="labelLoginClienteMestre">Login desse cliente</label>
                         <input type="email" id="emailLoginClienteMestre" placeholder="E-mail de admin desse cliente">
@@ -558,7 +573,95 @@
                         <p id="msgLoginClienteMestre" class="ordem-categorias-msg"></p>
                     </div>
                     <div id="areaRecursosClienteMestre" style="display:none; margin-top:14px;">
-                        <h3>Passo 2 de 5 — 🧩 Recursos liberados pra esse cliente</h3>
+                        <div class="assinatura-mestre-card">
+                            <div class="assinatura-mestre-topo">
+                                <div>
+                                    <h3>Passo 2 de 6 — 💼 Assinatura e Renovação</h3>
+                                    <p class="dica-secao">A contratação registra o fechamento comercial. O período começa na ativação, quando a plataforma é liberada funcionando.</p>
+                                </div>
+                                <div id="resumoStatusAssinaturaMestre" class="assinatura-status-chip assinatura-status-sem-config">Sem configuração</div>
+                            </div>
+
+                            <div class="assinatura-grid">
+                                <div class="campo-com-label">
+                                    <label class="campo-label">Plano</label>
+                                    <select id="planoAssinaturaMestre">
+                                        <option value="start">🚀 START</option>
+                                        <option value="pro">⭐ PRO</option>
+                                        <option value="premium">👑 PREMIUM</option>
+                                    </select>
+                                </div>
+                                <div class="campo-com-label">
+                                    <label class="campo-label">Data da contratação</label>
+                                    <input type="date" id="dataContratacaoAssinaturaMestre">
+                                </div>
+                                <div class="campo-com-label">
+                                    <label class="campo-label">Data da ativação</label>
+                                    <input type="date" id="dataAtivacaoAssinaturaMestre" onchange="sugerirVencimentoAssinaturaMestre()">
+                                </div>
+                                <div class="campo-com-label">
+                                    <label class="campo-label">Próximo vencimento</label>
+                                    <input type="date" id="dataVencimentoAssinaturaMestre" oninput="atualizarResumoAssinaturaMestre()">
+                                </div>
+                            </div>
+                            <button class="btn-secondary" type="button" style="margin-top:8px;" onclick="calcularVencimentoAssinaturaMestre()">🗓️ Calcular vencimento +1 mês da ativação</button>
+
+                            <div class="assinatura-grid" style="margin-top:12px;">
+                                <div class="campo-com-label">
+                                    <label class="campo-label">Responsável pela ativação</label>
+                                    <input type="text" id="responsavelAtivacaoAssinaturaMestre" placeholder="Ex: George">
+                                </div>
+                                <div class="campo-com-label">
+                                    <label class="campo-label">Dias de tolerância após vencer</label>
+                                    <input type="number" id="diasToleranciaAssinaturaMestre" min="0" max="30" value="3" oninput="atualizarResumoAssinaturaMestre()">
+                                </div>
+                            </div>
+                            <label class="campo-label" style="margin-top:10px;">Observação interna</label>
+                            <textarea id="observacaoAssinaturaMestre" rows="2" placeholder="Ex: Plataforma entregue, domínio configurado e acesso liberado."></textarea>
+
+                            <details class="assinatura-alertas-box" open>
+                                <summary>🔔 Alertas de renovação — editáveis</summary>
+                                <p class="dica-secao">Você pode mudar os dias e as mensagens. Use <strong>{dias}</strong>, <strong>{dataVencimento}</strong>, <strong>{plano}</strong> e <strong>{nomeLoja}</strong> dentro do texto.</p>
+
+                                <div class="alerta-renovacao-linha">
+                                    <label><input type="checkbox" id="alertaRenovacao1Ativo" checked> Avisar antes</label>
+                                    <input type="number" id="alertaRenovacao1Dias" min="1" max="60" value="7">
+                                    <span>dias</span>
+                                    <input type="text" id="alertaRenovacao1Mensagem" value="🔔 Seu plano PedeAki vence em {dias} dias, em {dataVencimento}. Fale com a gente para renovar sem interrupções.">
+                                </div>
+                                <div class="alerta-renovacao-linha">
+                                    <label><input type="checkbox" id="alertaRenovacao2Ativo" checked> Avisar antes</label>
+                                    <input type="number" id="alertaRenovacao2Dias" min="1" max="60" value="3">
+                                    <span>dias</span>
+                                    <input type="text" id="alertaRenovacao2Mensagem" value="⚠️ Faltam {dias} dias para a renovação do seu plano PedeAki. Vencimento: {dataVencimento}.">
+                                </div>
+                                <div class="alerta-renovacao-linha">
+                                    <label><input type="checkbox" id="alertaRenovacao3Ativo" checked> Avisar antes</label>
+                                    <input type="number" id="alertaRenovacao3Dias" min="1" max="60" value="1">
+                                    <span>dia</span>
+                                    <input type="text" id="alertaRenovacao3Mensagem" value="⏰ Seu plano PedeAki vence amanhã ({dataVencimento}). Renove para manter o serviço funcionando normalmente.">
+                                </div>
+                                <div class="alerta-renovacao-linha alerta-renovacao-texto">
+                                    <label><input type="checkbox" id="alertaVencimentoAtivo" checked> No vencimento</label>
+                                    <input type="text" id="alertaVencimentoMensagem" value="📅 Seu plano PedeAki vence hoje. Entre em contato para renovar e manter todos os recursos ativos.">
+                                </div>
+                                <div class="alerta-renovacao-linha alerta-renovacao-texto">
+                                    <label><input type="checkbox" id="alertaToleranciaAtivo" checked> Em tolerância</label>
+                                    <input type="text" id="alertaToleranciaMensagem" value="⚠️ Seu plano venceu em {dataVencimento} e está no período de tolerância. Regularize a renovação para evitar interrupções.">
+                                </div>
+                                <div class="alerta-renovacao-linha alerta-renovacao-texto">
+                                    <label><input type="checkbox" id="alertaVencidoAtivo" checked> Após tolerância</label>
+                                    <input type="text" id="alertaVencidoMensagem" value="🚨 Seu plano PedeAki está vencido. Entre em contato com o suporte para renovar e regularizar o acesso.">
+                                </div>
+                            </details>
+
+                            <button class="btn-salvar-ordem" style="margin-top:12px;" onclick="salvarAssinaturaClienteMestre()">💾 Salvar assinatura e alertas</button>
+                            <p id="msgAssinaturaMestre" class="ordem-categorias-msg"></p>
+                        </div>
+
+                        <hr style="margin:18px 0; border:none; border-top:1px solid var(--border);">
+
+                        <h3>Passo 3 de 6 — 🧩 Recursos liberados pra esse cliente</h3>
                         <p id="avisoNuncaConfiguradoMestre" class="dica-secao" style="display:none;">ℹ️ Esse cliente nunca teve nada configurado aqui — hoje ele tem tudo liberado (padrão). Os interruptores já refletem isso.</p>
                         <label class="campo-label">Aplicar um plano pronto (marca os interruptores certos — ainda dá pra ajustar manualmente depois)</label>
                         <div class="opcoes-radio">
@@ -572,7 +675,7 @@
 
                         <hr style="margin:18px 0; border:none; border-top:1px solid var(--border);">
 
-                        <h3>Passo 3 de 5 — 🏷️ Identidade e Marca desse cliente</h3>
+                        <h3>Passo 4 de 6 — 🏷️ Identidade e Marca desse cliente</h3>
                         <label class="campo-label">Nome completo</label>
                         <input type="text" id="nomeLojaConfigMestre" placeholder="Ex: Doces da Ana">
                         <label class="campo-label" style="margin-top:10px;">Nome curto</label>
@@ -611,14 +714,14 @@
 
                         <hr style="margin:18px 0; border:none; border-top:1px solid var(--border);">
 
-                        <h3>Passo 4 de 5 — 🕐 Horário de funcionamento desse cliente</h3>
+                        <h3>Passo 5 de 6 — 🕐 Horário de funcionamento desse cliente</h3>
                         <div id="listaHorariosMestre"></div>
                         <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="salvarHorariosMestre()">💾 Salvar horários</button>
                         <p id="msgHorariosMestre" class="ordem-categorias-msg"></p>
 
                         <hr style="margin:18px 0; border:none; border-top:1px solid var(--border);">
 
-                        <h3>Passo 5 de 5 — 🚚 Áreas de Entrega desse cliente</h3>
+                        <h3>Passo 6 de 6 — 🚚 Áreas de Entrega desse cliente</h3>
                         <p class="dica-secao">Edita a mesma configuração de frete usada no painel do cliente: valores por km e bairros atendidos.</p>
 
                         <label class="campo-label">Valor por km (R$)</label>
