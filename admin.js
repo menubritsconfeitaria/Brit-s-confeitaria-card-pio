@@ -1389,6 +1389,15 @@ function mostrarGateContratoPedeAki(tipo, contrato, assinaturaPlano, user, erroT
 
 async function verificarContratoAntesDeLiberarPainel(user) {
     if (!user) return;
+
+    // O dono da plataforma precisa continuar conseguindo abrir o painel e a aba Mestre
+    // mesmo quando o cliente está aguardando contrato ou ativação. O acesso ao Mestre
+    // continua protegido pelo login separado do Firebase Mestre.
+    if ((user.email || '').toLowerCase() === EMAIL_DONO_SERVICO.toLowerCase()) {
+        liberarPainelOperacionalPedeAki(user);
+        return;
+    }
+
     esconderTelasAcessoPedeAki();
     try {
         const [contratoSnap, assinaturaSnap] = await Promise.all([
