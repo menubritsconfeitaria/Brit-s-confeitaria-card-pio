@@ -1062,40 +1062,42 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
 
 
 /* Banners de campanha do carrossel */
-.banner-carrossel-form {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px 12px;
-}
-.banner-carrossel-campo-largo { grid-column: 1 / -1; }
-.banner-carrossel-ativo { align-self: end; min-height: 40px; }
-.lista-banners-carrossel { display: grid; gap: 10px; }
-.banner-carrossel-item {
-    display: grid;
-    grid-template-columns: 150px minmax(0, 1fr) auto;
-    gap: 12px;
-    align-items: center;
-    border: 1px solid #eadfd7;
-    border-radius: 12px;
-    padding: 10px;
-    background: #fffdfb;
-}
-.banner-carrossel-miniatura {
-    width: 150px;
-    height: 78px;
-    object-fit: contain;
-    background: #f7f3ef;
-    border-radius: 9px;
-    border: 1px solid #eee3dc;
-}
-.banner-carrossel-info strong { display: block; margin-bottom: 4px; }
-.banner-carrossel-info .dica-secao { margin: 2px 0; }
-.banner-carrossel-acoes { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
-.banner-carrossel-acoes button { white-space: nowrap; }
-@media (max-width: 760px) {
-    .banner-carrossel-form { grid-template-columns: 1fr; }
-    .banner-carrossel-campo-largo { grid-column: auto; }
-    .banner-carrossel-item { grid-template-columns: 92px minmax(0, 1fr); }
-    .banner-carrossel-miniatura { width: 92px; height: 58px; }
-    .banner-carrossel-acoes { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; }
+.banner-campanha-topo { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.banner-campanha-topo h3 { margin-bottom:4px; }
+.banner-vagas-resumo { background:#f7efe8; border:1px solid #e8d7ca; border-radius:999px; padding:8px 12px; font-size:13px; font-weight:700; color:var(--primary); white-space:nowrap; }
+.banner-btn-adicionar { margin-top:12px; font-weight:700; }
+.banner-form-painel { margin-top:14px; border:1px solid #eadfd7; border-radius:14px; background:#fffaf6; padding:14px; }
+.banner-form-titulo { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+.banner-btn-fechar { border:0; background:transparent; font-size:24px; line-height:1; cursor:pointer; color:#725a4c; }
+.banner-carrossel-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 12px; }
+.banner-carrossel-campo-largo { grid-column:1 / -1; }
+.banner-carrossel-ativo { align-self:end; min-height:40px; }
+.banner-form-acoes { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+.banner-secao-lista { margin-top:18px; }
+.banner-secao-secundaria { padding-top:14px; border-top:1px solid #eee4dd; }
+.banner-secao-cabecalho { display:flex; align-items:center; gap:8px; justify-content:space-between; margin-bottom:8px; }
+.banner-secao-cabecalho h4 { margin:0; }
+.banner-contador-pill { min-width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center; border-radius:999px; background:#f1e6de; color:#6d4c3d; font-weight:800; font-size:12px; }
+.lista-banners-carrossel { display:grid; gap:10px; }
+.banner-carrossel-item { display:grid; grid-template-columns:160px minmax(0,1fr) auto; gap:12px; align-items:center; border:1px solid #eadfd7; border-radius:12px; padding:10px; background:#fffdfb; }
+.banner-carrossel-item.banner-fora-vaga { opacity:.78; }
+.banner-carrossel-miniatura { width:160px; height:82px; object-fit:contain; background:#f7f3ef; border-radius:9px; border:1px solid #eee3dc; }
+.banner-carrossel-info strong { display:block; margin-bottom:4px; }
+.banner-carrossel-info .dica-secao { margin:2px 0; }
+.banner-status-linha { display:flex; gap:6px; flex-wrap:wrap; margin-top:5px; }
+.banner-status-badge { display:inline-flex; align-items:center; border-radius:999px; padding:4px 8px; font-size:11px; font-weight:800; background:#edf7ef; color:#317a3c; }
+.banner-status-badge.agendada { background:#eef4ff; color:#3a66a7; }
+.banner-status-badge.pausada { background:#f4f0ed; color:#725f55; }
+.banner-status-badge.encerrada { background:#fff0ee; color:#a34a3e; }
+.banner-status-badge.fora-vaga { background:#fff7df; color:#8a6515; }
+.banner-carrossel-acoes { display:flex; flex-direction:column; gap:6px; align-items:stretch; }
+.banner-carrossel-acoes button { white-space:nowrap; }
+@media (max-width:760px) {
+    .banner-campanha-topo { flex-direction:column; }
+    .banner-vagas-resumo { white-space:normal; }
+    .banner-carrossel-form { grid-template-columns:1fr; }
+    .banner-carrossel-campo-largo { grid-column:auto; }
+    .banner-carrossel-item { grid-template-columns:96px minmax(0,1fr); }
+    .banner-carrossel-miniatura { width:96px; height:60px; }
+    .banner-carrossel-acoes { grid-column:1 / -1; flex-direction:row; flex-wrap:wrap; }
 }
