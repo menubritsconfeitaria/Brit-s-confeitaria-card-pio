@@ -269,6 +269,7 @@
                             <button class="btn-secondary" onclick="marcarTodosBairrosRestrito(true)">☑️ Marcar todos</button>
                             <button class="btn-secondary" onclick="marcarTodosBairrosRestrito(false)">☐ Desmarcar todos</button>
                         </div>
+                        <input type="text" id="buscaBairroRestrito" placeholder="🔍 Pesquisar bairro..." oninput="renderizarListaBairrosRestritos(configFreteAtual.bairros || {}, configFreteAtual.bairrosAtivos || {})" style="margin-bottom:8px;">
                         <div id="listaBairrosRestritos" style="max-height:240px; overflow-y:auto;"></div>
                         <p class="dica-secao">Os outros bairros continuam salvos, só não vão ser atendidos até você desmarcar essa opção.</p>
                     </div>

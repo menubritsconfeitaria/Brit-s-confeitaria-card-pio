@@ -1571,16 +1571,23 @@ function escutarConfigFrete() {
 }
 
 // Mostra um checkbox por bairro já cadastrado, marcando os que já estão na lista de
-// atendidos durante o modo restrito
+// atendidos durante o modo restrito. A busca só ESCONDE visualmente (nunca remove do
+// HTML) — assim "marcar todos"/"salvar" sempre enxergam TODOS os bairros, mesmo os
+// que estão fora da busca no momento, sem risco de desmarcar um que estava escondido.
 function renderizarListaBairrosRestritos(bairros, bairrosAtivos) {
     const container = document.getElementById('listaBairrosRestritos');
     if (!container) return;
+    const buscaEl = document.getElementById('buscaBairroRestrito');
+    const busca = buscaEl ? normalizarTexto(buscaEl.value || '') : '';
     const nomes = Object.keys(bairros).map(cod => ({ cod, nome: decodeURIComponent(cod) })).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-    container.innerHTML = nomes.map(b => `
-        <label class="produto-disponivel-check" style="display:block; padding:4px 0;">
+    container.innerHTML = nomes.map(b => {
+        const escondido = busca && !normalizarTexto(b.nome).includes(busca);
+        return `
+        <label class="produto-disponivel-check" style="display:${escondido ? 'none' : 'block'}; padding:4px 0;">
             <input type="checkbox" data-bairro-cod="${b.cod}" ${bairrosAtivos[b.cod] ? 'checked' : ''} onchange="salvarBairrosAtivosRestrito()"> ${b.nome}
         </label>
-    `).join('') || '<p class="dica-secao">Nenhum bairro cadastrado ainda.</p>';
+    `;
+    }).join('') || '<p class="dica-secao">Nenhum bairro cadastrado ainda.</p>';
 }
 
 // Liga/desliga o modo restrito — os bairros continuam salvos, só passam a não ser
