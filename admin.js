@@ -1381,18 +1381,7 @@ function responderPedido(id, novoStatus) {
             }
         }
 
-        const atualizacaoStatus = { status: novoStatus };
-        const campoHorarioPorStatus = {
-            aceito: 'aceitoEm',
-            em_rota: 'saiuEntregaEm',
-            pronto_retirada: 'prontoEm',
-            entregue: 'finalizadoEm',
-            recusado: 'recusadoEm'
-        };
-        const campoHorario = campoHorarioPorStatus[novoStatus];
-        if (campoHorario) atualizacaoStatus[campoHorario] = firebase.database.ServerValue.TIMESTAMP;
-
-        return pedidoRef.update(atualizacaoStatus).then(() => {
+        return pedidoRef.update({ status: novoStatus }).then(() => {
             if (novoStatus === 'entregue') {
                 creditarPontosFidelidade(pedido);
             }

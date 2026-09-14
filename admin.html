@@ -264,8 +264,12 @@
                         <input type="checkbox" id="chkModoRestritoBairro" onchange="alternarModoRestritoBairro(this.checked)"> Atender só 1 bairro por enquanto (sem apagar os outros)
                     </label>
                     <div id="areaBairroUnicoAtivo" style="display:none; margin-top:8px;">
-                        <label class="campo-label">Qual bairro atender</label>
-                        <select id="selectBairroUnicoAtivo" onchange="salvarBairroUnicoAtivo()"></select>
+                        <label class="campo-label">Quais bairros atender hoje</label>
+                        <div style="display:flex; gap:8px; margin-bottom:6px;">
+                            <button class="btn-secondary" onclick="marcarTodosBairrosRestrito(true)">☑️ Marcar todos</button>
+                            <button class="btn-secondary" onclick="marcarTodosBairrosRestrito(false)">☐ Desmarcar todos</button>
+                        </div>
+                        <div id="listaBairrosRestritos" style="max-height:240px; overflow-y:auto;"></div>
                         <p class="dica-secao">Os outros bairros continuam salvos, só não vão ser atendidos até você desmarcar essa opção.</p>
                     </div>
                     <p id="modoRestritoBairroMsg" class="ordem-categorias-msg"></p>
