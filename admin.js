@@ -450,6 +450,7 @@ const RECURSOS_MESTRE = [
     { chave: 'esconderProduto', nome: '🙈 Esconder Produto do cardápio' },
     { chave: 'gestaoCompleta', nome: '📊 Gestão Completa (ingredientes, ficha técnica, estoque)' },
     { chave: 'vendedorInteligente', nome: '🧠 Vendedor Inteligente' },
+    { chave: 'carrossel', nome: '🎠 Carrossel de Destaques e Campanhas' },
     { chave: 'ofertasCarrinho', nome: '🛒 Ofertas no Carrinho' },
     { chave: 'mensagemMassa', nome: '💬 Mensagem em Massa' },
     { chave: 'repetirUltimoPedido', nome: '🔁 Repetir Último Pedido' }
@@ -461,8 +462,8 @@ const RECURSOS_MESTRE = [
 // de salvar (não trava em plano nenhum).
 const RECURSOS_POR_PLANO = {
     start: ['areasDeEntrega', 'pedidoMinimo', 'esconderProduto', 'repetirUltimoPedido'],
-    pro: ['areasDeEntrega', 'pedidoMinimo', 'esconderProduto', 'cupons', 'fidelidade', 'notificacoes', 'pagamentoOnline', 'adicionais', 'agenda', 'visitantes', 'vendedorInteligente', 'ofertasCarrinho', 'mensagemMassa', 'repetirUltimoPedido'],
-    premium: ['areasDeEntrega', 'pedidoMinimo', 'esconderProduto', 'cupons', 'fidelidade', 'notificacoes', 'pagamentoOnline', 'adicionais', 'agenda', 'visitantes', 'vendedorInteligente', 'ofertasCarrinho', 'mensagemMassa', 'repetirUltimoPedido', 'gestaoCompleta']
+    pro: ['areasDeEntrega', 'pedidoMinimo', 'esconderProduto', 'cupons', 'fidelidade', 'notificacoes', 'pagamentoOnline', 'adicionais', 'agenda', 'visitantes', 'vendedorInteligente', 'carrossel', 'ofertasCarrinho', 'mensagemMassa', 'repetirUltimoPedido'],
+    premium: ['areasDeEntrega', 'pedidoMinimo', 'esconderProduto', 'cupons', 'fidelidade', 'notificacoes', 'pagamentoOnline', 'adicionais', 'agenda', 'visitantes', 'vendedorInteligente', 'carrossel', 'ofertasCarrinho', 'mensagemMassa', 'repetirUltimoPedido', 'gestaoCompleta']
 };
 
 function aplicarPlanoPadraoMestre(plano) {
@@ -793,7 +794,10 @@ async function carregarRecursosClienteMestre() {
     document.getElementById('avisoNuncaConfiguradoMestre').style.display = nuncaConfigurado ? 'block' : 'none';
 
     const estado = {};
-    RECURSOS_MESTRE.forEach(r => { estado[r.chave] = nuncaConfigurado ? true : !!valor[r.chave]; });
+    RECURSOS_MESTRE.forEach(r => {
+        const compatibilidadeCarrossel = r.chave === 'carrossel' && valor[r.chave] == null;
+        estado[r.chave] = nuncaConfigurado || compatibilidadeCarrossel ? true : !!valor[r.chave];
+    });
 
     document.getElementById('listaRecursosClienteMestre').innerHTML = RECURSOS_MESTRE.map(r => `
         <label class="switch-linha" style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border);">
@@ -2192,6 +2196,7 @@ const MAPA_RECURSOS = {
     areasDeEntrega: { cards: ['cardAreasDeEntrega'] },
     esconderProduto: { classesCorpo: ['ocultar-campo-esconder-produto'] },
     gestaoCompleta: { abas: ['gestao'], classesCorpo: ['ocultar-campo-ficha-tecnica'] },
+    carrossel: { cards: ['cardDestaquesCarrossel', 'cardBannersCarrossel'] },
     mensagemMassa: { subabasGestao: ['sub-mensagem-massa'] }
 };
 
@@ -2203,7 +2208,8 @@ function aplicarRecursosLiberados(recursos) {
     const nuncaConfigurado = recursos == null;
 
     Object.entries(MAPA_RECURSOS).forEach(([nomeRecurso, alvos]) => {
-        const liberado = nuncaConfigurado || !!recursos[nomeRecurso];
+        const compatibilidadeCarrossel = nomeRecurso === 'carrossel' && recursos && recursos[nomeRecurso] == null;
+        const liberado = nuncaConfigurado || compatibilidadeCarrossel || !!recursos[nomeRecurso];
 
         (alvos.abas || []).forEach(aba => {
             const botao = document.querySelector(`.painel-tab-btn[data-tab="${aba}"]`);

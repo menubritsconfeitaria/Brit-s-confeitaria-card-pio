@@ -876,7 +876,21 @@ function bannersAtivosCarrossel(valor) {
         .map(banner => ({ ...banner, tipo: 'banner' }));
 }
 
+function carrosselLiberadoNoPlano() {
+    // Compatibilidade: clientes antigos sem a chave 'carrossel' continuam como estavam
+    // até o recurso ser configurado explicitamente no Painel Mestre.
+    return recursosLiberadosCardapio == null ||
+        recursosLiberadosCardapio.carrossel == null ||
+        !!recursosLiberadosCardapio.carrossel;
+}
+
 function recalcularCarrosselDestaques(produtosVal, modoSalvo, autoVal, manuaisVal, bannersVal) {
+    if (!carrosselLiberadoNoPlano()) {
+        const container = document.getElementById('carrosselDestaques');
+        if (container) container.style.display = 'none';
+        if (carrosselTimer) { clearInterval(carrosselTimer); carrosselTimer = null; }
+        return;
+    }
     const modo = ['manual','automatico','misto'].includes(modoSalvo) ? modoSalvo : 'automatico';
     const produtoPodeAparecer = (p) => !!(p && p.disponivel === true && !p.escondido);
     const montarDestaqueDoProduto = (id) => {
@@ -2552,6 +2566,15 @@ function escutarRecursosLiberadosCardapio() {
     if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
     firebase.database().ref('configuracao/recursosLiberados').on('value', snap => {
         recursosLiberadosCardapio = snap.val();
+        const container = document.getElementById('carrosselDestaques');
+        if (!carrosselLiberadoNoPlano()) {
+            if (container) container.style.display = 'none';
+            if (carrosselTimer) { clearInterval(carrosselTimer); carrosselTimer = null; }
+        } else if (carrosselRealtimeAtivo) {
+            // Os listeners já estão ativos; a próxima atualização mantém o carrossel visível.
+            // Força uma leitura leve do nó de banners para recalcular imediatamente.
+            firebase.database().ref('configuracao/bannersCarrossel').once('value').then(() => {});
+        }
     });
 }
 escutarRecursosLiberadosCardapio();
