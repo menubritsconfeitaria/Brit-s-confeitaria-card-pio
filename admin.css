@@ -1201,4 +1201,113 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
     .alerta-renovacao-texto { grid-template-columns: 1fr; }
     .assinatura-cliente-resumo { align-items:flex-start; flex-direction:column; }
 }
-\n\n/* ===== CONTRATO E LIBERAÇÃO PEDEAKI ===== */\n.tela-contrato-pedeaki {\n    min-height: 100vh;\n    padding: 28px 16px;\n    background: linear-gradient(145deg, #0d1117 0%, #111827 55%, #07111f 100%);\n    align-items: center;\n    justify-content: center;\n}\n.contrato-gate-card {\n    width: min(820px, 100%);\n    background: #fff;\n    border-radius: 22px;\n    padding: 26px;\n    box-shadow: 0 24px 80px rgba(0,0,0,.35);\n}\n.contrato-gate-marca { display:flex; align-items:center; gap:14px; padding-bottom:18px; border-bottom:1px solid #ece7e1; margin-bottom:20px; }\n.contrato-gate-logo { width:112px; max-height:58px; object-fit:contain; background:#080c12; border-radius:12px; padding:6px; }\n.contrato-gate-marca div { display:flex; flex-direction:column; gap:2px; }\n.contrato-gate-marca strong { font-size:1.05rem; color:#172033; }\n.contrato-gate-marca span { color:#7c6f64; font-size:.84rem; }\n.contrato-gate-status { display:inline-flex; padding:7px 11px; border-radius:999px; background:#fff4e8; color:#a0522d; font-weight:700; font-size:.82rem; margin-bottom:10px; }\n.contrato-gate-card h1 { margin:4px 0 6px; color:#241c18; font-size:1.6rem; }\n.contrato-gate-meta { color:#7c6f64; margin:0 0 14px; }\n.contrato-gate-texto { max-height:360px; overflow:auto; white-space:pre-wrap; padding:18px; background:#faf8f5; border:1px solid #e7ded4; border-radius:14px; color:#3b342f; line-height:1.65; margin-bottom:18px; }\n.contrato-gate-check { display:flex; gap:10px; align-items:flex-start; margin:14px 0; padding:12px; background:#f7f7f7; border-radius:12px; font-weight:600; color:#403731; }\n.contrato-gate-check input { margin-top:3px; transform:scale(1.15); }\n.btn-contrato-assinar { width:100%; border:0; border-radius:13px; padding:14px 18px; background:linear-gradient(90deg,#f47b20,#ff9f1a); color:#fff; font-weight:800; font-size:1rem; cursor:pointer; }\n.btn-contrato-assinar:disabled { opacity:.6; cursor:wait; }\n.contrato-gate-msg { min-height:20px; margin:10px 0 0; color:#9c3d22; font-size:.88rem; }\n.contrato-gate-aguardando { text-align:center; padding:16px 4px 8px; }\n.contrato-gate-sucesso { width:72px; height:72px; display:grid; place-items:center; margin:4px auto 14px; border-radius:50%; background:#eaf8ef; font-size:2.1rem; }\n.contrato-gate-aguardando p { color:#62574f; line-height:1.55; }\n.contrato-gate-destaque { background:#fff7e9; border-radius:12px; padding:12px; font-weight:700; }\n.btn-contrato-sair { border:0; background:transparent; color:#7a6f68; margin-top:14px; cursor:pointer; text-decoration:underline; }\n\n.contrato-mestre-card { padding:16px; border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,.54); }\n.contrato-mestre-aviso { margin:12px 0; padding:11px 12px; border-radius:10px; background:#fff7e9; border:1px solid #f0d6b2; color:#6d4a2e; font-size:.86rem; }\n.contrato-switch { border:1px solid var(--border); border-radius:10px; padding:10px 12px !important; margin:0; }\n.contrato-textarea-mestre { width:100%; min-height:250px; resize:vertical; font-family:inherit; line-height:1.5; }\n.contrato-mestre-acoes { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }\n.contrato-status-chip { display:inline-flex; align-items:center; border-radius:999px; padding:6px 10px; font-size:.78rem; font-weight:800; white-space:nowrap; }\n.contrato-status-sem-config { background:#ececec; color:#666; }\n.contrato-status-aguardando { background:#fff0d8; color:#a75c00; }\n.contrato-status-assinado { background:#e7f7ec; color:#18723b; }\n.contrato-status-dispensado { background:#eef1f5; color:#55606d; }\n.contrato-assinatura-resumo { margin-top:12px; padding:12px; border-radius:12px; background:#eaf8ef; color:#245c38; line-height:1.5; font-size:.88rem; }\n@media (max-width: 620px) {\n    .contrato-gate-card { padding:18px; border-radius:17px; }\n    .contrato-gate-texto { max-height:300px; }\n    .contrato-gate-marca { align-items:flex-start; }\n    .contrato-gate-logo { width:94px; }\n}\n
+\n\n
+/* ===== CONTRATO PREMIUM + BOAS-VINDAS PEDEAKI ===== */
+.tela-contrato-pedeaki {
+    min-height: 100vh;
+    padding: 34px 18px;
+    background:
+        radial-gradient(circle at 12% 8%, rgba(244,123,32,.18), transparent 28%),
+        radial-gradient(circle at 88% 92%, rgba(39,110,241,.16), transparent 30%),
+        linear-gradient(145deg, #07090d 0%, #0d1118 50%, #090d14 100%);
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow-x: hidden;
+}
+.tela-contrato-pedeaki::before {
+    content:""; position:fixed; inset:0; pointer-events:none; opacity:.22;
+    background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size: 34px 34px;
+}
+.contrato-gate-card {
+    width: min(900px, 100%);
+    position: relative;
+    background: linear-gradient(180deg,#ffffff 0%,#fbfbfc 100%);
+    border: 1px solid rgba(255,255,255,.72);
+    border-radius: 26px;
+    padding: 0 30px 30px;
+    box-shadow: 0 36px 110px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.04);
+    overflow: hidden;
+}
+.contrato-gate-card::before { content:""; display:block; height:4px; margin:0 -30px 0; background:linear-gradient(90deg,#f47b20,#ff9f1a 42%,#2879ff 76%,#1364e6); }
+.contrato-gate-topo { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:24px 0 20px; border-bottom:1px solid #e9ebef; margin-bottom:24px; }
+.contrato-gate-marca { display:flex; align-items:center; gap:14px; padding:0; border:0; margin:0; }
+.contrato-gate-logo-wrap { width:90px; height:58px; display:grid; place-items:center; flex:0 0 auto; border-radius:15px; background:#080b11; border:1px solid rgba(255,255,255,.06); box-shadow:0 10px 24px rgba(5,8,14,.18); overflow:hidden; }
+.contrato-gate-logo { width:78px; height:46px; max-height:none; object-fit:contain; background:transparent; border-radius:0; padding:0; display:block; }
+.contrato-gate-brand-copy { display:flex; flex-direction:column; gap:2px; }
+.contrato-gate-kicker { font-size:.7rem; letter-spacing:.14em; font-weight:800; color:#e76f12; }
+.contrato-gate-brand-copy strong { font-size:1.08rem; color:#121722; letter-spacing:-.01em; }
+.contrato-gate-brand-copy > span:last-child { color:#7a818c; font-size:.83rem; }
+.contrato-gate-selo { display:inline-flex; align-items:center; gap:7px; padding:8px 11px; border-radius:999px; background:#f3f6fb; border:1px solid #e3e7ef; color:#485160; font-size:.76rem; font-weight:700; white-space:nowrap; }
+.contrato-gate-status { display:inline-flex; padding:7px 11px; border-radius:999px; background:#fff0e3; color:#b55a13; font-weight:800; font-size:.76rem; letter-spacing:.02em; margin-bottom:12px; }
+.contrato-gate-card h1 { margin:0 0 7px; color:#151922; font-size:clamp(1.6rem,3vw,2.15rem); line-height:1.16; letter-spacing:-.035em; }
+.contrato-gate-subtitulo { margin:0; color:#69717e; line-height:1.55; max-width:700px; }
+.contrato-gate-meta { display:flex; flex-wrap:wrap; gap:8px; color:#334155; margin:16px 0 18px; font-size:.88rem; font-weight:700; }
+.contrato-gate-meta .meta-chip { display:inline-flex; align-items:center; padding:8px 10px; border-radius:10px; background:#f5f7fa; border:1px solid #e6e9ee; }
+.contrato-documento-shell { border:1px solid #e3e7ed; border-radius:18px; overflow:hidden; background:#fff; box-shadow:0 8px 26px rgba(22,31,45,.055); margin-bottom:18px; }
+.contrato-documento-topo { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 16px; background:#f7f8fa; border-bottom:1px solid #e6e9ee; color:#737b86; font-size:.76rem; }
+.contrato-documento-topo > div { display:flex; flex-direction:column; gap:2px; }
+.contrato-documento-topo strong { color:#252c36; font-size:.9rem; }
+.contrato-documento-kicker { font-size:.65rem; letter-spacing:.12em; font-weight:800; color:#2879ff; }
+.contrato-gate-texto { max-height:370px; overflow:auto; white-space:pre-wrap; padding:22px; background:#fff; border:0; border-radius:0; color:#353b45; line-height:1.72; margin:0; font-size:.92rem; scrollbar-width:thin; scrollbar-color:#c8cdd5 transparent; }
+.contrato-assinatura-box { padding:18px; border-radius:18px; background:linear-gradient(180deg,#fbfcfe,#f7f9fc); border:1px solid #e5e9ef; }
+.contrato-assinatura-cabecalho { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+.contrato-assinatura-icone { width:40px; height:40px; display:grid; place-items:center; border-radius:12px; background:#fff0e3; font-size:1.15rem; }
+.contrato-assinatura-cabecalho > div:last-child { display:flex; flex-direction:column; gap:2px; }
+.contrato-assinatura-cabecalho strong { color:#1d2430; }
+.contrato-assinatura-cabecalho span { color:#727a86; font-size:.8rem; }
+.contrato-assinatura-box #contratoGateNome { width:100%; min-height:48px; border:1px solid #d8dde5; border-radius:12px; background:#fff; padding:0 14px; font-size:.94rem; outline:none; transition:.2s ease; box-sizing:border-box; }
+.contrato-assinatura-box #contratoGateNome:focus { border-color:#f47b20; box-shadow:0 0 0 3px rgba(244,123,32,.12); }
+.contrato-gate-check { display:flex; gap:11px; align-items:flex-start; margin:14px 0; padding:13px 14px; background:#fff; border:1px solid #e1e5eb; border-radius:12px; font-weight:600; color:#3d4652; }
+.contrato-gate-check input { margin-top:3px; transform:scale(1.12); accent-color:#f47b20; }
+.btn-contrato-assinar { width:100%; border:0; border-radius:13px; padding:14px 18px; background:linear-gradient(100deg,#f47b20,#ff9518); color:#fff; font-weight:800; font-size:.96rem; cursor:pointer; box-shadow:0 10px 22px rgba(244,123,32,.23); display:flex; align-items:center; justify-content:center; gap:10px; transition:transform .18s ease, box-shadow .18s ease, filter .18s ease; }
+.btn-contrato-assinar:hover { transform:translateY(-1px); box-shadow:0 14px 28px rgba(244,123,32,.28); filter:saturate(1.05); }
+.btn-contrato-assinar:disabled { opacity:.62; cursor:wait; transform:none; box-shadow:none; }
+.contrato-gate-msg { min-height:20px; margin:10px 0 0; color:#a23d24; font-size:.86rem; }
+.contrato-gate-aguardando { text-align:center; padding:22px 8px 8px; max-width:620px; margin:0 auto; }
+.contrato-gate-sucesso { width:72px; height:72px; display:grid; place-items:center; margin:0 auto 16px; border-radius:50%; background:linear-gradient(145deg,#e8fbef,#dff5e8); color:#1c8b4a; border:1px solid #c7ead5; font-size:2.15rem; font-weight:800; box-shadow:0 10px 28px rgba(28,139,74,.12); }
+.contrato-gate-alerta { background:#fff3e4; color:#c96a1f; border-color:#f5d5b5; }
+.contrato-gate-aguardando p { color:#68717c; line-height:1.6; }
+.contrato-gate-destaque { background:#fff7ea; border:1px solid #f3ddbd; border-radius:13px; padding:13px 14px; font-weight:700; color:#6d4d2f !important; }
+.btn-contrato-verificar { max-width:360px; margin:16px auto 0; }
+.btn-contrato-sair { border:0; background:transparent; color:#747c87; margin-top:14px; cursor:pointer; text-decoration:none; font-weight:600; }
+.btn-contrato-sair:hover { color:#343b45; }
+
+.boas-vindas-pedeaki { position:fixed; inset:0; z-index:99999; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(5,8,13,.84); backdrop-filter:blur(12px); overflow:hidden; opacity:0; transition:opacity .28s ease; }
+.boas-vindas-pedeaki.ativa { opacity:1; }
+.boas-vindas-brilho { position:absolute; border-radius:50%; filter:blur(12px); opacity:.42; animation:boasVindasFlutuar 5.5s ease-in-out infinite alternate; }
+.boas-vindas-brilho-1 { width:260px; height:260px; background:rgba(244,123,32,.36); left:-80px; top:-70px; }
+.boas-vindas-brilho-2 { width:300px; height:300px; background:rgba(37,111,244,.32); right:-90px; bottom:-90px; animation-delay:.8s; }
+.boas-vindas-card { width:min(620px,100%); position:relative; text-align:center; color:#fff; padding:34px 32px 28px; border-radius:26px; background:linear-gradient(155deg,rgba(18,24,34,.97),rgba(10,14,21,.98)); border:1px solid rgba(255,255,255,.10); box-shadow:0 34px 100px rgba(0,0,0,.55); transform:translateY(20px) scale(.975); opacity:0; transition:transform .36s cubic-bezier(.2,.8,.2,1), opacity .32s ease; overflow:hidden; }
+.boas-vindas-pedeaki.ativa .boas-vindas-card { transform:translateY(0) scale(1); opacity:1; }
+.boas-vindas-card::before { content:""; position:absolute; inset:0 0 auto 0; height:3px; background:linear-gradient(90deg,#f47b20,#ff9f1a,#2879ff); }
+.boas-vindas-fechar { position:absolute; right:14px; top:12px; width:34px; height:34px; border:0; border-radius:50%; background:rgba(255,255,255,.07); color:#cfd6df; font-size:1.35rem; cursor:pointer; }
+.boas-vindas-logo-wrap { width:116px; height:72px; margin:0 auto 18px; display:grid; place-items:center; border-radius:18px; background:#070a0f; border:1px solid rgba(255,255,255,.08); box-shadow:0 14px 38px rgba(0,0,0,.28); }
+.boas-vindas-logo { width:100px; height:60px; object-fit:contain; }
+.boas-vindas-kicker { display:inline-block; color:#ff9a40; font-size:.7rem; font-weight:800; letter-spacing:.15em; margin-bottom:9px; }
+.boas-vindas-card h2 { margin:0 0 10px; font-size:clamp(1.7rem,4.5vw,2.35rem); line-height:1.15; letter-spacing:-.035em; }
+.boas-vindas-card p { margin:0 auto; max-width:510px; color:#aeb8c6; line-height:1.6; }
+.boas-vindas-recursos { display:flex; justify-content:center; flex-wrap:wrap; gap:8px; margin:20px 0; }
+.boas-vindas-recursos span { padding:8px 10px; border-radius:999px; background:rgba(255,255,255,.065); border:1px solid rgba(255,255,255,.08); color:#dce3ec; font-size:.8rem; font-weight:600; }
+.boas-vindas-comecar { width:min(350px,100%); margin:0 auto 14px; border:0; border-radius:13px; padding:14px 18px; color:#fff; font-size:.96rem; font-weight:800; background:linear-gradient(100deg,#f47b20,#ff9518); cursor:pointer; box-shadow:0 12px 28px rgba(244,123,32,.24); display:flex; align-items:center; justify-content:center; gap:10px; }
+.boas-vindas-card small { display:block; color:#6f7a88; font-size:.72rem; }
+@keyframes boasVindasFlutuar { from { transform:translate3d(0,0,0) scale(1); } to { transform:translate3d(18px,14px,0) scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .boas-vindas-brilho { animation:none; } .boas-vindas-card,.boas-vindas-pedeaki { transition:none; } }
+@media (max-width: 620px) {
+    .tela-contrato-pedeaki { padding:16px 10px; align-items:flex-start; }
+    .contrato-gate-card { padding:0 16px 18px; border-radius:20px; }
+    .contrato-gate-card::before { margin:0 -16px; }
+    .contrato-gate-topo { align-items:flex-start; padding:18px 0 16px; margin-bottom:18px; }
+    .contrato-gate-logo-wrap { width:72px; height:48px; border-radius:12px; }
+    .contrato-gate-logo { width:62px; height:38px; }
+    .contrato-gate-selo { display:none; }
+    .contrato-gate-texto { max-height:320px; padding:17px; font-size:.88rem; }
+    .contrato-documento-topo > span { display:none; }
+    .contrato-assinatura-box { padding:14px; }
+    .boas-vindas-card { padding:30px 18px 22px; border-radius:22px; }
+    .boas-vindas-logo-wrap { width:100px; height:64px; }
+    .boas-vindas-logo { width:86px; height:52px; }
+}
+
+.contrato-mestre-card { padding:16px; border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,.54); }\n.contrato-mestre-aviso { margin:12px 0; padding:11px 12px; border-radius:10px; background:#fff7e9; border:1px solid #f0d6b2; color:#6d4a2e; font-size:.86rem; }\n.contrato-switch { border:1px solid var(--border); border-radius:10px; padding:10px 12px !important; margin:0; }\n.contrato-textarea-mestre { width:100%; min-height:250px; resize:vertical; font-family:inherit; line-height:1.5; }\n.contrato-mestre-acoes { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }\n.contrato-status-chip { display:inline-flex; align-items:center; border-radius:999px; padding:6px 10px; font-size:.78rem; font-weight:800; white-space:nowrap; }\n.contrato-status-sem-config { background:#ececec; color:#666; }\n.contrato-status-aguardando { background:#fff0d8; color:#a75c00; }\n.contrato-status-assinado { background:#e7f7ec; color:#18723b; }\n.contrato-status-dispensado { background:#eef1f5; color:#55606d; }\n.contrato-assinatura-resumo { margin-top:12px; padding:12px; border-radius:12px; background:#eaf8ef; color:#245c38; line-height:1.5; font-size:.88rem; }\n@media (max-width: 620px) {\n    .contrato-gate-card { padding:18px; border-radius:17px; }\n    .contrato-gate-texto { max-height:300px; }\n    .contrato-gate-marca { align-items:flex-start; }\n    .contrato-gate-logo { width:94px; }\n}\n

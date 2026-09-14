@@ -1329,6 +1329,28 @@ function esconderTelasAcessoPedeAki() {
     if (painelEl) painelEl.style.display = 'none';
 }
 
+
+function mostrarBoasVindasPedeAki(user) {
+    const tela = document.getElementById('boasVindasPedeAki');
+    if (!tela || !user) return;
+    const chave = 'pedeaki_boas_vindas_' + String(user.uid || user.email || 'usuario');
+    try {
+        if (localStorage.getItem(chave) === '1') return;
+        localStorage.setItem(chave, '1');
+    } catch (e) {}
+    tela.style.display = 'flex';
+    tela.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(() => requestAnimationFrame(() => tela.classList.add('ativa')));
+}
+
+function fecharBoasVindasPedeAki() {
+    const tela = document.getElementById('boasVindasPedeAki');
+    if (!tela) return;
+    tela.classList.remove('ativa');
+    tela.setAttribute('aria-hidden', 'true');
+    setTimeout(() => { tela.style.display = 'none'; }, 280);
+}
+
 function liberarPainelOperacionalPedeAki(user) {
     esconderTelasAcessoPedeAki();
     document.getElementById('painel').style.display = 'block';
@@ -1337,6 +1359,7 @@ function liberarPainelOperacionalPedeAki(user) {
         painelOperacionalIniciado = true;
     }
     verificarSeEhDonoDoServico(user && user.email);
+    setTimeout(() => mostrarBoasVindasPedeAki(user), 320);
 }
 
 function aplicarVariaveisContratoPedeAki(texto, contrato, assinatura) {
@@ -1368,7 +1391,7 @@ function preencherTelaContratoPedeAki(contrato, assinaturaPlano, user) {
     const plano = contrato.plano || assinaturaPlano.plano || '—';
     const valor = contrato.valor || '';
     if (titulo) titulo.textContent = contrato.titulo || 'Termo de Contratação PedeAki';
-    if (meta) meta.textContent = `Versão ${versao} · Plano ${String(plano).toUpperCase()}${valor ? ' · ' + valor : ''}`;
+    if (meta) meta.innerHTML = `<span class="meta-chip">Versão ${versao}</span><span class="meta-chip">Plano ${String(plano).toUpperCase()}</span>${valor ? `<span class="meta-chip">${valor}</span>` : ''}`;
     if (texto) texto.textContent = aplicarVariaveisContratoPedeAki(contrato.texto || '', contrato, assinaturaPlano);
     if (nome && !nome.value && user && user.displayName) nome.value = user.displayName;
 }

@@ -27,46 +27,97 @@
     <!-- CONTRATO / LIBERAÇÃO (aparece após o login quando exigido) -->
     <div id="telaContratoPedeAki" class="tela-contrato-pedeaki" style="display:none;">
         <div class="contrato-gate-card">
-            <div class="contrato-gate-marca">
-                <img src="logo-pedeaki.png" alt="PedeAki Delivery" class="contrato-gate-logo">
-                <div>
-                    <strong>PedeAki Delivery</strong>
-                    <span id="contratoGateEtapa">Contrato de contratação</span>
+            <div class="contrato-gate-topo">
+                <div class="contrato-gate-marca">
+                    <div class="contrato-gate-logo-wrap">
+                        <img src="logo-pedeaki.png" alt="PedeAki Delivery" class="contrato-gate-logo">
+                    </div>
+                    <div class="contrato-gate-brand-copy">
+                        <span class="contrato-gate-kicker">PEDEAKI • ACESSO SEGURO</span>
+                        <strong>PedeAki Delivery</strong>
+                        <span id="contratoGateEtapa">Contrato de contratação</span>
+                    </div>
                 </div>
+                <div class="contrato-gate-selo">🔒 Ambiente protegido</div>
             </div>
 
             <div id="contratoGateAssinatura">
-                <div class="contrato-gate-status">🔐 Falta só uma etapa para liberar sua plataforma</div>
+                <div class="contrato-gate-status">Última etapa antes da liberação</div>
                 <h1 id="contratoGateTitulo">Contrato PedeAki</h1>
-                <p class="contrato-gate-meta" id="contratoGateMeta"></p>
-                <div id="contratoGateTexto" class="contrato-gate-texto"></div>
+                <p class="contrato-gate-subtitulo">Revise com atenção os dados da contratação e confirme o aceite para continuar.</p>
+                <div class="contrato-gate-meta" id="contratoGateMeta"></div>
 
-                <label class="campo-label" for="contratoGateNome">Nome completo de quem está aceitando</label>
-                <input type="text" id="contratoGateNome" autocomplete="name" placeholder="Digite seu nome completo">
-                <label class="contrato-gate-check">
-                    <input type="checkbox" id="contratoGateAceite">
-                    <span>Li o contrato acima e concordo com os termos apresentados.</span>
-                </label>
-                <button id="btnAssinarContratoPedeAki" class="btn-contrato-assinar" type="button" onclick="assinarContratoPedeAki()">✍️ Assinar e continuar</button>
-                <p id="contratoGateMsg" class="contrato-gate-msg"></p>
+                <div class="contrato-documento-shell">
+                    <div class="contrato-documento-topo">
+                        <div>
+                            <span class="contrato-documento-kicker">DOCUMENTO DIGITAL</span>
+                            <strong>Termos da contratação</strong>
+                        </div>
+                        <span>Role para revisar</span>
+                    </div>
+                    <div id="contratoGateTexto" class="contrato-gate-texto"></div>
+                </div>
+
+                <div class="contrato-assinatura-box">
+                    <div class="contrato-assinatura-cabecalho">
+                        <div class="contrato-assinatura-icone">✍️</div>
+                        <div>
+                            <strong>Confirmação do responsável</strong>
+                            <span>Seu aceite ficará registrado nesta versão do contrato.</span>
+                        </div>
+                    </div>
+                    <label class="campo-label" for="contratoGateNome">Nome completo de quem está aceitando</label>
+                    <input type="text" id="contratoGateNome" autocomplete="name" placeholder="Digite seu nome completo">
+                    <label class="contrato-gate-check">
+                        <input type="checkbox" id="contratoGateAceite">
+                        <span>Li o contrato acima e concordo com os termos apresentados.</span>
+                    </label>
+                    <button id="btnAssinarContratoPedeAki" class="btn-contrato-assinar" type="button" onclick="assinarContratoPedeAki()">Assinar contrato e continuar <span>→</span></button>
+                    <p id="contratoGateMsg" class="contrato-gate-msg"></p>
+                </div>
             </div>
 
             <div id="contratoGateAguardandoAtivacao" class="contrato-gate-aguardando" style="display:none;">
-                <div class="contrato-gate-sucesso">✅</div>
+                <div class="contrato-gate-sucesso">✓</div>
+                <span class="contrato-gate-kicker">ETAPA CONCLUÍDA</span>
                 <h1>Contrato assinado com sucesso</h1>
                 <p>Sua contratação foi registrada. Agora o PedeAki está aguardando a liberação final da sua plataforma.</p>
                 <p class="contrato-gate-destaque">Assim que o acesso for ativado, o período do seu plano começa a contar.</p>
-                <button type="button" class="btn-secondary" onclick="verificarContratoAntesDeLiberarPainel(firebase.auth().currentUser)">🔄 Verificar liberação</button>
-                <button type="button" class="btn-contrato-sair" onclick="fazerLogout()">Sair</button>
+                <button type="button" class="btn-contrato-assinar btn-contrato-verificar" onclick="verificarContratoAntesDeLiberarPainel(firebase.auth().currentUser)">Verificar liberação <span>↻</span></button>
+                <button type="button" class="btn-contrato-sair" onclick="fazerLogout()">Sair da conta</button>
             </div>
 
             <div id="contratoGateErro" class="contrato-gate-aguardando" style="display:none;">
-                <div class="contrato-gate-sucesso">⚠️</div>
+                <div class="contrato-gate-sucesso contrato-gate-alerta">!</div>
+                <span class="contrato-gate-kicker">VERIFICAÇÃO DE ACESSO</span>
                 <h1>Não foi possível verificar seu acesso</h1>
                 <p id="contratoGateErroTexto">Tente novamente em instantes.</p>
-                <button type="button" class="btn-secondary" onclick="verificarContratoAntesDeLiberarPainel(firebase.auth().currentUser)">🔄 Tentar novamente</button>
-                <button type="button" class="btn-contrato-sair" onclick="fazerLogout()">Sair</button>
+                <button type="button" class="btn-contrato-assinar btn-contrato-verificar" onclick="verificarContratoAntesDeLiberarPainel(firebase.auth().currentUser)">Tentar novamente <span>↻</span></button>
+                <button type="button" class="btn-contrato-sair" onclick="fazerLogout()">Sair da conta</button>
             </div>
+        </div>
+    </div>
+
+    <!-- BOAS-VINDAS PÓS-LIBERAÇÃO — aparece só uma vez neste navegador -->
+    <div id="boasVindasPedeAki" class="boas-vindas-pedeaki" style="display:none;" aria-hidden="true">
+        <div class="boas-vindas-brilho boas-vindas-brilho-1"></div>
+        <div class="boas-vindas-brilho boas-vindas-brilho-2"></div>
+        <div class="boas-vindas-card">
+            <button type="button" class="boas-vindas-fechar" onclick="fecharBoasVindasPedeAki()" aria-label="Fechar">×</button>
+            <div class="boas-vindas-logo-wrap">
+                <img src="logo-pedeaki.png" alt="PedeAki Delivery" class="boas-vindas-logo">
+            </div>
+            <span class="boas-vindas-kicker">SUA PLATAFORMA ESTÁ LIBERADA</span>
+            <h2>Seja bem-vindo ao seu Painel PedeAki!</h2>
+            <p>Agora você tem um centro de controle para gerenciar pedidos, produtos, clientes, campanhas e o crescimento do seu negócio.</p>
+            <div class="boas-vindas-recursos">
+                <span>🛍️ Pedidos</span>
+                <span>📦 Produtos</span>
+                <span>👥 Clientes</span>
+                <span>📣 Campanhas</span>
+            </div>
+            <button type="button" class="boas-vindas-comecar" onclick="fecharBoasVindasPedeAki()">Começar agora <span>→</span></button>
+            <small>PedeAki • Seu canal próprio de vendas</small>
         </div>
     </div>
 
