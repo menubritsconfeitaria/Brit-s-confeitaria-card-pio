@@ -479,6 +479,113 @@ let clientesRegistroMestre = [];
 let clienteMestreSelecionadoIndice = null;
 
 
+const TEXTO_PADRAO_CONTRATO_PEDEAKI = `TERMO DE CONTRATAÇÃO PEDEAKI\n\nEste documento registra a contratação da plataforma PedeAki por {nomeLoja}.\n\n1. OBJETO\nDisponibilização de acesso à plataforma PedeAki conforme os recursos do plano {plano}, configurados para o estabelecimento.\n\n2. CONDIÇÃO COMERCIAL\nCondição informada nesta contratação: {valor}.\n\n3. ATIVAÇÃO\nO período do plano começa somente na data em que o PedeAki liberar o acesso operacional à plataforma. A assinatura deste termo, sozinha, não inicia a contagem do período contratado.\n\n4. USO DA PLATAFORMA\nO estabelecimento é responsável pelas informações, produtos, preços, horários, dados comerciais e demais conteúdos cadastrados em sua operação.\n\n5. RENOVAÇÃO E CONTINUIDADE\nAs condições de renovação, vencimento e eventual período de tolerância seguem o que estiver registrado na contratação vigente.\n\n6. ACEITE\nAo confirmar abaixo, o responsável declara que leu e concorda com o conteúdo desta versão do termo.\n\nIMPORTANTE: este texto é um modelo operacional editável. Revise a versão final com orientação jurídica antes de utilizá-la como contrato comercial definitivo.`;
+
+function statusContratoMestre(contrato) {
+    contrato = contrato || {};
+    if (contrato.obrigatorio !== true) return { chave:'dispensado', rotulo:'🔓 Não obrigatório' };
+    const ass = contrato.assinatura || {};
+    if (contrato.status === 'assinado' && String(ass.versao || '') === String(contrato.versao || '1.0')) {
+        return { chave:'assinado', rotulo:'✅ Assinado' };
+    }
+    return { chave:'aguardando', rotulo:'🟠 Aguardando assinatura' };
+}
+
+function preencherContratoMestre(contrato, assinaturaPlano) {
+    contrato = contrato || {};
+    assinaturaPlano = assinaturaPlano || {};
+    document.getElementById('contratoObrigatorioMestre').checked = contrato.obrigatorio !== false;
+    document.getElementById('contratoVersaoMestre').value = contrato.versao || '1.0';
+    document.getElementById('contratoValorMestre').value = contrato.valor || '';
+    document.getElementById('contratoTituloMestre').value = contrato.titulo || 'Termo de Contratação PedeAki';
+    document.getElementById('contratoTextoMestre').value = contrato.texto || TEXTO_PADRAO_CONTRATO_PEDEAKI;
+    atualizarResumoContratoMestre(contrato, assinaturaPlano);
+}
+
+function atualizarResumoContratoMestre(contrato, assinaturaPlano) {
+    contrato = contrato || {};
+    assinaturaPlano = assinaturaPlano || {};
+    const chip = document.getElementById('resumoStatusContratoMestre');
+    const resumo = document.getElementById('contratoAssinaturaResumoMestre');
+    if (!chip || !resumo) return;
+    const estado = statusContratoMestre(contrato);
+    chip.className = 'contrato-status-chip contrato-status-' + estado.chave;
+    chip.textContent = estado.rotulo;
+    const ass = contrato.assinatura || {};
+    if (estado.chave === 'assinado' && ass.nomeCompleto) {
+        const data = ass.assinadoEm ? new Date(ass.assinadoEm).toLocaleString('pt-BR') : 'data registrada no Firebase';
+        resumo.style.display = 'block';
+        resumo.innerHTML = `<strong>✅ Assinatura registrada</strong><br>${ass.nomeCompleto}${ass.email ? ' · ' + ass.email : ''}<br>Versão ${ass.versao || contrato.versao || '1.0'} · ${data}${assinaturaPlano.dataAtivacao ? `<br><strong>Acesso ativado em:</strong> ${formatarDataIsoBr(assinaturaPlano.dataAtivacao)}` : '<br><strong>Próxima etapa:</strong> definir a data de ativação para liberar o painel operacional.'}`;
+    } else {
+        resumo.style.display = 'none';
+        resumo.innerHTML = '';
+    }
+}
+
+async function carregarContratoClienteMestre(registro) {
+    try {
+        const [contratoSnap, assinaturaSnap] = await Promise.all([
+            registro.db.ref('configuracao/contrato').once('value'),
+            registro.db.ref('configuracao/assinatura').once('value')
+        ]);
+        preencherContratoMestre(contratoSnap.val() || {}, assinaturaSnap.val() || {});
+    } catch (err) {
+        preencherContratoMestre({}, {});
+        console.log('Não foi possível ler o contrato do cliente:', err.message);
+    }
+}
+
+async function salvarContratoClienteMestre() {
+    const msgEl = document.getElementById('msgContratoMestre');
+    const registro = appsClientesMestre[nomeAppClienteMestre(clienteMestreSelecionadoIndice)];
+    const cliente = clientesRegistroMestre[clienteMestreSelecionadoIndice];
+    if (!registro || !registro.autenticado || !cliente) { msgEl.textContent = 'Faz login nesse cliente primeiro.'; return; }
+
+    const obrigatorio = document.getElementById('contratoObrigatorioMestre').checked;
+    const versao = document.getElementById('contratoVersaoMestre').value.trim() || '1.0';
+    const titulo = document.getElementById('contratoTituloMestre').value.trim() || 'Termo de Contratação PedeAki';
+    const valor = document.getElementById('contratoValorMestre').value.trim() || null;
+    const texto = document.getElementById('contratoTextoMestre').value.trim();
+    if (obrigatorio && texto.length < 80) { msgEl.textContent = 'O texto do contrato está muito curto. Revise antes de disponibilizar.'; return; }
+
+    msgEl.textContent = 'Salvando contrato...';
+    try {
+        const plano = (document.getElementById('planoAssinaturaMestre').value || (cliente.assinatura && cliente.assinatura.plano) || 'pro');
+        const dados = {
+            obrigatorio,
+            status: obrigatorio ? 'aguardando_assinatura' : 'dispensado',
+            versao,
+            titulo,
+            valor,
+            plano,
+            texto,
+            assinatura: null,
+            atualizadoEm: firebase.database.ServerValue.TIMESTAMP
+        };
+        await registro.db.ref('configuracao/contrato').update(dados);
+        await registro.db.ref('configuracao/contrato/historico').push({
+            evento: obrigatorio ? 'contrato_disponibilizado' : 'contrato_dispensado',
+            versao,
+            quando: firebase.database.ServerValue.TIMESTAMP
+        });
+        const resumoMestre = { obrigatorio, status: dados.status, versao, titulo, valor, plano, atualizadoEm: firebase.database.ServerValue.TIMESTAMP };
+        await dbMestre.ref('clientes/' + cliente.id + '/contrato').set(resumoMestre);
+        cliente.contrato = { ...resumoMestre };
+        preencherContratoMestre(dados, obterAssinaturaMestreDoFormulario());
+        msgEl.textContent = obrigatorio
+            ? '✅ Contrato disponível. No próximo login, o cliente precisará assinar antes de prosseguir.'
+            : '✅ Exigência de contrato desativada para este cliente.';
+    } catch (err) {
+        msgEl.textContent = 'Erro ao salvar contrato: ' + err.message;
+    }
+}
+
+async function desativarObrigatoriedadeContratoMestre() {
+    const chk = document.getElementById('contratoObrigatorioMestre');
+    chk.checked = false;
+    await salvarContratoClienteMestre();
+}
+
 function somarMesesDataIso(dataIso, meses) {
     const d = dataIsoParaDateLocal(dataIso);
     if (!d) return '';
@@ -645,6 +752,26 @@ async function salvarAssinaturaClienteMestre() {
     if (dados.dataAtivacao && !dados.dataVencimento) dados.dataVencimento = somarMesesDataIso(dados.dataAtivacao, 1);
     if (dados.dataVencimento && !dados.dataAtivacao) { msgEl.textContent = 'Informe a data de ativação antes do vencimento.'; return; }
 
+    // Se o contrato é obrigatório, a ativação só pode ser registrada depois do aceite
+    // da versão atual. Isso mantém a ordem: contrato -> assinatura -> ativação.
+    if (dados.dataAtivacao) {
+        try {
+            const contratoSnap = await registro.db.ref('configuracao/contrato').once('value');
+            const contrato = contratoSnap.val() || {};
+            if (contrato.obrigatorio === true) {
+                const ass = contrato.assinatura || {};
+                const assinadoAtual = contrato.status === 'assinado' && String(ass.versao || '') === String(contrato.versao || '1.0');
+                if (!assinadoAtual) {
+                    msgEl.textContent = '⚠️ Não dá para ativar ainda: o contrato obrigatório desta versão ainda não foi assinado pelo cliente.';
+                    return;
+                }
+            }
+        } catch (e) {
+            msgEl.textContent = 'Não foi possível confirmar o contrato antes da ativação. Tente novamente.';
+            return;
+        }
+    }
+
     msgEl.textContent = 'Salvando...';
     try {
         const dadosCliente = { ...dados, atualizadoEm: firebase.database.ServerValue.TIMESTAMP };
@@ -656,6 +783,10 @@ async function salvarAssinaturaClienteMestre() {
         preencherAssinaturaMestre(dados);
         renderizarVisaoAssinaturasMestre();
         msgEl.textContent = '✅ Assinatura e alertas salvos. O aviso do cliente passa a ser calculado automaticamente pelas datas.';
+        try {
+            const contratoSnap = await registro.db.ref('configuracao/contrato').once('value');
+            atualizarResumoContratoMestre(contratoSnap.val() || {}, dados);
+        } catch (e) {}
     } catch (err) {
         msgEl.textContent = 'Erro ao salvar assinatura: ' + err.message;
     }
@@ -807,6 +938,7 @@ async function carregarRecursosClienteMestre() {
     `).join('');
     document.getElementById('areaRecursosClienteMestre').style.display = 'block';
 
+    carregarContratoClienteMestre(registro);
     carregarAssinaturaClienteMestre(registro);
     carregarIdentidadeClienteMestre(registro);
     carregarFreteClienteMestre(registro);
@@ -1185,17 +1317,178 @@ document.getElementById('loginSenha').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') fazerLogin();
 });
 
+let painelOperacionalIniciado = false;
+let contratoGateAtual = null;
+
+function esconderTelasAcessoPedeAki() {
+    const login = document.getElementById('telaLogin');
+    const contrato = document.getElementById('telaContratoPedeAki');
+    const painelEl = document.getElementById('painel');
+    if (login) login.style.display = 'none';
+    if (contrato) contrato.style.display = 'none';
+    if (painelEl) painelEl.style.display = 'none';
+}
+
+function liberarPainelOperacionalPedeAki(user) {
+    esconderTelasAcessoPedeAki();
+    document.getElementById('painel').style.display = 'block';
+    if (!painelOperacionalIniciado) {
+        iniciarEscutaPedidos();
+        painelOperacionalIniciado = true;
+    }
+    verificarSeEhDonoDoServico(user && user.email);
+}
+
+function aplicarVariaveisContratoPedeAki(texto, contrato, assinatura) {
+    const nomeLoja = (typeof LOJA_CONFIG !== 'undefined' && LOJA_CONFIG.nome) ? LOJA_CONFIG.nome : 'sua empresa';
+    const plano = (contrato && contrato.plano) || (assinatura && assinatura.plano) || 'PedeAki';
+    const valor = (contrato && contrato.valor) || 'conforme contratação';
+    return String(texto || '')
+        .replaceAll('{nomeLoja}', nomeLoja)
+        .replaceAll('{plano}', String(plano).toUpperCase())
+        .replaceAll('{valor}', valor);
+}
+
+async function hashTextoContratoPedeAki(texto) {
+    try {
+        if (!window.crypto || !crypto.subtle) return null;
+        const bytes = new TextEncoder().encode(String(texto || ''));
+        const digest = await crypto.subtle.digest('SHA-256', bytes);
+        return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch (e) { return null; }
+}
+
+function preencherTelaContratoPedeAki(contrato, assinaturaPlano, user) {
+    contratoGateAtual = { contrato: contrato || {}, assinaturaPlano: assinaturaPlano || {} };
+    const titulo = document.getElementById('contratoGateTitulo');
+    const meta = document.getElementById('contratoGateMeta');
+    const texto = document.getElementById('contratoGateTexto');
+    const nome = document.getElementById('contratoGateNome');
+    const versao = contrato.versao || '1.0';
+    const plano = contrato.plano || assinaturaPlano.plano || '—';
+    const valor = contrato.valor || '';
+    if (titulo) titulo.textContent = contrato.titulo || 'Termo de Contratação PedeAki';
+    if (meta) meta.textContent = `Versão ${versao} · Plano ${String(plano).toUpperCase()}${valor ? ' · ' + valor : ''}`;
+    if (texto) texto.textContent = aplicarVariaveisContratoPedeAki(contrato.texto || '', contrato, assinaturaPlano);
+    if (nome && !nome.value && user && user.displayName) nome.value = user.displayName;
+}
+
+function mostrarGateContratoPedeAki(tipo, contrato, assinaturaPlano, user, erroTexto) {
+    esconderTelasAcessoPedeAki();
+    const tela = document.getElementById('telaContratoPedeAki');
+    if (tela) tela.style.display = 'flex';
+    const assinaturaEl = document.getElementById('contratoGateAssinatura');
+    const aguardandoEl = document.getElementById('contratoGateAguardandoAtivacao');
+    const erroEl = document.getElementById('contratoGateErro');
+    if (assinaturaEl) assinaturaEl.style.display = tipo === 'assinatura' ? 'block' : 'none';
+    if (aguardandoEl) aguardandoEl.style.display = tipo === 'aguardando' ? 'block' : 'none';
+    if (erroEl) erroEl.style.display = tipo === 'erro' ? 'block' : 'none';
+    if (tipo === 'assinatura') preencherTelaContratoPedeAki(contrato || {}, assinaturaPlano || {}, user);
+    if (tipo === 'erro' && erroTexto) document.getElementById('contratoGateErroTexto').textContent = erroTexto;
+}
+
+async function verificarContratoAntesDeLiberarPainel(user) {
+    if (!user) return;
+    esconderTelasAcessoPedeAki();
+    try {
+        const [contratoSnap, assinaturaSnap] = await Promise.all([
+            db.ref('configuracao/contrato').once('value'),
+            db.ref('configuracao/assinatura').once('value')
+        ]);
+        const contrato = contratoSnap.val() || {};
+        const assinaturaPlano = assinaturaSnap.val() || {};
+
+        // Compatibilidade: clientes antigos ou contrato não obrigatório entram normalmente.
+        if (contrato.obrigatorio !== true) {
+            liberarPainelOperacionalPedeAki(user);
+            return;
+        }
+
+        const assinaturaContrato = contrato.assinatura || {};
+        const versaoAtual = String(contrato.versao || '1.0');
+        const assinaturaValida = contrato.status === 'assinado' && String(assinaturaContrato.versao || '') === versaoAtual;
+
+        if (!assinaturaValida) {
+            mostrarGateContratoPedeAki('assinatura', contrato, assinaturaPlano, user);
+            return;
+        }
+
+        // Contrato assinado, mas o período ainda não começou: aguarda liberação manual do PedeAki.
+        if (!assinaturaPlano.dataAtivacao) {
+            mostrarGateContratoPedeAki('aguardando', contrato, assinaturaPlano, user);
+            return;
+        }
+
+        liberarPainelOperacionalPedeAki(user);
+    } catch (err) {
+        console.log('Não foi possível verificar contrato/acesso:', err);
+        mostrarGateContratoPedeAki('erro', null, null, user, 'Não foi possível confirmar o contrato e a ativação agora. Verifique sua conexão e tente novamente.');
+    }
+}
+
+async function assinarContratoPedeAki() {
+    const user = firebase.auth().currentUser;
+    const nome = (document.getElementById('contratoGateNome').value || '').trim();
+    const aceitou = document.getElementById('contratoGateAceite').checked;
+    const msgEl = document.getElementById('contratoGateMsg');
+    const btn = document.getElementById('btnAssinarContratoPedeAki');
+    if (!user) { msgEl.textContent = 'Sua sessão expirou. Entre novamente.'; return; }
+    if (nome.length < 5) { msgEl.textContent = 'Informe o nome completo de quem está aceitando.'; return; }
+    if (!aceitou) { msgEl.textContent = 'Marque que leu e concorda com os termos.'; return; }
+    if (!contratoGateAtual || !contratoGateAtual.contrato) { msgEl.textContent = 'Contrato não carregado. Atualize a página e tente de novo.'; return; }
+
+    const contrato = contratoGateAtual.contrato;
+    const textoExibido = aplicarVariaveisContratoPedeAki(contrato.texto || '', contrato, contratoGateAtual.assinaturaPlano || {});
+    const hashTexto = await hashTextoContratoPedeAki(textoExibido);
+    btn.disabled = true;
+    msgEl.textContent = 'Registrando assinatura...';
+    try {
+        const assinatura = {
+            nomeCompleto: nome,
+            email: user.email || null,
+            uid: user.uid,
+            versao: String(contrato.versao || '1.0'),
+            hashTexto: hashTexto,
+            userAgent: String(navigator.userAgent || '').slice(0, 300),
+            aceitou: true,
+            assinadoEm: firebase.database.ServerValue.TIMESTAMP
+        };
+        await db.ref('configuracao/contrato').update({
+            status: 'assinado',
+            assinatura,
+            atualizadoEm: firebase.database.ServerValue.TIMESTAMP
+        });
+        await db.ref('configuracao/contrato/historico').push({
+            evento: 'contrato_assinado',
+            nomeCompleto: nome,
+            email: user.email || null,
+            uid: user.uid,
+            versao: assinatura.versao,
+            hashTexto: hashTexto,
+            quando: firebase.database.ServerValue.TIMESTAMP
+        });
+        msgEl.textContent = '✅ Contrato assinado.';
+        await verificarContratoAntesDeLiberarPainel(user);
+    } catch (err) {
+        console.log('Erro ao assinar contrato:', err);
+        msgEl.textContent = 'Não foi possível registrar a assinatura: ' + err.message;
+    } finally {
+        btn.disabled = false;
+    }
+}
+
 auth.onAuthStateChanged(user => {
     if (user) {
-        document.getElementById('telaLogin').style.display = 'none';
-        document.getElementById('painel').style.display = 'block';
-        iniciarEscutaPedidos();
-        verificarSeEhDonoDoServico(user.email); // roda sempre, inclusive com sessão já salva
+        verificarContratoAntesDeLiberarPainel(user);
     } else {
         document.getElementById('telaLogin').style.display = 'flex';
         document.getElementById('painel').style.display = 'none';
+        const telaContrato = document.getElementById('telaContratoPedeAki');
+        if (telaContrato) telaContrato.style.display = 'none';
         idsRenderizados = new Set();
         primeiraCargaConcluida = false;
+        painelOperacionalIniciado = false;
+        contratoGateAtual = null;
     }
 });
 

@@ -24,7 +24,53 @@
         </div>
     </div>
 
-    <!-- PAINEL (só aparece depois do login) -->
+    <!-- CONTRATO / LIBERAÇÃO (aparece após o login quando exigido) -->
+    <div id="telaContratoPedeAki" class="tela-contrato-pedeaki" style="display:none;">
+        <div class="contrato-gate-card">
+            <div class="contrato-gate-marca">
+                <img src="logo-pedeaki.png" alt="PedeAki Delivery" class="contrato-gate-logo">
+                <div>
+                    <strong>PedeAki Delivery</strong>
+                    <span id="contratoGateEtapa">Contrato de contratação</span>
+                </div>
+            </div>
+
+            <div id="contratoGateAssinatura">
+                <div class="contrato-gate-status">🔐 Falta só uma etapa para liberar sua plataforma</div>
+                <h1 id="contratoGateTitulo">Contrato PedeAki</h1>
+                <p class="contrato-gate-meta" id="contratoGateMeta"></p>
+                <div id="contratoGateTexto" class="contrato-gate-texto"></div>
+
+                <label class="campo-label" for="contratoGateNome">Nome completo de quem está aceitando</label>
+                <input type="text" id="contratoGateNome" autocomplete="name" placeholder="Digite seu nome completo">
+                <label class="contrato-gate-check">
+                    <input type="checkbox" id="contratoGateAceite">
+                    <span>Li o contrato acima e concordo com os termos apresentados.</span>
+                </label>
+                <button id="btnAssinarContratoPedeAki" class="btn-contrato-assinar" type="button" onclick="assinarContratoPedeAki()">✍️ Assinar e continuar</button>
+                <p id="contratoGateMsg" class="contrato-gate-msg"></p>
+            </div>
+
+            <div id="contratoGateAguardandoAtivacao" class="contrato-gate-aguardando" style="display:none;">
+                <div class="contrato-gate-sucesso">✅</div>
+                <h1>Contrato assinado com sucesso</h1>
+                <p>Sua contratação foi registrada. Agora o PedeAki está aguardando a liberação final da sua plataforma.</p>
+                <p class="contrato-gate-destaque">Assim que o acesso for ativado, o período do seu plano começa a contar.</p>
+                <button type="button" class="btn-secondary" onclick="verificarContratoAntesDeLiberarPainel(firebase.auth().currentUser)">🔄 Verificar liberação</button>
+                <button type="button" class="btn-contrato-sair" onclick="fazerLogout()">Sair</button>
+            </div>
+
+            <div id="contratoGateErro" class="contrato-gate-aguardando" style="display:none;">
+                <div class="contrato-gate-sucesso">⚠️</div>
+                <h1>Não foi possível verificar seu acesso</h1>
+                <p id="contratoGateErroTexto">Tente novamente em instantes.</p>
+                <button type="button" class="btn-secondary" onclick="verificarContratoAntesDeLiberarPainel(firebase.auth().currentUser)">🔄 Tentar novamente</button>
+                <button type="button" class="btn-contrato-sair" onclick="fazerLogout()">Sair</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAINEL (só aparece depois do login e da liberação) -->
     <div id="painel" class="painel" style="display:none;">
         <div class="barra-pedeaki">
             <img src="logo-pedeaki.png" alt="PedeAki Delivery" class="barra-pedeaki-logo">
@@ -537,7 +583,7 @@
                 </div>
 
                 <div class="loja-status-card" id="cardAdicionarClienteMestre" style="margin-top:16px; display:none;">
-                    <h3>Passo 1 de 6 — ➕ Dados da empresa e Firebase (cliente novo)</h3>
+                    <h3>Passo 1 de 7 — ➕ Dados da empresa e Firebase (cliente novo)</h3>
                     <p class="dica-secao">Copia o firebaseConfig do cliente (arquivo firebase-config.js dele) e cola aqui.</p>
                     <input type="text" id="novoClienteNomeMestre" placeholder="Nome do cliente (ex: Doces da Ana)">
                     <div class="produto-admin-linha" style="margin-top:8px;">
@@ -573,10 +619,57 @@
                         <p id="msgLoginClienteMestre" class="ordem-categorias-msg"></p>
                     </div>
                     <div id="areaRecursosClienteMestre" style="display:none; margin-top:14px;">
+                        <div class="contrato-mestre-card">
+                            <div class="assinatura-mestre-topo">
+                                <div>
+                                    <h3>Passo 2 de 7 — ✍️ Contrato e Liberação de Acesso</h3>
+                                    <p class="dica-secao">O cliente entra com o login dele, lê e aceita o contrato. O painel operacional só é liberado depois da assinatura <strong>e</strong> da data de ativação.</p>
+                                </div>
+                                <div id="resumoStatusContratoMestre" class="contrato-status-chip contrato-status-sem-config">Sem contrato</div>
+                            </div>
+
+                            <div class="contrato-mestre-aviso">
+                                ⚖️ <strong>Modelo operacional:</strong> o texto é totalmente editável. Antes de usar comercialmente, revise o conteúdo final com um profissional jurídico.
+                            </div>
+
+                            <div class="assinatura-grid">
+                                <div class="campo-com-label">
+                                    <label class="campo-label">Exigir assinatura antes do acesso</label>
+                                    <label class="switch-linha contrato-switch"><span>Contrato obrigatório</span><input type="checkbox" id="contratoObrigatorioMestre" checked></label>
+                                </div>
+                                <div class="campo-com-label">
+                                    <label class="campo-label">Versão do contrato</label>
+                                    <input type="text" id="contratoVersaoMestre" value="1.0" placeholder="Ex: 1.0">
+                                </div>
+                                <div class="campo-com-label">
+                                    <label class="campo-label">Valor/condição exibida</label>
+                                    <input type="text" id="contratoValorMestre" placeholder="Ex: R$ 69,90/mês">
+                                </div>
+                                <div class="campo-com-label">
+                                    <label class="campo-label">Título do contrato</label>
+                                    <input type="text" id="contratoTituloMestre" value="Termo de Contratação PedeAki">
+                                </div>
+                            </div>
+
+                            <label class="campo-label" style="margin-top:10px;">Texto do contrato</label>
+                            <p class="dica-secao">Você pode usar <strong>{nomeLoja}</strong>, <strong>{plano}</strong> e <strong>{valor}</strong>. Uma nova versão ou alteração do texto exige nova assinatura.</p>
+                            <textarea id="contratoTextoMestre" class="contrato-textarea-mestre" rows="14"></textarea>
+
+                            <div id="contratoAssinaturaResumoMestre" class="contrato-assinatura-resumo" style="display:none;"></div>
+
+                            <div class="contrato-mestre-acoes">
+                                <button class="btn-salvar-ordem" type="button" onclick="salvarContratoClienteMestre()">💾 Salvar e disponibilizar para assinatura</button>
+                                <button class="btn-secondary" type="button" onclick="desativarObrigatoriedadeContratoMestre()">🔓 Não exigir contrato</button>
+                            </div>
+                            <p id="msgContratoMestre" class="ordem-categorias-msg"></p>
+                        </div>
+
+                        <hr style="margin:18px 0; border:none; border-top:1px solid var(--border);">
+
                         <div class="assinatura-mestre-card">
                             <div class="assinatura-mestre-topo">
                                 <div>
-                                    <h3>Passo 2 de 6 — 💼 Assinatura e Renovação</h3>
+                                    <h3>Passo 3 de 7 — 💼 Assinatura e Renovação</h3>
                                     <p class="dica-secao">A contratação registra o fechamento comercial. O período começa na ativação, quando a plataforma é liberada funcionando.</p>
                                 </div>
                                 <div id="resumoStatusAssinaturaMestre" class="assinatura-status-chip assinatura-status-sem-config">Sem configuração</div>
@@ -661,7 +754,7 @@
 
                         <hr style="margin:18px 0; border:none; border-top:1px solid var(--border);">
 
-                        <h3>Passo 3 de 6 — 🧩 Recursos liberados pra esse cliente</h3>
+                        <h3>Passo 4 de 7 — 🧩 Recursos liberados pra esse cliente</h3>
                         <p id="avisoNuncaConfiguradoMestre" class="dica-secao" style="display:none;">ℹ️ Esse cliente nunca teve nada configurado aqui — hoje ele tem tudo liberado (padrão). Os interruptores já refletem isso.</p>
                         <label class="campo-label">Aplicar um plano pronto (marca os interruptores certos — ainda dá pra ajustar manualmente depois)</label>
                         <div class="opcoes-radio">
@@ -675,7 +768,7 @@
 
                         <hr style="margin:18px 0; border:none; border-top:1px solid var(--border);">
 
-                        <h3>Passo 4 de 6 — 🏷️ Identidade e Marca desse cliente</h3>
+                        <h3>Passo 5 de 7 — 🏷️ Identidade e Marca desse cliente</h3>
                         <label class="campo-label">Nome completo</label>
                         <input type="text" id="nomeLojaConfigMestre" placeholder="Ex: Doces da Ana">
                         <label class="campo-label" style="margin-top:10px;">Nome curto</label>
@@ -714,14 +807,14 @@
 
                         <hr style="margin:18px 0; border:none; border-top:1px solid var(--border);">
 
-                        <h3>Passo 5 de 6 — 🕐 Horário de funcionamento desse cliente</h3>
+                        <h3>Passo 6 de 7 — 🕐 Horário de funcionamento desse cliente</h3>
                         <div id="listaHorariosMestre"></div>
                         <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="salvarHorariosMestre()">💾 Salvar horários</button>
                         <p id="msgHorariosMestre" class="ordem-categorias-msg"></p>
 
                         <hr style="margin:18px 0; border:none; border-top:1px solid var(--border);">
 
-                        <h3>Passo 6 de 6 — 🚚 Áreas de Entrega desse cliente</h3>
+                        <h3>Passo 7 de 7 — 🚚 Áreas de Entrega desse cliente</h3>
                         <p class="dica-secao">Edita a mesma configuração de frete usada no painel do cliente: valores por km e bairros atendidos.</p>
 
                         <label class="campo-label">Valor por km (R$)</label>
