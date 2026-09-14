@@ -930,7 +930,7 @@ const PRESETS_SOM_ALERTA = {
 // Aviso flutuante de "sinal/restante confirmado" — mesma informação que o alert()
 // antigo mostrava, mas sem travar o navegador. alert() é bloqueante: pausa até o
 // código que faz o pedido aparecer na tela, então o pedido só "terminava de aparecer"
-// depois de clicar OK. Esse aviso aparece e some sozinho, sem atrapalhar mais nada.
+// depois de clicar OK. Esse aviso não trava nada, e só fecha quando clicar em OK.
 function mostrarAvisoFlutuantePagamento(texto) {
     let container = document.getElementById('avisosFlutuantesPagamento');
     if (!container) {
