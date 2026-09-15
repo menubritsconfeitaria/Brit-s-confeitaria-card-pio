@@ -2365,3 +2365,180 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
     .hub-subtabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .hub-subtab-btn { white-space: nowrap; }
 }
+
+/* ===== GESTÃO PREMIUM — INGREDIENTES + BASES (visual somente) ===== */
+/* Escopo intencionalmente restrito às duas subabas. Não altera IDs, eventos ou lógica. */
+.gestao-subconteudo[data-subtab-content="sub-ingredientes"],
+.gestao-subconteudo[data-subtab-content="sub-bases"] {
+    --gestao-card-border: #eadfce;
+    --gestao-card-soft: #fffdf9;
+    --gestao-shadow: 0 8px 22px rgba(72, 45, 25, 0.065);
+}
+
+.gestao-subconteudo[data-subtab-content="sub-ingredientes"] > .dica-secao,
+.gestao-subconteudo[data-subtab-content="sub-bases"] > .dica-secao {
+    margin: 0 0 12px;
+    color: #8a7665;
+    line-height: 1.45;
+    font-size: .84em;
+}
+
+.gestao-subconteudo[data-subtab-content="sub-ingredientes"] > .loja-status-card,
+.gestao-subconteudo[data-subtab-content="sub-bases"] > .loja-status-card {
+    border-color: var(--gestao-card-border);
+    border-radius: 16px;
+    box-shadow: var(--gestao-shadow);
+}
+
+/* Cadastro mais limpo e compacto */
+.gestao-subconteudo[data-subtab-content="sub-ingredientes"] > .loja-status-card:first-of-type,
+.gestao-subconteudo[data-subtab-content="sub-bases"] > .loja-status-card:first-of-type {
+    padding: 16px 18px 18px;
+    background: var(--gestao-card-soft);
+}
+
+.gestao-subconteudo[data-subtab-content="sub-ingredientes"] > .loja-status-card:first-of-type h3,
+.gestao-subconteudo[data-subtab-content="sub-bases"] > .loja-status-card:first-of-type h3 {
+    margin: 0 0 12px;
+    font-size: 1em;
+}
+
+.gestao-subconteudo[data-subtab-content="sub-ingredientes"] > .loja-status-card:first-of-type input,
+.gestao-subconteudo[data-subtab-content="sub-ingredientes"] > .loja-status-card:first-of-type select,
+.gestao-subconteudo[data-subtab-content="sub-bases"] > .loja-status-card:first-of-type input,
+.gestao-subconteudo[data-subtab-content="sub-bases"] > .loja-status-card:first-of-type select {
+    min-height: 38px;
+    padding: 7px 10px;
+    border: 1px solid #dfd1bf;
+    border-radius: 9px;
+    background: #fff;
+    color: var(--text);
+    font-family: inherit;
+    outline: none;
+}
+
+.gestao-subconteudo[data-subtab-content="sub-ingredientes"] > .loja-status-card:first-of-type input:focus,
+.gestao-subconteudo[data-subtab-content="sub-ingredientes"] > .loja-status-card:first-of-type select:focus,
+.gestao-subconteudo[data-subtab-content="sub-bases"] > .loja-status-card:first-of-type input:focus,
+.gestao-subconteudo[data-subtab-content="sub-bases"] > .loja-status-card:first-of-type select:focus {
+    border-color: #c9976c;
+    box-shadow: 0 0 0 3px rgba(160, 82, 45, .08);
+}
+
+.gestao-subconteudo[data-subtab-content="sub-ingredientes"] > .loja-status-card:first-of-type .produto-admin-linha,
+.gestao-subconteudo[data-subtab-content="sub-bases"] > .loja-status-card:first-of-type .produto-admin-linha {
+    gap: 12px;
+    margin-bottom: 6px;
+}
+
+.gestao-subconteudo[data-subtab-content="sub-ingredientes"] > .loja-status-card:first-of-type .campo-com-label,
+.gestao-subconteudo[data-subtab-content="sub-bases"] > .loja-status-card:first-of-type .campo-com-label {
+    flex: 1 1 220px;
+    min-width: 0;
+}
+
+.gestao-subconteudo[data-subtab-content="sub-ingredientes"] > .loja-status-card:first-of-type .btn-salvar-ordem,
+.gestao-subconteudo[data-subtab-content="sub-bases"] > .loja-status-card:first-of-type .btn-salvar-ordem {
+    min-height: 40px;
+    border-radius: 10px;
+    box-shadow: 0 5px 14px rgba(160, 82, 45, .13);
+}
+
+/* Área de listagem: menos "card dentro de card" e mais painel de gestão */
+.gestao-subconteudo[data-subtab-content="sub-ingredientes"] > .loja-status-card:last-of-type,
+.gestao-subconteudo[data-subtab-content="sub-bases"] > .loja-status-card:last-of-type {
+    padding: 12px;
+    background: rgba(255,255,255,.52);
+}
+
+#buscaIngrediente {
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 12px;
+    margin: 0;
+    border: 1px solid #dfd1bf;
+    border-radius: 10px;
+    background: #fff;
+    font-family: inherit;
+    outline: none;
+}
+#buscaIngrediente:focus {
+    border-color: #c9976c;
+    box-shadow: 0 0 0 3px rgba(160, 82, 45, .08);
+}
+
+#listaIngredientes,
+#listaBases {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 10px !important;
+}
+
+#listaIngredientes > .pedido-card,
+#listaBases > .pedido-card {
+    margin-top: 0 !important;
+    min-width: 0;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border-color: #e9dfd2;
+    box-shadow: 0 4px 12px rgba(72, 45, 25, .045);
+    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+
+#listaIngredientes > .pedido-card:hover,
+#listaBases > .pedido-card:hover {
+    transform: translateY(-1px);
+    border-color: #dcc9b4;
+    box-shadow: 0 7px 17px rgba(72, 45, 25, .075);
+}
+
+#listaIngredientes > .pedido-card strong,
+#listaBases > .pedido-card > strong {
+    font-size: .93em;
+    color: #4d382b;
+}
+
+#listaIngredientes > .pedido-card p,
+#listaBases > .pedido-card p {
+    margin: 5px 0 8px !important;
+    line-height: 1.35;
+}
+
+#listaIngredientes > .pedido-card .btn-secondary,
+#listaBases > .pedido-card .btn-secondary {
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: .78em;
+}
+
+#listaIngredientes > .pedido-card .btn-excluir-cupom,
+#listaBases > .pedido-card .btn-excluir-cupom {
+    opacity: .58;
+    transform: scale(.9);
+    transition: opacity .16s ease, transform .16s ease;
+}
+#listaIngredientes > .pedido-card .btn-excluir-cupom:hover,
+#listaBases > .pedido-card .btn-excluir-cupom:hover {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Status discreto: informação, não botão de ação. */
+#listaIngredientes .pedido-tag {
+    font-size: .67em;
+    padding: 3px 8px;
+    margin: 0;
+}
+
+@media (max-width: 760px) {
+    #listaIngredientes,
+    #listaBases {
+        grid-template-columns: 1fr;
+    }
+
+    .gestao-subconteudo[data-subtab-content="sub-ingredientes"] > .loja-status-card:first-of-type,
+    .gestao-subconteudo[data-subtab-content="sub-bases"] > .loja-status-card:first-of-type {
+        padding: 14px;
+    }
+}
