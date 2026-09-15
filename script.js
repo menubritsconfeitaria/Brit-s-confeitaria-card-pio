@@ -1759,10 +1759,19 @@ function validarQuantidadeEstoqueProduto(produtoId, quantidadeAdicionar, mostrar
     if (mostrarAviso !== false) {
         const restante = Math.max(0, limite - atualCarrinho);
         alert(restante > 0
-            ? `Só temos ${limite} unidade${limite === 1 ? '' : 's'} disponível${limite === 1 ? '' : 'is'} desse produto. Você ainda pode adicionar ${restante}.`
-            : `Você já colocou no carrinho toda a quantidade disponível desse produto (${limite}).`);
+            ? `No momento, temos ${limite} unidade${limite === 1 ? '' : 's'} ${limite === 1 ? 'disponível' : 'disponíveis'} deste produto. Você ainda pode adicionar ${restante}.`
+            : `Você já adicionou ao carrinho toda a quantidade disponível deste produto (${limite}).`);
     }
     return false;
+}
+
+function quantidadeDisponivelParaAdicionar(produtoId, quantidadeSolicitada) {
+    const solicitada = Math.max(0, parseInt(quantidadeSolicitada, 10) || 0);
+    const limite = limiteEstoqueProduto(produtoId);
+    if (limite === null) return solicitada;
+    const jaNoCarrinho = quantidadeProdutoNoCarrinho(produtoId);
+    const restante = Math.max(0, limite - jaNoCarrinho);
+    return Math.min(solicitada, restante);
 }
 
 function validarEstoqueCarrinhoAtual() {
@@ -1775,7 +1784,7 @@ function validarEstoqueCarrinhoAtual() {
         const limite = limiteEstoqueProduto(produtoId);
         if (limite !== null && quantidade > limite) {
             const produto = produtos.find(p => p.id === produtoId);
-            alert(`${produto ? produto.nome : 'Um produto'} tem apenas ${limite} unidade${limite === 1 ? '' : 's'} disponível${limite === 1 ? '' : 'is'}. Ajuste o carrinho antes de finalizar.`);
+            alert(`${produto ? produto.nome : 'Um produto'} tem apenas ${limite} unidade${limite === 1 ? '' : 's'} ${limite === 1 ? 'disponível' : 'disponíveis'}. Ajuste o carrinho antes de finalizar.`);
             return false;
         }
     }
@@ -1785,7 +1794,20 @@ function validarEstoqueCarrinhoAtual() {
 // Adiciona o item de verdade no carrinho — usada tanto pelo caminho direto (produto sem
 // adicionais) quanto pelo modal de adicionais, depois que a pessoa confirma as escolhas
 function finalizarAdicaoAoCarrinho(produtoId, nomeProduto, precoEfetivo, quantidade, observacao, adicionaisTexto, adicionaisEscolhidos) {
-    if (produtoId && !validarQuantidadeEstoqueProduto(produtoId, quantidade, true)) return false;
+    const quantidadeSolicitada = Math.max(1, parseInt(quantidade, 10) || 1);
+    let quantidadeAdicionar = quantidadeSolicitada;
+    let limitouPorEstoque = false;
+
+    if (produtoId) {
+        quantidadeAdicionar = quantidadeDisponivelParaAdicionar(produtoId, quantidadeSolicitada);
+        if (quantidadeAdicionar <= 0) {
+            const limite = limiteEstoqueProduto(produtoId);
+            alert(`No momento, temos ${limite || 0} unidades disponíveis deste produto. Você já adicionou toda a quantidade disponível ao carrinho.`);
+            return false;
+        }
+        limitouPorEstoque = quantidadeAdicionar < quantidadeSolicitada;
+    }
+
     const carrinhoEstavaVazio = carrinho.length === 0;
     // Só agrupa como "mesmo item" se nome, observação E adicionais escolhidos forem
     // idênticos — senão, dois bolos com recheios diferentes viram uma linha só, errado
@@ -1796,21 +1818,27 @@ function finalizarAdicaoAoCarrinho(produtoId, nomeProduto, precoEfetivo, quantid
     );
 
     if (produtoExistente) {
-        produtoExistente.quantidade += quantidade;
+        produtoExistente.quantidade += quantidadeAdicionar;
         produtoExistente.preco = precoEfetivo; // Garante que o preço fica sempre atualizado (ex: entrou em oferta)
     } else {
         carrinho.push({
             produtoId: produtoId || null,
             nome: nomeProduto,
             preco: precoEfetivo,
-            quantidade,
+            quantidade: quantidadeAdicionar,
             observacao: observacao || null,
             adicionaisTexto: adicionaisTexto || null,
             adicionaisEscolhidos: Array.isArray(adicionaisEscolhidos) ? adicionaisEscolhidos : null
         });
     }
 
-    alert(`${quantidade}x ${nomeProduto} adicionado ao carrinho!`);
+    if (limitouPorEstoque) {
+        const limite = limiteEstoqueProduto(produtoId);
+        const totalNoCarrinho = quantidadeProdutoNoCarrinho(produtoId);
+        alert(`No momento, temos ${limite} unidade${limite === 1 ? '' : 's'} ${limite === 1 ? 'disponível' : 'disponíveis'} deste produto. ${totalNoCarrinho} ${totalNoCarrinho === 1 ? 'unidade foi adicionada' : 'unidades foram adicionadas'} ao carrinho.`);
+    } else {
+        alert(`${quantidadeAdicionar}x ${nomeProduto} adicionado ao carrinho!`);
+    }
     console.log('Carrinho atual:', carrinho);
     salvarCarrinho();
     atualizarCarrinhoHTML();
@@ -2052,16 +2080,9 @@ function renderizarProdutos() {
         });
         stepper.querySelector('.qtd-mais').addEventListener('click', () => {
             const v = parseInt(valorEl.textContent, 10) || 1;
-            const card = stepper.closest('.produto-item');
-            const produtoId = card && card.id && card.id.startsWith('produto-') ? card.id.slice('produto-'.length) : null;
-            if (produtoId) {
-                const limite = limiteEstoqueProduto(produtoId);
-                const jaNoCarrinho = quantidadeProdutoNoCarrinho(produtoId);
-                if (limite !== null && jaNoCarrinho + v >= limite) {
-                    validarQuantidadeEstoqueProduto(produtoId, v + 1, true);
-                    return;
-                }
-            }
+            // Deixa o cliente informar a quantidade desejada. Se passar do estoque,
+            // o clique em "Adicionar ao Carrinho" coloca automaticamente tudo que
+            // ainda estiver disponível, sem obrigar a pessoa a refazer a quantidade.
             valorEl.textContent = v + 1;
         });
     });
