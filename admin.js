@@ -1918,6 +1918,17 @@ function aplicarUrgenciaVisualCard(card, pedido, comAcoes) {
     atualizarUrgenciaVisualCard(card);
 }
 
+// Tempo final do pedido entregue — só leitura/visual. Usa os horários que já existem no pedido
+// e NÃO altera status, Firebase, notificações ou qualquer fluxo operacional.
+function montarTempoFinalizadoPedido(pedido) {
+    if (!pedido || pedido.status !== 'entregue') return '';
+    const inicio = Number(pedido.timestamp || 0);
+    const fim = Number(pedido.finalizadoEm || 0);
+    if (!inicio || !fim || fim < inicio) return '';
+    const minutos = Math.max(0, Math.floor((fim - inicio) / 60000));
+    return `<div class="pedido-tempo-etapa tempo-normal">⏱ ${minutos} min • Finalizado</div>`;
+}
+
 // Atualiza só a aparência a cada minuto; não consulta nem altera o banco.
 setInterval(() => {
     document.querySelectorAll('.pedido-card[data-urgencia-inicio]').forEach(atualizarUrgenciaVisualCard);
@@ -1980,7 +1991,7 @@ function montarCardPedido(id, pedido, comAcoes) {
             </div>
             <div class="pedido-hora-bloco">
                 <div class="pedido-hora">${formatarHora(pedido.timestamp)}</div>
-                ${comAcoes ? '<div class="pedido-tempo-etapa"></div>' : ''}
+                ${comAcoes ? '<div class="pedido-tempo-etapa"></div>' : montarTempoFinalizadoPedido(pedido)}
             </div>
         </div>
         ${resgateHtml}
