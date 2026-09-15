@@ -942,34 +942,59 @@
                 </div>
             </section>
 
-            <section data-tab="fechamento">
-                <h2>📋 Fechamento Diário de Pedidos</h2>
-                <div class="loja-status-card">
-                    <p class="dica-secao">Confira os pedidos do dia (ou de um período), copie pra lançar no seu Sistema de Gestão, e marque o que já foi lançado.</p>
-                    <div class="produto-admin-linha">
-                        <div class="campo-com-label"><label class="campo-label">De</label><input type="date" id="fechamentoDataInicio"></div>
-                        <div class="campo-com-label"><label class="campo-label">Até</label><input type="date" id="fechamentoDataFim"></div>
+            <section data-tab="fechamento" class="fechamento-premium">
+                <div class="fechamento-titulo-wrap">
+                    <div>
+                        <h2>📋 Fechamento Diário de Pedidos</h2>
+                        <p class="fechamento-subtitulo">Consulte o movimento por período e deixe o fechamento pronto para conferência.</p>
                     </div>
-                    <div class="produto-admin-linha" style="margin-top:10px;">
-                        <select id="fechamentoFiltroStatus">
-                            <option value="todos">Todos os status</option>
-                            <option value="pendente">Recebidos</option>
-                            <option value="aceito">Em preparo</option>
-                            <option value="em_rota">Saiu para entrega</option>
-                            <option value="pronto_retirada">Pronto pra retirada</option>
-                            <option value="entregue">Entregues</option>
-                            <option value="recusado">Cancelados</option>
-                        </select>
-                        <select id="fechamentoFiltroTipo">
-                            <option value="todos">Delivery e Retirada</option>
-                            <option value="entrega">Só Delivery</option>
-                            <option value="retirada">Só Retirada</option>
-                        </select>
-                    </div>
-                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="carregarFechamentoDiario()">🔎 Ver pedidos do período</button>
+                    <span class="fechamento-badge">Resumo operacional</span>
                 </div>
 
-                <div id="fechamentoConteudo" style="margin-top:16px;"></div>
+                <div class="loja-status-card fechamento-filtros-card">
+                    <div class="fechamento-filtros-cabecalho">
+                        <div>
+                            <strong>Período e filtros</strong>
+                            <p class="dica-secao">Confira os pedidos do dia (ou de um período), copie pra lançar no seu Sistema de Gestão, e marque o que já foi lançado.</p>
+                        </div>
+                    </div>
+
+                    <div class="fechamento-filtros-grid">
+                        <div class="campo-com-label fechamento-campo">
+                            <label class="campo-label" for="fechamentoDataInicio">De</label>
+                            <input type="date" id="fechamentoDataInicio">
+                        </div>
+                        <div class="campo-com-label fechamento-campo">
+                            <label class="campo-label" for="fechamentoDataFim">Até</label>
+                            <input type="date" id="fechamentoDataFim">
+                        </div>
+                        <div class="campo-com-label fechamento-campo">
+                            <label class="campo-label" for="fechamentoFiltroStatus">Status</label>
+                            <select id="fechamentoFiltroStatus">
+                                <option value="todos">Todos os status</option>
+                                <option value="pendente">Recebidos</option>
+                                <option value="aceito">Em preparo</option>
+                                <option value="em_rota">Saiu para entrega</option>
+                                <option value="pronto_retirada">Pronto pra retirada</option>
+                                <option value="entregue">Entregues</option>
+                                <option value="recusado">Cancelados</option>
+                            </select>
+                        </div>
+                        <div class="campo-com-label fechamento-campo">
+                            <label class="campo-label" for="fechamentoFiltroTipo">Modalidade</label>
+                            <select id="fechamentoFiltroTipo">
+                                <option value="todos">Delivery e Retirada</option>
+                                <option value="entrega">Só Delivery</option>
+                                <option value="retirada">Só Retirada</option>
+                            </select>
+                        </div>
+                        <div class="fechamento-acao-wrap">
+                            <button class="btn-salvar-ordem fechamento-btn-consultar" onclick="carregarFechamentoDiario()">🔎 Ver pedidos do período</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="fechamentoConteudo" class="fechamento-conteudo"></div>
             </section>
 
             <section data-tab="fidelidade">
