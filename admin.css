@@ -979,9 +979,9 @@ body {
 #areaImpressaoPedido .ticket-item { margin-bottom: 8px; font-size: 1.05em; }
 #areaImpressaoPedido .ticket-obs { color: #555; font-size: 0.9em; margin-left: 12px; }
 #areaImpressaoPedido .ticket-total { font-size: 1.2em; text-align: right; }
-/* Final do cupom térmico: depois do Total, avança 10 mm e só então imprime
+/* Final do cupom térmico: depois do Total, avança 5 mm e só então imprime
    uma linha real. Essa linha força o driver a considerar o fim físico do ticket. */
-#areaImpressaoPedido .ticket-espaco-final { height: 10mm; }
+#areaImpressaoPedido .ticket-espaco-final { height: 5mm; }
 #areaImpressaoPedido hr.ticket-linha-final { margin: 0; }
 
 /* Aviso remoto de status da assinatura (controlado pelo Firebase, sem precisar de deploy) */
