@@ -972,7 +972,27 @@ body {
 #areaImpressaoPedido h3 { margin: 0 0 8px; }
 #areaImpressaoPedido .ticket-item { margin-bottom: 8px; font-size: 1.05em; }
 #areaImpressaoPedido .ticket-obs { color: #555; font-size: 0.9em; margin-left: 12px; }
-#areaImpressaoPedido .ticket-total { font-size: 1.2em; text-align: right; }
+#areaImpressaoPedido .ticket-total {
+    font-size: 1.2em;
+    text-align: right;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 0;
+}
+
+/* Avanço final do papel do ticket: 20 mm depois do total, sem alterar o conteúdo do pedido. */
+#areaImpressaoPedido .ticket-avanco-papel {
+    display: block;
+    width: 100%;
+    height: 20mm;
+    min-height: 20mm;
+    line-height: 20mm;
+    font-size: 1px;
+    color: transparent;
+    overflow: hidden;
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
 
 /* Aviso remoto de status da assinatura (controlado pelo Firebase, sem precisar de deploy) */
 .banner-assinatura {
