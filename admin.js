@@ -1879,8 +1879,11 @@ const URGENCIA_PEDIDOS = {
 
 function obterInicioEtapaPedido(pedido) {
     if (!pedido) return 0;
-    // O cronômetro operacional é contínuo: começa quando o pedido entra e não zera ao mudar de etapa.
-    return Number(pedido.timestamp || pedido.aceitoEm || pedido.prontoEm || pedido.saiuEntregaEm || 0);
+    // Para pedidos pagos online, o tempo operacional começa quando o pagamento foi confirmado
+    // e o pedido ficou disponível para a loja produzir. Pedidos normais continuam usando o
+    // timestamp original. É apenas leitura dos horários já gravados; não altera Firebase/status.
+    const pagamentoConfirmadoEm = Number(pedido.pagamento && pedido.pagamento.confirmadoEm || 0);
+    return Number(pagamentoConfirmadoEm || pedido.timestamp || pedido.aceitoEm || pedido.prontoEm || pedido.saiuEntregaEm || 0);
 }
 
 function atualizarUrgenciaVisualCard(card) {
@@ -1922,7 +1925,9 @@ function aplicarUrgenciaVisualCard(card, pedido, comAcoes) {
 // e NÃO altera status, Firebase, notificações ou qualquer fluxo operacional.
 function montarTempoFinalizadoPedido(pedido) {
     if (!pedido || pedido.status !== 'entregue') return '';
-    const inicio = Number(pedido.timestamp || 0);
+    // Usa o mesmo início operacional do cronômetro em andamento. Assim, pedido pago online
+    // mede da confirmação do pagamento até a finalização; os demais medem desde a criação.
+    const inicio = obterInicioEtapaPedido(pedido);
     const fim = Number(pedido.finalizadoEm || 0);
     if (!inicio || !fim || fim < inicio) return '';
     const minutos = Math.max(0, Math.floor((fim - inicio) / 60000));
