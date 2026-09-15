@@ -1679,62 +1679,18 @@ function escutarFormatoImpressao() {
 // Ajusta a impressão (tamanho da página + fonte) pro formato de bobina escolhido, injetando
 // um <style> na hora — feito assim porque o navegador não permite um "@page" só pra um trecho
 // específico da página, então precisa ser a regra @page inteira do documento, trocada na hora
-function aplicarFormatoImpressao(areaImpressao = null) {
+function aplicarFormatoImpressao() {
     let estilo = document.getElementById('estiloFormatoImpressao');
     if (!estilo) {
         estilo = document.createElement('style');
         estilo.id = 'estiloFormatoImpressao';
         document.head.appendChild(estilo);
     }
-
-    const larguraMm = formatoImpressaoAtual === '58mm' ? 58 : 80;
-    const larguraPagina = `${larguraMm}mm`;
+    const larguraPagina = formatoImpressaoAtual === '58mm' ? '58mm' : '80mm';
+    estilo.textContent = `@page { size: ${larguraPagina} auto; margin: 2mm; }`;
 
     document.body.classList.remove('formato-80mm', 'formato-58mm');
     document.body.classList.add('formato-' + formatoImpressaoAtual);
-
-    // Em impressoras térmicas alguns drivers transformam "height:auto" em uma folha
-    // curta e acabam cortando o fim do ticket. Por isso medimos o conteúdo real antes
-    // de imprimir e enviamos uma página com a altura exata do pedido. O próprio ticket
-    // já contém os 20 mm finais de avanço de papel.
-    let alturaPaginaMm = null;
-    if (areaImpressao) {
-        const estilosOriginais = {
-            display: areaImpressao.style.display,
-            position: areaImpressao.style.position,
-            visibility: areaImpressao.style.visibility,
-            left: areaImpressao.style.left,
-            top: areaImpressao.style.top,
-            width: areaImpressao.style.width,
-            maxWidth: areaImpressao.style.maxWidth,
-            fontSize: areaImpressao.style.fontSize,
-            lineHeight: areaImpressao.style.lineHeight,
-            boxSizing: areaImpressao.style.boxSizing
-        };
-
-        areaImpressao.style.display = 'block';
-        areaImpressao.style.position = 'fixed';
-        areaImpressao.style.visibility = 'hidden';
-        areaImpressao.style.left = '-10000px';
-        areaImpressao.style.top = '0';
-        areaImpressao.style.width = `${larguraMm - 4}mm`; // desconta 2 mm de cada lado
-        areaImpressao.style.maxWidth = 'none';
-        areaImpressao.style.fontSize = formatoImpressaoAtual === '58mm' ? '9px' : '12px';
-        areaImpressao.style.lineHeight = formatoImpressaoAtual === '58mm' ? '1.25' : '1.35';
-        areaImpressao.style.boxSizing = 'border-box';
-
-        // 96 CSS px = 1 polegada; 25,4 mm = 1 polegada.
-        const pxPorMm = 96 / 25.4;
-        const alturaConteudoMm = Math.ceil(areaImpressao.scrollHeight / pxPorMm);
-        // +4 mm das margens superior/inferior da página e +3 mm de folga técnica.
-        alturaPaginaMm = Math.max(60, Math.min(1000, alturaConteudoMm + 7));
-
-        Object.assign(areaImpressao.style, estilosOriginais);
-    }
-
-    estilo.textContent = alturaPaginaMm
-        ? `@page { size: ${larguraPagina} ${alturaPaginaMm}mm; margin: 2mm; }`
-        : `@page { size: ${larguraPagina} auto; margin: 2mm; }`;
 }
 
 function formatarPreco(v) {
@@ -1839,16 +1795,14 @@ function montarHtmlTicketImpressao(pedido, numeroPedido) {
         <h3>Itens do pedido</h3>
         ${itensHtml}
         <hr>
+        <p><strong>Forma de pagamento:</strong> ${pedido.formaPagamento || 'Não informado'}</p>
+        ${pedido.troco ? `<p><strong>${formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))}</strong></p>` : ''}
         ${pedido.observacoes ? `<p><strong>Observações:</strong> ${pedido.observacoes}</p>` : ''}
         ${pedido.recompensaResgatada ? `<p><strong>🎁 RESGATE DO CLUBE:</strong> ${pedido.recompensaResgatada.descricao}</p>` : ''}
         ${pedido.dataEncomenda ? `<p><strong>📅 ENCOMENDA PRA:</strong> ${pedido.dataEncomenda.split('-').reverse().join('/')}</p>` : ''}
         ${pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' ? `<p><strong>💰 SINAL:</strong> ${pedido.pagamento.percentualSinal}% do produto pago (${formatarPreco(pedido.pagamento.valorSinal)}) — falta ${formatarPreco(totalDoPedido(pedido) - pedido.pagamento.valorSinal)} na entrega${pedido.pagamento.freteInformado > 0 ? ` (esse valor já inclui o frete de ${formatarPreco(pedido.pagamento.freteInformado)})` : ''}</p>` : ''}
-        <div class="ticket-fechamento">
-            <p><strong>Forma de pagamento:</strong> ${pedido.formaPagamento || 'Não informado'}</p>
-            ${pedido.troco ? `<p><strong>${formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))}</strong></p>` : ''}
-            <p class="ticket-total"><strong>Total: ${formatarPreco(totalDoPedido(pedido))}</strong></p>
-        </div>
-        <div class="ticket-avanco-papel" aria-hidden="true">&nbsp;</div>
+        <hr>
+        <p class="ticket-total"><strong>Total: ${formatarPreco(totalDoPedido(pedido))}</strong></p>
     `;
 }
 
@@ -1857,7 +1811,7 @@ function imprimirPedidoIndividual(id) {
     if (!pedido) { alert('Não foi possível encontrar os dados desse pedido pra imprimir.'); return; }
     const areaImpressao = document.getElementById('areaImpressaoPedido');
     areaImpressao.innerHTML = montarHtmlTicketImpressao(pedido, pedido.numero || null);
-    aplicarFormatoImpressao(areaImpressao);
+    aplicarFormatoImpressao();
     window.print();
 }
 
@@ -1869,7 +1823,7 @@ function imprimirFechamento() {
     const areaImpressao = document.getElementById('areaImpressaoPedido');
     if (!conteudo || !areaImpressao) return;
     areaImpressao.innerHTML = conteudo.innerHTML;
-    aplicarFormatoImpressao(areaImpressao);
+    aplicarFormatoImpressao();
     window.print();
 }
 

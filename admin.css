@@ -892,16 +892,7 @@ body {
     /* Esconde o painel inteiro DE VERDADE (display:none tira do fluxo, diferente de
        visibility:hidden, que mantinha o espaço todo ocupado e gerava páginas em branco) */
     #telaLogin, #painel { display: none !important; }
-    #areaImpressaoPedido {
-        display: block !important;
-        /* A KP-1025 imprimiu o ticket completo quando o diálogo do navegador foi
-           ajustado manualmente para 95%. Aqui aplicamos o movimento inverso somente no
-           conteúdo do ticket, para que o usuário possa deixar a escala do diálogo
-           em 100% nas próximas impressões. */
-        transform: scale(1.05);
-        transform-origin: top left;
-        width: 105.2632%;
-    }
+    #areaImpressaoPedido { display: block !important; }
     #areaImpressaoPedido .fechamento-pedido-acoes,
     #areaImpressaoPedido .fechamento-acoes { display: none !important; }
 
@@ -981,45 +972,7 @@ body {
 #areaImpressaoPedido h3 { margin: 0 0 8px; }
 #areaImpressaoPedido .ticket-item { margin-bottom: 8px; font-size: 1.05em; }
 #areaImpressaoPedido .ticket-obs { color: #555; font-size: 0.9em; margin-left: 12px; }
-/* Bloco final indivisível do cupom: pagamento, troco e total precisam sair juntos. */
-#areaImpressaoPedido .ticket-fechamento {
-    break-inside: avoid;
-    page-break-inside: avoid;
-    margin-top: 12px;
-    padding-top: 10px;
-    border-top: 1px dashed #999;
-}
-#areaImpressaoPedido .ticket-fechamento > p:first-child { margin-top: 0; }
-#areaImpressaoPedido .ticket-total {
-    font-size: 1.2em;
-    text-align: right;
-    break-inside: avoid;
-    page-break-inside: avoid;
-    margin-bottom: 0;
-}
-
-/* Avanço físico do papel: o espaço sozinho pode ser ignorado por alguns drivers térmicos.
-   Mantemos 20 mm e imprimimos um micro-ponto no fim para obrigar o avanço real da bobina. */
-#areaImpressaoPedido .ticket-avanco-papel {
-    display: block;
-    position: relative;
-    width: 100%;
-    height: 20mm;
-    min-height: 20mm;
-    overflow: visible;
-    break-inside: avoid;
-    page-break-inside: avoid;
-}
-#areaImpressaoPedido .ticket-avanco-papel::after {
-    content: "·";
-    position: absolute;
-    left: 50%;
-    bottom: 0;
-    transform: translateX(-50%);
-    font-size: 3px;
-    line-height: 1;
-    color: #000;
-}
+#areaImpressaoPedido .ticket-total { font-size: 1.2em; text-align: right; }
 
 /* Aviso remoto de status da assinatura (controlado pelo Firebase, sem precisar de deploy) */
 .banner-assinatura {
