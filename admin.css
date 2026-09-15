@@ -2107,8 +2107,27 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
     }
 }
 
-/* ===== LARGURA PREMIUM DAS DEMAIS ABAS =====
-   Aproveita melhor a tela sem alterar Pedidos e Produtos, que já possuem layout próprio. */
+/* ===== LARGURA EQUILIBRADA DAS DEMAIS ABAS =====
+   Ajuste por aba: aproveita melhor o desktop sem esticar os cards em excesso.
+   Pedidos e Produtos mantêm seus layouts próprios já aprovados. */
+.painel-main > section[data-tab="fechamento"] {
+    width: min(1120px, calc(100vw - 56px));
+}
+.painel-main > section[data-tab="cupons"],
+.painel-main > section[data-tab="fidelidade"],
+.painel-main > section[data-tab="mensagens"],
+.painel-main > section[data-tab="agenda"],
+.painel-main > section[data-tab="visitantes"] {
+    width: min(1160px, calc(100vw - 56px));
+}
+.painel-main > section[data-tab="loja"],
+.painel-main > section[data-tab="administracao-mestre"] {
+    width: min(1220px, calc(100vw - 56px));
+}
+.painel-main > section[data-tab="gestao"] {
+    width: min(1320px, calc(100vw - 56px));
+}
+
 .painel-main > section[data-tab="fechamento"],
 .painel-main > section[data-tab="cupons"],
 .painel-main > section[data-tab="fidelidade"],
@@ -2118,24 +2137,293 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
 .painel-main > section[data-tab="agenda"],
 .painel-main > section[data-tab="visitantes"],
 .painel-main > section[data-tab="administracao-mestre"] {
-    width: min(1500px, calc(100vw - 48px));
     max-width: none;
-    margin-left: 50%;
-    transform: translateX(-50%);
+    margin-left: auto;
+    margin-right: auto;
+    transform: none;
 }
 
-/* Mantém uma leitura confortável: os cards passam a usar a largura da aba,
-   mas sem alterar estrutura, eventos ou lógica dos componentes internos. */
-.painel-main > section[data-tab="fechamento"] > *,
-.painel-main > section[data-tab="cupons"] > *,
-.painel-main > section[data-tab="fidelidade"] > *,
-.painel-main > section[data-tab="mensagens"] > *,
-.painel-main > section[data-tab="gestao"] > *,
-.painel-main > section[data-tab="loja"] > *,
-.painel-main > section[data-tab="agenda"] > *,
-.painel-main > section[data-tab="visitantes"] > *,
-.painel-main > section[data-tab="administracao-mestre"] > * {
-    max-width: none;
+/* Não força os cards internos a esticar além do desenho original.
+   A própria aba ganha espaço; os componentes preservam proporções confortáveis. */
+@media (max-width: 760px) {
+    .painel-main > section[data-tab="fechamento"],
+    .painel-main > section[data-tab="cupons"],
+    .painel-main > section[data-tab="fidelidade"],
+    .painel-main > section[data-tab="mensagens"],
+    .painel-main > section[data-tab="gestao"],
+    .painel-main > section[data-tab="loja"],
+    .painel-main > section[data-tab="agenda"],
+    .painel-main > section[data-tab="visitantes"],
+    .painel-main > section[data-tab="administracao-mestre"] {
+        width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+    }
+}
+
+/* ===== REFINAMENTO PREMIUM COMPACTO — DEMAIS ABAS =====
+   Objetivo: reduzir o "ar" interno e aproximar elementos relacionados sem
+   alterar comportamento, IDs, eventos ou lógica. Pedidos e Produtos ficam fora. */
+
+/* Canvas confortável: mais área útil, sem esticar o conteúdo até as bordas. */
+.painel-main > section[data-tab="fechamento"],
+.painel-main > section[data-tab="cupons"],
+.painel-main > section[data-tab="fidelidade"],
+.painel-main > section[data-tab="mensagens"],
+.painel-main > section[data-tab="agenda"],
+.painel-main > section[data-tab="visitantes"] {
+    width: min(1180px, calc(100vw - 52px));
+}
+.painel-main > section[data-tab="loja"],
+.painel-main > section[data-tab="administracao-mestre"] {
+    width: min(1260px, calc(100vw - 52px));
+}
+.painel-main > section[data-tab="gestao"] {
+    width: min(1380px, calc(100vw - 52px));
+}
+
+/* Ritmo vertical geral mais enxuto. */
+.painel-main > section:not([data-tab="pedidos"]):not([data-tab="produtos"]) > h2 {
+    margin: 18px 0 9px;
+    font-size: 1.08em;
+}
+.painel-main > section:not([data-tab="pedidos"]):not([data-tab="produtos"]) .dica-secao {
+    margin: 4px 0 8px;
+    line-height: 1.38;
+}
+.painel-main > section:not([data-tab="pedidos"]):not([data-tab="produtos"]) .loja-status-card {
+    padding: 12px 14px;
+    border-radius: 12px;
+}
+.painel-main > section:not([data-tab="pedidos"]):not([data-tab="produtos"]) .loja-status-card + .loja-status-card {
+    margin-top: 10px !important;
+}
+.painel-main > section:not([data-tab="pedidos"]):not([data-tab="produtos"]) .loja-status-card h3 {
+    margin: 12px 0 7px;
+    font-size: .96em;
+}
+.painel-main > section:not([data-tab="pedidos"]):not([data-tab="produtos"]) .campo-label {
+    margin: 5px 0 3px;
+    font-size: .72em;
+}
+.painel-main > section:not([data-tab="pedidos"]):not([data-tab="produtos"]) .produto-admin-linha {
+    gap: 8px;
+    margin-bottom: 6px;
+}
+.painel-main > section:not([data-tab="pedidos"]):not([data-tab="produtos"]) input[type="text"],
+.painel-main > section:not([data-tab="pedidos"]):not([data-tab="produtos"]) input[type="number"],
+.painel-main > section:not([data-tab="pedidos"]):not([data-tab="produtos"]) input[type="date"],
+.painel-main > section:not([data-tab="pedidos"]):not([data-tab="produtos"]) input[type="time"],
+.painel-main > section:not([data-tab="pedidos"]):not([data-tab="produtos"]) select,
+.painel-main > section:not([data-tab="pedidos"]):not([data-tab="produtos"]) textarea {
+    box-sizing: border-box;
+    min-height: 34px;
+}
+.painel-main > section:not([data-tab="pedidos"]):not([data-tab="produtos"]) textarea {
+    line-height: 1.35;
+}
+.painel-main > section:not([data-tab="pedidos"]):not([data-tab="produtos"]) .btn-salvar-ordem,
+.painel-main > section:not([data-tab="pedidos"]):not([data-tab="produtos"]) .btn-secondary {
+    min-height: 34px;
+}
+
+/* ---------- Fechamento ---------- */
+.painel-main > section[data-tab="fechamento"] .loja-status-card {
+    padding: 12px 16px;
+}
+.painel-main > section[data-tab="fechamento"] .loja-status-card .produto-admin-linha {
+    margin-top: 6px !important;
+}
+.painel-main > section[data-tab="fechamento"] #fechamentoDataInicio,
+.painel-main > section[data-tab="fechamento"] #fechamentoDataFim,
+.painel-main > section[data-tab="fechamento"] #fechamentoFiltroStatus,
+.painel-main > section[data-tab="fechamento"] #fechamentoFiltroTipo {
+    min-height: 34px;
+}
+.painel-main > section[data-tab="fechamento"] .btn-salvar-ordem {
+    margin-top: 6px !important;
+    min-height: 38px;
+}
+
+/* ---------- Cupons ---------- */
+.painel-main > section[data-tab="cupons"] .cupons-admin-list {
+    gap: 6px;
+    margin-bottom: 9px;
+}
+.painel-main > section[data-tab="cupons"] .cupom-admin-item {
+    padding: 8px 11px;
+    border-radius: 9px;
+}
+.painel-main > section[data-tab="cupons"] .cupom-admin-info span {
+    line-height: 1.28;
+}
+.painel-main > section[data-tab="cupons"] .cupom-novo-form {
+    gap: 6px;
+    align-items: end;
+}
+.painel-main > section[data-tab="cupons"] .cupom-novo-form input,
+.painel-main > section[data-tab="cupons"] .cupom-novo-form select,
+.painel-main > section[data-tab="cupons"] .cupom-novo-form button {
+    min-height: 36px;
+    padding: 7px 9px;
+}
+.painel-main > section[data-tab="cupons"] .cupom-novo-form .produto-admin-linha {
+    gap: 6px;
+    margin: 0;
+    flex: 1.6 1 300px;
+}
+
+/* ---------- Fidelidade ---------- */
+.painel-main > section[data-tab="fidelidade"] .loja-status-card {
+    padding: 12px 15px;
+}
+.painel-main > section[data-tab="fidelidade"] #fidelidadeValorPorPonto {
+    width: min(250px, 100%);
+}
+.painel-main > section[data-tab="fidelidade"] .dia-checkbox {
+    margin-top: 4px !important;
+    margin-bottom: 6px !important;
+}
+.painel-main > section[data-tab="fidelidade"] .produto-admin-linha {
+    margin-bottom: 4px;
+}
+.painel-main > section[data-tab="fidelidade"] .btn-salvar-ordem {
+    margin-top: 6px !important;
+    min-height: 38px;
+}
+.painel-main > section[data-tab="fidelidade"] > h3 {
+    margin: 14px 0 8px !important;
+}
+.painel-main > section[data-tab="fidelidade"] .cupom-novo-form {
+    gap: 6px;
+    align-items: end;
+}
+.painel-main > section[data-tab="fidelidade"] .cupom-novo-form input,
+.painel-main > section[data-tab="fidelidade"] .cupom-novo-form select,
+.painel-main > section[data-tab="fidelidade"] .cupom-novo-form button {
+    min-height: 36px;
+    padding: 7px 9px;
+}
+
+/* ---------- Clientes ---------- */
+.painel-main > section[data-tab="mensagens"] .dica-secao {
+    max-width: 1000px;
+}
+.painel-main > section[data-tab="mensagens"] #mensagemClientes {
+    min-height: 54px !important;
+    padding: 9px 11px;
+}
+.painel-main > section[data-tab="mensagens"] > .produto-admin-linha {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 180px;
+    gap: 8px;
+    align-items: end;
+    margin: 7px 0 !important;
+}
+.painel-main > section[data-tab="mensagens"] > .produto-admin-linha .btn-salvar-ordem {
+    width: 100%;
+    min-height: 36px;
+}
+
+/* ---------- Gestão ---------- */
+.painel-main > section[data-tab="gestao"] .gestao-subtabs {
+    gap: 5px !important;
+    margin-bottom: 10px !important;
+}
+.painel-main > section[data-tab="gestao"] .gestao-subtab-btn {
+    padding: 6px 10px;
+    font-size: .78em;
+    border-radius: 15px;
+}
+.painel-main > section[data-tab="gestao"] .gestao-subconteudo > .dica-secao:first-child {
+    margin-top: 0;
+}
+.painel-main > section[data-tab="gestao"] .loja-status-card {
+    padding: 11px 13px;
+}
+.painel-main > section[data-tab="gestao"] .loja-status-card h3 {
+    margin-top: 9px;
+}
+.painel-main > section[data-tab="gestao"] .produto-admin-linha[style*="margin-top:10px"] {
+    margin-top: 6px !important;
+}
+.painel-main > section[data-tab="gestao"] .loja-status-card[style*="margin-top:16px"] {
+    margin-top: 10px !important;
+}
+.painel-main > section[data-tab="gestao"] table {
+    line-height: 1.25;
+}
+.painel-main > section[data-tab="gestao"] th,
+.painel-main > section[data-tab="gestao"] td {
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+/* ---------- Loja ---------- */
+.painel-main > section[data-tab="loja"] .loja-status-card {
+    padding: 11px 14px;
+}
+.painel-main > section[data-tab="loja"] .loja-status-card[style*="margin-top:16px"] {
+    margin-top: 10px !important;
+}
+.painel-main > section[data-tab="loja"] .loja-status-card h3 {
+    margin: 10px 0 6px;
+}
+.painel-main > section[data-tab="loja"] .opcoes-radio {
+    gap: 6px;
+    margin-top: 5px;
+}
+.painel-main > section[data-tab="loja"] .opcao-btn {
+    padding: 8px 10px;
+    min-width: 115px;
+}
+
+/* ---------- Agenda ---------- */
+.painel-main > section[data-tab="agenda"] .loja-status-card {
+    padding: 11px 14px;
+}
+.painel-main > section[data-tab="agenda"] .loja-status-card[style*="margin-top:16px"] {
+    margin-top: 10px !important;
+}
+.painel-main > section[data-tab="agenda"] .loja-status-card h3 {
+    margin: 9px 0 6px;
+}
+.painel-main > section[data-tab="agenda"] .btn-salvar-ordem {
+    min-height: 36px;
+}
+
+/* ---------- Visitantes ---------- */
+.painel-main > section[data-tab="visitantes"] .loja-status-card {
+    padding: 13px 16px;
+}
+.painel-main > section[data-tab="visitantes"] .visitantes-online-numero {
+    margin: 7px 0 10px;
+}
+.painel-main > section[data-tab="visitantes"] .produto-admin-linha {
+    margin-bottom: 6px;
+}
+.painel-main > section[data-tab="visitantes"] .btn-salvar-ordem {
+    min-height: 38px;
+}
+
+/* ---------- Administração ---------- */
+.painel-main > section[data-tab="administracao-mestre"] .loja-status-card {
+    padding: 11px 14px;
+}
+.painel-main > section[data-tab="administracao-mestre"] .loja-status-card[style*="margin-top:16px"] {
+    margin-top: 10px !important;
+}
+.painel-main > section[data-tab="administracao-mestre"] .loja-status-card h3 {
+    margin: 10px 0 6px;
+}
+.painel-main > section[data-tab="administracao-mestre"] #cardLoginMestre {
+    padding: 14px 16px;
+}
+
+@media (max-width: 900px) {
+    .painel-main > section[data-tab="mensagens"] > .produto-admin-linha {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 760px) {
@@ -2150,6 +2438,6 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
     .painel-main > section[data-tab="administracao-mestre"] {
         width: 100%;
         margin-left: 0;
-        transform: none;
+        margin-right: 0;
     }
 }
