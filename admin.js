@@ -5492,13 +5492,12 @@ function obterStatusProdutoAdmin(produto) {
 }
 
 function aplicarStatusProdutoNoFormulario(id) {
-    const select = document.getElementById('prodStatus_' + id);
+    const marcado = document.querySelector(`input[name="prodStatus_${id}"]:checked`);
     const chkDisponivel = document.getElementById('prodDisp_' + id);
     const chkEscondido = document.getElementById('prodEscondido_' + id);
-    const badge = document.getElementById('prodStatusBadge_' + id);
-    if (!select || !chkDisponivel || !chkEscondido) return;
+    if (!marcado || !chkDisponivel || !chkEscondido) return;
 
-    const status = select.value;
+    const status = marcado.value;
     if (status === 'ativo') {
         chkDisponivel.checked = true;
         chkEscondido.checked = false;
@@ -5508,11 +5507,6 @@ function aplicarStatusProdutoNoFormulario(id) {
     } else {
         chkDisponivel.checked = false;
         chkEscondido.checked = true;
-    }
-
-    if (badge) {
-        badge.className = 'produto-status-badge produto-status-' + status;
-        badge.textContent = status === 'ativo' ? '🟢 Ativo' : (status === 'em_falta' ? '🟠 Em falta' : '⚫ Inativo');
     }
 }
 
@@ -5524,14 +5518,23 @@ function montarLinhaProduto(id, produto) {
         <div class="produto-admin-linha">
             <input type="text" id="prodNome_${id}" value="${produto.nome || ''}" placeholder="Nome do produto">
             <div class="produto-status-controle">
-                <label class="campo-label" for="prodStatus_${id}">Status do produto</label>
-                <div class="produto-status-linha">
-                    <select id="prodStatus_${id}" class="produto-status-select" onchange="aplicarStatusProdutoNoFormulario('${id}')">
-                        <option value="ativo" ${obterStatusProdutoAdmin(produto) === 'ativo' ? 'selected' : ''}>🟢 Ativo — aparece e pode ser comprado</option>
-                        <option value="em_falta" ${obterStatusProdutoAdmin(produto) === 'em_falta' ? 'selected' : ''}>🟠 Em falta — aparece como esgotado</option>
-                        <option value="inativo" ${obterStatusProdutoAdmin(produto) === 'inativo' ? 'selected' : ''}>⚫ Inativo — não aparece no cardápio</option>
-                    </select>
-                    <span id="prodStatusBadge_${id}" class="produto-status-badge produto-status-${obterStatusProdutoAdmin(produto)}">${obterStatusProdutoAdmin(produto) === 'ativo' ? '🟢 Ativo' : (obterStatusProdutoAdmin(produto) === 'em_falta' ? '🟠 Em falta' : '⚫ Inativo')}</span>
+                <label class="campo-label">Status do produto</label>
+                <div class="produto-status-opcoes" role="radiogroup" aria-label="Status do produto">
+                    <label class="produto-status-opcao produto-status-opcao-ativo">
+                        <input type="radio" name="prodStatus_${id}" value="ativo" ${obterStatusProdutoAdmin(produto) === 'ativo' ? 'checked' : ''} onchange="aplicarStatusProdutoNoFormulario('${id}')">
+                        <span>🟢 Ativo</span>
+                        <small>À venda</small>
+                    </label>
+                    <label class="produto-status-opcao produto-status-opcao-falta">
+                        <input type="radio" name="prodStatus_${id}" value="em_falta" ${obterStatusProdutoAdmin(produto) === 'em_falta' ? 'checked' : ''} onchange="aplicarStatusProdutoNoFormulario('${id}')">
+                        <span>🟠 Em falta</span>
+                        <small>Mostra esgotado</small>
+                    </label>
+                    <label class="produto-status-opcao produto-status-opcao-inativo">
+                        <input type="radio" name="prodStatus_${id}" value="inativo" ${obterStatusProdutoAdmin(produto) === 'inativo' ? 'checked' : ''} onchange="aplicarStatusProdutoNoFormulario('${id}')">
+                        <span>⚫ Inativo</span>
+                        <small>Oculto</small>
+                    </label>
                 </div>
                 <!-- Mantém os campos antigos no DOM para salvar exatamente no formato já usado pelo sistema. -->
                 <input type="checkbox" id="prodDisp_${id}" ${produto.disponivel !== false ? 'checked' : ''} style="display:none;">
