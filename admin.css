@@ -1935,3 +1935,174 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
         margin-top: 0;
     }
 }
+
+/* ---------- Produto — acabamento premium final ---------- */
+/* Cabeçalho em três áreas independentes evita sobreposição e aproveita o espaço real do card. */
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-topo-grid {
+    grid-template-columns: minmax(190px, .92fr) minmax(250px, 1.18fr) max-content;
+    gap: 9px;
+    align-items: start;
+    margin-bottom: 6px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-nome-topo {
+    height: 34px;
+    min-height: 34px;
+    padding: 6px 9px;
+    font-size: .78rem;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-status-controle {
+    min-width: 0;
+    width: 100%;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-status-controle > .campo-label {
+    margin: 0 0 3px;
+    font-size: .62rem;
+    color: #8d796a;
+    letter-spacing: .01em;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-status-opcoes {
+    width: fit-content;
+    max-width: 100%;
+    gap: 1px;
+    padding: 2px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-status-opcao {
+    min-height: 26px;
+    padding: 4px 8px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-status-opcao span {
+    font-size: .72rem;
+    white-space: nowrap;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-status-legenda {
+    margin-top: 2px;
+    min-height: 10px;
+    font-size: .6rem;
+    line-height: 1.15;
+    color: #978579;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .campo-encomenda-produto {
+    margin: 17px 0 0;
+    padding: 0 2px 0 0;
+    align-self: start;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 26px;
+    white-space: nowrap;
+    font-size: .72rem;
+    font-weight: 650;
+    color: #5e5148;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .campo-encomenda-produto input {
+    margin: 0;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .campo-encomenda-produto span {
+    display: inline-block;
+    line-height: 1.15;
+}
+
+/* Blocos operacionais com mesma leitura visual e alturas mais enxutas. */
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-config-grid {
+    gap: 7px;
+    margin-bottom: 7px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .campo-vincular-ficha-tecnica,
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-config-grid .produto-agenda-card {
+    min-height: 58px;
+    border-radius: 10px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .campo-vincular-ficha-tecnica {
+    padding: 7px 9px 8px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .campo-vincular-ficha-tecnica select {
+    margin-top: 3px;
+    min-height: 28px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-agenda-card > summary {
+    min-height: 56px;
+    box-sizing: border-box;
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+/* Oferta mais leve e alinhada. */
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-oferta-grid {
+    gap: 8px;
+    padding: 6px 8px;
+    margin-bottom: 6px;
+    border-radius: 10px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .campo-oferta-check {
+    font-size: .7rem;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .campo-oferta-preco .campo-label {
+    font-size: .62rem;
+}
+
+/* Uploads equilibrados, sem grandes áreas vazias. */
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-fotos-grid {
+    gap: 7px;
+    margin-top: 6px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-fotos-grid .produto-upload-bloco {
+    min-height: 88px;
+    padding: 7px 8px;
+    border-radius: 10px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-upload-linha {
+    gap: 6px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-upload-linha .btn-secondary {
+    padding: 6px 9px;
+    min-height: 30px;
+    font-size: .68rem;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .previa-imagens img {
+    max-height: 54px;
+}
+
+/* Rodapé e metadados mais compactos para fechar o card com equilíbrio. */
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-meta-grid {
+    gap: 7px;
+    margin-top: 6px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-meta-grid .campo-label {
+    font-size: .62rem;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-admin-acoes {
+    gap: 7px;
+    margin-top: 7px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-admin-acoes button {
+    min-height: 32px;
+}
+
+@media (max-width: 1280px) {
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-topo-grid {
+        grid-template-columns: minmax(180px, .9fr) minmax(230px, 1.15fr) max-content;
+    }
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .campo-encomenda-produto {
+        font-size: .68rem;
+    }
+}
+
+@media (max-width: 1080px) {
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-topo-grid {
+        grid-template-columns: minmax(180px, .9fr) minmax(0, 1.1fr);
+    }
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .campo-encomenda-produto {
+        grid-column: 2;
+        margin-top: 2px;
+    }
+}
+
+@media (max-width: 760px) {
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-topo-grid {
+        grid-template-columns: 1fr;
+    }
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .campo-encomenda-produto {
+        grid-column: auto;
+        margin-top: 0;
+    }
+}
