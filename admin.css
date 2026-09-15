@@ -892,7 +892,16 @@ body {
     /* Esconde o painel inteiro DE VERDADE (display:none tira do fluxo, diferente de
        visibility:hidden, que mantinha o espaço todo ocupado e gerava páginas em branco) */
     #telaLogin, #painel { display: none !important; }
-    #areaImpressaoPedido { display: block !important; }
+    #areaImpressaoPedido {
+        display: block !important;
+        /* A KP-1025 imprimiu o ticket completo quando o diálogo do navegador foi
+           ajustado manualmente para 95%. Aplicamos a mesma redução somente no
+           conteúdo do ticket, para que o usuário possa deixar a escala do diálogo
+           em 100% nas próximas impressões. */
+        transform: scale(0.95);
+        transform-origin: top left;
+        width: 105.2632%;
+    }
     #areaImpressaoPedido .fechamento-pedido-acoes,
     #areaImpressaoPedido .fechamento-acoes { display: none !important; }
 
