@@ -499,6 +499,12 @@
                 <button id="btnImportarDados" class="btn-importar-dados" onclick="importarDadosIniciais()" style="display:none;">
                     ⬆️ Importar produtos e cupons que já existiam no cardápio
                 </button>
+                <div class="produto-busca-wrap">
+                    <span class="produto-busca-icone" aria-hidden="true">🔎</span>
+                    <input type="search" id="buscaProdutosAdmin" class="produto-busca-input" placeholder="Pesquisar por nome ou categoria..." autocomplete="off" oninput="filtrarProdutosAdmin()">
+                    <button type="button" class="produto-busca-limpar" onclick="limparBuscaProdutosAdmin()" title="Limpar pesquisa" aria-label="Limpar pesquisa">×</button>
+                </div>
+                <p id="resultadoBuscaProdutosAdmin" class="produto-busca-resultado" aria-live="polite"></p>
                 <div id="produtosAdminList" class="produtos-admin-list"></div>
             </section>
 

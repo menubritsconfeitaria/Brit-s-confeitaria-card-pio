@@ -6297,6 +6297,50 @@ function aplicarSelecaoProdutoSugeridoFreteGratis() {
     }
 }
 
+function normalizarTextoBuscaProduto(texto) {
+    return String(texto || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+}
+
+// Pesquisa somente na lista que já está carregada na tela.
+// Não consulta nem grava nada no Firebase e não recria os cards, preservando edições ainda não salvas.
+function filtrarProdutosAdmin() {
+    const campoBusca = document.getElementById('buscaProdutosAdmin');
+    const lista = document.getElementById('produtosAdminList');
+    const resultado = document.getElementById('resultadoBuscaProdutosAdmin');
+    if (!campoBusca || !lista) return;
+
+    const termo = normalizarTextoBuscaProduto(campoBusca.value);
+    const cards = Array.from(lista.querySelectorAll('.produto-admin-item'));
+    let visiveis = 0;
+
+    cards.forEach(card => {
+        const nome = card.querySelector('input[id^="prodNome_"]')?.value || '';
+        const categoria = card.querySelector('input[id^="prodCategoria_"]')?.value || '';
+        const texto = normalizarTextoBuscaProduto(`${nome} ${categoria}`);
+        const mostrar = !termo || texto.includes(termo);
+        card.style.display = mostrar ? '' : 'none';
+        if (mostrar) visiveis++;
+    });
+
+    if (resultado) {
+        if (!termo) resultado.textContent = '';
+        else if (visiveis === 0) resultado.textContent = 'Nenhum produto encontrado.';
+        else resultado.textContent = `${visiveis} produto${visiveis === 1 ? '' : 's'} encontrado${visiveis === 1 ? '' : 's'}.`;
+    }
+}
+
+function limparBuscaProdutosAdmin() {
+    const campoBusca = document.getElementById('buscaProdutosAdmin');
+    if (!campoBusca) return;
+    campoBusca.value = '';
+    filtrarProdutosAdmin();
+    campoBusca.focus();
+}
+
 function renderizarListaProdutosAdmin() {
     const lista = document.getElementById('produtosAdminList');
     const btnImportar = document.getElementById('btnImportarDados');
@@ -6326,6 +6370,7 @@ function renderizarListaProdutosAdmin() {
         lista.appendChild(montarLinhaProduto(id, produto));
         atualizarPreviaImagens(id);
     });
+    filtrarProdutosAdmin();
     if (typeof renderFichaTecnica === 'function' && fichaTecnica.length > 0) renderFichaTecnica();
     if (typeof renderizarListaDestaquesManuais === 'function') renderizarListaDestaquesManuais();
 }
