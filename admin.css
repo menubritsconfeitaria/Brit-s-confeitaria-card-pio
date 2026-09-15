@@ -1431,3 +1431,44 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
 @media (max-width: 760px) {
     .pedido-hora-bloco { align-items: flex-start; }
 }
+
+
+/* ---------- Status simples do produto: Ativo / Em falta / Inativo ---------- */
+.produto-status-controle {
+    min-width: 280px;
+    flex: 1 1 320px;
+}
+.produto-status-linha {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.produto-status-select {
+    flex: 1 1 240px;
+    min-width: 220px;
+    padding: 9px 10px;
+    border: 1px solid #dfd4c5;
+    border-radius: 10px;
+    background: #fff;
+    color: #4e3a2d;
+    font: inherit;
+}
+.produto-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: .78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.produto-status-ativo { background: #e7f7ed; color: #15753a; }
+.produto-status-em_falta { background: #fff3d8; color: #9a6500; }
+.produto-status-inativo { background: #ececec; color: #555; }
+@media (max-width: 700px) {
+    .produto-status-controle { min-width: 100%; }
+    .produto-status-linha { align-items: stretch; }
+    .produto-status-select { width: 100%; min-width: 0; }
+}

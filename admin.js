@@ -5482,6 +5482,40 @@ function importarDadosIniciais() {
 
 // ---------- PRODUTOS ----------
 
+
+// Traduz os dois campos antigos (disponivel/escondido) em um único status visual.
+// Não muda a estrutura salva no Firebase: preserva compatibilidade com o cardápio atual.
+function obterStatusProdutoAdmin(produto) {
+    if (produto && produto.escondido) return 'inativo';
+    if (produto && produto.disponivel !== false) return 'ativo';
+    return 'em_falta';
+}
+
+function aplicarStatusProdutoNoFormulario(id) {
+    const select = document.getElementById('prodStatus_' + id);
+    const chkDisponivel = document.getElementById('prodDisp_' + id);
+    const chkEscondido = document.getElementById('prodEscondido_' + id);
+    const badge = document.getElementById('prodStatusBadge_' + id);
+    if (!select || !chkDisponivel || !chkEscondido) return;
+
+    const status = select.value;
+    if (status === 'ativo') {
+        chkDisponivel.checked = true;
+        chkEscondido.checked = false;
+    } else if (status === 'em_falta') {
+        chkDisponivel.checked = false;
+        chkEscondido.checked = false;
+    } else {
+        chkDisponivel.checked = false;
+        chkEscondido.checked = true;
+    }
+
+    if (badge) {
+        badge.className = 'produto-status-badge produto-status-' + status;
+        badge.textContent = status === 'ativo' ? '🟢 Ativo' : (status === 'em_falta' ? '🟠 Em falta' : '⚫ Inativo');
+    }
+}
+
 function montarLinhaProduto(id, produto) {
     const div = document.createElement('div');
     div.classList.add('produto-admin-item');
@@ -5489,12 +5523,20 @@ function montarLinhaProduto(id, produto) {
     div.innerHTML = `
         <div class="produto-admin-linha">
             <input type="text" id="prodNome_${id}" value="${produto.nome || ''}" placeholder="Nome do produto">
-            <label class="produto-disponivel-check">
-                <input type="checkbox" id="prodDisp_${id}" ${produto.disponivel !== false ? 'checked' : ''}> Disponível
-            </label>
-            <label class="produto-disponivel-check campo-esconder-produto">
-                <input type="checkbox" id="prodEscondido_${id}" ${produto.escondido ? 'checked' : ''}> Esconder do cardápio
-            </label>
+            <div class="produto-status-controle">
+                <label class="campo-label" for="prodStatus_${id}">Status do produto</label>
+                <div class="produto-status-linha">
+                    <select id="prodStatus_${id}" class="produto-status-select" onchange="aplicarStatusProdutoNoFormulario('${id}')">
+                        <option value="ativo" ${obterStatusProdutoAdmin(produto) === 'ativo' ? 'selected' : ''}>🟢 Ativo — aparece e pode ser comprado</option>
+                        <option value="em_falta" ${obterStatusProdutoAdmin(produto) === 'em_falta' ? 'selected' : ''}>🟠 Em falta — aparece como esgotado</option>
+                        <option value="inativo" ${obterStatusProdutoAdmin(produto) === 'inativo' ? 'selected' : ''}>⚫ Inativo — não aparece no cardápio</option>
+                    </select>
+                    <span id="prodStatusBadge_${id}" class="produto-status-badge produto-status-${obterStatusProdutoAdmin(produto)}">${obterStatusProdutoAdmin(produto) === 'ativo' ? '🟢 Ativo' : (obterStatusProdutoAdmin(produto) === 'em_falta' ? '🟠 Em falta' : '⚫ Inativo')}</span>
+                </div>
+                <!-- Mantém os campos antigos no DOM para salvar exatamente no formato já usado pelo sistema. -->
+                <input type="checkbox" id="prodDisp_${id}" ${produto.disponivel !== false ? 'checked' : ''} style="display:none;">
+                <input type="checkbox" id="prodEscondido_${id}" ${produto.escondido ? 'checked' : ''} style="display:none;">
+            </div>
             <label class="produto-disponivel-check campo-encomenda-produto">
                 <input type="checkbox" id="prodEncomenda_${id}" ${produto.disponivelParaEncomenda ? 'checked' : ''}> 🎂 Disponível pra Encomenda
             </label>
