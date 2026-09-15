@@ -972,6 +972,15 @@ body {
 #areaImpressaoPedido h3 { margin: 0 0 8px; }
 #areaImpressaoPedido .ticket-item { margin-bottom: 8px; font-size: 1.05em; }
 #areaImpressaoPedido .ticket-obs { color: #555; font-size: 0.9em; margin-left: 12px; }
+/* Bloco final indivisível do cupom: pagamento, troco e total precisam sair juntos. */
+#areaImpressaoPedido .ticket-fechamento {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px dashed #999;
+}
+#areaImpressaoPedido .ticket-fechamento > p:first-child { margin-top: 0; }
 #areaImpressaoPedido .ticket-total {
     font-size: 1.2em;
     text-align: right;
