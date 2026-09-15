@@ -160,13 +160,10 @@
             <button class="painel-tab-btn" data-tab="pedidos">🔔 Pedidos</button>
             <button class="painel-tab-btn" data-tab="fechamento">📋 Fechamento</button>
             <button class="painel-tab-btn" data-tab="produtos">📦 Produtos</button>
-            <button class="painel-tab-btn" data-tab="cupons">🎟️ Cupons</button>
-            <button class="painel-tab-btn" data-tab="fidelidade">⭐ Fidelidade</button>
-            <button class="painel-tab-btn" data-tab="mensagens">💌 Clientes</button>
+            <button class="painel-tab-btn" data-tab="clientes-marketing">💗 Clientes &amp; Marketing</button>
             <button class="painel-tab-btn" data-tab="gestao" style="display:none;">📊 Gestão</button>
             <button class="painel-tab-btn" data-tab="loja">🏪 Loja</button>
             <button class="painel-tab-btn" data-tab="agenda">📅 Agenda</button>
-            <button class="painel-tab-btn" data-tab="visitantes">👀 Visitantes</button>
             <button class="painel-tab-btn" data-tab="administracao-mestre" style="display:none;">🎛️ Administração</button>
         </nav>
 
@@ -245,7 +242,20 @@
                 </div>
             </section>
 
-            <section data-tab="loja">
+            <section data-tab="loja" class="loja-hub-premium">
+                <div class="hub-premium-head">
+                    <div>
+                        <h2>🏪 Loja</h2>
+                        <p>Configurações da operação e visão de acesso ao cardápio em um só lugar.</p>
+                    </div>
+                    <span class="hub-premium-badge">Central da loja</span>
+                </div>
+                <div class="hub-subtabs" role="tablist" aria-label="Seções da Loja">
+                    <button type="button" class="hub-subtab-btn active" data-loja-subtab-btn="configuracoes" onclick="mostrarSubabaLoja('configuracoes')">⚙️ Configurações</button>
+                    <button type="button" class="hub-subtab-btn" data-loja-subtab-btn="visitantes" onclick="mostrarSubabaLoja('visitantes')">👀 Visitantes</button>
+                </div>
+                <div class="hub-subpanel active" data-loja-subtab="configuracoes">
+
                 <h2>🏪 Status da loja</h2>
 
                 <div class="loja-status-card">
@@ -264,159 +274,11 @@
                     <p id="horariosSalvosMsg" class="horarios-salvos-msg"></p>
                 </div>
 
-                <div class="loja-status-card" id="cardNotificacoes" style="margin-top:16px;">
-                    <h3>📢 Notificações</h3>
-                    <p class="dica-secao">Envie novidades, promoções e avisos direto pra quem já ativou notificação no cardápio.</p>
+                
 
-                    <div style="margin:14px 0 18px; padding:12px; border:1px solid var(--border); border-radius:12px;">
-                        <strong>🟢 Aviso automático quando a loja abrir</strong>
-                        <p class="dica-secao" style="margin:6px 0 10px;">
-                            Desative temporariamente para abrir a loja durante testes sem avisar os clientes.
-                            As outras notificações continuam funcionando normalmente.
-                        </p>
-                        <label class="switch-linha">
-                            <input type="checkbox" id="chkNotificacaoAberturaAtiva" onchange="salvarNotificacaoAberturaAtiva(this.checked)">
-                            Enviar notificação automática de abertura
-                        </label>
-                        <p id="msgNotificacaoAbertura" class="ordem-categorias-msg" style="margin-top:6px;"></p>
-                    </div>
+                
 
-                    <label class="campo-label">Título <span id="contadorTitulo" class="dica-secao">0/100</span></label>
-                    <input type="text" id="notifPersonalizadaTitulo" maxlength="100" placeholder="Ex: 📢 Horário especial hoje!" oninput="atualizarPreviaNotificacao()">
-
-                    <label class="campo-label">Mensagem <span id="contadorMensagem" class="dica-secao">0/300</span></label>
-                    <textarea id="notifPersonalizadaCorpo" maxlength="300" class="campo-adicionais" style="min-height:60px;" placeholder="Ex: Hoje funcionamos até às 23h!" oninput="atualizarPreviaNotificacao()"></textarea>
-
-                    <p class="campo-label" style="margin-top:14px;">⚡ Modelos prontos</p>
-                    <div class="opcoes-radio" id="listaModelosNotificacao"></div>
-                    <button class="btn-secondary" style="margin-top:8px;" onclick="salvarModeloAtualComoNovo()">💾 Salvar texto atual como modelo novo</button>
-                    <p id="msgModelosNotificacao" class="ordem-categorias-msg"></p>
-
-                    <p class="campo-label" style="margin-top:14px;">Prévia</p>
-                    <div class="notif-previa">
-                        <div class="notif-previa-topo">📢 <span id="previaLojaNome">Sua Loja</span></div>
-                        <div class="notif-previa-titulo" id="previaTitulo">Título aparece aqui</div>
-                        <div class="notif-previa-corpo" id="previaCorpo">A mensagem aparece aqui, do jeito que o cliente vai ver.</div>
-                    </div>
-
-                    <p class="dica-secao" style="margin-top:12px;">👥 Destinatários disponíveis: <strong id="contadorDestinatarios">carregando...</strong> — só quem ativou notificação recebe.</p>
-
-                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="enviarNotificacaoPersonalizadaDoPainel()">📢 Enviar agora</button>
-                    <p id="notifPersonalizadaMsg" class="ordem-categorias-msg"></p>
-
-                    <p class="campo-label" style="margin-top:14px;">📅 Ou agendar pra mais tarde</p>
-                    <div class="produto-admin-linha">
-                        <div class="campo-com-label"><label class="campo-label">Data</label><input type="date" id="notifAgendarData"></div>
-                        <div class="campo-com-label"><label class="campo-label">Horário</label><input type="time" id="notifAgendarHora"></div>
-                    </div>
-                    <p class="dica-secao">O envio pode atrasar até 5 minutos da hora escolhida (o sistema confere periodicamente, não na hora exata).</p>
-                    <button class="btn-secondary" onclick="agendarNotificacaoDoPainel()">📅 Agendar</button>
-                </div>
-
-                <div class="loja-status-card" id="cardDestaquesCarrossel" style="margin-top:16px;">
-                    <h3>🎠 Destaques do Carrossel</h3>
-                    <p class="dica-secao">
-                        Escolha como a vitrine vai funcionar. O carrossel pode exibir até 5 produtos e nunca mostra
-                        item indisponível ou escondido no cardápio.
-                    </p>
-
-                    <div class="campo-com-label" style="margin-top:12px; max-width:420px;">
-                        <label class="campo-label" for="carrosselModoSelect">Modo do carrossel</label>
-                        <select id="carrosselModoSelect" onchange="atualizarAjudaModoCarrossel()">
-                            <option value="manual">Manual — eu escolho os produtos</option>
-                            <option value="automatico">Automático — mais vendidos da semana</option>
-                            <option value="misto">Misto — meus escolhidos + mais vendidos</option>
-                        </select>
-                    </div>
-                    <p class="dica-secao" id="ajudaModoCarrossel" style="margin-top:8px;"></p>
-                    <p class="dica-secao" id="statusCarrosselAtual"></p>
-
-                    <div id="blocoDestaquesManuais">
-                        <p class="campo-label" style="margin-top:12px;">Produtos escolhidos manualmente</p>
-                        <p class="dica-secao">Selecione até 5. No modo Misto, eles entram primeiro e o sistema completa as vagas restantes com os mais vendidos.</p>
-                        <div id="listaDestaquesManuais"></div>
-                    </div>
-
-                    <button class="btn-secondary" style="margin-top:10px;" onclick="salvarConfiguracaoCarrossel()">Salvar configuração do carrossel</button>
-                    <p id="msgDestaquesManuais" class="ordem-categorias-msg"></p>
-                </div>
-
-                <div class="loja-status-card" id="cardBannersCarrossel" style="margin-top:16px;">
-                    <div class="banner-campanha-topo">
-                        <div>
-                            <h3>🖼️ Banners de Campanha</h3>
-                            <p class="dica-secao">Gerencie campanhas visuais no mesmo carrossel dos produtos em destaque.</p>
-                        </div>
-                        <div class="banner-vagas-resumo" id="resumoVagasBanners">0 de 5 posições ocupadas agora</div>
-                    </div>
-
-                    <button class="btn-secondary banner-btn-adicionar" type="button" onclick="abrirFormularioBannerCarrossel()">➕ Adicionar nova campanha</button>
-
-                    <div id="painelFormularioBannerCarrossel" class="banner-form-painel" style="display:none;">
-                        <div class="banner-form-titulo">
-                            <strong id="tituloFormularioBannerCarrossel">Nova campanha</strong>
-                            <button type="button" class="banner-btn-fechar" onclick="fecharFormularioBannerCarrossel()" aria-label="Fechar">×</button>
-                        </div>
-                        <input type="hidden" id="bannerCarrosselEditandoId">
-                        <div class="banner-carrossel-form">
-                            <div class="campo-com-label banner-carrossel-campo-largo">
-                                <label class="campo-label" for="bannerCarrosselArquivo">Imagem do banner</label>
-                                <input type="file" id="bannerCarrosselArquivo" accept="image/*">
-                                <p class="dica-secao" id="ajudaImagemBannerCarrossel">Use uma arte horizontal. A imagem é exibida inteira.</p>
-                            </div>
-                            <div class="campo-com-label">
-                                <label class="campo-label" for="bannerCarrosselTitulo">Nome da campanha</label>
-                                <input type="text" id="bannerCarrosselTitulo" maxlength="80" placeholder="Ex.: Semana do Brownie">
-                            </div>
-                            <div class="campo-com-label banner-carrossel-campo-largo">
-                                <label class="campo-label" for="bannerCarrosselLink">Link ao clicar (opcional)</label>
-                                <input type="text" id="bannerCarrosselLink" placeholder="Ex.: #produto-... ou https://...">
-                            </div>
-                            <div class="campo-com-label">
-                                <label class="campo-label" for="bannerCarrosselInicio">Início (opcional)</label>
-                                <input type="date" id="bannerCarrosselInicio">
-                            </div>
-                            <div class="campo-com-label">
-                                <label class="campo-label" for="bannerCarrosselFim">Fim (opcional)</label>
-                                <input type="date" id="bannerCarrosselFim">
-                            </div>
-                            <div class="campo-com-label">
-                                <label class="campo-label" for="bannerCarrosselOrdem">Ordem</label>
-                                <input type="number" id="bannerCarrosselOrdem" min="1" max="99" value="1">
-                            </div>
-                            <label class="switch-linha banner-carrossel-ativo">
-                                <input type="checkbox" id="bannerCarrosselAtivo" checked>
-                                Campanha ativa
-                            </label>
-                        </div>
-                        <div class="banner-form-acoes">
-                            <button class="btn-secondary" type="button" onclick="salvarBannerCarrossel()" id="btnSalvarBannerCarrossel">📤 Adicionar ao carrossel</button>
-                            <button class="btn-secondary" type="button" onclick="fecharFormularioBannerCarrossel()">Cancelar</button>
-                        </div>
-                    </div>
-
-                    <p id="msgBannerCarrossel" class="ordem-categorias-msg"></p>
-
-                    <div class="banner-secao-lista">
-                        <div class="banner-secao-cabecalho">
-                            <h4>✅ Campanhas ativas no carrossel</h4>
-                            <span id="contadorBannersAtivos" class="banner-contador-pill">0</span>
-                        </div>
-                        <div id="listaBannersCarrosselAtivos" class="lista-banners-carrossel">
-                            <p class="dica-secao">Nenhuma campanha ativa.</p>
-                        </div>
-                    </div>
-
-                    <div class="banner-secao-lista banner-secao-secundaria">
-                        <div class="banner-secao-cabecalho">
-                            <h4>⏸️ Pausadas, agendadas ou encerradas</h4>
-                            <span id="contadorBannersInativos" class="banner-contador-pill">0</span>
-                        </div>
-                        <div id="listaBannersCarrosselInativos" class="lista-banners-carrossel">
-                            <p class="dica-secao">Nenhuma outra campanha cadastrada.</p>
-                        </div>
-                    </div>
-                </div>
+                
 
                 <div class="loja-status-card" id="cardDiagnosticoSistema" style="margin-top:16px;">
                     <h3>🩺 Diagnóstico rápido do sistema</h3>
@@ -541,6 +403,25 @@
                     <h3>📋 Histórico de notificações</h3>
                     <div id="listaHistoricoNotificacoes"><p class="dica-secao">Carregando...</p></div>
                 </div>
+            
+                </div>
+                <div class="hub-subpanel" data-loja-subtab="visitantes">
+
+                <h2>👀 Visitantes</h2>
+                <div class="loja-status-card">
+                    <p class="dica-secao">Pessoas com o cardápio aberto agora mesmo:</p>
+                    <p class="visitantes-online-numero"><span id="visitantesOnlineCount">0</span> online</p>
+
+                    <p class="dica-secao" style="margin-top:16px;">Ver quantas visitas o cardápio teve num período:</p>
+                    <div class="produto-admin-linha">
+                        <div class="campo-com-label"><label class="campo-label">De</label><input type="date" id="visitasDataInicio"></div>
+                        <div class="campo-com-label"><label class="campo-label">Até</label><input type="date" id="visitasDataFim"></div>
+                    </div>
+                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="carregarVisitasPeriodo()">Ver visitas do período</button>
+                    <p id="visitasPeriodoResultado" class="ordem-categorias-msg"></p>
+                </div>
+            
+                </div>
             </section>
 
             <section data-tab="agenda">
@@ -630,7 +511,39 @@
                 <p id="ordemCategoriasMsg" class="ordem-categorias-msg"></p>
             </section>
 
-            <section data-tab="cupons">
+            <section data-tab="clientes-marketing" class="clientes-marketing-premium">
+                <div class="hub-premium-head">
+                    <div>
+                        <h2>💗 Clientes &amp; Marketing</h2>
+                        <p>Clientes, incentivos, fidelização e campanhas reunidos numa central de crescimento.</p>
+                    </div>
+                    <span class="hub-premium-badge">Crescimento</span>
+                </div>
+                <div class="hub-subtabs" role="tablist" aria-label="Clientes e Marketing">
+                    <button type="button" class="hub-subtab-btn active" data-cm-subtab-btn="clientes" onclick="mostrarSubabaClientesMarketing('clientes')">💌 Clientes</button>
+                    <button type="button" class="hub-subtab-btn" data-cm-subtab-btn="cupons" onclick="mostrarSubabaClientesMarketing('cupons')">🎟️ Cupons</button>
+                    <button type="button" class="hub-subtab-btn" data-cm-subtab-btn="fidelidade" onclick="mostrarSubabaClientesMarketing('fidelidade')">⭐ Fidelidade</button>
+                    <button type="button" class="hub-subtab-btn" data-cm-subtab-btn="promocoes" onclick="mostrarSubabaClientesMarketing('promocoes')">🔥 Promoções</button>
+                    <button type="button" class="hub-subtab-btn" data-cm-subtab-btn="campanhas" onclick="mostrarSubabaClientesMarketing('campanhas')">📣 Campanhas</button>
+                </div>
+                <div class="hub-subpanel active" data-cm-subtab="clientes">
+
+                <h2>💌 Falar com os clientes</h2>
+                <p class="dica-secao">Todo cliente que já fez pelo menos 1 pedido — não precisa ser do Clube de Fidelidade. Manda uma mensagem com um clique, direto do seu WhatsApp (nada é enviado automaticamente). Serve tanto pra reconquistar quem sumiu quanto pra avisar todo mundo de uma promoção.</p>
+                <label class="campo-label">Mensagem (use <code>{nome}</code> pro nome do cliente, <code>{loja}</code> pro nome da loja, <code>{link}</code> pro link do cardápio)</label>
+                <textarea id="mensagemClientes" class="campo-adicionais" style="min-height:60px;">Oi {nome}! Sentimos sua falta por aqui na {loja} 🥹 Que tal dar uma olhada nas novidades? {link}</textarea>
+                <div class="produto-admin-linha" style="margin:10px 0;">
+                    <div class="campo-com-label">
+                        <label class="campo-label">Mostrar clientes sem comprar há quantos dias? (0 = todo mundo, pra mandar uma promoção geral)</label>
+                        <input type="text" inputmode="numeric" id="diasInatividade" value="30">
+                    </div>
+                    <button class="btn-salvar-ordem" onclick="carregarClientesInativos()" style="align-self:flex-end;">🔎 Buscar</button>
+                </div>
+                <div id="listaClientesInativos"></div>
+            
+                </div>
+                <div class="hub-subpanel" data-cm-subtab="cupons">
+
                 <h2>🎟️ Cupons de desconto</h2>
                 <div id="cuponsAdminList" class="cupons-admin-list"></div>
                 <div class="cupom-novo-form">
@@ -648,23 +561,209 @@
                     </div>
                     <button onclick="adicionarCupom()">+ Adicionar cupom</button>
                 </div>
-            </section>
+            
+                </div>
+                <div class="hub-subpanel" data-cm-subtab="fidelidade">
 
-            <section data-tab="visitantes">
-                <h2>👀 Visitantes</h2>
+                <h2 id="clubeTituloAdmin">⭐ Clube Brit's (Fidelidade)</h2>
                 <div class="loja-status-card">
-                    <p class="dica-secao">Pessoas com o cardápio aberto agora mesmo:</p>
-                    <p class="visitantes-online-numero"><span id="visitantesOnlineCount">0</span> online</p>
+                    <label class="dia-checkbox" style="font-size:0.95em; margin-bottom:10px;">
+                        <input type="checkbox" id="fidelidadeAtiva" onchange="salvarConfigFidelidade()"> Clube de fidelidade ativado
+                    </label>
 
-                    <p class="dica-secao" style="margin-top:16px;">Ver quantas visitas o cardápio teve num período:</p>
+                    <label class="campo-label">A cada quantos reais gastos, o cliente ganha 1 ponto?</label>
+                    <input type="text" inputmode="decimal" id="fidelidadeValorPorPonto" placeholder="Ex: 10 (a cada R$10,00 = 1 ponto)">
+
+                    <label class="dia-checkbox" style="font-size:0.9em; margin:10px 0;">
+                        <input type="checkbox" id="fidelidadePontosDobro" onchange="salvarConfigFidelidade()"> 🔥 Hoje é dia de pontos em dobro
+                    </label>
+
+                    <h3>Níveis do clube</h3>
+                    <p class="dica-secao">A partir de quantos pontos cada nível começa (Bronze sempre começa em 0).</p>
                     <div class="produto-admin-linha">
-                        <div class="campo-com-label"><label class="campo-label">De</label><input type="date" id="visitasDataInicio"></div>
-                        <div class="campo-com-label"><label class="campo-label">Até</label><input type="date" id="visitasDataFim"></div>
+                        <div class="campo-com-label"><label class="campo-label">🥈 Prata a partir de</label><input type="text" inputmode="numeric" id="fidelidadeMinPrata" placeholder="50"></div>
+                        <div class="campo-com-label"><label class="campo-label">🥇 Ouro a partir de</label><input type="text" inputmode="numeric" id="fidelidadeMinOuro" placeholder="100"></div>
+                        <div class="campo-com-label"><label class="campo-label">💎 VIP a partir de</label><input type="text" inputmode="numeric" id="fidelidadeMinVip" placeholder="200"></div>
                     </div>
-                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="carregarVisitasPeriodo()">Ver visitas do período</button>
-                    <p id="visitasPeriodoResultado" class="ordem-categorias-msg"></p>
+                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="salvarConfigFidelidade()">Salvar configuração do clube</button>
+                    <p id="fidelidadeMsg" class="ordem-categorias-msg"></p>
+                </div>
+
+                <h3 style="margin-top:22px;">Catálogo de recompensas</h3>
+                <div id="recompensasAdminList" class="produtos-admin-list"></div>
+                <div class="cupom-novo-form" style="flex-wrap:wrap;">
+                    <input type="text" inputmode="numeric" id="novaRecompensaPontos" placeholder="Pontos necessários" style="min-width:110px;">
+                    <input type="text" id="novaRecompensaDescricao" placeholder="Descrição (ex: 1 Refrigerante grátis)" style="flex:2; min-width:200px;">
+                    <select id="novaRecompensaTipo" onchange="atualizarCampoRecompensa()">
+                        <option value="desconto">Desconto em R$</option>
+                        <option value="produto">Produto grátis</option>
+                    </select>
+                    <input type="text" inputmode="decimal" id="novaRecompensaValor" placeholder="Valor do desconto (R$)">
+                    <select id="novaRecompensaProduto" style="display:none;"></select>
+                    <button onclick="adicionarRecompensa()">+ Adicionar recompensa</button>
+                </div>
+            
+                </div>
+                <div class="hub-subpanel" data-cm-subtab="promocoes">
+                    <div class="hub-context-note"><strong>🔥 Promoções e vitrine</strong><span>Organize os produtos que ganham destaque no carrossel da loja.</span></div>
+<div class="loja-status-card" id="cardDestaquesCarrossel" style="margin-top:16px;">
+                    <h3>🎠 Destaques do Carrossel</h3>
+                    <p class="dica-secao">
+                        Escolha como a vitrine vai funcionar. O carrossel pode exibir até 5 produtos e nunca mostra
+                        item indisponível ou escondido no cardápio.
+                    </p>
+
+                    <div class="campo-com-label" style="margin-top:12px; max-width:420px;">
+                        <label class="campo-label" for="carrosselModoSelect">Modo do carrossel</label>
+                        <select id="carrosselModoSelect" onchange="atualizarAjudaModoCarrossel()">
+                            <option value="manual">Manual — eu escolho os produtos</option>
+                            <option value="automatico">Automático — mais vendidos da semana</option>
+                            <option value="misto">Misto — meus escolhidos + mais vendidos</option>
+                        </select>
+                    </div>
+                    <p class="dica-secao" id="ajudaModoCarrossel" style="margin-top:8px;"></p>
+                    <p class="dica-secao" id="statusCarrosselAtual"></p>
+
+                    <div id="blocoDestaquesManuais">
+                        <p class="campo-label" style="margin-top:12px;">Produtos escolhidos manualmente</p>
+                        <p class="dica-secao">Selecione até 5. No modo Misto, eles entram primeiro e o sistema completa as vagas restantes com os mais vendidos.</p>
+                        <div id="listaDestaquesManuais"></div>
+                    </div>
+
+                    <button class="btn-secondary" style="margin-top:10px;" onclick="salvarConfiguracaoCarrossel()">Salvar configuração do carrossel</button>
+                    <p id="msgDestaquesManuais" class="ordem-categorias-msg"></p>
+                </div>
+                </div>
+                <div class="hub-subpanel" data-cm-subtab="campanhas">
+                    <div class="hub-context-note"><strong>📣 Campanhas</strong><span>Crie comunicação com clientes e campanhas visuais sem misturar com as configurações da loja.</span></div>
+<div class="loja-status-card" id="cardNotificacoes" style="margin-top:16px;">
+                    <h3>📢 Notificações</h3>
+                    <p class="dica-secao">Envie novidades, promoções e avisos direto pra quem já ativou notificação no cardápio.</p>
+
+                    <div style="margin:14px 0 18px; padding:12px; border:1px solid var(--border); border-radius:12px;">
+                        <strong>🟢 Aviso automático quando a loja abrir</strong>
+                        <p class="dica-secao" style="margin:6px 0 10px;">
+                            Desative temporariamente para abrir a loja durante testes sem avisar os clientes.
+                            As outras notificações continuam funcionando normalmente.
+                        </p>
+                        <label class="switch-linha">
+                            <input type="checkbox" id="chkNotificacaoAberturaAtiva" onchange="salvarNotificacaoAberturaAtiva(this.checked)">
+                            Enviar notificação automática de abertura
+                        </label>
+                        <p id="msgNotificacaoAbertura" class="ordem-categorias-msg" style="margin-top:6px;"></p>
+                    </div>
+
+                    <label class="campo-label">Título <span id="contadorTitulo" class="dica-secao">0/100</span></label>
+                    <input type="text" id="notifPersonalizadaTitulo" maxlength="100" placeholder="Ex: 📢 Horário especial hoje!" oninput="atualizarPreviaNotificacao()">
+
+                    <label class="campo-label">Mensagem <span id="contadorMensagem" class="dica-secao">0/300</span></label>
+                    <textarea id="notifPersonalizadaCorpo" maxlength="300" class="campo-adicionais" style="min-height:60px;" placeholder="Ex: Hoje funcionamos até às 23h!" oninput="atualizarPreviaNotificacao()"></textarea>
+
+                    <p class="campo-label" style="margin-top:14px;">⚡ Modelos prontos</p>
+                    <div class="opcoes-radio" id="listaModelosNotificacao"></div>
+                    <button class="btn-secondary" style="margin-top:8px;" onclick="salvarModeloAtualComoNovo()">💾 Salvar texto atual como modelo novo</button>
+                    <p id="msgModelosNotificacao" class="ordem-categorias-msg"></p>
+
+                    <p class="campo-label" style="margin-top:14px;">Prévia</p>
+                    <div class="notif-previa">
+                        <div class="notif-previa-topo">📢 <span id="previaLojaNome">Sua Loja</span></div>
+                        <div class="notif-previa-titulo" id="previaTitulo">Título aparece aqui</div>
+                        <div class="notif-previa-corpo" id="previaCorpo">A mensagem aparece aqui, do jeito que o cliente vai ver.</div>
+                    </div>
+
+                    <p class="dica-secao" style="margin-top:12px;">👥 Destinatários disponíveis: <strong id="contadorDestinatarios">carregando...</strong> — só quem ativou notificação recebe.</p>
+
+                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="enviarNotificacaoPersonalizadaDoPainel()">📢 Enviar agora</button>
+                    <p id="notifPersonalizadaMsg" class="ordem-categorias-msg"></p>
+
+                    <p class="campo-label" style="margin-top:14px;">📅 Ou agendar pra mais tarde</p>
+                    <div class="produto-admin-linha">
+                        <div class="campo-com-label"><label class="campo-label">Data</label><input type="date" id="notifAgendarData"></div>
+                        <div class="campo-com-label"><label class="campo-label">Horário</label><input type="time" id="notifAgendarHora"></div>
+                    </div>
+                    <p class="dica-secao">O envio pode atrasar até 5 minutos da hora escolhida (o sistema confere periodicamente, não na hora exata).</p>
+                    <button class="btn-secondary" onclick="agendarNotificacaoDoPainel()">📅 Agendar</button>
+                </div>
+<div class="loja-status-card" id="cardBannersCarrossel" style="margin-top:16px;">
+                    <div class="banner-campanha-topo">
+                        <div>
+                            <h3>🖼️ Banners de Campanha</h3>
+                            <p class="dica-secao">Gerencie campanhas visuais no mesmo carrossel dos produtos em destaque.</p>
+                        </div>
+                        <div class="banner-vagas-resumo" id="resumoVagasBanners">0 de 5 posições ocupadas agora</div>
+                    </div>
+
+                    <button class="btn-secondary banner-btn-adicionar" type="button" onclick="abrirFormularioBannerCarrossel()">➕ Adicionar nova campanha</button>
+
+                    <div id="painelFormularioBannerCarrossel" class="banner-form-painel" style="display:none;">
+                        <div class="banner-form-titulo">
+                            <strong id="tituloFormularioBannerCarrossel">Nova campanha</strong>
+                            <button type="button" class="banner-btn-fechar" onclick="fecharFormularioBannerCarrossel()" aria-label="Fechar">×</button>
+                        </div>
+                        <input type="hidden" id="bannerCarrosselEditandoId">
+                        <div class="banner-carrossel-form">
+                            <div class="campo-com-label banner-carrossel-campo-largo">
+                                <label class="campo-label" for="bannerCarrosselArquivo">Imagem do banner</label>
+                                <input type="file" id="bannerCarrosselArquivo" accept="image/*">
+                                <p class="dica-secao" id="ajudaImagemBannerCarrossel">Use uma arte horizontal. A imagem é exibida inteira.</p>
+                            </div>
+                            <div class="campo-com-label">
+                                <label class="campo-label" for="bannerCarrosselTitulo">Nome da campanha</label>
+                                <input type="text" id="bannerCarrosselTitulo" maxlength="80" placeholder="Ex.: Semana do Brownie">
+                            </div>
+                            <div class="campo-com-label banner-carrossel-campo-largo">
+                                <label class="campo-label" for="bannerCarrosselLink">Link ao clicar (opcional)</label>
+                                <input type="text" id="bannerCarrosselLink" placeholder="Ex.: #produto-... ou https://...">
+                            </div>
+                            <div class="campo-com-label">
+                                <label class="campo-label" for="bannerCarrosselInicio">Início (opcional)</label>
+                                <input type="date" id="bannerCarrosselInicio">
+                            </div>
+                            <div class="campo-com-label">
+                                <label class="campo-label" for="bannerCarrosselFim">Fim (opcional)</label>
+                                <input type="date" id="bannerCarrosselFim">
+                            </div>
+                            <div class="campo-com-label">
+                                <label class="campo-label" for="bannerCarrosselOrdem">Ordem</label>
+                                <input type="number" id="bannerCarrosselOrdem" min="1" max="99" value="1">
+                            </div>
+                            <label class="switch-linha banner-carrossel-ativo">
+                                <input type="checkbox" id="bannerCarrosselAtivo" checked>
+                                Campanha ativa
+                            </label>
+                        </div>
+                        <div class="banner-form-acoes">
+                            <button class="btn-secondary" type="button" onclick="salvarBannerCarrossel()" id="btnSalvarBannerCarrossel">📤 Adicionar ao carrossel</button>
+                            <button class="btn-secondary" type="button" onclick="fecharFormularioBannerCarrossel()">Cancelar</button>
+                        </div>
+                    </div>
+
+                    <p id="msgBannerCarrossel" class="ordem-categorias-msg"></p>
+
+                    <div class="banner-secao-lista">
+                        <div class="banner-secao-cabecalho">
+                            <h4>✅ Campanhas ativas no carrossel</h4>
+                            <span id="contadorBannersAtivos" class="banner-contador-pill">0</span>
+                        </div>
+                        <div id="listaBannersCarrosselAtivos" class="lista-banners-carrossel">
+                            <p class="dica-secao">Nenhuma campanha ativa.</p>
+                        </div>
+                    </div>
+
+                    <div class="banner-secao-lista banner-secao-secundaria">
+                        <div class="banner-secao-cabecalho">
+                            <h4>⏸️ Pausadas, agendadas ou encerradas</h4>
+                            <span id="contadorBannersInativos" class="banner-contador-pill">0</span>
+                        </div>
+                        <div id="listaBannersCarrosselInativos" class="lista-banners-carrossel">
+                            <p class="dica-secao">Nenhuma outra campanha cadastrada.</p>
+                        </div>
+                    </div>
+                </div>
                 </div>
             </section>
+
+            
 
             <section data-tab="administracao-mestre">
                 <h2>🎛️ Administração de Clientes</h2>
@@ -997,60 +1096,9 @@
                 <div id="fechamentoConteudo" class="fechamento-conteudo"></div>
             </section>
 
-            <section data-tab="fidelidade">
-                <h2 id="clubeTituloAdmin">⭐ Clube Brit's (Fidelidade)</h2>
-                <div class="loja-status-card">
-                    <label class="dia-checkbox" style="font-size:0.95em; margin-bottom:10px;">
-                        <input type="checkbox" id="fidelidadeAtiva" onchange="salvarConfigFidelidade()"> Clube de fidelidade ativado
-                    </label>
+            
 
-                    <label class="campo-label">A cada quantos reais gastos, o cliente ganha 1 ponto?</label>
-                    <input type="text" inputmode="decimal" id="fidelidadeValorPorPonto" placeholder="Ex: 10 (a cada R$10,00 = 1 ponto)">
-
-                    <label class="dia-checkbox" style="font-size:0.9em; margin:10px 0;">
-                        <input type="checkbox" id="fidelidadePontosDobro" onchange="salvarConfigFidelidade()"> 🔥 Hoje é dia de pontos em dobro
-                    </label>
-
-                    <h3>Níveis do clube</h3>
-                    <p class="dica-secao">A partir de quantos pontos cada nível começa (Bronze sempre começa em 0).</p>
-                    <div class="produto-admin-linha">
-                        <div class="campo-com-label"><label class="campo-label">🥈 Prata a partir de</label><input type="text" inputmode="numeric" id="fidelidadeMinPrata" placeholder="50"></div>
-                        <div class="campo-com-label"><label class="campo-label">🥇 Ouro a partir de</label><input type="text" inputmode="numeric" id="fidelidadeMinOuro" placeholder="100"></div>
-                        <div class="campo-com-label"><label class="campo-label">💎 VIP a partir de</label><input type="text" inputmode="numeric" id="fidelidadeMinVip" placeholder="200"></div>
-                    </div>
-                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="salvarConfigFidelidade()">Salvar configuração do clube</button>
-                    <p id="fidelidadeMsg" class="ordem-categorias-msg"></p>
-                </div>
-
-                <h3 style="margin-top:22px;">Catálogo de recompensas</h3>
-                <div id="recompensasAdminList" class="produtos-admin-list"></div>
-                <div class="cupom-novo-form" style="flex-wrap:wrap;">
-                    <input type="text" inputmode="numeric" id="novaRecompensaPontos" placeholder="Pontos necessários" style="min-width:110px;">
-                    <input type="text" id="novaRecompensaDescricao" placeholder="Descrição (ex: 1 Refrigerante grátis)" style="flex:2; min-width:200px;">
-                    <select id="novaRecompensaTipo" onchange="atualizarCampoRecompensa()">
-                        <option value="desconto">Desconto em R$</option>
-                        <option value="produto">Produto grátis</option>
-                    </select>
-                    <input type="text" inputmode="decimal" id="novaRecompensaValor" placeholder="Valor do desconto (R$)">
-                    <select id="novaRecompensaProduto" style="display:none;"></select>
-                    <button onclick="adicionarRecompensa()">+ Adicionar recompensa</button>
-                </div>
-            </section>
-
-            <section data-tab="mensagens">
-                <h2>💌 Falar com os clientes</h2>
-                <p class="dica-secao">Todo cliente que já fez pelo menos 1 pedido — não precisa ser do Clube de Fidelidade. Manda uma mensagem com um clique, direto do seu WhatsApp (nada é enviado automaticamente). Serve tanto pra reconquistar quem sumiu quanto pra avisar todo mundo de uma promoção.</p>
-                <label class="campo-label">Mensagem (use <code>{nome}</code> pro nome do cliente, <code>{loja}</code> pro nome da loja, <code>{link}</code> pro link do cardápio)</label>
-                <textarea id="mensagemClientes" class="campo-adicionais" style="min-height:60px;">Oi {nome}! Sentimos sua falta por aqui na {loja} 🥹 Que tal dar uma olhada nas novidades? {link}</textarea>
-                <div class="produto-admin-linha" style="margin:10px 0;">
-                    <div class="campo-com-label">
-                        <label class="campo-label">Mostrar clientes sem comprar há quantos dias? (0 = todo mundo, pra mandar uma promoção geral)</label>
-                        <input type="text" inputmode="numeric" id="diasInatividade" value="30">
-                    </div>
-                    <button class="btn-salvar-ordem" onclick="carregarClientesInativos()" style="align-self:flex-end;">🔎 Buscar</button>
-                </div>
-                <div id="listaClientesInativos"></div>
-            </section>
+            
 
             <section data-tab="gestao">
                 <h2>📊 Gestão Completa</h2>

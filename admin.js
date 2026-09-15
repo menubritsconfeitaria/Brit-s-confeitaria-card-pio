@@ -273,7 +273,10 @@ function inicializarAbasPainel() {
     });
 
     // Abre na mesma aba que estava da última vez (ou "pedidos" se for a primeira vez)
-    const abaSalva = localStorage.getItem('painelAbaAtiva') || 'pedidos';
+    let abaSalva = localStorage.getItem('painelAbaAtiva') || 'pedidos';
+    // Migração visual: abas antigas agora vivem dentro dos novos hubs.
+    if (['cupons', 'fidelidade', 'mensagens'].includes(abaSalva)) abaSalva = 'clientes-marketing';
+    if (abaSalva === 'visitantes') abaSalva = 'loja';
     mostrarAba(abaSalva, false);
 }
 
@@ -7350,3 +7353,26 @@ function iniciarEscutaPedidos() {
         }
     });
 }
+
+
+// ---------- HUB CLIENTES & MARKETING / LOJA ----------
+function mostrarSubabaClientesMarketing(nome) {
+    const raiz = document.querySelector('section[data-tab="clientes-marketing"]');
+    if (!raiz) return;
+    raiz.querySelectorAll('[data-cm-subtab]').forEach(p => p.classList.toggle('active', p.dataset.cmSubtab === nome));
+    raiz.querySelectorAll('[data-cm-subtab-btn]').forEach(b => b.classList.toggle('active', b.dataset.cmSubtabBtn === nome));
+    localStorage.setItem('clientesMarketingSubaba', nome);
+}
+
+function mostrarSubabaLoja(nome) {
+    const raiz = document.querySelector('section[data-tab="loja"]');
+    if (!raiz) return;
+    raiz.querySelectorAll('[data-loja-subtab]').forEach(p => p.classList.toggle('active', p.dataset.lojaSubtab === nome));
+    raiz.querySelectorAll('[data-loja-subtab-btn]').forEach(b => b.classList.toggle('active', b.dataset.lojaSubtabBtn === nome));
+    localStorage.setItem('lojaSubaba', nome);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    mostrarSubabaClientesMarketing(localStorage.getItem('clientesMarketingSubaba') || 'clientes');
+    mostrarSubabaLoja(localStorage.getItem('lojaSubaba') || 'configuracoes');
+});

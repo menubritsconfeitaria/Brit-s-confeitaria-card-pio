@@ -2279,3 +2279,89 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
         grid-column: auto;
     }
 }
+
+
+/* ===== HUB PREMIUM: CLIENTES & MARKETING + LOJA ===== */
+.clientes-marketing-premium,
+.loja-hub-premium {
+    width: min(100%, 1240px);
+    margin-inline: auto;
+}
+
+.hub-premium-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 14px;
+}
+.hub-premium-head h2 { margin: 0 0 4px; }
+.hub-premium-head p { margin: 0; color: var(--texto-suave, #8b7868); }
+.hub-premium-badge {
+    flex: 0 0 auto;
+    padding: 8px 14px;
+    border: 1px solid var(--border, #eadfce);
+    border-radius: 999px;
+    background: rgba(255,255,255,.62);
+    color: var(--marrom, #8f4b26);
+    font-size: .83rem;
+    font-weight: 700;
+    box-shadow: 0 4px 14px rgba(76,45,25,.05);
+}
+
+.hub-subtabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 7px;
+    margin-bottom: 14px;
+    border: 1px solid var(--border, #eadfce);
+    border-radius: 16px;
+    background: rgba(255,255,255,.66);
+    box-shadow: 0 7px 20px rgba(76,45,25,.06);
+}
+.hub-subtab-btn {
+    appearance: none;
+    border: 1px solid transparent;
+    border-radius: 11px;
+    background: transparent;
+    color: #6f5949;
+    padding: 9px 14px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .16s ease, color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+.hub-subtab-btn:hover { background: #fff8ef; transform: translateY(-1px); }
+.hub-subtab-btn.active {
+    background: var(--primaria, #ab572d);
+    color: #fff;
+    box-shadow: 0 5px 13px rgba(171,87,45,.20);
+}
+.hub-subpanel { display: none; }
+.hub-subpanel.active { display: block; }
+
+.hub-context-note {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 0 0 12px;
+    padding: 11px 14px;
+    border: 1px solid var(--border, #eadfce);
+    border-radius: 13px;
+    background: rgba(255,255,255,.62);
+}
+.hub-context-note strong { color: var(--marrom, #8f4b26); }
+.hub-context-note span { color: var(--texto-suave, #8b7868); font-size: .9rem; }
+
+/* Os cards trazidos da Loja perdem a margem externa antiga dentro do novo hub. */
+.clientes-marketing-premium .loja-status-card:first-of-type,
+.clientes-marketing-premium .hub-subpanel > .loja-status-card:first-of-type { margin-top: 0 !important; }
+
+@media (max-width: 760px) {
+    .hub-premium-head { align-items: flex-start; }
+    .hub-premium-badge { display: none; }
+    .hub-subtabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .hub-subtab-btn { white-space: nowrap; }
+}
