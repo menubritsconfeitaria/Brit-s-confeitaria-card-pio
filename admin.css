@@ -1610,3 +1610,63 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
     .produto-agenda-horas { flex-wrap:wrap; }
     .produto-agenda-horas input[type="time"] { width:104px; }
 }
+
+/* ---------- Produtos — largura total e organização premium ---------- */
+/* Apenas a área principal de cadastro dos produtos usa a extensão da tela.
+   A seção de ordem de categorias continua compacta como antes. */
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) {
+    width: calc(100vw - 40px);
+    max-width: none;
+    margin-left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Aproveita a largura no desktop sem deixar os formulários esticados demais. */
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produtos-admin-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    align-items: start;
+}
+
+/* Card mais limpo, moderno e consistente com o painel. */
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-admin-item {
+    min-width: 0;
+    border-radius: 16px;
+    border-color: #e4d9cd;
+    box-shadow: 0 4px 18px rgba(91, 62, 42, 0.055);
+    padding: 16px;
+    background: rgba(255,255,255,.92);
+}
+
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-admin-item:hover {
+    border-color: #d8c5b4;
+    box-shadow: 0 8px 24px rgba(91, 62, 42, 0.085);
+}
+
+/* Mantém campos e ações bem distribuídos dentro de cada coluna. */
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-admin-linha {
+    gap: 10px;
+}
+
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-admin-acoes {
+    gap: 10px;
+    padding-top: 2px;
+}
+
+/* Em notebook/tablet volta para uma coluna, mas continua usando melhor a largura. */
+@media (max-width: 1180px) {
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produtos-admin-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 760px) {
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) {
+        width: calc(100vw - 24px);
+    }
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-admin-item {
+        padding: 13px;
+        border-radius: 14px;
+    }
+}
