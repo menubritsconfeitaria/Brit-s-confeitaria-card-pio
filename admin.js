@@ -5518,23 +5518,25 @@ function montarLinhaProduto(id, produto) {
         <div class="produto-admin-linha">
             <input type="text" id="prodNome_${id}" value="${produto.nome || ''}" placeholder="Nome do produto">
             <div class="produto-status-controle">
-                <label class="campo-label">Status do produto</label>
+                <label class="campo-label">Status</label>
                 <div class="produto-status-opcoes" role="radiogroup" aria-label="Status do produto">
-                    <label class="produto-status-opcao produto-status-opcao-ativo">
+                    <label class="produto-status-opcao produto-status-opcao-ativo" title="Produto disponível para venda">
                         <input type="radio" name="prodStatus_${id}" value="ativo" ${obterStatusProdutoAdmin(produto) === 'ativo' ? 'checked' : ''} onchange="aplicarStatusProdutoNoFormulario('${id}')">
-                        <span>🟢 Ativo</span>
-                        <small>À venda</small>
+                        <span><i class="produto-status-ponto" aria-hidden="true"></i>Ativo</span>
                     </label>
-                    <label class="produto-status-opcao produto-status-opcao-falta">
+                    <label class="produto-status-opcao produto-status-opcao-falta" title="Produto visível como esgotado">
                         <input type="radio" name="prodStatus_${id}" value="em_falta" ${obterStatusProdutoAdmin(produto) === 'em_falta' ? 'checked' : ''} onchange="aplicarStatusProdutoNoFormulario('${id}')">
-                        <span>🟠 Em falta</span>
-                        <small>Mostra esgotado</small>
+                        <span><i class="produto-status-ponto" aria-hidden="true"></i>Em falta</span>
                     </label>
-                    <label class="produto-status-opcao produto-status-opcao-inativo">
+                    <label class="produto-status-opcao produto-status-opcao-inativo" title="Produto oculto do cardápio">
                         <input type="radio" name="prodStatus_${id}" value="inativo" ${obterStatusProdutoAdmin(produto) === 'inativo' ? 'checked' : ''} onchange="aplicarStatusProdutoNoFormulario('${id}')">
-                        <span>⚫ Inativo</span>
-                        <small>Oculto</small>
+                        <span><i class="produto-status-ponto" aria-hidden="true"></i>Inativo</span>
                     </label>
+                </div>
+                <div class="produto-status-legenda" aria-live="polite">
+                    <span class="legenda-status-ativo">Disponível para venda.</span>
+                    <span class="legenda-status-falta">Continua no cardápio como esgotado.</span>
+                    <span class="legenda-status-inativo">Oculto do cardápio.</span>
                 </div>
                 <!-- Mantém os campos antigos no DOM para salvar exatamente no formato já usado pelo sistema. -->
                 <input type="checkbox" id="prodDisp_${id}" ${produto.disponivel !== false ? 'checked' : ''} style="display:none;">
