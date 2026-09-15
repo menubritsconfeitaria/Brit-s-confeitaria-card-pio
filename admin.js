@@ -1866,6 +1866,61 @@ function montarTagPagamento(pedido) {
     return html;
 }
 
+// Urgência visual por tempo — apenas leitura/visual. Não grava nada no Firebase.
+// Os limites ficam centralizados aqui para podermos ajustar depois sem mexer no fluxo dos pedidos.
+const URGENCIA_PEDIDOS = {
+    atencaoMinutos: 20,
+    atrasadoMinutos: 40
+};
+
+function obterInicioEtapaPedido(pedido) {
+    if (!pedido) return 0;
+    if (pedido.status === 'aceito') return Number(pedido.aceitoEm || pedido.timestamp || 0);
+    if (pedido.status === 'em_rota') return Number(pedido.saiuEntregaEm || pedido.aceitoEm || pedido.timestamp || 0);
+    if (pedido.status === 'pronto_retirada') return Number(pedido.prontoEm || pedido.aceitoEm || pedido.timestamp || 0);
+    return Number(pedido.timestamp || 0);
+}
+
+function atualizarUrgenciaVisualCard(card) {
+    if (!card || !card.dataset.urgenciaInicio) return;
+    const inicio = Number(card.dataset.urgenciaInicio || 0);
+    if (!inicio) return;
+
+    const minutos = Math.max(0, Math.floor((Date.now() - inicio) / 60000));
+    const badge = card.querySelector('.pedido-tempo-etapa');
+    if (!badge) return;
+
+    card.classList.remove('urgencia-normal', 'urgencia-atencao', 'urgencia-atrasado');
+    badge.classList.remove('tempo-normal', 'tempo-atencao', 'tempo-atrasado');
+
+    if (minutos >= URGENCIA_PEDIDOS.atrasadoMinutos) {
+        card.classList.add('urgencia-atrasado');
+        badge.classList.add('tempo-atrasado');
+        badge.textContent = `🔴 ${minutos} min nesta etapa`;
+    } else if (minutos >= URGENCIA_PEDIDOS.atencaoMinutos) {
+        card.classList.add('urgencia-atencao');
+        badge.classList.add('tempo-atencao');
+        badge.textContent = `🟠 ${minutos} min nesta etapa`;
+    } else {
+        card.classList.add('urgencia-normal');
+        badge.classList.add('tempo-normal');
+        badge.textContent = `🟢 ${minutos} min nesta etapa`;
+    }
+}
+
+function aplicarUrgenciaVisualCard(card, pedido, comAcoes) {
+    if (!comAcoes || !pedido || pedido.status === 'entregue' || pedido.status === 'recusado') return;
+    const inicio = obterInicioEtapaPedido(pedido);
+    if (!inicio) return;
+    card.dataset.urgenciaInicio = String(inicio);
+    atualizarUrgenciaVisualCard(card);
+}
+
+// Atualiza só a aparência a cada minuto; não consulta nem altera o banco.
+setInterval(() => {
+    document.querySelectorAll('.pedido-card[data-urgencia-inicio]').forEach(atualizarUrgenciaVisualCard);
+}, 60000);
+
 function montarCardPedido(id, pedido, comAcoes) {
     pedidosParaImpressao[id] = pedido;
 
@@ -1921,7 +1976,10 @@ function montarCardPedido(id, pedido, comAcoes) {
                     ${tagStatus}
                 </div>
             </div>
-            <div class="pedido-hora">${formatarHora(pedido.timestamp)}</div>
+            <div class="pedido-hora-bloco">
+                <div class="pedido-hora">${formatarHora(pedido.timestamp)}</div>
+                ${comAcoes ? '<div class="pedido-tempo-etapa"></div>' : ''}
+            </div>
         </div>
         ${resgateHtml}
         ${encomendaHtml}
@@ -1938,6 +1996,7 @@ function montarCardPedido(id, pedido, comAcoes) {
         </div>
         ${comAcoes ? montarBotoesAcaoPedido(id, pedido) : ''}
     `;
+    aplicarUrgenciaVisualCard(div, pedido, comAcoes);
     // Confere (de forma assíncrona, sem travar o card) se esse cliente JÁ tem pontos
     // suficientes pra alguma recompensa — mostra um aviso pra lembrar de oferecer,
     // mesmo que ele não tenha resgatado nada nesse pedido específico

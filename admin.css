@@ -1386,3 +1386,48 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
 }
 
 .contrato-mestre-card { padding:16px; border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,.54); }\n.contrato-mestre-aviso { margin:12px 0; padding:11px 12px; border-radius:10px; background:#fff7e9; border:1px solid #f0d6b2; color:#6d4a2e; font-size:.86rem; }\n.contrato-switch { border:1px solid var(--border); border-radius:10px; padding:10px 12px !important; margin:0; }\n.contrato-textarea-mestre { width:100%; min-height:250px; resize:vertical; font-family:inherit; line-height:1.5; }\n.contrato-mestre-acoes { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }\n.contrato-status-chip { display:inline-flex; align-items:center; border-radius:999px; padding:6px 10px; font-size:.78rem; font-weight:800; white-space:nowrap; }\n.contrato-status-sem-config { background:#ececec; color:#666; }\n.contrato-status-aguardando { background:#fff0d8; color:#a75c00; }\n.contrato-status-assinado { background:#e7f7ec; color:#18723b; }\n.contrato-status-dispensado { background:#eef1f5; color:#55606d; }\n.contrato-assinatura-resumo { margin-top:12px; padding:12px; border-radius:12px; background:#eaf8ef; color:#245c38; line-height:1.5; font-size:.88rem; }\n@media (max-width: 620px) {\n    .contrato-gate-card { padding:18px; border-radius:17px; }\n    .contrato-gate-texto { max-height:300px; }\n    .contrato-gate-marca { align-items:flex-start; }\n    .contrato-gate-logo { width:94px; }\n}\n
+
+/* Urgência visual por tempo — não altera status nem dados do pedido */
+.pedido-hora-bloco {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+}
+.pedido-tempo-etapa {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    border-radius: 999px;
+    padding: 4px 8px;
+    font-size: 0.72em;
+    font-weight: 800;
+    border: 1px solid transparent;
+}
+.pedido-tempo-etapa.tempo-normal {
+    background: #edf8f1;
+    color: #1b6b3a;
+    border-color: #ccebd7;
+}
+.pedido-tempo-etapa.tempo-atencao {
+    background: #fff4dc;
+    color: #9a5a00;
+    border-color: #f2d28b;
+}
+.pedido-tempo-etapa.tempo-atrasado {
+    background: #fde9e7;
+    color: #a52b22;
+    border-color: #efbbb5;
+}
+.kanban-lista .pedido-card.urgencia-atencao {
+    border-color: #e4a11b;
+    box-shadow: 0 0 0 2px rgba(228, 161, 27, 0.10), var(--shadow);
+}
+.kanban-lista .pedido-card.urgencia-atrasado {
+    border-color: #d4483d;
+    box-shadow: 0 0 0 2px rgba(212, 72, 61, 0.12), var(--shadow);
+}
+
+@media (max-width: 760px) {
+    .pedido-hora-bloco { align-items: flex-start; }
+}
