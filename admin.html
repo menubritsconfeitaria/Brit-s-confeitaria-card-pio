@@ -172,8 +172,13 @@
 
         <main class="painel-main">
             <section data-tab="pedidos">
-                <h2>🔔 Pedidos novos <span id="contadorPendentes" class="badge-contador">0</span></h2>
-                <div class="produto-admin-linha" style="margin-bottom:10px;">
+                <div class="kanban-cabecalho">
+                    <div>
+                        <h2>📋 Fluxo de Pedidos <span id="contadorPendentes" class="badge-contador">0</span></h2>
+                        <p class="dica-secao">Os pedidos mudam de coluna automaticamente conforme o status, sem alterar o fluxo atual.</p>
+                    </div>
+                </div>
+                <div class="produto-admin-linha" style="margin-bottom:14px;">
                     <select id="selectSomAlerta">
                         <option value="classico">🔔 Clássico (2 bips)</option>
                         <option value="suave">🎵 Suave</option>
@@ -189,8 +194,47 @@
                     <span id="msgImpressaoAutomatica" class="dica-secao" style="align-self:center;"></span>
                     <span id="statusAlertasPainel" class="dica-secao" style="align-self:center;"></span>
                 </div>
-                <div id="listaPendentes" class="lista-pedidos">
-                    <p class="vazio">Nenhum pedido novo no momento.</p>
+
+                <div id="kanbanPedidos" class="kanban-pedidos">
+                    <div class="kanban-coluna kanban-novos">
+                        <div class="kanban-coluna-topo">
+                            <span>🟡 Novos</span>
+                            <span id="contadorKanbanNovos" class="kanban-contador">0</span>
+                        </div>
+                        <div id="listaKanbanNovos" class="lista-pedidos kanban-lista">
+                            <p class="vazio">Nenhum pedido novo.</p>
+                        </div>
+                    </div>
+
+                    <div class="kanban-coluna kanban-preparo">
+                        <div class="kanban-coluna-topo">
+                            <span>🟢 Em preparo</span>
+                            <span id="contadorKanbanPreparo" class="kanban-contador">0</span>
+                        </div>
+                        <div id="listaKanbanPreparo" class="lista-pedidos kanban-lista">
+                            <p class="vazio">Nenhum pedido em preparo.</p>
+                        </div>
+                    </div>
+
+                    <div class="kanban-coluna kanban-expedicao">
+                        <div class="kanban-coluna-topo">
+                            <span>🔵 Prontos / Em entrega</span>
+                            <span id="contadorKanbanExpedicao" class="kanban-contador">0</span>
+                        </div>
+                        <div id="listaKanbanExpedicao" class="lista-pedidos kanban-lista">
+                            <p class="vazio">Nenhum pedido nesta etapa.</p>
+                        </div>
+                    </div>
+
+                    <div class="kanban-coluna kanban-finalizados">
+                        <div class="kanban-coluna-topo">
+                            <span>✅ Finalizados</span>
+                            <span id="contadorKanbanFinalizados" class="kanban-contador">0</span>
+                        </div>
+                        <div id="listaKanbanFinalizados" class="lista-pedidos kanban-lista historico">
+                            <p class="vazio">Nenhum finalizado nas últimas 24h.</p>
+                        </div>
+                    </div>
                 </div>
             </section>
 

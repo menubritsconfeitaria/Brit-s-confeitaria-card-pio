@@ -6933,59 +6933,117 @@ function iniciarEscutaPedidos() {
     escutarRecompensas();
 
     const refPedidos = db.ref('pedidos');
-    const listaPendentesEl = document.getElementById('listaPendentes');
-    // "aguardando_pagamento" entra aqui também — não é bem um status "final", mas
-    // precisa ficar de fora da fila ativa do mesmo jeito, até o pagamento confirmar
     const statusFinais = ['entregue', 'recusado', 'aguardando_pagamento'];
     const ehStatusFinal = pedido => statusFinais.includes(pedido.status);
 
+    // Kanban visual: reaproveita exatamente os status existentes no sistema.
+    // Nenhum status novo é gravado no banco nesta etapa.
+    function obterListaKanbanPorStatus(status) {
+        if (status === 'pendente') return document.getElementById('listaKanbanNovos');
+        if (status === 'aceito') return document.getElementById('listaKanbanPreparo');
+        if (status === 'em_rota' || status === 'pronto_retirada') return document.getElementById('listaKanbanExpedicao');
+        if (status === 'entregue') return document.getElementById('listaKanbanFinalizados');
+        return null;
+    }
+
+    function textoVazioKanban(statusGrupo) {
+        return {
+            novos: 'Nenhum pedido novo.',
+            preparo: 'Nenhum pedido em preparo.',
+            expedicao: 'Nenhum pedido nesta etapa.',
+            finalizados: 'Nenhum finalizado nas últimas 24h.'
+        }[statusGrupo] || 'Nenhum pedido.';
+    }
+
+    function garantirVazioKanban(container, statusGrupo) {
+        if (!container) return;
+        const cards = container.querySelectorAll('.pedido-card');
+        const vazio = container.querySelector('.vazio');
+        if (cards.length === 0 && !vazio) {
+            container.innerHTML = `<p class="vazio">${textoVazioKanban(statusGrupo)}</p>`;
+        } else if (cards.length > 0 && vazio) {
+            vazio.remove();
+        }
+    }
+
+    function atualizarContadoresKanban() {
+        const grupos = [
+            ['listaKanbanNovos', 'contadorKanbanNovos', 'novos'],
+            ['listaKanbanPreparo', 'contadorKanbanPreparo', 'preparo'],
+            ['listaKanbanExpedicao', 'contadorKanbanExpedicao', 'expedicao'],
+            ['listaKanbanFinalizados', 'contadorKanbanFinalizados', 'finalizados']
+        ];
+        grupos.forEach(([listaId, contadorId, grupo]) => {
+            const lista = document.getElementById(listaId);
+            const contador = document.getElementById(contadorId);
+            if (!lista || !contador) return;
+            garantirVazioKanban(lista, grupo);
+            contador.textContent = lista.querySelectorAll('.pedido-card').length;
+        });
+        atualizarContador();
+    }
+
+    function colocarPedidoNoKanban(id, pedido, comAcoes = true) {
+        const cardAnterior = document.getElementById('pendente-' + id);
+        if (cardAnterior) cardAnterior.remove();
+
+        const destino = obterListaKanbanPorStatus(pedido.status);
+        if (!destino) {
+            idsRenderizados.delete(id);
+            atualizarContadoresKanban();
+            return;
+        }
+
+        const vazio = destino.querySelector('.vazio');
+        if (vazio) vazio.remove();
+        destino.appendChild(montarCardPedido(id, pedido, comAcoes));
+        if (pedido.status !== 'entregue') idsRenderizados.add(id);
+        atualizarContadoresKanban();
+    }
+
+    function removerPedidoDoKanbanAtivo(id) {
+        const card = document.getElementById('pendente-' + id);
+        if (card) card.remove();
+        idsRenderizados.delete(id);
+        atualizarContadoresKanban();
+    }
+
     // Guarda o status de pagamento (sinal/restante) já conhecido de cada pedido, pra
-    // depois comparar no child_changed e detectar quando um pagamento é confirmado —
-    // sem isso, o webhook do InfinitePay confirma o pagamento em silêncio, e ninguém
-    // no painel fica sabendo que o dinheiro entrou até checar manualmente
+    // depois comparar no child_changed e detectar quando um pagamento é confirmado.
     const statusPagamentoConhecido = new Map();
     function statusPagamentoAtual(pedido) {
         return (pedido.pagamento ? pedido.pagamento.status : '') + '|' + (pedido.pagamentoRestante ? pedido.pagamentoRestante.status : '');
     }
 
-    // Carrega os pedidos ainda ativos (pendente/aceito/em rota) já existentes, sem tocar som
+    // Carrega os pedidos ativos já existentes, sem tocar som.
     refPedidos.limitToLast(60).once('value').then(snapshot => {
-        listaPendentesEl.innerHTML = '';
+        ['listaKanbanNovos', 'listaKanbanPreparo', 'listaKanbanExpedicao'].forEach(idLista => {
+            const el = document.getElementById(idLista);
+            if (el) el.innerHTML = '';
+        });
+        idsRenderizados.clear();
+
         const itens = [];
         snapshot.forEach(child => itens.push({ id: child.key, pedido: child.val() }));
-        // Fila de atendimento: mais antigo no topo (primeiro a chegar, primeiro a ser
-        // atendido), mais novo embaixo — as chaves do Firebase já vêm cronológicas
-        // ascendentes, então usa a ordem natural, sem inverter
         itens.forEach(({ id, pedido }) => {
             statusPagamentoConhecido.set(id, statusPagamentoAtual(pedido));
             if (ehStatusFinal(pedido)) return;
-            listaPendentesEl.appendChild(montarCardPedido(id, pedido, true));
-            idsRenderizados.add(id);
+            colocarPedidoNoKanban(id, pedido, true);
         });
-        if (idsRenderizados.size === 0) {
-            listaPendentesEl.innerHTML = '<p class="vazio">Nenhum pedido novo no momento.</p>';
-        }
-        atualizarContador();
+        atualizarContadoresKanban();
         primeiraCargaConcluida = true;
         restaurarPosicaoRolagem();
 
-        // A partir daqui, qualquer pedido novo dispara som + aparece na hora
+        // A partir daqui, qualquer pedido novo dispara som + aparece na coluna correta.
         refPedidos.on('child_added', snap => {
-            if (idsRenderizados.has(snap.key)) return; // já estava na carga inicial
+            if (idsRenderizados.has(snap.key)) return;
             const pedido = snap.val();
             statusPagamentoConhecido.set(snap.key, statusPagamentoAtual(pedido));
-            if (ehStatusFinal(pedido)) return; // pedido antigo carregado já finalizado, ignora
-            const vazio = listaPendentesEl.querySelector('.vazio');
-            if (vazio) vazio.remove();
-            listaPendentesEl.appendChild(montarCardPedido(snap.key, pedido, true));
-            idsRenderizados.add(snap.key);
-            atualizarContador();
+            if (ehStatusFinal(pedido)) return;
+
+            colocarPedidoNoKanban(snap.key, pedido, true);
             if (primeiraCargaConcluida && pedido.status === 'pendente' && !window._importandoBackupGestao) {
                 tocarAlerta();
-                // Cobre QUALQUER pagamento online já confirmado quando o painel vê o
-                // pedido pela primeira vez — sinal, restante, ou pagamento à vista normal
-                // (Cartão às vezes confirma tão rápido que o painel nunca viu o momento
-                // "ainda aguardando", só a versão já paga).
                 const sinalJaPago = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' && pedido.pagamento.status === 'pago';
                 const restanteJaPago = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'pago';
                 const pagamentoNormalJaPago = pedido.pagamento && pedido.pagamento.tipoPagamento !== 'sinal' && pedido.pagamento.status === 'pago';
@@ -6996,14 +7054,10 @@ function iniciarEscutaPedidos() {
             }
         });
 
-        // Quando o status do pedido muda (aceitar, sair pra entrega, entregar, recusar)
+        // Toda mudança de status apenas move o mesmo pedido entre as colunas.
         refPedidos.on('child_changed', snap => {
             const pedido = snap.val();
-            const cardAtual = document.getElementById('pendente-' + snap.key);
 
-            // Detecta se ALGUM pagamento (sinal ou restante) acabou de virar "pago" —
-            // isso acontece em silêncio pelo webhook do InfinitePay, às vezes horas
-            // depois do pedido ter sido feito, então avisa igual um pedido novo
             const statusAnterior = statusPagamentoConhecido.get(snap.key) || '';
             const statusNovo = statusPagamentoAtual(pedido);
             if (statusAnterior !== statusNovo) {
@@ -7019,37 +7073,16 @@ function iniciarEscutaPedidos() {
             }
 
             if (ehStatusFinal(pedido)) {
-                // Chegou num status final -> sai da lista de pedidos ativos
-                if (cardAtual) cardAtual.remove();
-                idsRenderizados.delete(snap.key);
-                if (idsRenderizados.size === 0) {
-                    listaPendentesEl.innerHTML = '<p class="vazio">Nenhum pedido novo no momento.</p>';
-                }
-            } else if (idsRenderizados.has(snap.key) && cardAtual) {
-                // Toda mudança de status (aceitar, sair pra entrega, marcar pronto) manda
-                // esse pedido pro final da fila — assim os pedidos ainda parados num
-                // estágio anterior ficam sempre mais visíveis, no topo
-                cardAtual.remove();
-                listaPendentesEl.appendChild(montarCardPedido(snap.key, pedido, true));
-            } else if (!idsRenderizados.has(snap.key)) {
-                // Pedido estava escondido (aguardando pagamento confirmar) e agora
-                // passou a valer — entra no final da fila igual um pedido novo, com alerta
-                if (listaPendentesEl.querySelector('.vazio')) listaPendentesEl.innerHTML = '';
-                listaPendentesEl.appendChild(montarCardPedido(snap.key, pedido, true));
-                idsRenderizados.add(snap.key);
-                if (pedido.status === 'pendente' && !window._importandoBackupGestao) tocarAlerta();
+                removerPedidoDoKanbanAtivo(snap.key);
+            } else {
+                const jaEstavaVisivel = idsRenderizados.has(snap.key);
+                colocarPedidoNoKanban(snap.key, pedido, true);
+                if (!jaEstavaVisivel && pedido.status === 'pendente' && !window._importandoBackupGestao) tocarAlerta();
             }
-            atualizarContador();
         });
 
         refPedidos.on('child_removed', snap => {
-            idsRenderizados.delete(snap.key);
-            const card = document.getElementById('pendente-' + snap.key);
-            if (card) card.remove();
-            if (idsRenderizados.size === 0) {
-                listaPendentesEl.innerHTML = '<p class="vazio">Nenhum pedido novo no momento.</p>';
-            }
-            atualizarContador();
+            removerPedidoDoKanbanAtivo(snap.key);
         });
     });
 
@@ -7073,10 +7106,27 @@ function iniciarEscutaPedidos() {
         listaHistoricoEl.innerHTML = '';
         if (itens.length === 0) {
             listaHistoricoEl.innerHTML = '<p class="vazio">Nenhum pedido nas últimas 24 horas.</p>';
-            return;
+        } else {
+            itens.forEach(({ id, pedido }) => {
+                listaHistoricoEl.appendChild(montarCardPedido(id, pedido, false));
+            });
         }
-        itens.forEach(({ id, pedido }) => {
-            listaHistoricoEl.appendChild(montarCardPedido(id, pedido, false));
-        });
+
+        // A coluna Finalizados é só uma visão rápida dos pedidos concluídos nas últimas 24h.
+        // O histórico completo continua logo abaixo, sem mudar a lógica que já existia.
+        const listaFinalizados = document.getElementById('listaKanbanFinalizados');
+        if (listaFinalizados) {
+            listaFinalizados.innerHTML = '';
+            const finalizados = itens.filter(item => item.pedido.status === 'entregue').slice(0, 10);
+            if (finalizados.length === 0) {
+                listaFinalizados.innerHTML = '<p class="vazio">Nenhum finalizado nas últimas 24h.</p>';
+            } else {
+                finalizados.forEach(({ id, pedido }) => {
+                    listaFinalizados.appendChild(montarCardPedido(id, pedido, false));
+                });
+            }
+            const contadorFinalizados = document.getElementById('contadorKanbanFinalizados');
+            if (contadorFinalizados) contadorFinalizados.textContent = finalizados.length;
+        }
     });
 }
