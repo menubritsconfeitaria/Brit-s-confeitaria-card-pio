@@ -524,18 +524,18 @@
                     <button type="button" class="hub-subtab-btn" data-cm-subtab-btn="cupons" onclick="mostrarSubabaClientesMarketing('cupons')">🎟️ Cupons</button>
                     <button type="button" class="hub-subtab-btn" data-cm-subtab-btn="fidelidade" onclick="mostrarSubabaClientesMarketing('fidelidade')">⭐ Fidelidade</button>
                     <button type="button" class="hub-subtab-btn" data-cm-subtab-btn="promocoes" onclick="mostrarSubabaClientesMarketing('promocoes')">🔥 Promoções</button>
-                    <button type="button" class="hub-subtab-btn" data-cm-subtab-btn="mensagem-massa" onclick="mostrarSubabaClientesMarketing('mensagem-massa')">💬 Mensagem em Massa</button>
+                    <button type="button" class="hub-subtab-btn" data-cm-subtab-btn="mensagem-massa" onclick="mostrarSubabaClientesMarketing('mensagem-massa')">📣 Campanhas no WhatsApp</button>
                     <button type="button" class="hub-subtab-btn" data-cm-subtab-btn="campanhas" onclick="mostrarSubabaClientesMarketing('campanhas')">📣 Campanhas</button>
                 </div>
                 <div class="hub-subpanel active" data-cm-subtab="clientes">
 
-                <h2>💬 Falar com os clientes</h2>
-                <p class="dica-secao">Todo cliente que já fez pelo menos 1 pedido — não precisa ser do Clube de Fidelidade. Manda uma mensagem com um clique, direto do seu WhatsApp (nada é enviado automaticamente). Serve tanto pra reconquistar quem sumiu quanto pra avisar todo mundo de uma promoção.</p>
+                <h2>🔄 Reativação de clientes</h2>
+                <p class="dica-secao">Encontre clientes que estão há alguns dias sem comprar e chame pelo WhatsApp com a mensagem pronta. Nada é enviado automaticamente: você escolhe quem deseja reativar e confirma o contato.</p>
                 <label class="campo-label">Mensagem (use <code>{nome}</code> pro nome do cliente, <code>{loja}</code> pro nome da loja, <code>{link}</code> pro link do cardápio)</label>
                 <textarea id="mensagemClientes" class="campo-adicionais" style="min-height:60px;">Oi {nome}! Sentimos sua falta por aqui na {loja} 🥹 Que tal dar uma olhada nas novidades? {link}</textarea>
                 <div class="produto-admin-linha" style="margin:10px 0;">
                     <div class="campo-com-label">
-                        <label class="campo-label">Mostrar clientes sem comprar há quantos dias? (0 = todo mundo, pra mandar uma promoção geral)</label>
+                        <label class="campo-label">Clientes sem comprar há quantos dias? (0 = mostrar todos)</label>
                         <input type="text" inputmode="numeric" id="diasInatividade" value="30">
                     </div>
                     <button class="btn-salvar-ordem" onclick="carregarClientesInativos()" style="align-self:flex-end;">🔎 Buscar</button>
@@ -636,11 +636,11 @@
                 </div>
                 </div>
                 <div class="hub-subpanel" data-cm-subtab="mensagem-massa">
-                    <div class="hub-context-note"><strong>💬 Mensagem em Massa</strong><span>Prepare campanhas assistidas no WhatsApp e acompanhe o progresso sem perder o ponto.</span></div>
+                    <div class="hub-context-note"><strong>📣 Campanhas no WhatsApp</strong><span>Crie uma campanha e avance cliente por cliente, com o progresso salvo para continuar depois.</span></div>
                     <div class="loja-status-card mensagem-massa-premium">
                         <div class="mm-cabecalho">
                             <div>
-                                <h3>📣 Mensagem em Massa (WhatsApp)</h3>
+                                <h3>📣 Campanhas no WhatsApp</h3>
                                 <p class="dica-secao">Prepare a mensagem uma vez e avance cliente por cliente sem perder o ponto da campanha.</p>
                             </div>
                             <span class="mm-selo">Campanha assistida</span>
