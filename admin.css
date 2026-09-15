@@ -173,6 +173,14 @@ body {
     padding: 20px 16px 60px;
 }
 
+/* Pedidos usa toda a largura útil da tela; as outras abas continuam compactas. */
+.painel-main > section[data-tab="pedidos"] {
+    width: calc(100vw - 40px);
+    max-width: none;
+    margin-left: 50%;
+    transform: translateX(-50%);
+}
+
 .painel-main h2 {
     color: var(--primary);
     font-size: 1.15em;
@@ -199,14 +207,14 @@ body {
 .kanban-cabecalho h2 { margin-bottom: 4px; }
 .kanban-pedidos {
     display: grid;
-    grid-template-columns: repeat(4, minmax(280px, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 14px;
-    overflow-x: auto;
-    padding: 2px 2px 12px;
+    overflow-x: visible;
+    padding: 2px 0 12px;
     align-items: start;
 }
 .kanban-coluna {
-    min-width: 280px;
+    min-width: 0;
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 16px;
@@ -247,9 +255,18 @@ body {
 .kanban-expedicao { border-top: 4px solid #2f8fd6; }
 .kanban-finalizados { border-top: 4px solid #157347; }
 
+@media (max-width: 1100px) {
+    .kanban-pedidos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media (max-width: 760px) {
-    .kanban-pedidos { grid-template-columns: repeat(4, minmax(86vw, 86vw)); }
-    .kanban-coluna { min-width: 0; }
+    .painel-main > section[data-tab="pedidos"] {
+        width: calc(100vw - 24px);
+    }
+    .kanban-pedidos {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
 }
 
 .pedido-card {
