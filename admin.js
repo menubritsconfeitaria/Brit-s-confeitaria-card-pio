@@ -1878,10 +1878,8 @@ const URGENCIA_PEDIDOS = {
 
 function obterInicioEtapaPedido(pedido) {
     if (!pedido) return 0;
-    if (pedido.status === 'aceito') return Number(pedido.aceitoEm || pedido.timestamp || 0);
-    if (pedido.status === 'em_rota') return Number(pedido.saiuEntregaEm || pedido.aceitoEm || pedido.timestamp || 0);
-    if (pedido.status === 'pronto_retirada') return Number(pedido.prontoEm || pedido.aceitoEm || pedido.timestamp || 0);
-    return Number(pedido.timestamp || 0);
+    // O cronômetro operacional é contínuo: começa quando o pedido entra e não zera ao mudar de etapa.
+    return Number(pedido.timestamp || pedido.aceitoEm || pedido.prontoEm || pedido.saiuEntregaEm || 0);
 }
 
 function atualizarUrgenciaVisualCard(card) {
@@ -1899,15 +1897,15 @@ function atualizarUrgenciaVisualCard(card) {
     if (minutos >= URGENCIA_PEDIDOS.atrasadoMinutos) {
         card.classList.add('urgencia-atrasado');
         badge.classList.add('tempo-atrasado');
-        badge.textContent = `🔴 ${minutos} min nesta etapa`;
+        badge.textContent = `🔴 ${minutos} min desde o pedido`;
     } else if (minutos >= URGENCIA_PEDIDOS.atencaoMinutos) {
         card.classList.add('urgencia-atencao');
         badge.classList.add('tempo-atencao');
-        badge.textContent = `🟠 ${minutos} min nesta etapa`;
+        badge.textContent = `🟠 ${minutos} min desde o pedido`;
     } else {
         card.classList.add('urgencia-normal');
         badge.classList.add('tempo-normal');
-        badge.textContent = `🟢 ${minutos} min nesta etapa`;
+        badge.textContent = `🟢 ${minutos} min desde o pedido`;
     }
 }
 
