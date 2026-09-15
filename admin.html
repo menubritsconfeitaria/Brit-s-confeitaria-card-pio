@@ -1400,124 +1400,98 @@
                 </div>
 
                 <div class="gestao-subconteudo" data-subtab-content="sub-pedidos-manuais" style="display:none;">
-                    <div class="pdv-shell">
-                        <div class="pdv-head">
-                            <div>
-                                <span class="pdv-kicker">VENDA DIRETA</span>
-                                <h3>📝 Lançar Pedido</h3>
-                                <p>Para balcão, telefone ou WhatsApp. O pedido continua entrando no mesmo fluxo, fechamento e relatórios.</p>
+                    <div class="loja-status-card">
+                        <h3>📝 Lançar Pedido (balcão, telefone, etc.)</h3>
+                        <p class="dica-secao">Some junto com os pedidos do cardápio nos relatórios e no fechamento do dia.</p>
+
+                        <div class="produto-admin-linha">
+                            <div class="campo-com-label">
+                                <label class="campo-label">Cliente</label>
+                                <input type="text" id="pmCliente" list="pmClientesDatalist" placeholder="Digite ou escolhe o nome do cliente">
+                                <datalist id="pmClientesDatalist"></datalist>
                             </div>
-                            <span class="pdv-badge">PDV PedeAki</span>
+                            <div class="campo-com-label">
+                                <label class="campo-label">Data</label>
+                                <input type="date" id="pmData">
+                            </div>
+                            <div class="campo-com-label">
+                                <label class="campo-label">Status</label>
+                                <select id="pmStatus">
+                                    <option value="pendente">Pendente</option>
+                                    <option value="aceito">Aceito</option>
+                                    <option value="em_rota">Em rota</option>
+                                    <option value="pronto_retirada">Pronto pra retirada</option>
+                                    <option value="entregue">Entregue</option>
+                                    <option value="recusado">Cancelado</option>
+                                </select>
+                            </div>
                         </div>
 
-                        <div class="pdv-grid">
-                            <div class="pdv-main">
-                                <div class="pdv-card">
-                                    <div class="pdv-card-title"><span>1</span><strong>Cliente e pedido</strong></div>
-                                    <div class="produto-admin-linha">
-                                        <div class="campo-com-label pdv-cliente-campo">
-                                            <label class="campo-label">Cliente</label>
-                                            <input type="text" id="pmCliente" list="pmClientesDatalist" placeholder="Digite ou escolha o nome do cliente">
-                                            <datalist id="pmClientesDatalist"></datalist>
-                                        </div>
-                                        <div class="campo-com-label">
-                                            <label class="campo-label">Data</label>
-                                            <input type="date" id="pmData">
-                                        </div>
-                                        <div class="campo-com-label">
-                                            <label class="campo-label">Status</label>
-                                            <select id="pmStatus">
-                                                <option value="pendente">Pendente</option>
-                                                <option value="aceito">Aceito</option>
-                                                <option value="em_rota">Em rota</option>
-                                                <option value="pronto_retirada">Pronto pra retirada</option>
-                                                <option value="entregue">Entregue</option>
-                                                <option value="recusado">Cancelado</option>
-                                            </select>
-                                        </div>
-                                    </div>
+                        <h3 style="margin-top:16px;">Itens do pedido</h3>
+                        <div class="produto-admin-linha">
+                            <div class="campo-com-label" style="flex:2;">
+                                <label class="campo-label">Produto (com ficha técnica)</label>
+                                <select id="pmSelectProduto"></select>
+                            </div>
+                            <div class="campo-com-label">
+                                <label class="campo-label">Quantidade</label>
+                                <input type="text" inputmode="decimal" id="pmQtdItem" value="1">
+                            </div>
+                        </div>
+                        <button class="btn-secondary" style="margin-top:8px;" onclick="adicionarItemPedidoManual()">+ Adicionar item</button>
+                        <div id="pmListaItens" style="margin-top:10px;"></div>
+                        <p class="dica-secao">Subtotal: <strong id="pmSubtotalTemp">R$ 0,00</strong></p>
+
+                        <div class="produto-admin-linha" style="margin-top:10px;">
+                            <div class="campo-com-label">
+                                <label class="campo-label">Desconto (%)</label>
+                                <input type="text" inputmode="decimal" id="pmDesconto" value="0" oninput="renderItensPedidoManual()">
+                            </div>
+                            <div class="campo-com-label">
+                                <label class="campo-label">Frete (R$)</label>
+                                <input type="text" inputmode="decimal" id="pmFrete" value="0" oninput="renderItensPedidoManual()">
+                            </div>
+                            <div class="campo-com-label">
+                                <label class="campo-label">Forma de pagamento</label>
+                                <select id="pmFormaPagamento">
+                                    <option value="">Selecione</option>
+                                    <option>Dinheiro</option><option>Cartão de Crédito</option><option>Cartão de Débito</option><option>Pix</option><option>Transferência Bancária</option><option>Outros</option>
+                                </select>
+                            </div>
+                        </div>
+                        <p class="dica-secao">Total: <strong id="pmTotalTemp">R$ 0,00</strong></p>
+
+                        <label class="campo-label" style="margin-top:10px;">É uma encomenda com sinal?</label>
+                        <div class="toggle-sim-nao">
+                            <button type="button" id="btnEncomendaSim" class="toggle-opcao" onclick="definirEhEncomenda(true)">Sim</button>
+                            <button type="button" id="btnEncomendaNao" class="toggle-opcao selecionado" onclick="definirEhEncomenda(false)">Não</button>
+                        </div>
+                        <input type="hidden" id="pmEhEncomenda" value="nao">
+                        <div id="blocoEncomendaSinal" style="display:none; margin-top:8px;">
+                            <div class="produto-admin-linha">
+                                <div class="campo-com-label">
+                                    <label class="campo-label">Sinal recebido (R$)</label>
+                                    <input type="text" inputmode="decimal" id="pmSinalRecebido" value="0">
                                 </div>
-
-                                <div class="pdv-card">
-                                    <div class="pdv-card-title"><span>2</span><strong>Itens do pedido</strong></div>
-                                    <div class="produto-admin-linha">
-                                        <div class="campo-com-label pdv-produto-campo">
-                                            <label class="campo-label">Produto (com ficha técnica)</label>
-                                            <select id="pmSelectProduto"></select>
-                                        </div>
-                                        <div class="campo-com-label pdv-qtd-campo">
-                                            <label class="campo-label">Quantidade</label>
-                                            <input type="text" inputmode="decimal" id="pmQtdItem" value="1">
-                                        </div>
-                                        <button class="btn-secondary pdv-btn-adicionar" onclick="adicionarItemPedidoManual()">+ Adicionar item</button>
+                                <div class="campo-com-label">
+                                    <label class="campo-label">Restante já recebido também?</label>
+                                    <div class="toggle-sim-nao">
+                                        <button type="button" id="btnRestanteNao" class="toggle-opcao selecionado" onclick="definirRestanteJaRecebido(false)">Não</button>
+                                        <button type="button" id="btnRestanteSim" class="toggle-opcao" onclick="definirRestanteJaRecebido(true)">Sim</button>
                                     </div>
-                                    <div id="pmListaItens" class="pdv-itens-lista"></div>
-                                </div>
-
-                                <div class="pdv-card">
-                                    <div class="pdv-card-title"><span>3</span><strong>Pagamento e detalhes</strong></div>
-                                    <div class="produto-admin-linha">
-                                        <div class="campo-com-label">
-                                            <label class="campo-label">Desconto (%)</label>
-                                            <input type="text" inputmode="decimal" id="pmDesconto" value="0" oninput="renderItensPedidoManual()">
-                                        </div>
-                                        <div class="campo-com-label">
-                                            <label class="campo-label">Frete (R$)</label>
-                                            <input type="text" inputmode="decimal" id="pmFrete" value="0" oninput="renderItensPedidoManual()">
-                                        </div>
-                                        <div class="campo-com-label">
-                                            <label class="campo-label">Forma de pagamento</label>
-                                            <select id="pmFormaPagamento">
-                                                <option value="">Selecione</option>
-                                                <option>Dinheiro</option><option>Cartão de Crédito</option><option>Cartão de Débito</option><option>Pix</option><option>Transferência Bancária</option><option>Outros</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div class="pdv-encomenda-box">
-                                        <label class="campo-label">É uma encomenda com sinal?</label>
-                                        <div class="toggle-sim-nao">
-                                            <button type="button" id="btnEncomendaSim" class="toggle-opcao" onclick="definirEhEncomenda(true)">Sim</button>
-                                            <button type="button" id="btnEncomendaNao" class="toggle-opcao selecionado" onclick="definirEhEncomenda(false)">Não</button>
-                                        </div>
-                                        <input type="hidden" id="pmEhEncomenda" value="nao">
-                                        <div id="blocoEncomendaSinal" style="display:none; margin-top:8px;">
-                                            <div class="produto-admin-linha">
-                                                <div class="campo-com-label">
-                                                    <label class="campo-label">Sinal recebido (R$)</label>
-                                                    <input type="text" inputmode="decimal" id="pmSinalRecebido" value="0">
-                                                </div>
-                                                <div class="campo-com-label">
-                                                    <label class="campo-label">Restante já recebido também?</label>
-                                                    <div class="toggle-sim-nao">
-                                                        <button type="button" id="btnRestanteNao" class="toggle-opcao selecionado" onclick="definirRestanteJaRecebido(false)">Não</button>
-                                                        <button type="button" id="btnRestanteSim" class="toggle-opcao" onclick="definirRestanteJaRecebido(true)">Sim</button>
-                                                    </div>
-                                                    <input type="hidden" id="pmRestanteJaRecebido" value="nao">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <label class="campo-label" style="margin-top:12px;">Observações</label>
-                                    <textarea id="pmObs" class="campo-adicionais" rows="2" placeholder="Ex.: retirar ingrediente, horário combinado, referência de entrega..."></textarea>
+                                    <input type="hidden" id="pmRestanteJaRecebido" value="nao">
                                 </div>
                             </div>
-
-                            <aside class="pdv-resumo">
-                                <div class="pdv-resumo-card">
-                                    <span class="pdv-resumo-kicker">RESUMO DO PEDIDO</span>
-                                    <div class="pdv-resumo-linha"><span>Subtotal</span><strong id="pmSubtotalTemp">R$ 0,00</strong></div>
-                                    <div class="pdv-resumo-total"><span>Total</span><strong id="pmTotalTemp">R$ 0,00</strong></div>
-                                    <button class="btn-salvar-ordem pdv-btn-salvar" id="btnSalvarPedidoManual" onclick="salvarPedidoManual()">Salvar Pedido</button>
-                                    <p id="msgPedidoManual" class="ordem-categorias-msg"></p>
-                                    <small>O pedido será registrado no mesmo sistema usado pelo cardápio.</small>
-                                </div>
-                            </aside>
                         </div>
+
+                        <label class="campo-label" style="margin-top:10px;">Observações</label>
+                        <textarea id="pmObs" class="campo-adicionais" rows="2"></textarea>
+
+                        <button class="btn-salvar-ordem" id="btnSalvarPedidoManual" style="margin-top:10px;" onclick="salvarPedidoManual()">Salvar Pedido</button>
+                        <p id="msgPedidoManual" class="ordem-categorias-msg"></p>
                     </div>
 
-                    <div class="loja-status-card pdv-historico-card" style="margin-top:16px;">
+                    <div class="loja-status-card" style="margin-top:16px;">
                         <h3>🧾 Todos os Pedidos</h3>
                         <p class="dica-secao">Manuais e do cardápio, juntos. Clica no 🗑️ pra excluir qualquer pedido da lista — de teste ou não.</p>
                         <div id="listaPedidosManuais" style="overflow-x:auto;"></div>
