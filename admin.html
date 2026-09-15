@@ -524,6 +524,7 @@
                     <button type="button" class="hub-subtab-btn" data-cm-subtab-btn="cupons" onclick="mostrarSubabaClientesMarketing('cupons')">🎟️ Cupons</button>
                     <button type="button" class="hub-subtab-btn" data-cm-subtab-btn="fidelidade" onclick="mostrarSubabaClientesMarketing('fidelidade')">⭐ Fidelidade</button>
                     <button type="button" class="hub-subtab-btn" data-cm-subtab-btn="promocoes" onclick="mostrarSubabaClientesMarketing('promocoes')">🔥 Promoções</button>
+                    <button type="button" class="hub-subtab-btn" data-cm-subtab-btn="mensagem-massa" onclick="mostrarSubabaClientesMarketing('mensagem-massa')">💬 Mensagem em Massa</button>
                     <button type="button" class="hub-subtab-btn" data-cm-subtab-btn="campanhas" onclick="mostrarSubabaClientesMarketing('campanhas')">📣 Campanhas</button>
                 </div>
                 <div class="hub-subpanel active" data-cm-subtab="clientes">
@@ -633,6 +634,41 @@
                     <button class="btn-secondary" style="margin-top:10px;" onclick="salvarConfiguracaoCarrossel()">Salvar configuração do carrossel</button>
                     <p id="msgDestaquesManuais" class="ordem-categorias-msg"></p>
                 </div>
+                </div>
+                <div class="hub-subpanel" data-cm-subtab="mensagem-massa">
+                    <div class="hub-context-note"><strong>💬 Mensagem em Massa</strong><span>Prepare campanhas assistidas no WhatsApp e acompanhe o progresso sem perder o ponto.</span></div>
+                    <div class="loja-status-card mensagem-massa-premium">
+                        <div class="mm-cabecalho">
+                            <div>
+                                <h3>📣 Mensagem em Massa (WhatsApp)</h3>
+                                <p class="dica-secao">Prepare a mensagem uma vez e avance cliente por cliente sem perder o ponto da campanha.</p>
+                            </div>
+                            <span class="mm-selo">Campanha assistida</span>
+                        </div>
+
+                        <div class="mm-compositor">
+                            <label class="campo-label" for="mmTexto">Mensagem da campanha</label>
+                            <textarea id="mmTexto" class="campo-adicionais" rows="5" placeholder="Ex: Oi! Passando pra contar uma novidade maravilhosa: nosso cardápio digital já está no ar! 🙌 Agora você pode fazer seu pedido direto por ele..."></textarea>
+                            <p class="dica-secao mm-ajuda">Cada botão abre o WhatsApp com o texto pronto. O envio continua sendo confirmado por você.</p>
+                            <div class="mm-acoes">
+                                <button class="btn-salvar-ordem" onclick="montarListaMensagemMassa()">Gerar / continuar campanha</button>
+                                <button class="btn-secondary" onclick="novaCampanhaMensagemMassa()">➕ Nova campanha</button>
+                            </div>
+                        </div>
+
+                        <p class="dica-secao" id="mmContador"></p>
+                        <div id="mmLista"></div>
+
+                        <div class="mm-historico-bloco">
+                            <div class="mm-historico-topo">
+                                <div>
+                                    <h4>🕘 Histórico de campanhas</h4>
+                                    <p class="dica-secao">O progresso fica salvo no Firebase e aparece igual em todos os aparelhos conectados ao painel.</p>
+                                </div>
+                            </div>
+                            <div id="mmHistorico"></div>
+                        </div>
+                    </div>
                 </div>
                 <div class="hub-subpanel" data-cm-subtab="campanhas">
                     <div class="hub-context-note"><strong>📣 Campanhas</strong><span>Crie comunicação com clientes e campanhas visuais sem misturar com as configurações da loja.</span></div>
@@ -1108,7 +1144,6 @@
                     <button class="gestao-subtab-btn" data-subtab="sub-ficha-tecnica" onclick="mostrarSubabaGestao('sub-ficha-tecnica')">📋 Ficha Técnica</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-estoque" onclick="mostrarSubabaGestao('sub-estoque')">📦 Estoque</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-clientes-gestao" onclick="mostrarSubabaGestao('sub-clientes-gestao')">👥 Clientes</button>
-                    <button class="gestao-subtab-btn" data-subtab="sub-mensagem-massa" onclick="mostrarSubabaGestao('sub-mensagem-massa')">📣 Mensagem em Massa</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-pedidos-manuais" onclick="mostrarSubabaGestao('sub-pedidos-manuais')">📝 Lançar Pedido</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-dashboard" onclick="mostrarSubabaGestao('sub-dashboard')">📊 Dashboard</button>
                     <button class="gestao-subtab-btn" data-subtab="sub-relatorios" onclick="mostrarSubabaGestao('sub-relatorios')">📄 Relatórios</button>
@@ -1355,41 +1390,6 @@
                     <div class="loja-status-card" style="margin-top:16px;">
                         <input type="text" id="cgBusca" placeholder="🔍 Pesquisar cliente..." oninput="renderClientesGestao()">
                         <div id="listaClientesGestao" style="margin-top:10px;"></div>
-                    </div>
-                </div>
-
-                <div class="gestao-subconteudo" data-subtab-content="sub-mensagem-massa" style="display:none;">
-                    <div class="loja-status-card mensagem-massa-premium">
-                        <div class="mm-cabecalho">
-                            <div>
-                                <h3>📣 Mensagem em Massa (WhatsApp)</h3>
-                                <p class="dica-secao">Prepare a mensagem uma vez e avance cliente por cliente sem perder o ponto da campanha.</p>
-                            </div>
-                            <span class="mm-selo">Campanha assistida</span>
-                        </div>
-
-                        <div class="mm-compositor">
-                            <label class="campo-label" for="mmTexto">Mensagem da campanha</label>
-                            <textarea id="mmTexto" class="campo-adicionais" rows="5" placeholder="Ex: Oi! Passando pra contar uma novidade maravilhosa: nosso cardápio digital já está no ar! 🙌 Agora você pode fazer seu pedido direto por ele..."></textarea>
-                            <p class="dica-secao mm-ajuda">Cada botão abre o WhatsApp com o texto pronto. O envio continua sendo confirmado por você.</p>
-                            <div class="mm-acoes">
-                                <button class="btn-salvar-ordem" onclick="montarListaMensagemMassa()">Gerar / continuar campanha</button>
-                                <button class="btn-secondary" onclick="novaCampanhaMensagemMassa()">➕ Nova campanha</button>
-                            </div>
-                        </div>
-
-                        <p class="dica-secao" id="mmContador"></p>
-                        <div id="mmLista"></div>
-
-                        <div class="mm-historico-bloco">
-                            <div class="mm-historico-topo">
-                                <div>
-                                    <h4>🕘 Histórico de campanhas</h4>
-                                    <p class="dica-secao">O progresso fica salvo no Firebase e aparece igual em todos os aparelhos conectados ao painel.</p>
-                                </div>
-                            </div>
-                            <div id="mmHistorico"></div>
-                        </div>
                     </div>
                 </div>
 

@@ -2584,7 +2584,7 @@ const MAPA_RECURSOS = {
     esconderProduto: { classesCorpo: ['ocultar-campo-esconder-produto'] },
     gestaoCompleta: { abas: ['gestao'], classesCorpo: ['ocultar-campo-ficha-tecnica'] },
     carrossel: { cards: ['cardDestaquesCarrossel', 'cardBannersCarrossel'] },
-    mensagemMassa: { subabasGestao: ['sub-mensagem-massa'] }
+    mensagemMassa: { subabasClientesMarketing: ['mensagem-massa'] }
 };
 
 function aplicarRecursosLiberados(recursos) {
@@ -2605,6 +2605,18 @@ function aplicarRecursosLiberados(recursos) {
         (alvos.subabasGestao || []).forEach(subaba => {
             const botao = document.querySelector(`.gestao-subtab-btn[data-subtab="${subaba}"]`);
             if (botao) botao.style.display = liberado ? '' : 'none';
+        });
+        (alvos.subabasClientesMarketing || []).forEach(subaba => {
+            const raiz = document.querySelector('section[data-tab="clientes-marketing"]');
+            if (!raiz) return;
+            const botao = raiz.querySelector(`[data-cm-subtab-btn="${subaba}"]`);
+            const painel = raiz.querySelector(`[data-cm-subtab="${subaba}"]`);
+            if (botao) botao.style.display = liberado ? '' : 'none';
+            if (!liberado && painel) painel.classList.remove('active');
+            if (!liberado && localStorage.getItem('clientesMarketingSubaba') === subaba) {
+                localStorage.setItem('clientesMarketingSubaba', 'clientes');
+                mostrarSubabaClientesMarketing('clientes');
+            }
         });
         (alvos.cards || []).forEach(id => {
             const card = document.getElementById(id);

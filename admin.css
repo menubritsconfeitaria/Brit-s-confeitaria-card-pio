@@ -3106,9 +3106,9 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
 }
 
 
-/* ===== GESTÃO PREMIUM — MENSAGEM EM MASSA (visual somente) ===== */
+/* ===== CLIENTES & MARKETING — MENSAGEM EM MASSA PREMIUM ===== */
 /* Escopo restrito à subaba de Mensagem em Massa. IDs, eventos e lógica permanecem intactos. */
-.gestao-subconteudo[data-subtab-content="sub-mensagem-massa"] {
+.clientes-marketing-premium [data-cm-subtab="mensagem-massa"] {
     --mm-border: #eadfce;
     --mm-soft: #fffaf3;
     --mm-accent: #c9782b;
@@ -3117,7 +3117,7 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
     --mm-muted: #7b6b5f;
 }
 
-.gestao-subconteudo[data-subtab-content="sub-mensagem-massa"] > .mensagem-massa-premium {
+.clientes-marketing-premium [data-cm-subtab="mensagem-massa"] > .mensagem-massa-premium {
     max-width: 1080px;
     margin: 0 auto;
     padding: 24px;
@@ -3291,7 +3291,7 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
 }
 
 @media (max-width: 780px) {
-    .gestao-subconteudo[data-subtab-content="sub-mensagem-massa"] > .mensagem-massa-premium {
+    .clientes-marketing-premium [data-cm-subtab="mensagem-massa"] > .mensagem-massa-premium {
         padding: 16px;
         border-radius: 16px;
     }
