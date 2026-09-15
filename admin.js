@@ -1585,27 +1585,32 @@ function mostrarAvisoFlutuantePagamento(texto) {
     if (!container) {
         container = document.createElement('div');
         container.id = 'avisosFlutuantesPagamento';
-        container.style.cssText = 'position:fixed; top:16px; right:16px; z-index:9999; display:flex; flex-direction:column; gap:10px; max-width:340px;';
+        // Centralizado na frente do painel, mas sem criar modal/bloqueio. Assim o aviso
+        // continua visível e o restante do sistema (inclusive impressão) segue funcionando.
+        container.style.cssText = 'position:fixed; top:22px; left:50%; transform:translateX(-50%); z-index:2147483000; display:flex; flex-direction:column; gap:12px; width:min(480px, calc(100vw - 28px)); pointer-events:none;';
         document.body.appendChild(container);
     }
     const aviso = document.createElement('div');
-    aviso.style.cssText = 'background:#fff; color:#2d2d2d; padding:14px 16px; border-radius:10px; border-left:5px solid var(--primary, #a0522d); box-shadow:0 4px 16px rgba(0,0,0,0.18); font-size:0.92em; line-height:1.4; animation:avisoFlutuanteEntrada 0.25s ease-out;';
+    aviso.style.cssText = 'background:#fff; color:#222; padding:18px 20px; border-radius:14px; border:2px solid var(--primary, #a0522d); box-shadow:0 12px 34px rgba(0,0,0,0.28); font-size:1em; line-height:1.45; animation:avisoFlutuanteEntrada 0.22s ease-out; pointer-events:auto;';
     aviso.innerHTML = `
-        <div style="display:flex; align-items:flex-start; gap:10px;">
-            <span style="font-size:1.3em; line-height:1;">💰</span>
-            <span style="flex:1;">${texto.replace(/^💰\s*/, '')}</span>
+        <div style="display:flex; align-items:flex-start; gap:12px;">
+            <span style="font-size:1.65em; line-height:1;">💰</span>
+            <div style="flex:1; min-width:0;">
+                <div style="font-weight:800; font-size:1.08em; margin-bottom:4px;">Pagamento confirmado</div>
+                <div>${texto.replace(/^💰\s*/, '')}</div>
+            </div>
         </div>
-        <button class="btn-secondary" style="margin-top:10px; width:100%;">OK</button>
+        <button class="btn-secondary" style="margin-top:14px; width:100%; min-height:42px; font-weight:700;">OK</button>
     `;
-    // Não some sozinho — fica na tela até você clicar em OK, pra não perder o aviso
-    // se não estiver olhando pra tela bem na hora que ele aparecer.
+    // Não some sozinho — fica bem visível no centro até você clicar em OK.
+    // Diferente de alert(), não pausa o JavaScript nem atrasa a aparição/impressão do pedido.
     aviso.querySelector('button').onclick = () => aviso.remove();
     container.appendChild(aviso);
 }
 if (!document.getElementById('estiloAvisoFlutuantePagamento')) {
     const estilo = document.createElement('style');
     estilo.id = 'estiloAvisoFlutuantePagamento';
-    estilo.textContent = '@keyframes avisoFlutuanteEntrada { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }';
+    estilo.textContent = '@keyframes avisoFlutuanteEntrada { from { opacity:0; transform:translateY(-14px) scale(.98); } to { opacity:1; transform:translateY(0) scale(1); } }';
     document.head.appendChild(estilo);
 }
 
