@@ -1359,25 +1359,36 @@
                 </div>
 
                 <div class="gestao-subconteudo" data-subtab-content="sub-mensagem-massa" style="display:none;">
-                    <div class="loja-status-card">
-                        <h3>📣 Mensagem em Massa (WhatsApp)</h3>
-                        <p class="dica-secao">
-                            O WhatsApp não deixa mandar mensagem pra vários de uma vez de graça — mas aqui embaixo
-                            você tem um botão pra cada cliente, já com a mensagem pronta. É só clicar em um, mandar,
-                            voltar aqui e clicar no próximo.
-                        </p>
-                        <label class="campo-label">Mensagem</label>
-                        <textarea id="mmTexto" class="campo-adicionais" rows="5" placeholder="Ex: Oi! Passando pra contar uma novidade maravilhosa: nosso cardápio digital já está no ar! 🙌 Agora você pode fazer seu pedido direto por ele..."></textarea>
-                        <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="montarListaMensagemMassa()">Gerar / continuar campanha</button>
-                        <button class="btn-secondary" style="margin-top:10px;" onclick="novaCampanhaMensagemMassa()">➕ Nova campanha</button>
+                    <div class="loja-status-card mensagem-massa-premium">
+                        <div class="mm-cabecalho">
+                            <div>
+                                <h3>📣 Mensagem em Massa (WhatsApp)</h3>
+                                <p class="dica-secao">Prepare a mensagem uma vez e avance cliente por cliente sem perder o ponto da campanha.</p>
+                            </div>
+                            <span class="mm-selo">Campanha assistida</span>
+                        </div>
 
-                        <p class="dica-secao" id="mmContador" style="margin-top:10px;"></p>
-                        <div id="mmLista" style="margin-top:10px;"></div>
+                        <div class="mm-compositor">
+                            <label class="campo-label" for="mmTexto">Mensagem da campanha</label>
+                            <textarea id="mmTexto" class="campo-adicionais" rows="5" placeholder="Ex: Oi! Passando pra contar uma novidade maravilhosa: nosso cardápio digital já está no ar! 🙌 Agora você pode fazer seu pedido direto por ele..."></textarea>
+                            <p class="dica-secao mm-ajuda">Cada botão abre o WhatsApp com o texto pronto. O envio continua sendo confirmado por você.</p>
+                            <div class="mm-acoes">
+                                <button class="btn-salvar-ordem" onclick="montarListaMensagemMassa()">Gerar / continuar campanha</button>
+                                <button class="btn-secondary" onclick="novaCampanhaMensagemMassa()">➕ Nova campanha</button>
+                            </div>
+                        </div>
 
-                        <div style="margin-top:20px;">
-                            <h4>🕘 Histórico de campanhas</h4>
-                            <p class="dica-secao">O progresso fica salvo no Firebase e aparece igual em todos os aparelhos conectados ao painel.</p>
-                            <div id="mmHistorico" style="margin-top:10px;"></div>
+                        <p class="dica-secao" id="mmContador"></p>
+                        <div id="mmLista"></div>
+
+                        <div class="mm-historico-bloco">
+                            <div class="mm-historico-topo">
+                                <div>
+                                    <h4>🕘 Histórico de campanhas</h4>
+                                    <p class="dica-secao">O progresso fica salvo no Firebase e aparece igual em todos os aparelhos conectados ao painel.</p>
+                                </div>
+                            </div>
+                            <div id="mmHistorico"></div>
                         </div>
                     </div>
                 </div>
