@@ -895,10 +895,10 @@ body {
     #areaImpressaoPedido {
         display: block !important;
         /* A KP-1025 imprimiu o ticket completo quando o diálogo do navegador foi
-           ajustado manualmente para 95%. Aplicamos a mesma redução somente no
+           ajustado manualmente para 95%. Aqui aplicamos o movimento inverso somente no
            conteúdo do ticket, para que o usuário possa deixar a escala do diálogo
            em 100% nas próximas impressões. */
-        transform: scale(0.95);
+        transform: scale(1.05);
         transform-origin: top left;
         width: 105.2632%;
     }
