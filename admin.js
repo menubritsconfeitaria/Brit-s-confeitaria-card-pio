@@ -5606,51 +5606,60 @@ function montarLinhaProduto(id, produto) {
     div.classList.add('produto-admin-item');
     div.id = 'produtoCard_' + id;
     div.innerHTML = `
-        <div class="produto-admin-linha">
-            <input type="text" id="prodNome_${id}" value="${produto.nome || ''}" placeholder="Nome do produto">
-            <div class="produto-status-controle">
-                <label class="campo-label">Status</label>
-                <div class="produto-status-opcoes" role="radiogroup" aria-label="Status do produto">
-                    <label class="produto-status-opcao produto-status-opcao-ativo" title="Produto disponível para venda">
-                        <input type="radio" name="prodStatus_${id}" value="ativo" ${obterStatusProdutoAdmin(produto) === 'ativo' ? 'checked' : ''} onchange="aplicarStatusProdutoNoFormulario('${id}')">
-                        <span><i class="produto-status-ponto" aria-hidden="true"></i>Ativo</span>
-                    </label>
-                    <label class="produto-status-opcao produto-status-opcao-falta" title="Produto visível como esgotado">
-                        <input type="radio" name="prodStatus_${id}" value="em_falta" ${obterStatusProdutoAdmin(produto) === 'em_falta' ? 'checked' : ''} onchange="aplicarStatusProdutoNoFormulario('${id}')">
-                        <span><i class="produto-status-ponto" aria-hidden="true"></i>Em falta</span>
-                    </label>
-                    <label class="produto-status-opcao produto-status-opcao-inativo" title="Produto oculto do cardápio">
-                        <input type="radio" name="prodStatus_${id}" value="inativo" ${obterStatusProdutoAdmin(produto) === 'inativo' ? 'checked' : ''} onchange="aplicarStatusProdutoNoFormulario('${id}')">
-                        <span><i class="produto-status-ponto" aria-hidden="true"></i>Inativo</span>
-                    </label>
+        <div class="produto-topo-grid">
+            <input class="produto-nome-topo" type="text" id="prodNome_${id}" value="${produto.nome || ''}" placeholder="Nome do produto">
+            <div class="produto-status-area">
+                <div class="produto-status-controle">
+                    <label class="campo-label">Status</label>
+                    <div class="produto-status-opcoes" role="radiogroup" aria-label="Status do produto">
+                        <label class="produto-status-opcao produto-status-opcao-ativo" title="Produto disponível para venda">
+                            <input type="radio" name="prodStatus_${id}" value="ativo" ${obterStatusProdutoAdmin(produto) === 'ativo' ? 'checked' : ''} onchange="aplicarStatusProdutoNoFormulario('${id}')">
+                            <span><i class="produto-status-ponto" aria-hidden="true"></i>Ativo</span>
+                        </label>
+                        <label class="produto-status-opcao produto-status-opcao-falta" title="Produto visível como esgotado">
+                            <input type="radio" name="prodStatus_${id}" value="em_falta" ${obterStatusProdutoAdmin(produto) === 'em_falta' ? 'checked' : ''} onchange="aplicarStatusProdutoNoFormulario('${id}')">
+                            <span><i class="produto-status-ponto" aria-hidden="true"></i>Em falta</span>
+                        </label>
+                        <label class="produto-status-opcao produto-status-opcao-inativo" title="Produto oculto do cardápio">
+                            <input type="radio" name="prodStatus_${id}" value="inativo" ${obterStatusProdutoAdmin(produto) === 'inativo' ? 'checked' : ''} onchange="aplicarStatusProdutoNoFormulario('${id}')">
+                            <span><i class="produto-status-ponto" aria-hidden="true"></i>Inativo</span>
+                        </label>
+                    </div>
+                    <div class="produto-status-legenda" aria-live="polite">
+                        <span class="legenda-status-ativo">Disponível para venda.</span>
+                        <span class="legenda-status-falta">Continua no cardápio como esgotado.</span>
+                        <span class="legenda-status-inativo">Oculto do cardápio.</span>
+                    </div>
+                    <!-- Mantém os campos antigos no DOM para salvar exatamente no formato já usado pelo sistema. -->
+                    <input type="checkbox" id="prodDisp_${id}" ${produto.disponivel !== false ? 'checked' : ''} style="display:none;">
+                    <input type="checkbox" id="prodEscondido_${id}" ${produto.escondido ? 'checked' : ''} style="display:none;">
                 </div>
-                <div class="produto-status-legenda" aria-live="polite">
-                    <span class="legenda-status-ativo">Disponível para venda.</span>
-                    <span class="legenda-status-falta">Continua no cardápio como esgotado.</span>
-                    <span class="legenda-status-inativo">Oculto do cardápio.</span>
-                </div>
-                <!-- Mantém os campos antigos no DOM para salvar exatamente no formato já usado pelo sistema. -->
-                <input type="checkbox" id="prodDisp_${id}" ${produto.disponivel !== false ? 'checked' : ''} style="display:none;">
-                <input type="checkbox" id="prodEscondido_${id}" ${produto.escondido ? 'checked' : ''} style="display:none;">
+                <label class="produto-disponivel-check campo-encomenda-produto">
+                    <input type="checkbox" id="prodEncomenda_${id}" ${produto.disponivelParaEncomenda ? 'checked' : ''}> 🎂 Disponível pra Encomenda
+                </label>
             </div>
-            <label class="produto-disponivel-check campo-encomenda-produto">
-                <input type="checkbox" id="prodEncomenda_${id}" ${produto.disponivelParaEncomenda ? 'checked' : ''}> 🎂 Disponível pra Encomenda
-            </label>
-        </div>
-        ${htmlAgendaDisponibilidadeProduto(id, produto)}
-        <div class="campo-vincular-ficha-tecnica" style="margin-top:8px;">
-            <label class="campo-label">📋 Vincular à Ficha Técnica (opcional — permite consumir estoque automaticamente)</label>
-            <select id="prodFichaTecnica_${id}">
-                <option value="">— Nenhuma —</option>
-                ${fichaTecnica.map(ft => `<option value="${ft.id}" ${produto.fichaTecnicaId === ft.id ? 'selected' : ''}>${ft.nome}</option>`).join('')}
-            </select>
         </div>
 
-        <div class="campo-oferta-carrinho" style="margin-top:8px;">
-            <label class="produto-disponivel-check">
-                <input type="checkbox" id="prodOfertaAtiva_${id}" ${produto.ofertaAtiva ? 'checked' : ''}> 🎁 Sugerir esse produto como oferta no carrinho
+        <div class="produto-config-grid">
+            ${htmlAgendaDisponibilidadeProduto(id, produto)}
+            <div class="campo-vincular-ficha-tecnica">
+                <label class="campo-label">📋 Vincular à Ficha Técnica</label>
+                <span class="campo-ajuda-inline">Opcional — consome estoque automaticamente</span>
+                <select id="prodFichaTecnica_${id}">
+                    <option value="">— Nenhuma —</option>
+                    ${fichaTecnica.map(ft => `<option value="${ft.id}" ${produto.fichaTecnicaId === ft.id ? 'selected' : ''}>${ft.nome}</option>`).join('')}
+                </select>
+            </div>
+        </div>
+
+        <div class="produto-oferta-grid">
+            <label class="produto-disponivel-check campo-oferta-check">
+                <input type="checkbox" id="prodOfertaAtiva_${id}" ${produto.ofertaAtiva ? 'checked' : ''}> 🎁 Sugerir este produto como oferta no carrinho
             </label>
-            <input type="text" inputmode="decimal" id="prodOfertaPreco_${id}" value="${produto.ofertaPrecoEspecial != null ? produto.ofertaPrecoEspecial : ''}" placeholder="Preço especial na oferta (opcional — deixa vazio pra usar o preço normal)" style="margin-top:4px;">
+            <div class="campo-oferta-preco">
+                <label class="campo-label" for="prodOfertaPreco_${id}">Preço especial na oferta</label>
+                <input type="text" inputmode="decimal" id="prodOfertaPreco_${id}" value="${produto.ofertaPrecoEspecial != null ? produto.ofertaPrecoEspecial : ''}" placeholder="Opcional — vazio usa o preço normal">
+            </div>
         </div>
         <textarea id="prodDesc_${id}" placeholder="Descrição" rows="2">${produto.descricao || ''}</textarea>
 
@@ -5665,22 +5674,26 @@ function montarLinhaProduto(id, produto) {
             </div>
         </div>
 
-        <label class="campo-label">Foto(s) do produto (nomes dos arquivos, separados por VÍRGULA — a primeira é a foto principal)</label>
-        <input type="text" id="prodImagens_${id}" value="${(Array.isArray(produto.imagens) && produto.imagens.length ? produto.imagens : (produto.imagem ? [produto.imagem] : [])).join(', ')}" placeholder="Ex: bolo1.jpg, bolo2.jpg, bolo3.jpg" oninput="atualizarPreviaImagens('${id}')">
-        <div style="display:flex; gap:8px; align-items:center; margin-top:6px;">
-            <input type="file" id="prodUploadFoto_${id}" accept="image/*" style="flex:1;">
-            <button type="button" class="btn-secondary" onclick="enviarFotoProduto('${id}')">📤 Enviar foto</button>
+        <div class="produto-upload-bloco">
+            <label class="campo-label">📷 Foto principal do produto</label>
+            <input type="hidden" id="prodImagens_${id}" value="${(Array.isArray(produto.imagens) && produto.imagens.length ? produto.imagens : (produto.imagem ? [produto.imagem] : [])).join(', ')}">
+            <div class="produto-upload-linha">
+                <input type="file" id="prodUploadFoto_${id}" accept="image/*">
+                <button type="button" class="btn-secondary" onclick="enviarFotoProduto('${id}')">📤 Enviar foto</button>
+            </div>
+            <p id="prodMsgUpload_${id}" class="ordem-categorias-msg"></p>
+            <div id="previaImagens_${id}" class="previa-imagens"></div>
         </div>
-        <p id="prodMsgUpload_${id}" class="ordem-categorias-msg"></p>
-        <div id="previaImagens_${id}" class="previa-imagens"></div>
 
-        <label class="campo-label" style="margin-top:10px;">🎠 Foto específica pro Carrossel (opcional — se não colocar, usa a foto principal de cima)</label>
-        <input type="text" id="prodImagemCarrossel_${id}" value="${produto.imagemCarrossel || ''}" placeholder="Cola um link, ou usa o upload abaixo">
-        <div style="display:flex; gap:8px; align-items:center; margin-top:6px;">
-            <input type="file" id="prodUploadCarrossel_${id}" accept="image/*" style="flex:1;">
-            <button type="button" class="btn-secondary" onclick="enviarFotoCarrossel('${id}')">📤 Enviar foto do carrossel</button>
+        <div class="produto-upload-bloco produto-upload-carrossel">
+            <label class="campo-label">🎠 Foto do Carrossel <span class="campo-ajuda-inline">opcional — sem foto usa a principal</span></label>
+            <input type="hidden" id="prodImagemCarrossel_${id}" value="${produto.imagemCarrossel || ''}">
+            <div class="produto-upload-linha">
+                <input type="file" id="prodUploadCarrossel_${id}" accept="image/*">
+                <button type="button" class="btn-secondary" onclick="enviarFotoCarrossel('${id}')">📤 Enviar foto do carrossel</button>
+            </div>
+            <p id="prodMsgUploadCarrossel_${id}" class="ordem-categorias-msg"></p>
         </div>
-        <p id="prodMsgUploadCarrossel_${id}" class="ordem-categorias-msg"></p>
 
         <input type="text" id="prodCategoria_${id}" value="${produto.categoria || ''}" placeholder="Categoria" list="categoriasDatalist">
 

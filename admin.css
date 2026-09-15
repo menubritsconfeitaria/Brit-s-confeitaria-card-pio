@@ -1670,3 +1670,150 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
         border-radius: 14px;
     }
 }
+
+/* ---------- Produto — organização premium compacta v2 ---------- */
+/* Topo: nome mais estreito; status e encomenda aproveitam o restante do card. */
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-topo-grid {
+    display: grid;
+    grid-template-columns: minmax(180px, .72fr) minmax(0, 1.65fr);
+    gap: 12px;
+    align-items: start;
+    margin-bottom: 10px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-nome-topo {
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    font-weight: 650;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-status-area {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-status-controle {
+    flex: 1 1 auto;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .campo-encomenda-produto {
+    flex: 0 0 auto;
+    margin-top: 23px;
+    padding-right: 2px;
+}
+
+/* Disponibilidade e Ficha Técnica ficam lado a lado; ao abrir a agenda ela ganha a largura inteira. */
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-config-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    margin: 2px 0 10px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-config-grid .produto-agenda-card {
+    margin-top: 0;
+    height: fit-content;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-config-grid .produto-agenda-card[open] {
+    grid-column: 1 / -1;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .campo-vincular-ficha-tecnica {
+    min-width: 0;
+    border: 1px solid #e7ddd2;
+    border-radius: 12px;
+    background: #fcfaf7;
+    padding: 9px 11px 10px;
+    min-height: 44px;
+    box-sizing: border-box;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .campo-vincular-ficha-tecnica .campo-label {
+    margin-bottom: 1px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .campo-vincular-ficha-tecnica select {
+    width: 100%;
+    margin-top: 5px;
+}
+.campo-ajuda-inline {
+    color: #9a8779;
+    font-size: .68rem;
+    font-weight: 500;
+}
+
+/* Oferta: decisão e preço ficam na mesma linha. */
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-oferta-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(180px, .85fr);
+    gap: 10px;
+    align-items: end;
+    margin: 0 0 9px;
+    padding: 9px 10px;
+    border: 1px solid #eee3d8;
+    border-radius: 11px;
+    background: #fdfbf8;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .campo-oferta-check {
+    align-self: center;
+    white-space: normal;
+    line-height: 1.3;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .campo-oferta-preco {
+    min-width: 0;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .campo-oferta-preco input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Uploads: o endereço técnico continua salvo em campo oculto; o lojista vê só o que usa. */
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-upload-bloco {
+    margin-top: 8px;
+    padding: 9px 10px;
+    border: 1px solid #eee3d8;
+    border-radius: 11px;
+    background: #fdfbf8;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-upload-carrossel {
+    margin-top: 8px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-upload-linha {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 5px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-upload-linha input[type="file"] {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-upload-linha .btn-secondary {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+@media (max-width: 1180px) {
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-topo-grid {
+        grid-template-columns: minmax(180px, .8fr) minmax(0, 1.4fr);
+    }
+}
+
+@media (max-width: 760px) {
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-topo-grid,
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-config-grid,
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-oferta-grid {
+        grid-template-columns: 1fr;
+    }
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-status-area {
+        flex-direction: column;
+        gap: 5px;
+    }
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .campo-encomenda-produto {
+        margin-top: 0;
+    }
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-config-grid .produto-agenda-card[open] {
+        grid-column: auto;
+    }
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-upload-linha {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}
