@@ -3376,3 +3376,141 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
         width: 100%;
     }
 }
+
+/* ===== PRODUTOS — TOPO PREMIUM COM ESTOQUE OPCIONAL =====
+   Escopo restrito à aba Produtos. Não altera Kanban, pedidos, Pix ou impressão. */
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-topo-premium {
+    display: grid;
+    grid-template-columns: minmax(190px, .82fr) minmax(0, 1.9fr);
+    column-gap: 10px;
+    row-gap: 3px;
+    align-items: start;
+    margin-bottom: 6px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-identidade-estoque {
+    min-width: 0;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-identidade-estoque .produto-nome-topo {
+    width: 100%;
+    box-sizing: border-box;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-estoque-mini {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 3px;
+    padding: 3px 7px;
+    border: 1px solid #eadfd3;
+    border-radius: 8px;
+    background: #fbf7f1;
+    color: #806e60;
+    font-size: .61rem;
+    line-height: 1;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-estoque-mini[hidden] { display: none !important; }
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-estoque-mini span {
+    font-weight: 750;
+    color: #8c6f5a;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-estoque-mini input {
+    width: 48px;
+    min-height: 23px;
+    padding: 2px 5px;
+    border-radius: 6px;
+    text-align: center;
+    font-size: .7rem;
+    background: #fff;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-estoque-mini small {
+    color: #a08d7f;
+    font-size: .58rem;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-controles-topo {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-height: 34px;
+    padding-top: 1px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-controles-titulo {
+    margin-right: 1px;
+    color: #8d796a;
+    font-size: .61rem;
+    font-weight: 700;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-topo-toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 30px;
+    margin: 0;
+    padding: 5px 9px;
+    border: 1px solid #e2d8cc;
+    border-radius: 999px;
+    background: #f8f4ee;
+    color: #655448;
+    cursor: pointer;
+    font-size: .71rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-topo-toggle input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-topo-toggle:hover { background: #fff; }
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-topo-toggle:has(input:checked) {
+    background: #fff;
+    border-color: #d7bca9;
+    box-shadow: 0 2px 8px rgba(147, 86, 48, .10);
+    color: #7b4528;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-topo-toggle-estoque:has(input:checked) {
+    border-color: #b9d4bf;
+    color: #42694c;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-topo-ajuda {
+    grid-column: 2;
+    min-height: 12px;
+    padding-left: 2px;
+    color: #978579;
+    font-size: .6rem;
+    line-height: 1.2;
+}
+/* O preço especial desce para perto dos demais preços; a decisão de oferta fica mais alta e leve. */
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-oferta-grid {
+    grid-template-columns: 1fr;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .campo-oferta-preco {
+    max-width: 50%;
+    margin-left: auto;
+    width: 100%;
+}
+@media (max-width: 1080px) {
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-topo-premium {
+        grid-template-columns: minmax(180px, .78fr) minmax(0, 1.6fr);
+    }
+}
+@media (max-width: 760px) {
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-topo-premium {
+        grid-template-columns: 1fr;
+        row-gap: 5px;
+    }
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-controles-topo {
+        align-items: flex-start;
+    }
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .produto-topo-ajuda {
+        grid-column: 1;
+    }
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .campo-oferta-preco {
+        max-width: none;
+        margin-left: 0;
+    }
+}

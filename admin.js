@@ -5543,6 +5543,38 @@ function aplicarStatusProdutoNoFormulario(id) {
         chkDisponivel.checked = false;
         chkEscondido.checked = true;
     }
+    atualizarAjudaTopoProduto(id, status);
+}
+
+// Controles compactos do topo do produto. Nesta etapa o estoque é opcional e
+// fica salvo no próprio produto; o consumo automático por venda será tratado
+// separadamente para não misturar com o fluxo estável de pedidos/pagamentos.
+function alternarControleEstoqueProduto(id) {
+    const chk = document.getElementById('prodControlarEstoque_' + id);
+    const bloco = document.getElementById('prodEstoqueBloco_' + id);
+    const qtd = document.getElementById('prodEstoqueQtd_' + id);
+    if (!chk || !bloco) return;
+    bloco.hidden = !chk.checked;
+    bloco.classList.toggle('ativo', chk.checked);
+    if (qtd) qtd.disabled = !chk.checked;
+    atualizarAjudaTopoProduto(id, 'estoque');
+}
+
+function atualizarAjudaTopoProduto(id, origem) {
+    const ajuda = document.getElementById('prodTopoAjuda_' + id);
+    if (!ajuda) return;
+    const mensagens = {
+        ativo: 'Disponível para venda no cardápio.',
+        em_falta: 'Continua visível no cardápio como esgotado.',
+        inativo: 'Fica oculto do cardápio até ser ativado novamente.',
+        estoque: document.getElementById('prodControlarEstoque_' + id)?.checked
+            ? 'Controle de estoque ligado — informe a quantidade disponível.'
+            : 'Sem controle de quantidade — o status continua manual.',
+        encomenda: document.getElementById('prodEncomenda_' + id)?.checked
+            ? 'Este produto também pode ser vendido por encomenda.'
+            : 'Venda por encomenda desativada para este produto.'
+    };
+    ajuda.textContent = mensagens[origem] || mensagens.ativo;
 }
 
 
@@ -5641,10 +5673,18 @@ function montarLinhaProduto(id, produto) {
     div.classList.add('produto-admin-item');
     div.id = 'produtoCard_' + id;
     div.innerHTML = `
-        <div class="produto-topo-grid">
-            <input class="produto-nome-topo" type="text" id="prodNome_${id}" value="${produto.nome || ''}" placeholder="Nome do produto">
-            <div class="produto-status-controle">
-                <label class="campo-label">Status</label>
+        <div class="produto-topo-premium">
+            <div class="produto-identidade-estoque">
+                <input class="produto-nome-topo" type="text" id="prodNome_${id}" value="${produto.nome || ''}" placeholder="Nome do produto">
+                <div class="produto-estoque-mini" id="prodEstoqueBloco_${id}" ${produto.controlarEstoque ? '' : 'hidden'}>
+                    <span>Estoque</span>
+                    <input type="number" min="0" step="1" inputmode="numeric" id="prodEstoqueQtd_${id}" value="${produto.estoqueProduto != null ? produto.estoqueProduto : 0}" ${produto.controlarEstoque ? '' : 'disabled'} aria-label="Quantidade em estoque">
+                    <small>un.</small>
+                </div>
+            </div>
+
+            <div class="produto-controles-topo">
+                <span class="produto-controles-titulo">Status</span>
                 <div class="produto-status-opcoes" role="radiogroup" aria-label="Status do produto">
                     <label class="produto-status-opcao produto-status-opcao-ativo" title="Produto disponível para venda">
                         <input type="radio" name="prodStatus_${id}" value="ativo" ${obterStatusProdutoAdmin(produto) === 'ativo' ? 'checked' : ''} onchange="aplicarStatusProdutoNoFormulario('${id}')">
@@ -5659,19 +5699,19 @@ function montarLinhaProduto(id, produto) {
                         <span><i class="produto-status-ponto" aria-hidden="true"></i>Inativo</span>
                     </label>
                 </div>
-                <div class="produto-status-legenda" aria-live="polite">
-                    <span class="legenda-status-ativo">Disponível para venda.</span>
-                    <span class="legenda-status-falta">Continua no cardápio como esgotado.</span>
-                    <span class="legenda-status-inativo">Oculto do cardápio.</span>
-                </div>
+                <label class="produto-topo-toggle produto-topo-toggle-estoque" title="Controlar quantidade disponível deste produto">
+                    <input type="checkbox" id="prodControlarEstoque_${id}" ${produto.controlarEstoque ? 'checked' : ''} onchange="alternarControleEstoqueProduto('${id}')">
+                    <span>📦 Estoque</span>
+                </label>
+                <label class="produto-topo-toggle campo-encomenda-produto" title="Permitir venda por encomenda">
+                    <input type="checkbox" id="prodEncomenda_${id}" ${produto.disponivelParaEncomenda ? 'checked' : ''} onchange="atualizarAjudaTopoProduto('${id}', 'encomenda')">
+                    <span>🎂 Encomenda</span>
+                </label>
                 <!-- Mantém os campos antigos no DOM para salvar exatamente no formato já usado pelo sistema. -->
                 <input type="checkbox" id="prodDisp_${id}" ${produto.disponivel !== false ? 'checked' : ''} style="display:none;">
                 <input type="checkbox" id="prodEscondido_${id}" ${produto.escondido ? 'checked' : ''} style="display:none;">
             </div>
-            <label class="produto-disponivel-check campo-encomenda-produto">
-                <input type="checkbox" id="prodEncomenda_${id}" ${produto.disponivelParaEncomenda ? 'checked' : ''}>
-                <span>🎂 Disponível pra Encomenda</span>
-            </label>
+            <div class="produto-topo-ajuda" id="prodTopoAjuda_${id}" aria-live="polite">${obterStatusProdutoAdmin(produto) === 'ativo' ? 'Disponível para venda no cardápio.' : (obterStatusProdutoAdmin(produto) === 'em_falta' ? 'Continua visível no cardápio como esgotado.' : 'Fica oculto do cardápio até ser ativado novamente.')}</div>
         </div>
 
         <div class="produto-config-grid">
@@ -6466,6 +6506,9 @@ function salvarProduto(id) {
     const disponivel = document.getElementById('prodDisp_' + id).checked;
     const escondido = document.getElementById('prodEscondido_' + id).checked;
     const disponivelParaEncomenda = document.getElementById('prodEncomenda_' + id).checked;
+    const controlarEstoque = document.getElementById('prodControlarEstoque_' + id)?.checked === true;
+    const estoqueCampo = document.getElementById('prodEstoqueQtd_' + id);
+    const estoqueProduto = controlarEstoque ? Math.max(0, parseInt(estoqueCampo?.value || '0', 10) || 0) : null;
     const campoFichaTecnica = document.getElementById('prodFichaTecnica_' + id);
     const fichaTecnicaId = campoFichaTecnica ? (campoFichaTecnica.value || null) : null;
     const imagemCarrossel = document.getElementById('prodImagemCarrossel_' + id).value.trim() || null;
@@ -6483,7 +6526,7 @@ function salvarProduto(id) {
         return;
     }
 
-    const dados = { nome, descricao, preco, imagem: imagens[0], imagens, categoria, disponivel, escondido, disponivelParaEncomenda, agendaDisponibilidade, fichaTecnicaId, imagemCarrossel, ofertaAtiva, ofertaPrecoEspecial, precoOriginal: null, variantes: null, grupoAdicionais: null };
+    const dados = { nome, descricao, preco, imagem: imagens[0], imagens, categoria, disponivel, escondido, disponivelParaEncomenda, controlarEstoque, estoqueProduto, agendaDisponibilidade, fichaTecnicaId, imagemCarrossel, ofertaAtiva, ofertaPrecoEspecial, precoOriginal: null, variantes: null, grupoAdicionais: null };
 
     if (!isNaN(precoOriginal) && precoOriginal > preco) {
         dados.precoOriginal = precoOriginal;
