@@ -2106,3 +2106,50 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
         margin-top: 0;
     }
 }
+
+/* ===== LARGURA PREMIUM DAS DEMAIS ABAS =====
+   Aproveita melhor a tela sem alterar Pedidos e Produtos, que já possuem layout próprio. */
+.painel-main > section[data-tab="fechamento"],
+.painel-main > section[data-tab="cupons"],
+.painel-main > section[data-tab="fidelidade"],
+.painel-main > section[data-tab="mensagens"],
+.painel-main > section[data-tab="gestao"],
+.painel-main > section[data-tab="loja"],
+.painel-main > section[data-tab="agenda"],
+.painel-main > section[data-tab="visitantes"],
+.painel-main > section[data-tab="administracao-mestre"] {
+    width: min(1500px, calc(100vw - 48px));
+    max-width: none;
+    margin-left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Mantém uma leitura confortável: os cards passam a usar a largura da aba,
+   mas sem alterar estrutura, eventos ou lógica dos componentes internos. */
+.painel-main > section[data-tab="fechamento"] > *,
+.painel-main > section[data-tab="cupons"] > *,
+.painel-main > section[data-tab="fidelidade"] > *,
+.painel-main > section[data-tab="mensagens"] > *,
+.painel-main > section[data-tab="gestao"] > *,
+.painel-main > section[data-tab="loja"] > *,
+.painel-main > section[data-tab="agenda"] > *,
+.painel-main > section[data-tab="visitantes"] > *,
+.painel-main > section[data-tab="administracao-mestre"] > * {
+    max-width: none;
+}
+
+@media (max-width: 760px) {
+    .painel-main > section[data-tab="fechamento"],
+    .painel-main > section[data-tab="cupons"],
+    .painel-main > section[data-tab="fidelidade"],
+    .painel-main > section[data-tab="mensagens"],
+    .painel-main > section[data-tab="gestao"],
+    .painel-main > section[data-tab="loja"],
+    .painel-main > section[data-tab="agenda"],
+    .painel-main > section[data-tab="visitantes"],
+    .painel-main > section[data-tab="administracao-mestre"] {
+        width: 100%;
+        margin-left: 0;
+        transform: none;
+    }
+}
