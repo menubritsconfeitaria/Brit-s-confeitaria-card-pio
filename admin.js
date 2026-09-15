@@ -5641,7 +5641,6 @@ function montarLinhaProduto(id, produto) {
         </div>
 
         <div class="produto-config-grid">
-            ${htmlAgendaDisponibilidadeProduto(id, produto)}
             <div class="campo-vincular-ficha-tecnica">
                 <label class="campo-label">📋 Vincular à Ficha Técnica</label>
                 <span class="campo-ajuda-inline">Opcional — consome estoque automaticamente</span>
@@ -5650,6 +5649,7 @@ function montarLinhaProduto(id, produto) {
                     ${fichaTecnica.map(ft => `<option value="${ft.id}" ${produto.fichaTecnicaId === ft.id ? 'selected' : ''}>${ft.nome}</option>`).join('')}
                 </select>
             </div>
+            ${htmlAgendaDisponibilidadeProduto(id, produto)}
         </div>
 
         <div class="produto-oferta-grid">
@@ -5674,32 +5674,40 @@ function montarLinhaProduto(id, produto) {
             </div>
         </div>
 
-        <div class="produto-upload-bloco">
-            <label class="campo-label">📷 Foto principal do produto</label>
-            <input type="hidden" id="prodImagens_${id}" value="${(Array.isArray(produto.imagens) && produto.imagens.length ? produto.imagens : (produto.imagem ? [produto.imagem] : [])).join(', ')}">
-            <div class="produto-upload-linha">
-                <input type="file" id="prodUploadFoto_${id}" accept="image/*">
-                <button type="button" class="btn-secondary" onclick="enviarFotoProduto('${id}')">📤 Enviar foto</button>
+        <div class="produto-fotos-grid">
+            <div class="produto-upload-bloco">
+                <label class="campo-label">📷 Foto principal</label>
+                <input type="hidden" id="prodImagens_${id}" value="${(Array.isArray(produto.imagens) && produto.imagens.length ? produto.imagens : (produto.imagem ? [produto.imagem] : [])).join(', ')}">
+                <div class="produto-upload-linha">
+                    <input type="file" id="prodUploadFoto_${id}" accept="image/*">
+                    <button type="button" class="btn-secondary" onclick="enviarFotoProduto('${id}')">📤 Enviar foto</button>
+                </div>
+                <p id="prodMsgUpload_${id}" class="ordem-categorias-msg"></p>
+                <div id="previaImagens_${id}" class="previa-imagens"></div>
             </div>
-            <p id="prodMsgUpload_${id}" class="ordem-categorias-msg"></p>
-            <div id="previaImagens_${id}" class="previa-imagens"></div>
+
+            <div class="produto-upload-bloco produto-upload-carrossel">
+                <label class="campo-label">🎠 Foto do Carrossel <span class="campo-ajuda-inline">opcional — sem foto usa a principal</span></label>
+                <input type="hidden" id="prodImagemCarrossel_${id}" value="${produto.imagemCarrossel || ''}">
+                <div class="produto-upload-linha">
+                    <input type="file" id="prodUploadCarrossel_${id}" accept="image/*">
+                    <button type="button" class="btn-secondary" onclick="enviarFotoCarrossel('${id}')">📤 Enviar foto do carrossel</button>
+                </div>
+                <p id="prodMsgUploadCarrossel_${id}" class="ordem-categorias-msg"></p>
+            </div>
         </div>
 
-        <div class="produto-upload-bloco produto-upload-carrossel">
-            <label class="campo-label">🎠 Foto do Carrossel <span class="campo-ajuda-inline">opcional — sem foto usa a principal</span></label>
-            <input type="hidden" id="prodImagemCarrossel_${id}" value="${produto.imagemCarrossel || ''}">
-            <div class="produto-upload-linha">
-                <input type="file" id="prodUploadCarrossel_${id}" accept="image/*">
-                <button type="button" class="btn-secondary" onclick="enviarFotoCarrossel('${id}')">📤 Enviar foto do carrossel</button>
+        <div class="produto-meta-grid">
+            <div class="campo-com-label">
+                <label class="campo-label">Categoria</label>
+                <input type="text" id="prodCategoria_${id}" value="${produto.categoria || ''}" placeholder="Categoria" list="categoriasDatalist">
             </div>
-            <p id="prodMsgUploadCarrossel_${id}" class="ordem-categorias-msg"></p>
+            <div class="campo-com-label">
+                <label class="campo-label">Sabores/opções <span class="campo-ajuda-inline">separe por vírgula</span></label>
+                <input type="text" id="prodVariantes_${id}" value="${(produto.variantes || []).join(', ')}" placeholder="Ex: Chocolate, Morango, Baunilha" oninput="atualizarPreviaVariantes('${id}')">
+                <div id="previaVariantes_${id}" class="previa-variantes"></div>
+            </div>
         </div>
-
-        <input type="text" id="prodCategoria_${id}" value="${produto.categoria || ''}" placeholder="Categoria" list="categoriasDatalist">
-
-        <label class="campo-label">Sabores/opções (digite cada um separado por VÍRGULA — deixe em branco se não tiver)</label>
-        <input type="text" id="prodVariantes_${id}" value="${(produto.variantes || []).join(', ')}" placeholder="Ex: Chocolate, Morango, Baunilha" oninput="atualizarPreviaVariantes('${id}')">
-        <div id="previaVariantes_${id}" class="previa-variantes"></div>
 
         <div id="blocoAdicionais_${id}" style="display:${adicionaisAtivo ? 'block' : 'none'};">
             <label class="campo-label">
