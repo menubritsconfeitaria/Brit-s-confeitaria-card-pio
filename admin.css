@@ -1544,3 +1544,69 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
     .produto-status-opcao span { font-size: .77rem; }
     .campo-encomenda-produto { margin-top: 4px; }
 }
+
+
+/* ---------- Disponibilidade programada do produto ---------- */
+.produto-agenda-card {
+    margin-top: 10px;
+    border: 1px solid #e7ddd2;
+    border-radius: 12px;
+    background: #fcfaf7;
+    overflow: hidden;
+}
+.produto-agenda-card > summary {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    cursor: pointer;
+    user-select: none;
+}
+.produto-agenda-card > summary::-webkit-details-marker { display: none; }
+.produto-agenda-card > summary::after {
+    content: '⌄';
+    color: #9b8778;
+    font-size: 1rem;
+    transition: transform .15s ease;
+}
+.produto-agenda-card[open] > summary::after { transform: rotate(180deg); }
+.produto-agenda-titulo { font-size: .82rem; font-weight: 700; color: #5f4b3e; }
+.produto-agenda-resumo {
+    margin-left: auto;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #f1ebe4;
+    color: #806b5d;
+    font-size: .68rem;
+    font-weight: 700;
+}
+.produto-agenda-conteudo { padding: 0 12px 12px; border-top: 1px solid #eee5dc; }
+.produto-agenda-chave { display:flex; align-items:center; gap:8px; padding:10px 0 6px; font-size:.78rem; font-weight:700; color:#5f4b3e; }
+.produto-agenda-ajuda, .produto-agenda-nota { margin: 2px 0 9px; font-size: .69rem; line-height: 1.4; color: #8b786a; }
+.produto-agenda-nota { margin: 8px 0 0; }
+.produto-agenda-grade { display:grid; gap:5px; }
+.produto-agenda-dia {
+    display:grid;
+    grid-template-columns: 58px minmax(0, 1fr);
+    align-items:center;
+    gap:10px;
+    padding:6px 8px;
+    border:1px solid #eee6de;
+    border-radius:9px;
+    background:#fff;
+    opacity:.58;
+}
+.produto-agenda-dia.ativo { opacity:1; border-color:#dccab9; background:#fffdfa; }
+.produto-agenda-dia-check { display:flex; align-items:center; gap:6px; font-size:.75rem; font-weight:700; color:#655448; }
+.produto-agenda-horas { display:flex; align-items:center; gap:7px; min-width:0; }
+.produto-agenda-horas input[type="time"] { min-width:0; width:112px; padding:6px 7px; font-size:.75rem; }
+.produto-agenda-horas span { color:#9b8778; font-size:.68rem; }
+@media (max-width: 620px) {
+    .produto-agenda-card > summary { align-items:flex-start; flex-wrap:wrap; }
+    .produto-agenda-resumo { margin-left:0; }
+    .produto-agenda-dia { grid-template-columns: 50px 1fr; }
+    .produto-agenda-horas { flex-wrap:wrap; }
+    .produto-agenda-horas input[type="time"] { width:104px; }
+}

@@ -648,6 +648,50 @@ function registrarEventoConversaoFront(evento, extra) {
     } catch (e) { /* métrica é opcional e nunca interrompe o cardápio */ }
 }
 
+
+// ---------- DISPONIBILIDADE PROGRAMADA DO PRODUTO ----------
+// Produtos antigos, sem agenda, mantêm exatamente o comportamento anterior.
+function produtoTemAgendaAtiva(produto) {
+    return !!(produto && produto.agendaDisponibilidade && produto.agendaDisponibilidade.ativa === true && produto.agendaDisponibilidade.dias);
+}
+
+function minutosDoHorario(valor) {
+    if (!valor || !/^\d{2}:\d{2}$/.test(valor)) return null;
+    const [h, m] = valor.split(':').map(Number);
+    return h * 60 + m;
+}
+
+function regraAgendaPermiteAgora(regra, minutosAgora, comoDiaAnterior = false) {
+    if (!regra || regra.ativo !== true) return false;
+    const inicio = minutosDoHorario(regra.inicio);
+    const fim = minutosDoHorario(regra.fim);
+    if (inicio == null || fim == null) return false;
+    if (inicio === fim) return true; // mesmo horário = dia inteiro
+    if (inicio < fim) return !comoDiaAnterior && minutosAgora >= inicio && minutosAgora < fim;
+    // Faixa atravessa meia-noite: no próprio dia vale do início até 23:59;
+    // no dia seguinte vale de 00:00 até o fim.
+    return comoDiaAnterior ? minutosAgora < fim : minutosAgora >= inicio;
+}
+
+function produtoDentroDoHorarioProgramado(produto, agora = new Date()) {
+    if (!produtoTemAgendaAtiva(produto)) return true;
+    const dias = produto.agendaDisponibilidade.dias || {};
+    const diaHoje = agora.getDay();
+    const diaAnterior = (diaHoje + 6) % 7;
+    const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
+    if (regraAgendaPermiteAgora(dias[diaHoje], minutosAgora, false)) return true;
+    if (regraAgendaPermiteAgora(dias[diaAnterior], minutosAgora, true)) return true;
+    return false;
+}
+
+function produtoDisponivelAgora(produto) {
+    return !!(produto && produto.disponivel !== false && !produto.escondido && produtoDentroDoHorarioProgramado(produto));
+}
+
+function produtoForaDoHorario(produto) {
+    return !!(produto && produto.disponivel !== false && !produto.escondido && produtoTemAgendaAtiva(produto) && !produtoDentroDoHorarioProgramado(produto));
+}
+
 // ---------- Vendedor Inteligente ----------
 // Faz uma sugestão proativa somente quando o visitante ainda não colocou nada no carrinho.
 // Prioriza promoção real do cardápio; sem promoção, usa os destaques já escolhidos/calculados.
@@ -684,7 +728,7 @@ function produtoEhSimplesParaVendaRapida(produto) {
 }
 
 async function escolherProdutoVendedorInteligente() {
-    const disponiveis = produtos.filter(p => p && p.disponivel === true && !p.escondido);
+    const disponiveis = produtos.filter(p => produtoDisponivelAgora(p));
     if (!disponiveis.length) return null;
 
     // 1) Promoção visível de verdade: prioriza a maior economia percentual.
@@ -1093,7 +1137,7 @@ function irParaProdutoDestaque(produtoId) {
 
 function acaoCarrosselDestaque(produtoId) {
     const produto = produtos.find(p => p.id === produtoId);
-    if (!produto || produto.disponivel === false) {
+    if (!produto || !produtoDisponivelAgora(produto)) {
         irParaProdutoDestaque(produtoId);
         return;
     }
@@ -1818,6 +1862,11 @@ function atualizarPrecoModalAdicionais() {
 // Adiciona o item de verdade no carrinho — usada tanto pelo caminho direto (produto sem
 // adicionais) quanto pelo modal de adicionais, depois que a pessoa confirma as escolhas
 function finalizarAdicaoAoCarrinho(produtoId, nomeProduto, precoEfetivo, quantidade, observacao, adicionaisTexto, adicionaisEscolhidos) {
+    const produtoAtual = produtoId ? produtos.find(p => p.id === produtoId) : produtos.find(p => p.nome === nomeProduto);
+    if (produtoAtual && !produtoDisponivelAgora(produtoAtual)) {
+        alert(produtoForaDoHorario(produtoAtual) ? 'Este produto está fora do horário programado no momento.' : 'Este produto não está disponível no momento.');
+        return false;
+    }
     const carrinhoEstavaVazio = carrinho.length === 0;
     // Só agrupa como "mesmo item" se nome, observação E adicionais escolhidos forem
     // idênticos — senão, dois bolos com recheios diferentes viram uma linha só, errado
@@ -1914,11 +1963,13 @@ function renderizarProdutos() {
 
     // Monta o card de um produto (reaproveitado tanto na seção de Ofertas quanto na categoria normal dele)
     function construirCardProduto(produto) {
+        const disponivelAgora = produtoDisponivelAgora(produto);
+        const foraDoHorario = produtoForaDoHorario(produto);
         const produtoItemDiv = document.createElement('div');
         produtoItemDiv.classList.add('produto-item');
         if (produto.id) produtoItemDiv.id = 'produto-' + produto.id;
 
-        if (!produto.disponivel) {
+        if (!disponivelAgora) {
             produtoItemDiv.classList.add('indisponivel');
         }
 
@@ -1947,20 +1998,20 @@ function renderizarProdutos() {
             <p class="preco">
                 ${emOferta ? `<span class="preco-original">R$ ${produto.precoOriginal.toFixed(2).replace('.', ',')}</span> ` : ''}R$ ${produto.preco.toFixed(2).replace('.', ',')}
             </p>
-            ${produto.disponivel && temVariantes
+            ${disponivelAgora && temVariantes
                 ? `<div class="variantes-lista">${produto.variantes.map(v => `<button type="button" class="variante-pill" data-variante="${v}">${v}</button>`).join('')}</div>`
                 : ''
             }
-            ${produto.disponivel ? `
+            ${disponivelAgora ? `
                 <div class="produto-quantidade-stepper">
                     <button type="button" class="qtd-btn qtd-menos">−</button>
                     <span class="qtd-valor">1</span>
                     <button type="button" class="qtd-btn qtd-mais">+</button>
                 </div>` : ''
             }
-            ${produto.disponivel
+            ${disponivelAgora
                 ? `<button class="adicionar-carrinho" data-nome="${produto.nome}" data-preco="${produto.preco}">Adicionar ao Carrinho</button>`
-                : `<button class="adicionar-carrinho indisponivel-btn" disabled>Esgotado</button>`
+                : `<button class="adicionar-carrinho indisponivel-btn" disabled>${foraDoHorario ? 'Fora do horário' : 'Esgotado'}</button>`
             }
             ${produto.id ? `<button type="button" class="btn-copiar-link-produto" data-id="${produto.id}">🔗 Copiar link deste produto</button>` : ''}
         `;
@@ -2127,6 +2178,11 @@ function renderizarProdutos() {
             // abre o modal de escolha em vez de adicionar direto — quem finaliza a adição
             // nesse caso é confirmarAdicionaisEAdicionar(), depois que a pessoa escolher
             const produtoCompleto = produtos.find(p => p.nome === nomeProduto);
+            if (produtoCompleto && !produtoDisponivelAgora(produtoCompleto)) {
+                alert(produtoForaDoHorario(produtoCompleto) ? 'Este produto está fora do horário programado no momento.' : 'Este produto não está disponível no momento.');
+                renderizarProdutos();
+                return;
+            }
 
             // Produto de encomenda exige que a data já tenha sido escolhida e verificada
             // como disponível antes de deixar adicionar ao carrinho
@@ -2152,6 +2208,14 @@ function renderizarProdutos() {
 
     iniciarObservadorCategorias();
 }
+
+// Atualiza a disponibilidade automática quando o relógio cruza um horário programado.
+// Só re-renderiza quando existe pelo menos um produto com agenda ativa.
+setInterval(() => {
+    if (Array.isArray(produtos) && produtos.some(produtoTemAgendaAtiva)) {
+        renderizarProdutos();
+    }
+}, 60000);
 
 // NOVO: Função para renderizar as categorias
 function renderizarCategorias() {
@@ -2268,7 +2332,7 @@ function avaliarOfertasCarrinho(subtotalAtual, jaTemFreteGratis, pedidoMinimoAin
     // primeiro, quando aplicável — é o mais direcionado dos dois)
     if (faltaPoucoPraFreteGratis && produtoSugeridoFreteGratisId) {
         const produto = produtos.find(p => p.id === produtoSugeridoFreteGratisId);
-        if (produto && produto.disponivel !== false && !produto.escondido && !carrinho.some(item => item.produtoId === produto.id)) {
+        if (produtoDisponivelAgora(produto) && !carrinho.some(item => item.produtoId === produto.id)) {
             sugestoes.push({
                 produto,
                 texto: `➕ Adicione <strong>${produto.nome}</strong> por ${formatarPrecoTexto(produto.preco)} e complete o frete grátis!`,
@@ -2283,7 +2347,7 @@ function avaliarOfertasCarrinho(subtotalAtual, jaTemFreteGratis, pedidoMinimoAin
     if (sugestoes.length < 2) {
         const candidatosOferta = produtos.filter(p =>
             p.ofertaAtiva &&
-            p.disponivel !== false && !p.escondido &&
+            produtoDisponivelAgora(p) &&
             !carrinho.some(item => item.produtoId === p.id) &&
             !sugestoes.some(s => s.produto.id === p.id)
         );
@@ -2829,7 +2893,7 @@ function repetirUltimoPedido() {
         const produtoAtual = item.produtoId
             ? produtos.find(p => p.id === item.produtoId)
             : produtos.find(p => p.nome === item.nome);
-        const disponivel = produtoAtual && produtoAtual.disponivel !== false && !produtoAtual.escondido;
+        const disponivel = produtoDisponivelAgora(produtoAtual);
         if (!disponivel) { pulados++; return; }
 
         const jaExiste = carrinho.find(c => c.nome === item.nome && (c.observacao || '') === (item.observacao || ''));

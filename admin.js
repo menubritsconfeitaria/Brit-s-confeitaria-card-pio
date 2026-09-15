@@ -5510,6 +5510,97 @@ function aplicarStatusProdutoNoFormulario(id) {
     }
 }
 
+
+// ---------- DISPONIBILIDADE PROGRAMADA DO PRODUTO ----------
+// Campo opcional e retrocompatível: produtos antigos, sem agenda, continuam sempre disponíveis.
+function normalizarAgendaDisponibilidadeProduto(produto) {
+    const agenda = produto && produto.agendaDisponibilidade;
+    if (!agenda || agenda.ativa !== true || !agenda.dias || typeof agenda.dias !== 'object') {
+        return { ativa: false, dias: {} };
+    }
+    return { ativa: true, dias: agenda.dias || {} };
+}
+
+function resumoAgendaDisponibilidadeProduto(produto) {
+    const agenda = normalizarAgendaDisponibilidadeProduto(produto);
+    if (!agenda.ativa) return 'Sempre disponível';
+    const diasAtivos = Object.values(agenda.dias).filter(d => d && d.ativo && d.inicio && d.fim);
+    if (!diasAtivos.length) return 'Programação incompleta';
+    return `${diasAtivos.length} dia${diasAtivos.length > 1 ? 's' : ''} programado${diasAtivos.length > 1 ? 's' : ''}`;
+}
+
+function alternarAgendaProduto(id) {
+    const chk = document.getElementById('prodAgendaAtiva_' + id);
+    const painel = document.getElementById('prodAgendaPainel_' + id);
+    const resumo = document.getElementById('prodAgendaResumo_' + id);
+    if (painel) painel.style.display = chk && chk.checked ? 'block' : 'none';
+    if (resumo) resumo.textContent = chk && chk.checked ? 'Programada' : 'Sempre disponível';
+}
+
+function coletarAgendaDisponibilidadeProduto(id) {
+    const ativa = !!document.getElementById('prodAgendaAtiva_' + id)?.checked;
+    if (!ativa) return { ativa: false, dias: {} };
+
+    const dias = {};
+    let temDiaValido = false;
+    for (let dia = 0; dia <= 6; dia++) {
+        const ativo = !!document.getElementById(`prodAgendaDia_${id}_${dia}`)?.checked;
+        const inicio = (document.getElementById(`prodAgendaInicio_${id}_${dia}`)?.value || '').trim();
+        const fim = (document.getElementById(`prodAgendaFim_${id}_${dia}`)?.value || '').trim();
+        dias[dia] = { ativo, inicio, fim };
+        if (ativo && inicio && fim) temDiaValido = true;
+        if (ativo && (!inicio || !fim)) {
+            alert('Preencha o horário inicial e final de todos os dias marcados na disponibilidade programada.');
+            return null;
+        }
+    }
+    if (!temDiaValido) {
+        alert('Marque pelo menos um dia com horário para usar a disponibilidade programada.');
+        return null;
+    }
+    return { ativa: true, dias };
+}
+
+function htmlAgendaDisponibilidadeProduto(id, produto) {
+    const agenda = normalizarAgendaDisponibilidadeProduto(produto);
+    const nomes = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    const linhas = nomes.map((nome, dia) => {
+        const regra = agenda.dias && agenda.dias[dia] ? agenda.dias[dia] : {};
+        const ativo = regra.ativo === true;
+        return `
+            <div class="produto-agenda-dia ${ativo ? 'ativo' : ''}">
+                <label class="produto-agenda-dia-check">
+                    <input type="checkbox" id="prodAgendaDia_${id}_${dia}" ${ativo ? 'checked' : ''} onchange="this.closest('.produto-agenda-dia').classList.toggle('ativo', this.checked)">
+                    <span>${nome}</span>
+                </label>
+                <div class="produto-agenda-horas">
+                    <input type="time" id="prodAgendaInicio_${id}_${dia}" value="${regra.inicio || ''}" aria-label="Início ${nome}">
+                    <span>até</span>
+                    <input type="time" id="prodAgendaFim_${id}_${dia}" value="${regra.fim || ''}" aria-label="Fim ${nome}">
+                </div>
+            </div>`;
+    }).join('');
+
+    return `
+        <details class="produto-agenda-card">
+            <summary>
+                <span class="produto-agenda-titulo">🕒 Disponibilidade por horário</span>
+                <span class="produto-agenda-resumo" id="prodAgendaResumo_${id}">${resumoAgendaDisponibilidadeProduto(produto)}</span>
+            </summary>
+            <div class="produto-agenda-conteudo">
+                <label class="produto-agenda-chave">
+                    <input type="checkbox" id="prodAgendaAtiva_${id}" ${agenda.ativa ? 'checked' : ''} onchange="alternarAgendaProduto('${id}')">
+                    <span>Programar dias e horários</span>
+                </label>
+                <div id="prodAgendaPainel_${id}" class="produto-agenda-painel" style="display:${agenda.ativa ? 'block' : 'none'};">
+                    <p class="produto-agenda-ajuda">Fora desses horários o produto continua visível, mas não pode ser comprado. “Em falta” e “Inativo” continuam tendo prioridade.</p>
+                    <div class="produto-agenda-grade">${linhas}</div>
+                    <p class="produto-agenda-nota">Horários que atravessam a meia-noite também funcionam (ex.: 18:00 até 02:00).</p>
+                </div>
+            </div>
+        </details>`;
+}
+
 function montarLinhaProduto(id, produto) {
     const div = document.createElement('div');
     div.classList.add('produto-admin-item');
@@ -5546,6 +5637,7 @@ function montarLinhaProduto(id, produto) {
                 <input type="checkbox" id="prodEncomenda_${id}" ${produto.disponivelParaEncomenda ? 'checked' : ''}> 🎂 Disponível pra Encomenda
             </label>
         </div>
+        ${htmlAgendaDisponibilidadeProduto(id, produto)}
         <div class="campo-vincular-ficha-tecnica" style="margin-top:8px;">
             <label class="campo-label">📋 Vincular à Ficha Técnica (opcional — permite consumir estoque automaticamente)</label>
             <select id="prodFichaTecnica_${id}">
@@ -6279,6 +6371,8 @@ function salvarProduto(id) {
     const imagemCarrossel = document.getElementById('prodImagemCarrossel_' + id).value.trim() || null;
     const ofertaAtiva = document.getElementById('prodOfertaAtiva_' + id).checked;
     const ofertaPrecoEspecial = paraNumeroFlexivel(document.getElementById('prodOfertaPreco_' + id).value) || null;
+    const agendaDisponibilidade = coletarAgendaDisponibilidadeProduto(id);
+    if (agendaDisponibilidade === null) return;
     const variantesTexto = document.getElementById('prodVariantes_' + id).value.trim();
     const adicionaisTexto = document.getElementById('prodAdicionais_' + id).value.trim();
 
@@ -6289,7 +6383,7 @@ function salvarProduto(id) {
         return;
     }
 
-    const dados = { nome, descricao, preco, imagem: imagens[0], imagens, categoria, disponivel, escondido, disponivelParaEncomenda, fichaTecnicaId, imagemCarrossel, ofertaAtiva, ofertaPrecoEspecial, precoOriginal: null, variantes: null, grupoAdicionais: null };
+    const dados = { nome, descricao, preco, imagem: imagens[0], imagens, categoria, disponivel, escondido, disponivelParaEncomenda, agendaDisponibilidade, fichaTecnicaId, imagemCarrossel, ofertaAtiva, ofertaPrecoEspecial, precoOriginal: null, variantes: null, grupoAdicionais: null };
 
     if (!isNaN(precoOriginal) && precoOriginal > preco) {
         dados.precoOriginal = precoOriginal;
