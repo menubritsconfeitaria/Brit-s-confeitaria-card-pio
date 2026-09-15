@@ -2932,3 +2932,175 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
         max-width: none;
     }
 }
+
+/* ===== GESTÃO PREMIUM — CLIENTES (visual somente) ===== */
+/* Escopo restrito à subaba Clientes da Gestão. Não altera IDs, eventos, Firebase ou regras. */
+.gestao-subconteudo[data-subtab-content="sub-clientes-gestao"] {
+    --cli-border: #e8dccd;
+    --cli-soft: #fffdf9;
+    --cli-shadow: 0 8px 22px rgba(72, 45, 25, .06);
+}
+
+.gestao-subconteudo[data-subtab-content="sub-clientes-gestao"] > .loja-status-card:first-child {
+    padding: 17px 18px 18px;
+    border: 1px solid var(--cli-border);
+    border-radius: 16px;
+    background: var(--cli-soft);
+    box-shadow: var(--cli-shadow);
+}
+
+#tituloCadastroClienteGestao {
+    margin: 0 0 13px;
+    font-size: 1.03em;
+    color: #4d382b;
+}
+
+.gestao-subconteudo[data-subtab-content="sub-clientes-gestao"] .produto-admin-linha {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 11px;
+    margin-top: 0 !important;
+}
+
+.gestao-subconteudo[data-subtab-content="sub-clientes-gestao"] .produto-admin-linha + .produto-admin-linha {
+    margin-top: 10px !important;
+}
+
+.gestao-subconteudo[data-subtab-content="sub-clientes-gestao"] .campo-com-label {
+    min-width: 0;
+}
+
+.gestao-subconteudo[data-subtab-content="sub-clientes-gestao"] .campo-label {
+    margin-bottom: 4px;
+    font-size: .76em;
+    color: #6f5a49;
+}
+
+#cgNome,
+#cgTelefone,
+#cgEmail,
+#cgEndereco,
+#cgBusca {
+    width: 100%;
+    min-height: 38px;
+    box-sizing: border-box;
+    padding: 7px 10px;
+    border: 1px solid #dfd1bf;
+    border-radius: 9px;
+    background: #fff;
+    color: var(--text);
+    font-family: inherit;
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+#cgNome:focus,
+#cgTelefone:focus,
+#cgEmail:focus,
+#cgEndereco:focus,
+#cgBusca:focus {
+    border-color: #c9976c;
+    box-shadow: 0 0 0 3px rgba(160, 82, 45, .08);
+}
+
+#btnSalvarClienteGestao {
+    min-height: 40px;
+    margin-top: 12px !important;
+    padding: 8px 14px;
+    border-radius: 10px;
+    box-shadow: 0 5px 14px rgba(160, 82, 45, .12);
+}
+
+#msgClienteGestao {
+    margin-top: 7px;
+}
+
+.gestao-subconteudo[data-subtab-content="sub-clientes-gestao"] > .loja-status-card:nth-of-type(2) {
+    margin-top: 12px !important;
+    padding: 12px;
+    border: 1px solid var(--cli-border);
+    border-radius: 16px;
+    background: rgba(255,255,255,.52);
+    box-shadow: var(--cli-shadow);
+}
+
+#cgBusca {
+    max-width: 440px;
+}
+
+#listaClientesGestao {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+    margin-top: 10px !important;
+}
+
+#listaClientesGestao > .pedido-card {
+    margin-top: 0 !important;
+    min-width: 0;
+    padding: 12px 13px;
+    border: 1px solid #e9dfd2;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(72,45,25,.045);
+    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+
+#listaClientesGestao > .pedido-card:hover {
+    transform: translateY(-1px);
+    border-color: #dcc9b4;
+    box-shadow: 0 7px 17px rgba(72,45,25,.075);
+}
+
+#listaClientesGestao > .pedido-card > strong {
+    display: block;
+    font-size: .93em;
+    color: #4d382b;
+    line-height: 1.28;
+    margin-bottom: 4px;
+}
+
+#listaClientesGestao > .pedido-card p {
+    margin: 3px 0 !important;
+    font-size: .75em !important;
+    line-height: 1.38;
+}
+
+#listaClientesGestao .btn-secondary {
+    margin-top: 7px;
+    padding: 6px 9px;
+    border-radius: 8px;
+    font-size: .75em;
+}
+
+#listaClientesGestao .btn-excluir-cupom {
+    opacity: .55;
+    transform: scale(.9);
+    transition: opacity .16s ease, transform .16s ease;
+}
+
+#listaClientesGestao .btn-excluir-cupom:hover {
+    opacity: 1;
+    transform: scale(1);
+}
+
+@media (max-width: 900px) {
+    #listaClientesGestao {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 760px) {
+    .gestao-subconteudo[data-subtab-content="sub-clientes-gestao"] > .loja-status-card:first-child,
+    .gestao-subconteudo[data-subtab-content="sub-clientes-gestao"] > .loja-status-card:nth-of-type(2) {
+        padding: 13px;
+    }
+
+    .gestao-subconteudo[data-subtab-content="sub-clientes-gestao"] .produto-admin-linha {
+        grid-template-columns: 1fr;
+    }
+
+    #cgBusca {
+        max-width: none;
+    }
+}
