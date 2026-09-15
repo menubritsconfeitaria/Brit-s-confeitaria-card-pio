@@ -130,30 +130,118 @@ let primeiraCargaConcluida = false;
  * Se o nó não existir, ou "status" for "ativo"/vazio, nada aparece (comportamento
  * normal — é o caso da Brit's e de qualquer cliente em dia).
  */
+function hojeIsoLocal() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function dataIsoParaDateLocal(dataIso) {
+    if (!dataIso || !/^\d{4}-\d{2}-\d{2}$/.test(dataIso)) return null;
+    const d = new Date(dataIso + 'T12:00:00');
+    return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function formatarDataIsoBr(dataIso) {
+    const d = dataIsoParaDateLocal(dataIso);
+    return d ? d.toLocaleDateString('pt-BR') : '—';
+}
+
+function diferencaDiasDataIso(dataIso) {
+    const alvo = dataIsoParaDateLocal(dataIso);
+    if (!alvo) return null;
+    const hoje = new Date();
+    const hojeMeioDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 12, 0, 0, 0);
+    return Math.ceil((alvo.getTime() - hojeMeioDia.getTime()) / 86400000);
+}
+
+function aplicarVariaveisMensagemAssinatura(texto, dados, dias) {
+    const plano = String((dados && dados.plano) || '').toUpperCase() || 'PedeAki';
+    const nomeLoja = (typeof LOJA_CONFIG !== 'undefined' && LOJA_CONFIG.nome) ? LOJA_CONFIG.nome : 'sua loja';
+    return String(texto || '')
+        .replaceAll('{dias}', String(Math.max(0, Number(dias) || 0)))
+        .replaceAll('{dataVencimento}', formatarDataIsoBr(dados && dados.dataVencimento))
+        .replaceAll('{plano}', plano)
+        .replaceAll('{nomeLoja}', nomeLoja);
+}
+
+/**
+ * Aviso de renovação da assinatura. Continua compatível com o formato antigo
+ * { status: 'atencao'|'bloqueado', mensagem: '...' }, mas agora também calcula
+ * automaticamente o aviso usando data de vencimento + regras editáveis salvas no Firebase.
+ */
 function escutarStatusAssinatura() {
     const banner = document.getElementById('bannerAssinatura');
     if (!banner) return;
 
     db.ref('configuracao/assinatura').on('value', snap => {
         const dados = snap.val();
-        const status = (dados && dados.status) || 'ativo';
-        const mensagemCustom = dados && dados.mensagem;
-
-        if (status === 'ativo') {
+        if (!dados) {
             banner.style.display = 'none';
             return;
         }
 
-        banner.className = 'banner-assinatura banner-assinatura-' + status;
-        banner.style.display = 'block';
-
-        if (status === 'atencao') {
-            banner.textContent = mensagemCustom || '🔔 Existe uma pendência no seu sistema. Qualquer dúvida, é só entrar em contato com o suporte.';
-        } else if (status === 'bloqueado') {
-            banner.textContent = mensagemCustom || '⚠️ Seu acesso está temporariamente limitado. Entre em contato com o suporte pra regularizar e voltar ao normal.';
-        } else {
-            banner.style.display = 'none'; // valor desconhecido — não mostra nada, por segurança
+        // Compatibilidade com o formato antigo enquanto o cliente ainda não tem ciclo configurado.
+        if (!dados.dataVencimento) {
+            const statusLegado = dados.status || 'ativo';
+            const mensagemCustom = dados.mensagem;
+            if (statusLegado === 'atencao' || statusLegado === 'bloqueado') {
+                banner.className = 'banner-assinatura banner-assinatura-' + statusLegado;
+                banner.textContent = mensagemCustom || (statusLegado === 'atencao'
+                    ? '🔔 Existe uma pendência no seu sistema. Qualquer dúvida, é só entrar em contato com o suporte.'
+                    : '⚠️ Seu acesso está temporariamente limitado. Entre em contato com o suporte pra regularizar e voltar ao normal.');
+                banner.style.display = 'block';
+            } else {
+                banner.style.display = 'none';
+            }
+            return;
         }
+
+        const dias = diferencaDiasDataIso(dados.dataVencimento);
+        if (dias == null) { banner.style.display = 'none'; return; }
+        const alertas = dados.alertas || {};
+        const tolerancia = Math.max(0, Number(dados.diasTolerancia) || 0);
+        let tipo = null;
+        let mensagem = '';
+
+        if (dias > 0) {
+            const previos = [alertas.previo1, alertas.previo2, alertas.previo3]
+                .filter(a => a && a.ativo !== false && Number(a.dias) >= dias)
+                .sort((a, b) => Number(a.dias) - Number(b.dias));
+            if (previos.length) {
+                tipo = 'atencao';
+                mensagem = aplicarVariaveisMensagemAssinatura(previos[0].mensagem, dados, dias);
+            }
+        } else if (dias === 0) {
+            const a = alertas.vencimento;
+            if (!a || a.ativo !== false) {
+                tipo = 'atencao';
+                mensagem = aplicarVariaveisMensagemAssinatura((a && a.mensagem) || '📅 Seu plano PedeAki vence hoje. Entre em contato para renovar e manter todos os recursos ativos.', dados, 0);
+            }
+        } else {
+            const atraso = Math.abs(dias);
+            if (atraso <= tolerancia) {
+                const a = alertas.tolerancia;
+                if (!a || a.ativo !== false) {
+                    tipo = 'atencao';
+                    mensagem = aplicarVariaveisMensagemAssinatura((a && a.mensagem) || '⚠️ Seu plano venceu em {dataVencimento} e está no período de tolerância. Regularize a renovação para evitar interrupções.', dados, 0);
+                }
+            } else {
+                const a = alertas.vencido;
+                if (!a || a.ativo !== false) {
+                    tipo = 'bloqueado';
+                    mensagem = aplicarVariaveisMensagemAssinatura((a && a.mensagem) || '🚨 Seu plano PedeAki está vencido. Entre em contato com o suporte para renovar e regularizar o acesso.', dados, 0);
+                }
+            }
+        }
+
+        if (!tipo || !mensagem) {
+            banner.style.display = 'none';
+            return;
+        }
+
+        banner.className = 'banner-assinatura banner-assinatura-' + tipo;
+        banner.textContent = mensagem;
+        banner.style.display = 'block';
     });
 }
 
@@ -185,7 +273,10 @@ function inicializarAbasPainel() {
     });
 
     // Abre na mesma aba que estava da última vez (ou "pedidos" se for a primeira vez)
-    const abaSalva = localStorage.getItem('painelAbaAtiva') || 'pedidos';
+    let abaSalva = localStorage.getItem('painelAbaAtiva') || 'pedidos';
+    // Migração visual: abas antigas agora vivem dentro dos novos hubs.
+    if (['cupons', 'fidelidade', 'mensagens'].includes(abaSalva)) abaSalva = 'clientes-marketing';
+    if (abaSalva === 'visitantes') abaSalva = 'loja';
     mostrarAba(abaSalva, false);
 }
 
@@ -313,6 +404,8 @@ function sincronizarTelaDoMestre() {
     document.getElementById('cardAdicionarClienteMestre').style.display = logado ? 'block' : 'none';
     document.getElementById('cardLeadsMestre').style.display = logado ? 'block' : 'none';
     if (logado && clientesRegistroMestre.length === 0) carregarClientesMestre();
+    const dataContratacaoNova = document.getElementById('novoClienteDataContratacaoMestre');
+    if (logado && dataContratacaoNova && !dataContratacaoNova.value) dataContratacaoNova.value = hojeIsoLocal();
 
     // Se já tinha um cliente selecionado e logado antes, mantém a tela dele visível —
     // sem isso, voltar pra essa aba mostraria o login do cliente de novo à toa
@@ -338,6 +431,8 @@ async function fazerLoginNoMestre() {
         document.getElementById('cardConteudoMestre').style.display = 'block';
         document.getElementById('cardAdicionarClienteMestre').style.display = 'block';
         document.getElementById('cardLeadsMestre').style.display = 'block';
+        const dataContratacaoNova = document.getElementById('novoClienteDataContratacaoMestre');
+        if (dataContratacaoNova && !dataContratacaoNova.value) dataContratacaoNova.value = hojeIsoLocal();
         carregarClientesMestre();
         carregarLeadsMestre();
     } catch (err) {
@@ -358,6 +453,7 @@ const RECURSOS_MESTRE = [
     { chave: 'esconderProduto', nome: '🙈 Esconder Produto do cardápio' },
     { chave: 'gestaoCompleta', nome: '📊 Gestão Completa (ingredientes, ficha técnica, estoque)' },
     { chave: 'vendedorInteligente', nome: '🧠 Vendedor Inteligente' },
+    { chave: 'carrossel', nome: '🎠 Carrossel de Destaques e Campanhas' },
     { chave: 'ofertasCarrinho', nome: '🛒 Ofertas no Carrinho' },
     { chave: 'mensagemMassa', nome: '💬 Mensagem em Massa' },
     { chave: 'repetirUltimoPedido', nome: '🔁 Repetir Último Pedido' }
@@ -369,8 +465,8 @@ const RECURSOS_MESTRE = [
 // de salvar (não trava em plano nenhum).
 const RECURSOS_POR_PLANO = {
     start: ['areasDeEntrega', 'pedidoMinimo', 'esconderProduto', 'repetirUltimoPedido'],
-    pro: ['areasDeEntrega', 'pedidoMinimo', 'esconderProduto', 'cupons', 'fidelidade', 'notificacoes', 'pagamentoOnline', 'adicionais', 'agenda', 'visitantes', 'vendedorInteligente', 'ofertasCarrinho', 'mensagemMassa', 'repetirUltimoPedido'],
-    premium: ['areasDeEntrega', 'pedidoMinimo', 'esconderProduto', 'cupons', 'fidelidade', 'notificacoes', 'pagamentoOnline', 'adicionais', 'agenda', 'visitantes', 'vendedorInteligente', 'ofertasCarrinho', 'mensagemMassa', 'repetirUltimoPedido', 'gestaoCompleta']
+    pro: ['areasDeEntrega', 'pedidoMinimo', 'esconderProduto', 'cupons', 'fidelidade', 'notificacoes', 'pagamentoOnline', 'adicionais', 'agenda', 'visitantes', 'vendedorInteligente', 'carrossel', 'ofertasCarrinho', 'mensagemMassa', 'repetirUltimoPedido'],
+    premium: ['areasDeEntrega', 'pedidoMinimo', 'esconderProduto', 'cupons', 'fidelidade', 'notificacoes', 'pagamentoOnline', 'adicionais', 'agenda', 'visitantes', 'vendedorInteligente', 'carrossel', 'ofertasCarrinho', 'mensagemMassa', 'repetirUltimoPedido', 'gestaoCompleta']
 };
 
 function aplicarPlanoPadraoMestre(plano) {
@@ -384,6 +480,346 @@ function aplicarPlanoPadraoMestre(plano) {
 const appsClientesMestre = {}; // indice -> { app, auth, db, autenticado }
 let clientesRegistroMestre = [];
 let clienteMestreSelecionadoIndice = null;
+
+
+const TEXTO_PADRAO_CONTRATO_PEDEAKI = `TERMO DE CONTRATAÇÃO PEDEAKI\n\nEste documento registra a contratação da plataforma PedeAki por {nomeLoja}.\n\n1. OBJETO\nDisponibilização de acesso à plataforma PedeAki conforme os recursos do plano {plano}, configurados para o estabelecimento.\n\n2. CONDIÇÃO COMERCIAL\nCondição informada nesta contratação: {valor}.\n\n3. ATIVAÇÃO\nO período do plano começa somente na data em que o PedeAki liberar o acesso operacional à plataforma. A assinatura deste termo, sozinha, não inicia a contagem do período contratado.\n\n4. USO DA PLATAFORMA\nO estabelecimento é responsável pelas informações, produtos, preços, horários, dados comerciais e demais conteúdos cadastrados em sua operação.\n\n5. RENOVAÇÃO E CONTINUIDADE\nAs condições de renovação, vencimento e eventual período de tolerância seguem o que estiver registrado na contratação vigente.\n\n6. ACEITE\nAo confirmar abaixo, o responsável declara que leu e concorda com o conteúdo desta versão do termo.\n\nIMPORTANTE: este texto é um modelo operacional editável. Revise a versão final com orientação jurídica antes de utilizá-la como contrato comercial definitivo.`;
+
+function statusContratoMestre(contrato) {
+    contrato = contrato || {};
+    if (contrato.obrigatorio !== true) return { chave:'dispensado', rotulo:'🔓 Não obrigatório' };
+    const ass = contrato.assinatura || {};
+    if (contrato.status === 'assinado' && String(ass.versao || '') === String(contrato.versao || '1.0')) {
+        return { chave:'assinado', rotulo:'✅ Assinado' };
+    }
+    return { chave:'aguardando', rotulo:'🟠 Aguardando assinatura' };
+}
+
+function preencherContratoMestre(contrato, assinaturaPlano) {
+    contrato = contrato || {};
+    assinaturaPlano = assinaturaPlano || {};
+    document.getElementById('contratoObrigatorioMestre').checked = contrato.obrigatorio !== false;
+    document.getElementById('contratoVersaoMestre').value = contrato.versao || '1.0';
+    document.getElementById('contratoValorMestre').value = contrato.valor || '';
+    document.getElementById('contratoTituloMestre').value = contrato.titulo || 'Termo de Contratação PedeAki';
+    document.getElementById('contratoTextoMestre').value = contrato.texto || TEXTO_PADRAO_CONTRATO_PEDEAKI;
+    atualizarResumoContratoMestre(contrato, assinaturaPlano);
+}
+
+function atualizarResumoContratoMestre(contrato, assinaturaPlano) {
+    contrato = contrato || {};
+    assinaturaPlano = assinaturaPlano || {};
+    const chip = document.getElementById('resumoStatusContratoMestre');
+    const resumo = document.getElementById('contratoAssinaturaResumoMestre');
+    if (!chip || !resumo) return;
+    const estado = statusContratoMestre(contrato);
+    chip.className = 'contrato-status-chip contrato-status-' + estado.chave;
+    chip.textContent = estado.rotulo;
+    const ass = contrato.assinatura || {};
+    if (estado.chave === 'assinado' && ass.nomeCompleto) {
+        const data = ass.assinadoEm ? new Date(ass.assinadoEm).toLocaleString('pt-BR') : 'data registrada no Firebase';
+        resumo.style.display = 'block';
+        resumo.innerHTML = `<strong>✅ Assinatura registrada</strong><br>${ass.nomeCompleto}${ass.email ? ' · ' + ass.email : ''}<br>Versão ${ass.versao || contrato.versao || '1.0'} · ${data}${assinaturaPlano.dataAtivacao ? `<br><strong>Acesso ativado em:</strong> ${formatarDataIsoBr(assinaturaPlano.dataAtivacao)}` : '<br><strong>Próxima etapa:</strong> definir a data de ativação para liberar o painel operacional.'}`;
+    } else {
+        resumo.style.display = 'none';
+        resumo.innerHTML = '';
+    }
+}
+
+async function carregarContratoClienteMestre(registro) {
+    try {
+        const [contratoSnap, assinaturaSnap] = await Promise.all([
+            registro.db.ref('configuracao/contrato').once('value'),
+            registro.db.ref('configuracao/assinatura').once('value')
+        ]);
+        preencherContratoMestre(contratoSnap.val() || {}, assinaturaSnap.val() || {});
+    } catch (err) {
+        preencherContratoMestre({}, {});
+        console.log('Não foi possível ler o contrato do cliente:', err.message);
+    }
+}
+
+async function salvarContratoClienteMestre() {
+    const msgEl = document.getElementById('msgContratoMestre');
+    const registro = appsClientesMestre[nomeAppClienteMestre(clienteMestreSelecionadoIndice)];
+    const cliente = clientesRegistroMestre[clienteMestreSelecionadoIndice];
+    if (!registro || !registro.autenticado || !cliente) { msgEl.textContent = 'Faz login nesse cliente primeiro.'; return; }
+
+    const obrigatorio = document.getElementById('contratoObrigatorioMestre').checked;
+    const versao = document.getElementById('contratoVersaoMestre').value.trim() || '1.0';
+    const titulo = document.getElementById('contratoTituloMestre').value.trim() || 'Termo de Contratação PedeAki';
+    const valor = document.getElementById('contratoValorMestre').value.trim() || null;
+    const texto = document.getElementById('contratoTextoMestre').value.trim();
+    if (obrigatorio && texto.length < 80) { msgEl.textContent = 'O texto do contrato está muito curto. Revise antes de disponibilizar.'; return; }
+
+    msgEl.textContent = 'Salvando contrato...';
+    try {
+        const plano = (document.getElementById('planoAssinaturaMestre').value || (cliente.assinatura && cliente.assinatura.plano) || 'pro');
+        const dados = {
+            obrigatorio,
+            status: obrigatorio ? 'aguardando_assinatura' : 'dispensado',
+            versao,
+            titulo,
+            valor,
+            plano,
+            texto,
+            assinatura: null,
+            atualizadoEm: firebase.database.ServerValue.TIMESTAMP
+        };
+        await registro.db.ref('configuracao/contrato').update(dados);
+        await registro.db.ref('configuracao/contrato/historico').push({
+            evento: obrigatorio ? 'contrato_disponibilizado' : 'contrato_dispensado',
+            versao,
+            quando: firebase.database.ServerValue.TIMESTAMP
+        });
+        const resumoMestre = { obrigatorio, status: dados.status, versao, titulo, valor, plano, atualizadoEm: firebase.database.ServerValue.TIMESTAMP };
+        await dbMestre.ref('clientes/' + cliente.id + '/contrato').set(resumoMestre);
+        cliente.contrato = { ...resumoMestre };
+        preencherContratoMestre(dados, obterAssinaturaMestreDoFormulario());
+        msgEl.textContent = obrigatorio
+            ? '✅ Contrato disponível. No próximo login, o cliente precisará assinar antes de prosseguir.'
+            : '✅ Exigência de contrato desativada para este cliente.';
+    } catch (err) {
+        msgEl.textContent = 'Erro ao salvar contrato: ' + err.message;
+    }
+}
+
+async function desativarObrigatoriedadeContratoMestre() {
+    const chk = document.getElementById('contratoObrigatorioMestre');
+    chk.checked = false;
+    await salvarContratoClienteMestre();
+}
+
+function somarMesesDataIso(dataIso, meses) {
+    const d = dataIsoParaDateLocal(dataIso);
+    if (!d) return '';
+    const diaOriginal = d.getDate();
+    const alvo = new Date(d.getFullYear(), d.getMonth() + (Number(meses) || 1), 1, 12, 0, 0, 0);
+    const ultimoDia = new Date(alvo.getFullYear(), alvo.getMonth() + 1, 0).getDate();
+    alvo.setDate(Math.min(diaOriginal, ultimoDia));
+    return `${alvo.getFullYear()}-${String(alvo.getMonth() + 1).padStart(2, '0')}-${String(alvo.getDate()).padStart(2, '0')}`;
+}
+
+function calcularEstadoAssinatura(dados) {
+    dados = dados || {};
+    if (!dados.dataAtivacao) {
+        return dados.dataContratacao
+            ? { chave: 'implantacao', rotulo: '🟠 Em implantação', dias: null }
+            : { chave: 'sem-config', rotulo: 'Sem configuração', dias: null };
+    }
+    if (!dados.dataVencimento) return { chave: 'ativo', rotulo: '🟢 Ativo', dias: null };
+
+    const dias = diferencaDiasDataIso(dados.dataVencimento);
+    if (dias == null) return { chave: 'sem-config', rotulo: 'Data inválida', dias: null };
+    const tolerancia = Math.max(0, Number(dados.diasTolerancia) || 0);
+    const limites = [dados.alertas && dados.alertas.previo1, dados.alertas && dados.alertas.previo2, dados.alertas && dados.alertas.previo3]
+        .filter(a => a && a.ativo !== false && Number(a.dias) > 0)
+        .map(a => Number(a.dias));
+    const maiorAlerta = limites.length ? Math.max(...limites) : 7;
+
+    if (dias > maiorAlerta) return { chave: 'ativo', rotulo: `🟢 Ativo · faltam ${dias} dias`, dias };
+    if (dias > 0) return { chave: 'vencendo', rotulo: `🟡 Vencendo · faltam ${dias} dias`, dias };
+    if (dias === 0) return { chave: 'vence-hoje', rotulo: '🟠 Vence hoje', dias };
+    const atraso = Math.abs(dias);
+    if (atraso <= tolerancia) return { chave: 'tolerancia', rotulo: `🟠 Em tolerância · ${atraso} dia(s) em atraso`, dias };
+    return { chave: 'vencido', rotulo: `🔴 Vencido · ${atraso} dia(s) em atraso`, dias };
+}
+
+function obterAlertasAssinaturaMestreDoFormulario() {
+    return {
+        previo1: {
+            ativo: document.getElementById('alertaRenovacao1Ativo').checked,
+            dias: Math.max(1, Number(document.getElementById('alertaRenovacao1Dias').value) || 7),
+            mensagem: document.getElementById('alertaRenovacao1Mensagem').value.trim()
+        },
+        previo2: {
+            ativo: document.getElementById('alertaRenovacao2Ativo').checked,
+            dias: Math.max(1, Number(document.getElementById('alertaRenovacao2Dias').value) || 3),
+            mensagem: document.getElementById('alertaRenovacao2Mensagem').value.trim()
+        },
+        previo3: {
+            ativo: document.getElementById('alertaRenovacao3Ativo').checked,
+            dias: Math.max(1, Number(document.getElementById('alertaRenovacao3Dias').value) || 1),
+            mensagem: document.getElementById('alertaRenovacao3Mensagem').value.trim()
+        },
+        vencimento: {
+            ativo: document.getElementById('alertaVencimentoAtivo').checked,
+            mensagem: document.getElementById('alertaVencimentoMensagem').value.trim()
+        },
+        tolerancia: {
+            ativo: document.getElementById('alertaToleranciaAtivo').checked,
+            mensagem: document.getElementById('alertaToleranciaMensagem').value.trim()
+        },
+        vencido: {
+            ativo: document.getElementById('alertaVencidoAtivo').checked,
+            mensagem: document.getElementById('alertaVencidoMensagem').value.trim()
+        }
+    };
+}
+
+function obterAssinaturaMestreDoFormulario() {
+    return {
+        plano: document.getElementById('planoAssinaturaMestre').value || 'pro',
+        dataContratacao: document.getElementById('dataContratacaoAssinaturaMestre').value || null,
+        dataAtivacao: document.getElementById('dataAtivacaoAssinaturaMestre').value || null,
+        dataVencimento: document.getElementById('dataVencimentoAssinaturaMestre').value || null,
+        responsavelAtivacao: document.getElementById('responsavelAtivacaoAssinaturaMestre').value.trim() || null,
+        observacaoInterna: document.getElementById('observacaoAssinaturaMestre').value.trim() || null,
+        diasTolerancia: Math.max(0, Number(document.getElementById('diasToleranciaAssinaturaMestre').value) || 0),
+        alertas: obterAlertasAssinaturaMestreDoFormulario()
+    };
+}
+
+function preencherAlertasAssinaturaMestre(alertas) {
+    alertas = alertas || {};
+    const defs = {
+        previo1: { ativo: true, dias: 7, mensagem: '🔔 Seu plano PedeAki vence em {dias} dias, em {dataVencimento}. Fale com a gente para renovar sem interrupções.' },
+        previo2: { ativo: true, dias: 3, mensagem: '⚠️ Faltam {dias} dias para a renovação do seu plano PedeAki. Vencimento: {dataVencimento}.' },
+        previo3: { ativo: true, dias: 1, mensagem: '⏰ Seu plano PedeAki vence amanhã ({dataVencimento}). Renove para manter o serviço funcionando normalmente.' },
+        vencimento: { ativo: true, mensagem: '📅 Seu plano PedeAki vence hoje. Entre em contato para renovar e manter todos os recursos ativos.' },
+        tolerancia: { ativo: true, mensagem: '⚠️ Seu plano venceu em {dataVencimento} e está no período de tolerância. Regularize a renovação para evitar interrupções.' },
+        vencido: { ativo: true, mensagem: '🚨 Seu plano PedeAki está vencido. Entre em contato com o suporte para renovar e regularizar o acesso.' }
+    };
+    ['previo1','previo2','previo3'].forEach((chave, i) => {
+        const a = { ...defs[chave], ...(alertas[chave] || {}) };
+        document.getElementById(`alertaRenovacao${i+1}Ativo`).checked = a.ativo !== false;
+        document.getElementById(`alertaRenovacao${i+1}Dias`).value = a.dias;
+        document.getElementById(`alertaRenovacao${i+1}Mensagem`).value = a.mensagem || '';
+    });
+    ['vencimento','tolerancia','vencido'].forEach(chave => {
+        const a = { ...defs[chave], ...(alertas[chave] || {}) };
+        const prefixo = chave === 'vencimento' ? 'alertaVencimento' : chave === 'tolerancia' ? 'alertaTolerancia' : 'alertaVencido';
+        document.getElementById(prefixo + 'Ativo').checked = a.ativo !== false;
+        document.getElementById(prefixo + 'Mensagem').value = a.mensagem || '';
+    });
+}
+
+function preencherAssinaturaMestre(dados) {
+    dados = dados || {};
+    document.getElementById('planoAssinaturaMestre').value = dados.plano || 'pro';
+    document.getElementById('dataContratacaoAssinaturaMestre').value = dados.dataContratacao || '';
+    document.getElementById('dataAtivacaoAssinaturaMestre').value = dados.dataAtivacao || '';
+    document.getElementById('dataVencimentoAssinaturaMestre').value = dados.dataVencimento || '';
+    document.getElementById('responsavelAtivacaoAssinaturaMestre').value = dados.responsavelAtivacao || '';
+    document.getElementById('observacaoAssinaturaMestre').value = dados.observacaoInterna || '';
+    document.getElementById('diasToleranciaAssinaturaMestre').value = dados.diasTolerancia != null ? dados.diasTolerancia : 3;
+    preencherAlertasAssinaturaMestre(dados.alertas);
+    atualizarResumoAssinaturaMestre();
+}
+
+function sugerirVencimentoAssinaturaMestre() {
+    const ativacao = document.getElementById('dataAtivacaoAssinaturaMestre').value;
+    const vencimento = document.getElementById('dataVencimentoAssinaturaMestre');
+    if (ativacao && !vencimento.value) vencimento.value = somarMesesDataIso(ativacao, 1);
+    atualizarResumoAssinaturaMestre();
+}
+
+function calcularVencimentoAssinaturaMestre() {
+    const ativacao = document.getElementById('dataAtivacaoAssinaturaMestre').value;
+    if (!ativacao) { alert('Informe primeiro a data de ativação.'); return; }
+    document.getElementById('dataVencimentoAssinaturaMestre').value = somarMesesDataIso(ativacao, 1);
+    atualizarResumoAssinaturaMestre();
+}
+
+function atualizarResumoAssinaturaMestre() {
+    const chip = document.getElementById('resumoStatusAssinaturaMestre');
+    if (!chip) return;
+    const dados = obterAssinaturaMestreDoFormulario();
+    const estado = calcularEstadoAssinatura(dados);
+    chip.className = 'assinatura-status-chip assinatura-status-' + estado.chave;
+    chip.textContent = estado.rotulo;
+}
+
+async function carregarAssinaturaClienteMestre(registro) {
+    const cliente = clientesRegistroMestre[clienteMestreSelecionadoIndice] || {};
+    try {
+        const snapCliente = await registro.db.ref('configuracao/assinatura').once('value');
+        const dadosCliente = snapCliente.val();
+        const dados = dadosCliente && (dadosCliente.dataContratacao || dadosCliente.dataAtivacao || dadosCliente.dataVencimento || dadosCliente.plano)
+            ? dadosCliente
+            : (cliente.assinatura || {});
+        preencherAssinaturaMestre(dados);
+    } catch (err) {
+        preencherAssinaturaMestre(cliente.assinatura || {});
+        console.log('Não foi possível ler assinatura no cliente, usando cadastro Mestre:', err.message);
+    }
+}
+
+async function salvarAssinaturaClienteMestre() {
+    const msgEl = document.getElementById('msgAssinaturaMestre');
+    const registro = appsClientesMestre[nomeAppClienteMestre(clienteMestreSelecionadoIndice)];
+    const cliente = clientesRegistroMestre[clienteMestreSelecionadoIndice];
+    if (!registro || !registro.autenticado || !cliente) { msgEl.textContent = 'Faz login nesse cliente primeiro.'; return; }
+
+    const dados = obterAssinaturaMestreDoFormulario();
+    if (!dados.dataContratacao) { msgEl.textContent = 'Informe a data da contratação.'; return; }
+    if (dados.dataAtivacao && !dados.dataVencimento) dados.dataVencimento = somarMesesDataIso(dados.dataAtivacao, 1);
+    if (dados.dataVencimento && !dados.dataAtivacao) { msgEl.textContent = 'Informe a data de ativação antes do vencimento.'; return; }
+
+    // Se o contrato é obrigatório, a ativação só pode ser registrada depois do aceite
+    // da versão atual. Isso mantém a ordem: contrato -> assinatura -> ativação.
+    if (dados.dataAtivacao) {
+        try {
+            const contratoSnap = await registro.db.ref('configuracao/contrato').once('value');
+            const contrato = contratoSnap.val() || {};
+            if (contrato.obrigatorio === true) {
+                const ass = contrato.assinatura || {};
+                const assinadoAtual = contrato.status === 'assinado' && String(ass.versao || '') === String(contrato.versao || '1.0');
+                if (!assinadoAtual) {
+                    msgEl.textContent = '⚠️ Não dá para ativar ainda: o contrato obrigatório desta versão ainda não foi assinado pelo cliente.';
+                    return;
+                }
+            }
+        } catch (e) {
+            msgEl.textContent = 'Não foi possível confirmar o contrato antes da ativação. Tente novamente.';
+            return;
+        }
+    }
+
+    msgEl.textContent = 'Salvando...';
+    try {
+        const dadosCliente = { ...dados, atualizadoEm: firebase.database.ServerValue.TIMESTAMP };
+        await Promise.all([
+            registro.db.ref('configuracao/assinatura').set(dadosCliente),
+            dbMestre.ref('clientes/' + cliente.id + '/assinatura').set(dadosCliente)
+        ]);
+        cliente.assinatura = dados;
+        preencherAssinaturaMestre(dados);
+        renderizarVisaoAssinaturasMestre();
+        msgEl.textContent = '✅ Assinatura e alertas salvos. O aviso do cliente passa a ser calculado automaticamente pelas datas.';
+        try {
+            const contratoSnap = await registro.db.ref('configuracao/contrato').once('value');
+            atualizarResumoContratoMestre(contratoSnap.val() || {}, dados);
+        } catch (e) {}
+    } catch (err) {
+        msgEl.textContent = 'Erro ao salvar assinatura: ' + err.message;
+    }
+}
+
+function renderizarVisaoAssinaturasMestre() {
+    const container = document.getElementById('visaoAssinaturasMestre');
+    if (!container) return;
+    if (!clientesRegistroMestre.length) { container.innerHTML = ''; return; }
+
+    const cards = clientesRegistroMestre.map((c, i) => {
+        const a = c.assinatura || {};
+        const estado = calcularEstadoAssinatura(a);
+        const plano = (a.plano || '—').toUpperCase();
+        const venc = a.dataVencimento ? formatarDataIsoBr(a.dataVencimento) : '—';
+        return `<button type="button" class="assinatura-cliente-resumo" onclick="selecionarClienteMestrePeloIndice(${i})">
+            <span><strong>${c.nome}</strong><small>${plano} · Venc.: ${venc}</small></span>
+            <span class="assinatura-status-mini assinatura-status-${estado.chave}">${estado.rotulo}</span>
+        </button>`;
+    }).join('');
+    container.innerHTML = `<div class="visao-assinaturas-titulo">📌 Visão rápida das assinaturas</div>${cards}`;
+}
+
+function selecionarClienteMestrePeloIndice(indice) {
+    const seletor = document.getElementById('seletorClienteMestre');
+    if (!seletor || !clientesRegistroMestre[indice]) return;
+    seletor.value = String(indice);
+    selecionarClienteMestre();
+    seletor.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
 
 // Carrega quem preencheu "Quero meu cardápio assim" em qualquer cardápio — mais
 // recentes primeiro, com um link pronto pra já chamar no WhatsApp
@@ -421,7 +857,11 @@ function carregarClientesMestre() {
         clientesRegistroMestre = Object.entries(dados).map(([id, c]) => ({ id, ...c }));
         const seletor = document.getElementById('seletorClienteMestre');
         seletor.innerHTML = '<option value="">— Selecione —</option>' +
-            clientesRegistroMestre.map((c, i) => `<option value="${i}">${c.nome}</option>`).join('');
+            clientesRegistroMestre.map((c, i) => {
+                const plano = c.assinatura && c.assinatura.plano ? ' · ' + String(c.assinatura.plano).toUpperCase() : '';
+                return `<option value="${i}">${c.nome}${plano}</option>`;
+            }).join('');
+        renderizarVisaoAssinaturasMestre();
     });
 }
 
@@ -488,7 +928,10 @@ async function carregarRecursosClienteMestre() {
     document.getElementById('avisoNuncaConfiguradoMestre').style.display = nuncaConfigurado ? 'block' : 'none';
 
     const estado = {};
-    RECURSOS_MESTRE.forEach(r => { estado[r.chave] = nuncaConfigurado ? true : !!valor[r.chave]; });
+    RECURSOS_MESTRE.forEach(r => {
+        const compatibilidadeCarrossel = r.chave === 'carrossel' && valor[r.chave] == null;
+        estado[r.chave] = nuncaConfigurado || compatibilidadeCarrossel ? true : !!valor[r.chave];
+    });
 
     document.getElementById('listaRecursosClienteMestre').innerHTML = RECURSOS_MESTRE.map(r => `
         <label class="switch-linha" style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border);">
@@ -498,6 +941,8 @@ async function carregarRecursosClienteMestre() {
     `).join('');
     document.getElementById('areaRecursosClienteMestre').style.display = 'block';
 
+    carregarContratoClienteMestre(registro);
+    carregarAssinaturaClienteMestre(registro);
     carregarIdentidadeClienteMestre(registro);
     carregarFreteClienteMestre(registro);
 }
@@ -774,6 +1219,8 @@ async function aplicarRecursosClienteMestre() {
 function adicionarClienteMestre() {
     const nome = document.getElementById('novoClienteNomeMestre').value.trim();
     const configTexto = document.getElementById('novoClienteConfigMestre').value.trim();
+    const plano = document.getElementById('novoClientePlanoMestre').value || 'pro';
+    const dataContratacao = document.getElementById('novoClienteDataContratacaoMestre').value || null;
     const msgEl = document.getElementById('msgAdicionarClienteMestre');
     if (!nome) { msgEl.textContent = 'Digita o nome do cliente.'; return; }
 
@@ -785,11 +1232,20 @@ function adicionarClienteMestre() {
         return;
     }
 
-    dbMestre.ref('clientes').push({ nome, firebaseConfig })
+    const assinatura = {
+        plano,
+        dataContratacao,
+        dataAtivacao: null,
+        dataVencimento: null,
+        diasTolerancia: 3
+    };
+
+    dbMestre.ref('clientes').push({ nome, firebaseConfig, assinatura })
         .then(() => {
-            msgEl.textContent = 'Cliente adicionado!';
+            msgEl.textContent = 'Cliente adicionado! Agora selecione o cliente para concluir ativação e vencimento.';
             document.getElementById('novoClienteNomeMestre').value = '';
             document.getElementById('novoClienteConfigMestre').value = '';
+            document.getElementById('novoClienteDataContratacaoMestre').value = '';
             carregarClientesMestre();
         })
         .catch(err => { msgEl.textContent = 'Erro ao adicionar: ' + err.message; });
@@ -864,17 +1320,210 @@ document.getElementById('loginSenha').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') fazerLogin();
 });
 
+let painelOperacionalIniciado = false;
+let contratoGateAtual = null;
+
+function esconderTelasAcessoPedeAki() {
+    const login = document.getElementById('telaLogin');
+    const contrato = document.getElementById('telaContratoPedeAki');
+    const painelEl = document.getElementById('painel');
+    if (login) login.style.display = 'none';
+    if (contrato) contrato.style.display = 'none';
+    if (painelEl) painelEl.style.display = 'none';
+}
+
+
+function mostrarBoasVindasPedeAki(user) {
+    const tela = document.getElementById('boasVindasPedeAki');
+    if (!tela || !user) return;
+    const chave = 'pedeaki_boas_vindas_' + String(user.uid || user.email || 'usuario');
+    try {
+        if (localStorage.getItem(chave) === '1') return;
+        localStorage.setItem(chave, '1');
+    } catch (e) {}
+    tela.style.display = 'flex';
+    tela.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(() => requestAnimationFrame(() => tela.classList.add('ativa')));
+}
+
+function fecharBoasVindasPedeAki() {
+    const tela = document.getElementById('boasVindasPedeAki');
+    if (!tela) return;
+    tela.classList.remove('ativa');
+    tela.setAttribute('aria-hidden', 'true');
+    setTimeout(() => { tela.style.display = 'none'; }, 280);
+}
+
+function liberarPainelOperacionalPedeAki(user) {
+    esconderTelasAcessoPedeAki();
+    document.getElementById('painel').style.display = 'block';
+    if (!painelOperacionalIniciado) {
+        iniciarEscutaPedidos();
+        painelOperacionalIniciado = true;
+    }
+    verificarSeEhDonoDoServico(user && user.email);
+    setTimeout(() => mostrarBoasVindasPedeAki(user), 320);
+}
+
+function aplicarVariaveisContratoPedeAki(texto, contrato, assinatura) {
+    const nomeLoja = (typeof LOJA_CONFIG !== 'undefined' && LOJA_CONFIG.nome) ? LOJA_CONFIG.nome : 'sua empresa';
+    const plano = (contrato && contrato.plano) || (assinatura && assinatura.plano) || 'PedeAki';
+    const valor = (contrato && contrato.valor) || 'conforme contratação';
+    return String(texto || '')
+        .replaceAll('{nomeLoja}', nomeLoja)
+        .replaceAll('{plano}', String(plano).toUpperCase())
+        .replaceAll('{valor}', valor);
+}
+
+async function hashTextoContratoPedeAki(texto) {
+    try {
+        if (!window.crypto || !crypto.subtle) return null;
+        const bytes = new TextEncoder().encode(String(texto || ''));
+        const digest = await crypto.subtle.digest('SHA-256', bytes);
+        return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch (e) { return null; }
+}
+
+function preencherTelaContratoPedeAki(contrato, assinaturaPlano, user) {
+    contratoGateAtual = { contrato: contrato || {}, assinaturaPlano: assinaturaPlano || {} };
+    const titulo = document.getElementById('contratoGateTitulo');
+    const meta = document.getElementById('contratoGateMeta');
+    const texto = document.getElementById('contratoGateTexto');
+    const nome = document.getElementById('contratoGateNome');
+    const versao = contrato.versao || '1.0';
+    const plano = contrato.plano || assinaturaPlano.plano || '—';
+    const valor = contrato.valor || '';
+    if (titulo) titulo.textContent = contrato.titulo || 'Termo de Contratação PedeAki';
+    if (meta) meta.innerHTML = `<span class="meta-chip">Versão ${versao}</span><span class="meta-chip">Plano ${String(plano).toUpperCase()}</span>${valor ? `<span class="meta-chip">${valor}</span>` : ''}`;
+    if (texto) texto.textContent = aplicarVariaveisContratoPedeAki(contrato.texto || '', contrato, assinaturaPlano);
+    if (nome && !nome.value && user && user.displayName) nome.value = user.displayName;
+}
+
+function mostrarGateContratoPedeAki(tipo, contrato, assinaturaPlano, user, erroTexto) {
+    esconderTelasAcessoPedeAki();
+    const tela = document.getElementById('telaContratoPedeAki');
+    if (tela) tela.style.display = 'flex';
+    const assinaturaEl = document.getElementById('contratoGateAssinatura');
+    const aguardandoEl = document.getElementById('contratoGateAguardandoAtivacao');
+    const erroEl = document.getElementById('contratoGateErro');
+    if (assinaturaEl) assinaturaEl.style.display = tipo === 'assinatura' ? 'block' : 'none';
+    if (aguardandoEl) aguardandoEl.style.display = tipo === 'aguardando' ? 'block' : 'none';
+    if (erroEl) erroEl.style.display = tipo === 'erro' ? 'block' : 'none';
+    if (tipo === 'assinatura') preencherTelaContratoPedeAki(contrato || {}, assinaturaPlano || {}, user);
+    if (tipo === 'erro' && erroTexto) document.getElementById('contratoGateErroTexto').textContent = erroTexto;
+}
+
+async function verificarContratoAntesDeLiberarPainel(user) {
+    if (!user) return;
+
+    // O dono da plataforma precisa continuar conseguindo abrir o painel e a aba Mestre
+    // mesmo quando o cliente está aguardando contrato ou ativação. O acesso ao Mestre
+    // continua protegido pelo login separado do Firebase Mestre.
+    if ((user.email || '').toLowerCase() === EMAIL_DONO_SERVICO.toLowerCase()) {
+        liberarPainelOperacionalPedeAki(user);
+        return;
+    }
+
+    esconderTelasAcessoPedeAki();
+    try {
+        const [contratoSnap, assinaturaSnap] = await Promise.all([
+            db.ref('configuracao/contrato').once('value'),
+            db.ref('configuracao/assinatura').once('value')
+        ]);
+        const contrato = contratoSnap.val() || {};
+        const assinaturaPlano = assinaturaSnap.val() || {};
+
+        // Compatibilidade: clientes antigos ou contrato não obrigatório entram normalmente.
+        if (contrato.obrigatorio !== true) {
+            liberarPainelOperacionalPedeAki(user);
+            return;
+        }
+
+        const assinaturaContrato = contrato.assinatura || {};
+        const versaoAtual = String(contrato.versao || '1.0');
+        const assinaturaValida = contrato.status === 'assinado' && String(assinaturaContrato.versao || '') === versaoAtual;
+
+        if (!assinaturaValida) {
+            mostrarGateContratoPedeAki('assinatura', contrato, assinaturaPlano, user);
+            return;
+        }
+
+        // Contrato assinado, mas o período ainda não começou: aguarda liberação manual do PedeAki.
+        if (!assinaturaPlano.dataAtivacao) {
+            mostrarGateContratoPedeAki('aguardando', contrato, assinaturaPlano, user);
+            return;
+        }
+
+        liberarPainelOperacionalPedeAki(user);
+    } catch (err) {
+        console.log('Não foi possível verificar contrato/acesso:', err);
+        mostrarGateContratoPedeAki('erro', null, null, user, 'Não foi possível confirmar o contrato e a ativação agora. Verifique sua conexão e tente novamente.');
+    }
+}
+
+async function assinarContratoPedeAki() {
+    const user = firebase.auth().currentUser;
+    const nome = (document.getElementById('contratoGateNome').value || '').trim();
+    const aceitou = document.getElementById('contratoGateAceite').checked;
+    const msgEl = document.getElementById('contratoGateMsg');
+    const btn = document.getElementById('btnAssinarContratoPedeAki');
+    if (!user) { msgEl.textContent = 'Sua sessão expirou. Entre novamente.'; return; }
+    if (nome.length < 5) { msgEl.textContent = 'Informe o nome completo de quem está aceitando.'; return; }
+    if (!aceitou) { msgEl.textContent = 'Marque que leu e concorda com os termos.'; return; }
+    if (!contratoGateAtual || !contratoGateAtual.contrato) { msgEl.textContent = 'Contrato não carregado. Atualize a página e tente de novo.'; return; }
+
+    const contrato = contratoGateAtual.contrato;
+    const textoExibido = aplicarVariaveisContratoPedeAki(contrato.texto || '', contrato, contratoGateAtual.assinaturaPlano || {});
+    const hashTexto = await hashTextoContratoPedeAki(textoExibido);
+    btn.disabled = true;
+    msgEl.textContent = 'Registrando assinatura...';
+    try {
+        const assinatura = {
+            nomeCompleto: nome,
+            email: user.email || null,
+            uid: user.uid,
+            versao: String(contrato.versao || '1.0'),
+            hashTexto: hashTexto,
+            userAgent: String(navigator.userAgent || '').slice(0, 300),
+            aceitou: true,
+            assinadoEm: firebase.database.ServerValue.TIMESTAMP
+        };
+        await db.ref('configuracao/contrato').update({
+            status: 'assinado',
+            assinatura,
+            atualizadoEm: firebase.database.ServerValue.TIMESTAMP
+        });
+        await db.ref('configuracao/contrato/historico').push({
+            evento: 'contrato_assinado',
+            nomeCompleto: nome,
+            email: user.email || null,
+            uid: user.uid,
+            versao: assinatura.versao,
+            hashTexto: hashTexto,
+            quando: firebase.database.ServerValue.TIMESTAMP
+        });
+        msgEl.textContent = '✅ Contrato assinado.';
+        await verificarContratoAntesDeLiberarPainel(user);
+    } catch (err) {
+        console.log('Erro ao assinar contrato:', err);
+        msgEl.textContent = 'Não foi possível registrar a assinatura: ' + err.message;
+    } finally {
+        btn.disabled = false;
+    }
+}
+
 auth.onAuthStateChanged(user => {
     if (user) {
-        document.getElementById('telaLogin').style.display = 'none';
-        document.getElementById('painel').style.display = 'block';
-        iniciarEscutaPedidos();
-        verificarSeEhDonoDoServico(user.email); // roda sempre, inclusive com sessão já salva
+        verificarContratoAntesDeLiberarPainel(user);
     } else {
         document.getElementById('telaLogin').style.display = 'flex';
         document.getElementById('painel').style.display = 'none';
+        const telaContrato = document.getElementById('telaContratoPedeAki');
+        if (telaContrato) telaContrato.style.display = 'none';
         idsRenderizados = new Set();
         primeiraCargaConcluida = false;
+        painelOperacionalIniciado = false;
+        contratoGateAtual = null;
     }
 });
 
@@ -1152,8 +1801,9 @@ function montarHtmlTicketImpressao(pedido, numeroPedido) {
         ${pedido.recompensaResgatada ? `<p><strong>🎁 RESGATE DO CLUBE:</strong> ${pedido.recompensaResgatada.descricao}</p>` : ''}
         ${pedido.dataEncomenda ? `<p><strong>📅 ENCOMENDA PRA:</strong> ${pedido.dataEncomenda.split('-').reverse().join('/')}</p>` : ''}
         ${pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' ? `<p><strong>💰 SINAL:</strong> ${pedido.pagamento.percentualSinal}% do produto pago (${formatarPreco(pedido.pagamento.valorSinal)}) — falta ${formatarPreco(totalDoPedido(pedido) - pedido.pagamento.valorSinal)} na entrega${pedido.pagamento.freteInformado > 0 ? ` (esse valor já inclui o frete de ${formatarPreco(pedido.pagamento.freteInformado)})` : ''}</p>` : ''}
-        <hr>
         <p class="ticket-total"><strong>Total: ${formatarPreco(totalDoPedido(pedido))}</strong></p>
+        <div class="ticket-espaco-final" aria-hidden="true"></div>
+        <hr class="ticket-linha-final">
     `;
 }
 
@@ -1220,6 +1870,59 @@ function montarTagPagamento(pedido) {
     return html;
 }
 
+// Urgência visual por tempo — apenas leitura/visual. Não grava nada no Firebase.
+// Os limites ficam centralizados aqui para podermos ajustar depois sem mexer no fluxo dos pedidos.
+const URGENCIA_PEDIDOS = {
+    atencaoMinutos: 20,
+    atrasadoMinutos: 40
+};
+
+function obterInicioEtapaPedido(pedido) {
+    if (!pedido) return 0;
+    // O cronômetro operacional é contínuo: começa quando o pedido entra e não zera ao mudar de etapa.
+    return Number(pedido.timestamp || pedido.aceitoEm || pedido.prontoEm || pedido.saiuEntregaEm || 0);
+}
+
+function atualizarUrgenciaVisualCard(card) {
+    if (!card || !card.dataset.urgenciaInicio) return;
+    const inicio = Number(card.dataset.urgenciaInicio || 0);
+    if (!inicio) return;
+
+    const minutos = Math.max(0, Math.floor((Date.now() - inicio) / 60000));
+    const badge = card.querySelector('.pedido-tempo-etapa');
+    if (!badge) return;
+
+    card.classList.remove('urgencia-normal', 'urgencia-atencao', 'urgencia-atrasado');
+    badge.classList.remove('tempo-normal', 'tempo-atencao', 'tempo-atrasado');
+
+    if (minutos >= URGENCIA_PEDIDOS.atrasadoMinutos) {
+        card.classList.add('urgencia-atrasado');
+        badge.classList.add('tempo-atrasado');
+        badge.textContent = `🔴 ${minutos} min desde o pedido`;
+    } else if (minutos >= URGENCIA_PEDIDOS.atencaoMinutos) {
+        card.classList.add('urgencia-atencao');
+        badge.classList.add('tempo-atencao');
+        badge.textContent = `🟠 ${minutos} min desde o pedido`;
+    } else {
+        card.classList.add('urgencia-normal');
+        badge.classList.add('tempo-normal');
+        badge.textContent = `🟢 ${minutos} min desde o pedido`;
+    }
+}
+
+function aplicarUrgenciaVisualCard(card, pedido, comAcoes) {
+    if (!comAcoes || !pedido || pedido.status === 'entregue' || pedido.status === 'recusado') return;
+    const inicio = obterInicioEtapaPedido(pedido);
+    if (!inicio) return;
+    card.dataset.urgenciaInicio = String(inicio);
+    atualizarUrgenciaVisualCard(card);
+}
+
+// Atualiza só a aparência a cada minuto; não consulta nem altera o banco.
+setInterval(() => {
+    document.querySelectorAll('.pedido-card[data-urgencia-inicio]').forEach(atualizarUrgenciaVisualCard);
+}, 60000);
+
 function montarCardPedido(id, pedido, comAcoes) {
     pedidosParaImpressao[id] = pedido;
 
@@ -1275,7 +1978,10 @@ function montarCardPedido(id, pedido, comAcoes) {
                     ${tagStatus}
                 </div>
             </div>
-            <div class="pedido-hora">${formatarHora(pedido.timestamp)}</div>
+            <div class="pedido-hora-bloco">
+                <div class="pedido-hora">${formatarHora(pedido.timestamp)}</div>
+                ${comAcoes ? '<div class="pedido-tempo-etapa"></div>' : ''}
+            </div>
         </div>
         ${resgateHtml}
         ${encomendaHtml}
@@ -1292,6 +1998,7 @@ function montarCardPedido(id, pedido, comAcoes) {
         </div>
         ${comAcoes ? montarBotoesAcaoPedido(id, pedido) : ''}
     `;
+    aplicarUrgenciaVisualCard(div, pedido, comAcoes);
     // Confere (de forma assíncrona, sem travar o card) se esse cliente JÁ tem pontos
     // suficientes pra alguma recompensa — mostra um aviso pra lembrar de oferecer,
     // mesmo que ele não tenha resgatado nada nesse pedido específico
@@ -1875,7 +2582,8 @@ const MAPA_RECURSOS = {
     areasDeEntrega: { cards: ['cardAreasDeEntrega'] },
     esconderProduto: { classesCorpo: ['ocultar-campo-esconder-produto'] },
     gestaoCompleta: { abas: ['gestao'], classesCorpo: ['ocultar-campo-ficha-tecnica'] },
-    mensagemMassa: { subabasGestao: ['sub-mensagem-massa'] }
+    carrossel: { cards: ['cardDestaquesCarrossel', 'cardBannersCarrossel'] },
+    mensagemMassa: { subabasClientesMarketing: ['mensagem-massa'] }
 };
 
 function aplicarRecursosLiberados(recursos) {
@@ -1886,7 +2594,8 @@ function aplicarRecursosLiberados(recursos) {
     const nuncaConfigurado = recursos == null;
 
     Object.entries(MAPA_RECURSOS).forEach(([nomeRecurso, alvos]) => {
-        const liberado = nuncaConfigurado || !!recursos[nomeRecurso];
+        const compatibilidadeCarrossel = nomeRecurso === 'carrossel' && recursos && recursos[nomeRecurso] == null;
+        const liberado = nuncaConfigurado || compatibilidadeCarrossel || !!recursos[nomeRecurso];
 
         (alvos.abas || []).forEach(aba => {
             const botao = document.querySelector(`.painel-tab-btn[data-tab="${aba}"]`);
@@ -1895,6 +2604,18 @@ function aplicarRecursosLiberados(recursos) {
         (alvos.subabasGestao || []).forEach(subaba => {
             const botao = document.querySelector(`.gestao-subtab-btn[data-subtab="${subaba}"]`);
             if (botao) botao.style.display = liberado ? '' : 'none';
+        });
+        (alvos.subabasClientesMarketing || []).forEach(subaba => {
+            const raiz = document.querySelector('section[data-tab="clientes-marketing"]');
+            if (!raiz) return;
+            const botao = raiz.querySelector(`[data-cm-subtab-btn="${subaba}"]`);
+            const painel = raiz.querySelector(`[data-cm-subtab="${subaba}"]`);
+            if (botao) botao.style.display = liberado ? '' : 'none';
+            if (!liberado && painel) painel.classList.remove('active');
+            if (!liberado && localStorage.getItem('clientesMarketingSubaba') === subaba) {
+                localStorage.setItem('clientesMarketingSubaba', 'clientes');
+                mostrarSubabaClientesMarketing('clientes');
+            }
         });
         (alvos.cards || []).forEach(id => {
             const card = document.getElementById(id);
@@ -4698,6 +5419,9 @@ function escutarConfigLoja() {
         const config = snap.val() || {};
         montarLinhasHorario(config.horarios);
 
+        const nomeBarraPedeaki = document.getElementById('barraPedeakiNomeLoja');
+        if (nomeBarraPedeaki) nomeBarraPedeaki.textContent = config.nomeLoja || (typeof LOJA_CONFIG !== 'undefined' ? LOJA_CONFIG.nome : 'Loja');
+
         const modo = config.modoManual || 'auto';
         marcarModoSelecionado(modo);
 
@@ -4772,36 +5496,183 @@ function importarDadosIniciais() {
 
 // ---------- PRODUTOS ----------
 
+
+// Traduz os dois campos antigos (disponivel/escondido) em um único status visual.
+// Não muda a estrutura salva no Firebase: preserva compatibilidade com o cardápio atual.
+function obterStatusProdutoAdmin(produto) {
+    if (produto && produto.escondido) return 'inativo';
+    if (produto && produto.disponivel !== false) return 'ativo';
+    return 'em_falta';
+}
+
+function aplicarStatusProdutoNoFormulario(id) {
+    const marcado = document.querySelector(`input[name="prodStatus_${id}"]:checked`);
+    const chkDisponivel = document.getElementById('prodDisp_' + id);
+    const chkEscondido = document.getElementById('prodEscondido_' + id);
+    if (!marcado || !chkDisponivel || !chkEscondido) return;
+
+    const status = marcado.value;
+    if (status === 'ativo') {
+        chkDisponivel.checked = true;
+        chkEscondido.checked = false;
+    } else if (status === 'em_falta') {
+        chkDisponivel.checked = false;
+        chkEscondido.checked = false;
+    } else {
+        chkDisponivel.checked = false;
+        chkEscondido.checked = true;
+    }
+}
+
+
+// ---------- DISPONIBILIDADE PROGRAMADA DO PRODUTO ----------
+// Campo opcional e retrocompatível: produtos antigos, sem agenda, continuam sempre disponíveis.
+function normalizarAgendaDisponibilidadeProduto(produto) {
+    const agenda = produto && produto.agendaDisponibilidade;
+    if (!agenda || agenda.ativa !== true || !agenda.dias || typeof agenda.dias !== 'object') {
+        return { ativa: false, dias: {} };
+    }
+    return { ativa: true, dias: agenda.dias || {} };
+}
+
+function resumoAgendaDisponibilidadeProduto(produto) {
+    const agenda = normalizarAgendaDisponibilidadeProduto(produto);
+    if (!agenda.ativa) return 'Sempre disponível';
+    const diasAtivos = Object.values(agenda.dias).filter(d => d && d.ativo && d.inicio && d.fim);
+    if (!diasAtivos.length) return 'Programação incompleta';
+    return `${diasAtivos.length} dia${diasAtivos.length > 1 ? 's' : ''} programado${diasAtivos.length > 1 ? 's' : ''}`;
+}
+
+function alternarAgendaProduto(id) {
+    const chk = document.getElementById('prodAgendaAtiva_' + id);
+    const painel = document.getElementById('prodAgendaPainel_' + id);
+    const resumo = document.getElementById('prodAgendaResumo_' + id);
+    if (painel) painel.style.display = chk && chk.checked ? 'block' : 'none';
+    if (resumo) resumo.textContent = chk && chk.checked ? 'Programada' : 'Sempre disponível';
+}
+
+function coletarAgendaDisponibilidadeProduto(id) {
+    const ativa = !!document.getElementById('prodAgendaAtiva_' + id)?.checked;
+    if (!ativa) return { ativa: false, dias: {} };
+
+    const dias = {};
+    let temDiaValido = false;
+    for (let dia = 0; dia <= 6; dia++) {
+        const ativo = !!document.getElementById(`prodAgendaDia_${id}_${dia}`)?.checked;
+        const inicio = (document.getElementById(`prodAgendaInicio_${id}_${dia}`)?.value || '').trim();
+        const fim = (document.getElementById(`prodAgendaFim_${id}_${dia}`)?.value || '').trim();
+        dias[dia] = { ativo, inicio, fim };
+        if (ativo && inicio && fim) temDiaValido = true;
+        if (ativo && (!inicio || !fim)) {
+            alert('Preencha o horário inicial e final de todos os dias marcados na disponibilidade programada.');
+            return null;
+        }
+    }
+    if (!temDiaValido) {
+        alert('Marque pelo menos um dia com horário para usar a disponibilidade programada.');
+        return null;
+    }
+    return { ativa: true, dias };
+}
+
+function htmlAgendaDisponibilidadeProduto(id, produto) {
+    const agenda = normalizarAgendaDisponibilidadeProduto(produto);
+    const nomes = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    const linhas = nomes.map((nome, dia) => {
+        const regra = agenda.dias && agenda.dias[dia] ? agenda.dias[dia] : {};
+        const ativo = regra.ativo === true;
+        return `
+            <div class="produto-agenda-dia ${ativo ? 'ativo' : ''}">
+                <label class="produto-agenda-dia-check">
+                    <input type="checkbox" id="prodAgendaDia_${id}_${dia}" ${ativo ? 'checked' : ''} onchange="this.closest('.produto-agenda-dia').classList.toggle('ativo', this.checked)">
+                    <span>${nome}</span>
+                </label>
+                <div class="produto-agenda-horas">
+                    <input type="time" id="prodAgendaInicio_${id}_${dia}" value="${regra.inicio || ''}" aria-label="Início ${nome}">
+                    <span>até</span>
+                    <input type="time" id="prodAgendaFim_${id}_${dia}" value="${regra.fim || ''}" aria-label="Fim ${nome}">
+                </div>
+            </div>`;
+    }).join('');
+
+    return `
+        <details class="produto-agenda-card">
+            <summary>
+                <span class="produto-agenda-titulo">🕒 Disponibilidade por horário</span>
+                <span class="produto-agenda-resumo" id="prodAgendaResumo_${id}">${resumoAgendaDisponibilidadeProduto(produto)}</span>
+            </summary>
+            <div class="produto-agenda-conteudo">
+                <label class="produto-agenda-chave">
+                    <input type="checkbox" id="prodAgendaAtiva_${id}" ${agenda.ativa ? 'checked' : ''} onchange="alternarAgendaProduto('${id}')">
+                    <span>Programar dias e horários</span>
+                </label>
+                <div id="prodAgendaPainel_${id}" class="produto-agenda-painel" style="display:${agenda.ativa ? 'block' : 'none'};">
+                    <p class="produto-agenda-ajuda">Fora desses horários o produto continua visível, mas não pode ser comprado. “Em falta” e “Inativo” continuam tendo prioridade.</p>
+                    <div class="produto-agenda-grade">${linhas}</div>
+                    <p class="produto-agenda-nota">Horários que atravessam a meia-noite também funcionam (ex.: 18:00 até 02:00).</p>
+                </div>
+            </div>
+        </details>`;
+}
+
 function montarLinhaProduto(id, produto) {
     const div = document.createElement('div');
     div.classList.add('produto-admin-item');
     div.id = 'produtoCard_' + id;
     div.innerHTML = `
-        <div class="produto-admin-linha">
-            <input type="text" id="prodNome_${id}" value="${produto.nome || ''}" placeholder="Nome do produto">
-            <label class="produto-disponivel-check">
-                <input type="checkbox" id="prodDisp_${id}" ${produto.disponivel !== false ? 'checked' : ''}> Disponível
-            </label>
-            <label class="produto-disponivel-check campo-esconder-produto">
-                <input type="checkbox" id="prodEscondido_${id}" ${produto.escondido ? 'checked' : ''}> Esconder do cardápio
-            </label>
+        <div class="produto-topo-grid">
+            <input class="produto-nome-topo" type="text" id="prodNome_${id}" value="${produto.nome || ''}" placeholder="Nome do produto">
+            <div class="produto-status-controle">
+                <label class="campo-label">Status</label>
+                <div class="produto-status-opcoes" role="radiogroup" aria-label="Status do produto">
+                    <label class="produto-status-opcao produto-status-opcao-ativo" title="Produto disponível para venda">
+                        <input type="radio" name="prodStatus_${id}" value="ativo" ${obterStatusProdutoAdmin(produto) === 'ativo' ? 'checked' : ''} onchange="aplicarStatusProdutoNoFormulario('${id}')">
+                        <span><i class="produto-status-ponto" aria-hidden="true"></i>Ativo</span>
+                    </label>
+                    <label class="produto-status-opcao produto-status-opcao-falta" title="Produto visível como esgotado">
+                        <input type="radio" name="prodStatus_${id}" value="em_falta" ${obterStatusProdutoAdmin(produto) === 'em_falta' ? 'checked' : ''} onchange="aplicarStatusProdutoNoFormulario('${id}')">
+                        <span><i class="produto-status-ponto" aria-hidden="true"></i>Em falta</span>
+                    </label>
+                    <label class="produto-status-opcao produto-status-opcao-inativo" title="Produto oculto do cardápio">
+                        <input type="radio" name="prodStatus_${id}" value="inativo" ${obterStatusProdutoAdmin(produto) === 'inativo' ? 'checked' : ''} onchange="aplicarStatusProdutoNoFormulario('${id}')">
+                        <span><i class="produto-status-ponto" aria-hidden="true"></i>Inativo</span>
+                    </label>
+                </div>
+                <div class="produto-status-legenda" aria-live="polite">
+                    <span class="legenda-status-ativo">Disponível para venda.</span>
+                    <span class="legenda-status-falta">Continua no cardápio como esgotado.</span>
+                    <span class="legenda-status-inativo">Oculto do cardápio.</span>
+                </div>
+                <!-- Mantém os campos antigos no DOM para salvar exatamente no formato já usado pelo sistema. -->
+                <input type="checkbox" id="prodDisp_${id}" ${produto.disponivel !== false ? 'checked' : ''} style="display:none;">
+                <input type="checkbox" id="prodEscondido_${id}" ${produto.escondido ? 'checked' : ''} style="display:none;">
+            </div>
             <label class="produto-disponivel-check campo-encomenda-produto">
-                <input type="checkbox" id="prodEncomenda_${id}" ${produto.disponivelParaEncomenda ? 'checked' : ''}> 🎂 Disponível pra Encomenda
+                <input type="checkbox" id="prodEncomenda_${id}" ${produto.disponivelParaEncomenda ? 'checked' : ''}>
+                <span>🎂 Disponível pra Encomenda</span>
             </label>
-        </div>
-        <div class="campo-vincular-ficha-tecnica" style="margin-top:8px;">
-            <label class="campo-label">📋 Vincular à Ficha Técnica (opcional — permite consumir estoque automaticamente)</label>
-            <select id="prodFichaTecnica_${id}">
-                <option value="">— Nenhuma —</option>
-                ${fichaTecnica.map(ft => `<option value="${ft.id}" ${produto.fichaTecnicaId === ft.id ? 'selected' : ''}>${ft.nome}</option>`).join('')}
-            </select>
         </div>
 
-        <div class="campo-oferta-carrinho" style="margin-top:8px;">
-            <label class="produto-disponivel-check">
-                <input type="checkbox" id="prodOfertaAtiva_${id}" ${produto.ofertaAtiva ? 'checked' : ''}> 🎁 Sugerir esse produto como oferta no carrinho
+        <div class="produto-config-grid">
+            <div class="campo-vincular-ficha-tecnica">
+                <label class="campo-label">📋 Vincular à Ficha Técnica</label>
+                <span class="campo-ajuda-inline">Opcional — consome estoque automaticamente</span>
+                <select id="prodFichaTecnica_${id}">
+                    <option value="">— Nenhuma —</option>
+                    ${fichaTecnica.map(ft => `<option value="${ft.id}" ${produto.fichaTecnicaId === ft.id ? 'selected' : ''}>${ft.nome}</option>`).join('')}
+                </select>
+            </div>
+            ${htmlAgendaDisponibilidadeProduto(id, produto)}
+        </div>
+
+        <div class="produto-oferta-grid">
+            <label class="produto-disponivel-check campo-oferta-check">
+                <input type="checkbox" id="prodOfertaAtiva_${id}" ${produto.ofertaAtiva ? 'checked' : ''}> 🎁 Sugerir este produto como oferta no carrinho
             </label>
-            <input type="text" inputmode="decimal" id="prodOfertaPreco_${id}" value="${produto.ofertaPrecoEspecial != null ? produto.ofertaPrecoEspecial : ''}" placeholder="Preço especial na oferta (opcional — deixa vazio pra usar o preço normal)" style="margin-top:4px;">
+            <div class="campo-oferta-preco">
+                <label class="campo-label" for="prodOfertaPreco_${id}">Preço especial na oferta</label>
+                <input type="text" inputmode="decimal" id="prodOfertaPreco_${id}" value="${produto.ofertaPrecoEspecial != null ? produto.ofertaPrecoEspecial : ''}" placeholder="Opcional — vazio usa o preço normal">
+            </div>
         </div>
         <textarea id="prodDesc_${id}" placeholder="Descrição" rows="2">${produto.descricao || ''}</textarea>
 
@@ -4816,28 +5687,40 @@ function montarLinhaProduto(id, produto) {
             </div>
         </div>
 
-        <label class="campo-label">Foto(s) do produto (nomes dos arquivos, separados por VÍRGULA — a primeira é a foto principal)</label>
-        <input type="text" id="prodImagens_${id}" value="${(Array.isArray(produto.imagens) && produto.imagens.length ? produto.imagens : (produto.imagem ? [produto.imagem] : [])).join(', ')}" placeholder="Ex: bolo1.jpg, bolo2.jpg, bolo3.jpg" oninput="atualizarPreviaImagens('${id}')">
-        <div style="display:flex; gap:8px; align-items:center; margin-top:6px;">
-            <input type="file" id="prodUploadFoto_${id}" accept="image/*" style="flex:1;">
-            <button type="button" class="btn-secondary" onclick="enviarFotoProduto('${id}')">📤 Enviar foto</button>
+        <div class="produto-fotos-grid">
+            <div class="produto-upload-bloco">
+                <label class="campo-label">📷 Foto principal</label>
+                <input type="hidden" id="prodImagens_${id}" value="${(Array.isArray(produto.imagens) && produto.imagens.length ? produto.imagens : (produto.imagem ? [produto.imagem] : [])).join(', ')}">
+                <div class="produto-upload-linha">
+                    <input type="file" id="prodUploadFoto_${id}" accept="image/*">
+                    <button type="button" class="btn-secondary" onclick="enviarFotoProduto('${id}')">📤 Enviar foto</button>
+                </div>
+                <p id="prodMsgUpload_${id}" class="ordem-categorias-msg"></p>
+                <div id="previaImagens_${id}" class="previa-imagens"></div>
+            </div>
+
+            <div class="produto-upload-bloco produto-upload-carrossel">
+                <label class="campo-label">🎠 Foto do Carrossel <span class="campo-ajuda-inline">opcional — sem foto usa a principal</span></label>
+                <input type="hidden" id="prodImagemCarrossel_${id}" value="${produto.imagemCarrossel || ''}">
+                <div class="produto-upload-linha">
+                    <input type="file" id="prodUploadCarrossel_${id}" accept="image/*">
+                    <button type="button" class="btn-secondary" onclick="enviarFotoCarrossel('${id}')">📤 Enviar foto do carrossel</button>
+                </div>
+                <p id="prodMsgUploadCarrossel_${id}" class="ordem-categorias-msg"></p>
+            </div>
         </div>
-        <p id="prodMsgUpload_${id}" class="ordem-categorias-msg"></p>
-        <div id="previaImagens_${id}" class="previa-imagens"></div>
 
-        <label class="campo-label" style="margin-top:10px;">🎠 Foto específica pro Carrossel (opcional — se não colocar, usa a foto principal de cima)</label>
-        <input type="text" id="prodImagemCarrossel_${id}" value="${produto.imagemCarrossel || ''}" placeholder="Cola um link, ou usa o upload abaixo">
-        <div style="display:flex; gap:8px; align-items:center; margin-top:6px;">
-            <input type="file" id="prodUploadCarrossel_${id}" accept="image/*" style="flex:1;">
-            <button type="button" class="btn-secondary" onclick="enviarFotoCarrossel('${id}')">📤 Enviar foto do carrossel</button>
+        <div class="produto-meta-grid">
+            <div class="campo-com-label">
+                <label class="campo-label">Categoria</label>
+                <input type="text" id="prodCategoria_${id}" value="${produto.categoria || ''}" placeholder="Categoria" list="categoriasDatalist">
+            </div>
+            <div class="campo-com-label">
+                <label class="campo-label">Sabores/opções <span class="campo-ajuda-inline">separe por vírgula</span></label>
+                <input type="text" id="prodVariantes_${id}" value="${(produto.variantes || []).join(', ')}" placeholder="Ex: Chocolate, Morango, Baunilha" oninput="atualizarPreviaVariantes('${id}')">
+                <div id="previaVariantes_${id}" class="previa-variantes"></div>
+            </div>
         </div>
-        <p id="prodMsgUploadCarrossel_${id}" class="ordem-categorias-msg"></p>
-
-        <input type="text" id="prodCategoria_${id}" value="${produto.categoria || ''}" placeholder="Categoria" list="categoriasDatalist">
-
-        <label class="campo-label">Sabores/opções (digite cada um separado por VÍRGULA — deixe em branco se não tiver)</label>
-        <input type="text" id="prodVariantes_${id}" value="${(produto.variantes || []).join(', ')}" placeholder="Ex: Chocolate, Morango, Baunilha" oninput="atualizarPreviaVariantes('${id}')">
-        <div id="previaVariantes_${id}" class="previa-variantes"></div>
 
         <div id="blocoAdicionais_${id}" style="display:${adicionaisAtivo ? 'block' : 'none'};">
             <label class="campo-label">
@@ -5173,6 +6056,214 @@ async function salvarConfiguracaoCarrossel() {
 // Mantém compatibilidade com qualquer botão/chamada antiga.
 function salvarDestaquesManuais() { return salvarConfiguracaoCarrossel(); }
 
+
+// ---------- Banners de campanha do carrossel ----------
+let bannersCarrosselAtuais = {};
+
+function escaparHtmlBanner(valor) {
+    return String(valor == null ? '' : valor)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function dataBannerLegivel(valor) {
+    if (!valor) return 'sem limite';
+    const partes = String(valor).split('-');
+    return partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : valor;
+}
+
+function escutarBannersCarrossel() {
+    db.ref('configuracao/bannersCarrossel').on('value', snap => {
+        bannersCarrosselAtuais = snap.val() || {};
+        renderizarBannersCarrosselPainel();
+    });
+}
+
+function dataLocalISOBannerPainel() {
+    const agora = new Date();
+    return agora.getFullYear() + '-' + String(agora.getMonth() + 1).padStart(2, '0') + '-' + String(agora.getDate()).padStart(2, '0');
+}
+
+function statusBannerCarrosselPainel(banner) {
+    const hoje = dataLocalISOBannerPainel();
+    if (banner.ativo === false) return { chave: 'pausada', rotulo: '⏸️ Pausada' };
+    if (banner.inicio && banner.inicio > hoje) return { chave: 'agendada', rotulo: '🗓️ Agendada' };
+    if (banner.fim && banner.fim < hoje) return { chave: 'encerrada', rotulo: '🏁 Encerrada' };
+    return { chave: 'ativa', rotulo: '✅ Ativa agora' };
+}
+
+function abrirFormularioBannerCarrossel(id) {
+    const painel = document.getElementById('painelFormularioBannerCarrossel');
+    if (!painel) return;
+    const banner = id ? bannersCarrosselAtuais[id] : null;
+    document.getElementById('bannerCarrosselEditandoId').value = id || '';
+    document.getElementById('bannerCarrosselTitulo').value = banner?.titulo || '';
+    document.getElementById('bannerCarrosselLink').value = banner?.link || '';
+    document.getElementById('bannerCarrosselInicio').value = banner?.inicio || '';
+    document.getElementById('bannerCarrosselFim').value = banner?.fim || '';
+    document.getElementById('bannerCarrosselOrdem').value = banner?.ordem || 1;
+    document.getElementById('bannerCarrosselAtivo').checked = banner ? banner.ativo !== false : true;
+    document.getElementById('bannerCarrosselArquivo').value = '';
+    document.getElementById('tituloFormularioBannerCarrossel').textContent = banner ? 'Editar campanha' : 'Nova campanha';
+    document.getElementById('btnSalvarBannerCarrossel').textContent = banner ? '💾 Salvar alterações' : '📤 Adicionar ao carrossel';
+    document.getElementById('ajudaImagemBannerCarrossel').textContent = banner ? 'Escolha uma nova imagem apenas se quiser trocar a arte atual.' : 'Use uma arte horizontal. A imagem é exibida inteira.';
+    painel.style.display = 'block';
+    painel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function fecharFormularioBannerCarrossel() {
+    const painel = document.getElementById('painelFormularioBannerCarrossel');
+    if (painel) painel.style.display = 'none';
+    const idEl = document.getElementById('bannerCarrosselEditandoId');
+    if (idEl) idEl.value = '';
+}
+
+function cardBannerCarrosselPainel(banner, posicaoAtiva) {
+    const status = statusBannerCarrosselPainel(banner);
+    const periodo = `${dataBannerLegivel(banner.inicio)} até ${dataBannerLegivel(banner.fim)}`;
+    const titulo = banner.titulo || 'Campanha sem nome';
+    const foraVaga = status.chave === 'ativa' && posicaoAtiva > 5;
+    const badgeExtra = foraVaga ? '<span class="banner-status-badge fora-vaga">Aguardando vaga entre as 5 primeiras</span>' : '';
+    return `
+        <div class="banner-carrossel-item${foraVaga ? ' banner-fora-vaga' : ''}">
+            <img class="banner-carrossel-miniatura" src="${escaparHtmlBanner(banner.imagem || '')}" alt="${escaparHtmlBanner(titulo)}">
+            <div class="banner-carrossel-info">
+                <strong>${escaparHtmlBanner(titulo)}</strong>
+                <p class="dica-secao">Ordem: ${Number(banner.ordem) || 1} · Período: ${escaparHtmlBanner(periodo)}</p>
+                ${banner.link ? `<p class="dica-secao">Link: ${escaparHtmlBanner(banner.link)}</p>` : ''}
+                <div class="banner-status-linha">
+                    <span class="banner-status-badge ${status.chave}">${status.rotulo}</span>
+                    ${badgeExtra}
+                </div>
+            </div>
+            <div class="banner-carrossel-acoes">
+                <button class="btn-secondary" onclick="abrirFormularioBannerCarrossel('${banner.id}')">✏️ Editar</button>
+                <button class="btn-secondary" onclick="alternarBannerCarrossel('${banner.id}', ${banner.ativo === false ? 'true' : 'false'})">${banner.ativo === false ? '▶️ Ativar' : '⏸️ Pausar'}</button>
+                <button class="btn-secondary" onclick="excluirBannerCarrossel('${banner.id}')">🗑️ Excluir</button>
+            </div>
+        </div>`;
+}
+
+function renderizarBannersCarrosselPainel() {
+    const ativosEl = document.getElementById('listaBannersCarrosselAtivos');
+    const inativosEl = document.getElementById('listaBannersCarrosselInativos');
+    if (!ativosEl || !inativosEl) return;
+
+    const itens = Object.entries(bannersCarrosselAtuais || {})
+        .map(([id, banner]) => ({ id, ...(banner || {}) }))
+        .sort((a, b) => (Number(a.ordem) || 999) - (Number(b.ordem) || 999) || (Number(a.criadoEm) || 0) - (Number(b.criadoEm) || 0));
+
+    const ativos = itens.filter(b => statusBannerCarrosselPainel(b).chave === 'ativa');
+    const outros = itens.filter(b => statusBannerCarrosselPainel(b).chave !== 'ativa');
+    const ocupadas = Math.min(5, ativos.length);
+
+    const resumo = document.getElementById('resumoVagasBanners');
+    const contAtivos = document.getElementById('contadorBannersAtivos');
+    const contInativos = document.getElementById('contadorBannersInativos');
+    if (resumo) resumo.textContent = `${ocupadas} de 5 posições ocupadas agora`;
+    if (contAtivos) contAtivos.textContent = String(ativos.length);
+    if (contInativos) contInativos.textContent = String(outros.length);
+
+    ativosEl.innerHTML = ativos.length
+        ? ativos.map((b, i) => cardBannerCarrosselPainel(b, i + 1)).join('')
+        : '<p class="dica-secao">Nenhuma campanha ativa no carrossel agora.</p>';
+
+    inativosEl.innerHTML = outros.length
+        ? outros.map(b => cardBannerCarrosselPainel(b, 0)).join('')
+        : '<p class="dica-secao">Nenhuma campanha pausada, agendada ou encerrada.</p>';
+}
+
+async function salvarBannerCarrossel() {
+    const msgEl = document.getElementById('msgBannerCarrossel');
+    const editandoId = document.getElementById('bannerCarrosselEditandoId')?.value || '';
+    const bannerAtual = editandoId ? bannersCarrosselAtuais[editandoId] : null;
+    const inputArquivo = document.getElementById('bannerCarrosselArquivo');
+    const arquivo = inputArquivo && inputArquivo.files ? inputArquivo.files[0] : null;
+    const titulo = (document.getElementById('bannerCarrosselTitulo')?.value || '').trim();
+    const link = (document.getElementById('bannerCarrosselLink')?.value || '').trim();
+    const inicio = document.getElementById('bannerCarrosselInicio')?.value || null;
+    const fim = document.getElementById('bannerCarrosselFim')?.value || null;
+    const ordem = Math.max(1, Math.min(99, Number(document.getElementById('bannerCarrosselOrdem')?.value) || 1));
+    const ativo = !!document.getElementById('bannerCarrosselAtivo')?.checked;
+
+    if (!arquivo && !bannerAtual?.imagem) { if (msgEl) msgEl.textContent = 'Escolha a imagem do banner primeiro.'; return; }
+    if (arquivo && !arquivo.type.startsWith('image/')) { if (msgEl) msgEl.textContent = 'O arquivo escolhido não parece ser uma imagem.'; return; }
+    if (arquivo && arquivo.size > 4 * 1024 * 1024) { if (msgEl) msgEl.textContent = 'Imagem muito grande — use um arquivo de até 4MB.'; return; }
+    if (inicio && fim && fim < inicio) { if (msgEl) msgEl.textContent = 'A data final não pode ser anterior à data inicial.'; return; }
+
+    if (msgEl) msgEl.textContent = editandoId ? 'Salvando alterações...' : 'Enviando campanha...';
+    try {
+        let imagem = bannerAtual?.imagem || null;
+        let storagePath = bannerAtual?.storagePath || null;
+        let storagePathAntigo = null;
+
+        if (arquivo) {
+            const extensao = (arquivo.name.split('.').pop() || 'jpg').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'jpg';
+            const novoStoragePath = `produtos/banner-carrossel-${Date.now()}.${extensao}`;
+            const ref = firebase.storage().ref(novoStoragePath);
+            await ref.put(arquivo);
+            imagem = await ref.getDownloadURL();
+            storagePathAntigo = storagePath;
+            storagePath = novoStoragePath;
+        }
+
+        const dados = {
+            imagem, storagePath,
+            titulo: titulo || null,
+            link: link || null,
+            inicio: inicio || null,
+            fim: fim || null,
+            ordem,
+            ativo,
+            atualizadoEm: firebase.database.ServerValue.TIMESTAMP
+        };
+
+        if (editandoId) {
+            await db.ref(`configuracao/bannersCarrossel/${editandoId}`).update(dados);
+            if (storagePathAntigo && storagePathAntigo !== storagePath) {
+                try { await firebase.storage().ref(storagePathAntigo).delete(); } catch (e) { /* arquivo antigo pode já não existir */ }
+            }
+        } else {
+            dados.criadoEm = firebase.database.ServerValue.TIMESTAMP;
+            await db.ref('configuracao/bannersCarrossel').push(dados);
+        }
+
+        if (msgEl) msgEl.textContent = editandoId ? 'Campanha atualizada.' : 'Campanha adicionada ao carrossel.';
+        fecharFormularioBannerCarrossel();
+    } catch (err) {
+        if (msgEl) msgEl.textContent = 'Erro ao salvar campanha: ' + err.message;
+    }
+}
+
+async function alternarBannerCarrossel(id, novoEstado) {
+    const msgEl = document.getElementById('msgBannerCarrossel');
+    try {
+        await db.ref(`configuracao/bannersCarrossel/${id}/ativo`).set(!!novoEstado);
+        if (msgEl) msgEl.textContent = novoEstado ? 'Campanha ativada.' : 'Campanha pausada.';
+    } catch (err) {
+        if (msgEl) msgEl.textContent = 'Erro ao atualizar campanha: ' + err.message;
+    }
+}
+
+async function excluirBannerCarrossel(id) {
+    const banner = bannersCarrosselAtuais[id];
+    if (!banner) return;
+    if (!confirm(`Excluir a campanha "${banner.titulo || 'Campanha'}"?`)) return;
+    const msgEl = document.getElementById('msgBannerCarrossel');
+    try {
+        await db.ref(`configuracao/bannersCarrossel/${id}`).remove();
+        if (banner.storagePath) {
+            try { await firebase.storage().ref(banner.storagePath).delete(); } catch (e) { /* arquivo pode já ter sido removido */ }
+        }
+        if (msgEl) msgEl.textContent = 'Campanha excluída.';
+    } catch (err) {
+        if (msgEl) msgEl.textContent = 'Erro ao excluir campanha: ' + err.message;
+    }
+}
+
 function escutarProdutos() {
     db.ref('produtos').on('value', snap => {
         ultimoValProdutosAdmin = snap.val() || {};
@@ -5314,6 +6405,8 @@ function salvarProduto(id) {
     const imagemCarrossel = document.getElementById('prodImagemCarrossel_' + id).value.trim() || null;
     const ofertaAtiva = document.getElementById('prodOfertaAtiva_' + id).checked;
     const ofertaPrecoEspecial = paraNumeroFlexivel(document.getElementById('prodOfertaPreco_' + id).value) || null;
+    const agendaDisponibilidade = coletarAgendaDisponibilidadeProduto(id);
+    if (agendaDisponibilidade === null) return;
     const variantesTexto = document.getElementById('prodVariantes_' + id).value.trim();
     const adicionaisTexto = document.getElementById('prodAdicionais_' + id).value.trim();
 
@@ -5324,7 +6417,7 @@ function salvarProduto(id) {
         return;
     }
 
-    const dados = { nome, descricao, preco, imagem: imagens[0], imagens, categoria, disponivel, escondido, disponivelParaEncomenda, fichaTecnicaId, imagemCarrossel, ofertaAtiva, ofertaPrecoEspecial, precoOriginal: null, variantes: null, grupoAdicionais: null };
+    const dados = { nome, descricao, preco, imagem: imagens[0], imagens, categoria, disponivel, escondido, disponivelParaEncomenda, agendaDisponibilidade, fichaTecnicaId, imagemCarrossel, ofertaAtiva, ofertaPrecoEspecial, precoOriginal: null, variantes: null, grupoAdicionais: null };
 
     if (!isNaN(precoOriginal) && precoOriginal > preco) {
         dados.precoOriginal = precoOriginal;
@@ -6051,6 +7144,7 @@ function iniciarEscutaPedidos() {
     escutarFichaTecnica();
     escutarClientesGestao();
     escutarDestaquesManuais();
+    escutarBannersCarrossel();
     escutarPedidosManuais();
     const previaLojaNomeEl = document.getElementById('previaLojaNome');
     if (previaLojaNomeEl) previaLojaNomeEl.textContent = LOJA_CONFIG.nome;
@@ -6073,59 +7167,117 @@ function iniciarEscutaPedidos() {
     escutarRecompensas();
 
     const refPedidos = db.ref('pedidos');
-    const listaPendentesEl = document.getElementById('listaPendentes');
-    // "aguardando_pagamento" entra aqui também — não é bem um status "final", mas
-    // precisa ficar de fora da fila ativa do mesmo jeito, até o pagamento confirmar
     const statusFinais = ['entregue', 'recusado', 'aguardando_pagamento'];
     const ehStatusFinal = pedido => statusFinais.includes(pedido.status);
 
+    // Kanban visual: reaproveita exatamente os status existentes no sistema.
+    // Nenhum status novo é gravado no banco nesta etapa.
+    function obterListaKanbanPorStatus(status) {
+        if (status === 'pendente') return document.getElementById('listaKanbanNovos');
+        if (status === 'aceito') return document.getElementById('listaKanbanPreparo');
+        if (status === 'em_rota' || status === 'pronto_retirada') return document.getElementById('listaKanbanExpedicao');
+        if (status === 'entregue') return document.getElementById('listaKanbanFinalizados');
+        return null;
+    }
+
+    function textoVazioKanban(statusGrupo) {
+        return {
+            novos: 'Nenhum pedido novo.',
+            preparo: 'Nenhum pedido em preparo.',
+            expedicao: 'Nenhum pedido nesta etapa.',
+            finalizados: 'Nenhum finalizado nas últimas 24h.'
+        }[statusGrupo] || 'Nenhum pedido.';
+    }
+
+    function garantirVazioKanban(container, statusGrupo) {
+        if (!container) return;
+        const cards = container.querySelectorAll('.pedido-card');
+        const vazio = container.querySelector('.vazio');
+        if (cards.length === 0 && !vazio) {
+            container.innerHTML = `<p class="vazio">${textoVazioKanban(statusGrupo)}</p>`;
+        } else if (cards.length > 0 && vazio) {
+            vazio.remove();
+        }
+    }
+
+    function atualizarContadoresKanban() {
+        const grupos = [
+            ['listaKanbanNovos', 'contadorKanbanNovos', 'novos'],
+            ['listaKanbanPreparo', 'contadorKanbanPreparo', 'preparo'],
+            ['listaKanbanExpedicao', 'contadorKanbanExpedicao', 'expedicao'],
+            ['listaKanbanFinalizados', 'contadorKanbanFinalizados', 'finalizados']
+        ];
+        grupos.forEach(([listaId, contadorId, grupo]) => {
+            const lista = document.getElementById(listaId);
+            const contador = document.getElementById(contadorId);
+            if (!lista || !contador) return;
+            garantirVazioKanban(lista, grupo);
+            contador.textContent = lista.querySelectorAll('.pedido-card').length;
+        });
+        atualizarContador();
+    }
+
+    function colocarPedidoNoKanban(id, pedido, comAcoes = true) {
+        const cardAnterior = document.getElementById('pendente-' + id);
+        if (cardAnterior) cardAnterior.remove();
+
+        const destino = obterListaKanbanPorStatus(pedido.status);
+        if (!destino) {
+            idsRenderizados.delete(id);
+            atualizarContadoresKanban();
+            return;
+        }
+
+        const vazio = destino.querySelector('.vazio');
+        if (vazio) vazio.remove();
+        destino.appendChild(montarCardPedido(id, pedido, comAcoes));
+        if (pedido.status !== 'entregue') idsRenderizados.add(id);
+        atualizarContadoresKanban();
+    }
+
+    function removerPedidoDoKanbanAtivo(id) {
+        const card = document.getElementById('pendente-' + id);
+        if (card) card.remove();
+        idsRenderizados.delete(id);
+        atualizarContadoresKanban();
+    }
+
     // Guarda o status de pagamento (sinal/restante) já conhecido de cada pedido, pra
-    // depois comparar no child_changed e detectar quando um pagamento é confirmado —
-    // sem isso, o webhook do InfinitePay confirma o pagamento em silêncio, e ninguém
-    // no painel fica sabendo que o dinheiro entrou até checar manualmente
+    // depois comparar no child_changed e detectar quando um pagamento é confirmado.
     const statusPagamentoConhecido = new Map();
     function statusPagamentoAtual(pedido) {
         return (pedido.pagamento ? pedido.pagamento.status : '') + '|' + (pedido.pagamentoRestante ? pedido.pagamentoRestante.status : '');
     }
 
-    // Carrega os pedidos ainda ativos (pendente/aceito/em rota) já existentes, sem tocar som
+    // Carrega os pedidos ativos já existentes, sem tocar som.
     refPedidos.limitToLast(60).once('value').then(snapshot => {
-        listaPendentesEl.innerHTML = '';
+        ['listaKanbanNovos', 'listaKanbanPreparo', 'listaKanbanExpedicao'].forEach(idLista => {
+            const el = document.getElementById(idLista);
+            if (el) el.innerHTML = '';
+        });
+        idsRenderizados.clear();
+
         const itens = [];
         snapshot.forEach(child => itens.push({ id: child.key, pedido: child.val() }));
-        // Fila de atendimento: mais antigo no topo (primeiro a chegar, primeiro a ser
-        // atendido), mais novo embaixo — as chaves do Firebase já vêm cronológicas
-        // ascendentes, então usa a ordem natural, sem inverter
         itens.forEach(({ id, pedido }) => {
             statusPagamentoConhecido.set(id, statusPagamentoAtual(pedido));
             if (ehStatusFinal(pedido)) return;
-            listaPendentesEl.appendChild(montarCardPedido(id, pedido, true));
-            idsRenderizados.add(id);
+            colocarPedidoNoKanban(id, pedido, true);
         });
-        if (idsRenderizados.size === 0) {
-            listaPendentesEl.innerHTML = '<p class="vazio">Nenhum pedido novo no momento.</p>';
-        }
-        atualizarContador();
+        atualizarContadoresKanban();
         primeiraCargaConcluida = true;
         restaurarPosicaoRolagem();
 
-        // A partir daqui, qualquer pedido novo dispara som + aparece na hora
+        // A partir daqui, qualquer pedido novo dispara som + aparece na coluna correta.
         refPedidos.on('child_added', snap => {
-            if (idsRenderizados.has(snap.key)) return; // já estava na carga inicial
+            if (idsRenderizados.has(snap.key)) return;
             const pedido = snap.val();
             statusPagamentoConhecido.set(snap.key, statusPagamentoAtual(pedido));
-            if (ehStatusFinal(pedido)) return; // pedido antigo carregado já finalizado, ignora
-            const vazio = listaPendentesEl.querySelector('.vazio');
-            if (vazio) vazio.remove();
-            listaPendentesEl.appendChild(montarCardPedido(snap.key, pedido, true));
-            idsRenderizados.add(snap.key);
-            atualizarContador();
+            if (ehStatusFinal(pedido)) return;
+
+            colocarPedidoNoKanban(snap.key, pedido, true);
             if (primeiraCargaConcluida && pedido.status === 'pendente' && !window._importandoBackupGestao) {
                 tocarAlerta();
-                // Cobre QUALQUER pagamento online já confirmado quando o painel vê o
-                // pedido pela primeira vez — sinal, restante, ou pagamento à vista normal
-                // (Cartão às vezes confirma tão rápido que o painel nunca viu o momento
-                // "ainda aguardando", só a versão já paga).
                 const sinalJaPago = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' && pedido.pagamento.status === 'pago';
                 const restanteJaPago = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'pago';
                 const pagamentoNormalJaPago = pedido.pagamento && pedido.pagamento.tipoPagamento !== 'sinal' && pedido.pagamento.status === 'pago';
@@ -6136,14 +7288,10 @@ function iniciarEscutaPedidos() {
             }
         });
 
-        // Quando o status do pedido muda (aceitar, sair pra entrega, entregar, recusar)
+        // Toda mudança de status apenas move o mesmo pedido entre as colunas.
         refPedidos.on('child_changed', snap => {
             const pedido = snap.val();
-            const cardAtual = document.getElementById('pendente-' + snap.key);
 
-            // Detecta se ALGUM pagamento (sinal ou restante) acabou de virar "pago" —
-            // isso acontece em silêncio pelo webhook do InfinitePay, às vezes horas
-            // depois do pedido ter sido feito, então avisa igual um pedido novo
             const statusAnterior = statusPagamentoConhecido.get(snap.key) || '';
             const statusNovo = statusPagamentoAtual(pedido);
             if (statusAnterior !== statusNovo) {
@@ -6159,37 +7307,16 @@ function iniciarEscutaPedidos() {
             }
 
             if (ehStatusFinal(pedido)) {
-                // Chegou num status final -> sai da lista de pedidos ativos
-                if (cardAtual) cardAtual.remove();
-                idsRenderizados.delete(snap.key);
-                if (idsRenderizados.size === 0) {
-                    listaPendentesEl.innerHTML = '<p class="vazio">Nenhum pedido novo no momento.</p>';
-                }
-            } else if (idsRenderizados.has(snap.key) && cardAtual) {
-                // Toda mudança de status (aceitar, sair pra entrega, marcar pronto) manda
-                // esse pedido pro final da fila — assim os pedidos ainda parados num
-                // estágio anterior ficam sempre mais visíveis, no topo
-                cardAtual.remove();
-                listaPendentesEl.appendChild(montarCardPedido(snap.key, pedido, true));
-            } else if (!idsRenderizados.has(snap.key)) {
-                // Pedido estava escondido (aguardando pagamento confirmar) e agora
-                // passou a valer — entra no final da fila igual um pedido novo, com alerta
-                if (listaPendentesEl.querySelector('.vazio')) listaPendentesEl.innerHTML = '';
-                listaPendentesEl.appendChild(montarCardPedido(snap.key, pedido, true));
-                idsRenderizados.add(snap.key);
-                if (pedido.status === 'pendente' && !window._importandoBackupGestao) tocarAlerta();
+                removerPedidoDoKanbanAtivo(snap.key);
+            } else {
+                const jaEstavaVisivel = idsRenderizados.has(snap.key);
+                colocarPedidoNoKanban(snap.key, pedido, true);
+                if (!jaEstavaVisivel && pedido.status === 'pendente' && !window._importandoBackupGestao) tocarAlerta();
             }
-            atualizarContador();
         });
 
         refPedidos.on('child_removed', snap => {
-            idsRenderizados.delete(snap.key);
-            const card = document.getElementById('pendente-' + snap.key);
-            if (card) card.remove();
-            if (idsRenderizados.size === 0) {
-                listaPendentesEl.innerHTML = '<p class="vazio">Nenhum pedido novo no momento.</p>';
-            }
-            atualizarContador();
+            removerPedidoDoKanbanAtivo(snap.key);
         });
     });
 
@@ -6213,10 +7340,50 @@ function iniciarEscutaPedidos() {
         listaHistoricoEl.innerHTML = '';
         if (itens.length === 0) {
             listaHistoricoEl.innerHTML = '<p class="vazio">Nenhum pedido nas últimas 24 horas.</p>';
-            return;
+        } else {
+            itens.forEach(({ id, pedido }) => {
+                listaHistoricoEl.appendChild(montarCardPedido(id, pedido, false));
+            });
         }
-        itens.forEach(({ id, pedido }) => {
-            listaHistoricoEl.appendChild(montarCardPedido(id, pedido, false));
-        });
+
+        // A coluna Finalizados é só uma visão rápida dos pedidos concluídos nas últimas 24h.
+        // O histórico completo continua logo abaixo, sem mudar a lógica que já existia.
+        const listaFinalizados = document.getElementById('listaKanbanFinalizados');
+        if (listaFinalizados) {
+            listaFinalizados.innerHTML = '';
+            const finalizados = itens.filter(item => item.pedido.status === 'entregue').slice(0, 10);
+            if (finalizados.length === 0) {
+                listaFinalizados.innerHTML = '<p class="vazio">Nenhum finalizado nas últimas 24h.</p>';
+            } else {
+                finalizados.forEach(({ id, pedido }) => {
+                    listaFinalizados.appendChild(montarCardPedido(id, pedido, false));
+                });
+            }
+            const contadorFinalizados = document.getElementById('contadorKanbanFinalizados');
+            if (contadorFinalizados) contadorFinalizados.textContent = finalizados.length;
+        }
     });
 }
+
+
+// ---------- HUB CLIENTES & MARKETING / LOJA ----------
+function mostrarSubabaClientesMarketing(nome) {
+    const raiz = document.querySelector('section[data-tab="clientes-marketing"]');
+    if (!raiz) return;
+    raiz.querySelectorAll('[data-cm-subtab]').forEach(p => p.classList.toggle('active', p.dataset.cmSubtab === nome));
+    raiz.querySelectorAll('[data-cm-subtab-btn]').forEach(b => b.classList.toggle('active', b.dataset.cmSubtabBtn === nome));
+    localStorage.setItem('clientesMarketingSubaba', nome);
+}
+
+function mostrarSubabaLoja(nome) {
+    const raiz = document.querySelector('section[data-tab="loja"]');
+    if (!raiz) return;
+    raiz.querySelectorAll('[data-loja-subtab]').forEach(p => p.classList.toggle('active', p.dataset.lojaSubtab === nome));
+    raiz.querySelectorAll('[data-loja-subtab-btn]').forEach(b => b.classList.toggle('active', b.dataset.lojaSubtabBtn === nome));
+    localStorage.setItem('lojaSubaba', nome);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    mostrarSubabaClientesMarketing(localStorage.getItem('clientesMarketingSubaba') || 'clientes');
+    mostrarSubabaLoja(localStorage.getItem('lojaSubaba') || 'configuracoes');
+});
