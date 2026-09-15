@@ -2723,3 +2723,212 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
         grid-column: auto;
     }
 }
+
+/* ===== GESTÃO PREMIUM — FICHA TÉCNICA (visual somente) ===== */
+/* Escopo restrito à subaba Ficha Técnica. Não altera IDs, eventos, cálculos ou Firebase. */
+.gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] {
+    --ft-border: #eadfce;
+    --ft-soft: #fffdf9;
+    --ft-shadow: 0 8px 22px rgba(72, 45, 25, .065);
+}
+
+/* Card de cadastro: mantém a lógica atual, só melhora hierarquia e densidade. */
+.gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] > .loja-status-card:first-child {
+    padding: 17px 18px 18px;
+    border: 1px solid var(--ft-border);
+    border-radius: 16px;
+    background: var(--ft-soft);
+    box-shadow: var(--ft-shadow);
+}
+
+.gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] > .loja-status-card:first-child > h3:first-child {
+    margin: 0 0 13px;
+    font-size: 1.03em;
+    color: #4d382b;
+}
+
+.gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] > .loja-status-card:first-child h3:not(:first-child) {
+    margin: 15px 0 8px !important;
+    padding-top: 12px;
+    border-top: 1px solid #efe5d9;
+    font-size: .91em;
+    color: #8e4f2d;
+}
+
+.gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] .produto-admin-linha {
+    gap: 11px;
+    align-items: end;
+}
+
+.gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] .campo-com-label {
+    min-width: 0;
+}
+
+#ftNome,
+#ftRendimento,
+#ftSelectComponente,
+#ftQtdComponente,
+#ftEmbalagem,
+#ftCustoFixo,
+#ftHoras,
+#ftValorHora,
+#ftMargemEmpresa,
+#ftMargemCasal,
+#ftTaxaVenda,
+#ftPrecoManual,
+#ftBusca {
+    width: 100%;
+    min-height: 38px;
+    box-sizing: border-box;
+    padding: 7px 10px;
+    border: 1px solid #dfd1bf;
+    border-radius: 9px;
+    background: #fff;
+    color: var(--text);
+    font-family: inherit;
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+#ftNome:focus,
+#ftRendimento:focus,
+#ftSelectComponente:focus,
+#ftQtdComponente:focus,
+#ftEmbalagem:focus,
+#ftCustoFixo:focus,
+#ftHoras:focus,
+#ftValorHora:focus,
+#ftMargemEmpresa:focus,
+#ftMargemCasal:focus,
+#ftTaxaVenda:focus,
+#ftPrecoManual:focus,
+#ftBusca:focus {
+    border-color: #c9976c;
+    box-shadow: 0 0 0 3px rgba(160, 82, 45, .08);
+}
+
+.gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] .campo-label {
+    margin-bottom: 4px;
+    font-size: .76em;
+    color: #6f5a49;
+}
+
+.gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] .dica-secao {
+    margin: 7px 0 0;
+    line-height: 1.42;
+    color: #8a7665;
+    font-size: .76em;
+}
+
+.gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] .btn-secondary {
+    padding: 7px 11px;
+    border-radius: 9px;
+    font-size: .79em;
+}
+
+#btnSalvarFichaTecnica {
+    min-height: 41px;
+    margin-top: 13px !important;
+    border-radius: 10px;
+    box-shadow: 0 5px 14px rgba(160, 82, 45, .13);
+}
+
+#ftResultado {
+    margin-top: 9px !important;
+}
+
+/* Busca e catálogo de fichas: mais painel, menos corredor vertical. */
+.gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] > .loja-status-card:nth-of-type(2) {
+    margin-top: 12px !important;
+    padding: 12px;
+    border: 1px solid var(--ft-border);
+    border-radius: 16px;
+    background: rgba(255,255,255,.52);
+    box-shadow: var(--ft-shadow);
+}
+
+#ftBusca {
+    max-width: 420px;
+    margin-bottom: 2px;
+}
+
+#ftListaProdutos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+    margin-top: 10px !important;
+}
+
+#ftListaProdutos > .pedido-card {
+    margin-top: 0 !important;
+    min-width: 0;
+    padding: 12px 13px;
+    border: 1px solid #e9dfd2;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(72,45,25,.045);
+    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+
+#ftListaProdutos > .pedido-card:hover {
+    transform: translateY(-1px);
+    border-color: #dcc9b4;
+    box-shadow: 0 7px 17px rgba(72,45,25,.075);
+}
+
+#ftListaProdutos > .pedido-card > strong {
+    font-size: .91em;
+    color: #4d382b;
+    line-height: 1.28;
+}
+
+#ftListaProdutos > .pedido-card p {
+    margin: 5px 0 8px !important;
+    font-size: .75em !important;
+    line-height: 1.38;
+}
+
+#ftListaProdutos .pedido-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 7px;
+    margin-left: 4px;
+    border-radius: 999px;
+    font-size: .66em;
+    vertical-align: middle;
+}
+
+#ftListaProdutos .btn-secondary {
+    padding: 6px 9px;
+    border-radius: 8px;
+    font-size: .75em;
+    margin-right: 4px;
+}
+
+#ftListaProdutos .btn-excluir-cupom {
+    opacity: .55;
+    transform: scale(.9);
+    transition: opacity .16s ease, transform .16s ease;
+}
+
+#ftListaProdutos .btn-excluir-cupom:hover {
+    opacity: 1;
+    transform: scale(1);
+}
+
+@media (max-width: 900px) {
+    #ftListaProdutos {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 760px) {
+    .gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] > .loja-status-card:first-child,
+    .gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] > .loja-status-card:nth-of-type(2) {
+        padding: 13px;
+    }
+
+    #ftBusca {
+        max-width: none;
+    }
+}
