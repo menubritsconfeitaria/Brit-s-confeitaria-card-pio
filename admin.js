@@ -6526,7 +6526,13 @@ function salvarProduto(id) {
         return;
     }
 
-    const dados = { nome, descricao, preco, imagem: imagens[0], imagens, categoria, disponivel, escondido, disponivelParaEncomenda, controlarEstoque, estoqueProduto, agendaDisponibilidade, fichaTecnicaId, imagemCarrossel, ofertaAtiva, ofertaPrecoEspecial, precoOriginal: null, variantes: null, grupoAdicionais: null };
+    // Estoque controlado em 0 nunca pode continuar vendável. Mantemos "Inativo" separado:
+    // se o produto estiver escondido manualmente, ele continua escondido mesmo após reposição.
+    const disponivelComEstoque = controlarEstoque && estoqueProduto <= 0 ? false : disponivel;
+    const dados = { nome, descricao, preco, imagem: imagens[0], imagens, categoria, disponivel: disponivelComEstoque, escondido, disponivelParaEncomenda, controlarEstoque, estoqueProduto, agendaDisponibilidade, fichaTecnicaId, imagemCarrossel, ofertaAtiva, ofertaPrecoEspecial, precoOriginal: null, variantes: null, grupoAdicionais: null };
+    // Marca apenas o esgotamento causado pelo estoque, para uma devolução/reposição poder
+    // reativar o produto sem confundir com um "Em falta" escolhido manualmente.
+    dados.esgotadoAutomaticoEstoque = controlarEstoque && estoqueProduto <= 0;
 
     if (!isNaN(precoOriginal) && precoOriginal > preco) {
         dados.precoOriginal = precoOriginal;

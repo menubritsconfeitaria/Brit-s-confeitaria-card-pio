@@ -859,45 +859,13 @@ function idsDaListaCarrossel(valor) {
         .filter(Boolean);
 }
 
-function dataLocalISOCarrossel() {
-    const agora = new Date();
-    return agora.getFullYear() + '-' + String(agora.getMonth() + 1).padStart(2, '0') + '-' + String(agora.getDate()).padStart(2, '0');
-}
-
-function bannersAtivosCarrossel(valor) {
-    const hoje = dataLocalISOCarrossel();
-    const itens = valor ? Object.entries(valor) : [];
-    return itens
-        .map(([id, banner]) => ({ id, ...(banner || {}) }))
-        .filter(banner => banner.imagem && banner.ativo !== false)
-        .filter(banner => !banner.inicio || banner.inicio <= hoje)
-        .filter(banner => !banner.fim || banner.fim >= hoje)
-        .sort((a, b) => (Number(a.ordem) || 999) - (Number(b.ordem) || 999) || (Number(a.criadoEm) || 0) - (Number(b.criadoEm) || 0))
-        .map(banner => ({ ...banner, tipo: 'banner' }));
-}
-
-function carrosselLiberadoNoPlano() {
-    // Compatibilidade: clientes antigos sem a chave 'carrossel' continuam como estavam
-    // até o recurso ser configurado explicitamente no Painel Mestre.
-    return recursosLiberadosCardapio == null ||
-        recursosLiberadosCardapio.carrossel == null ||
-        !!recursosLiberadosCardapio.carrossel;
-}
-
-function recalcularCarrosselDestaques(produtosVal, modoSalvo, autoVal, manuaisVal, bannersVal) {
-    if (!carrosselLiberadoNoPlano()) {
-        const container = document.getElementById('carrosselDestaques');
-        if (container) container.style.display = 'none';
-        if (carrosselTimer) { clearInterval(carrosselTimer); carrosselTimer = null; }
-        return;
-    }
+function recalcularCarrosselDestaques(produtosVal, modoSalvo, autoVal, manuaisVal) {
     const modo = ['manual','automatico','misto'].includes(modoSalvo) ? modoSalvo : 'automatico';
     const produtoPodeAparecer = (p) => !!(p && p.disponivel === true && !p.escondido);
     const montarDestaqueDoProduto = (id) => {
         const p = produtosVal[id];
         if (!produtoPodeAparecer(p)) return null;
         return {
-            tipo: 'produto',
             id,
             nome: p.nome,
             preco: p.preco,
@@ -913,13 +881,10 @@ function recalcularCarrosselDestaques(produtosVal, modoSalvo, autoVal, manuaisVa
     else if (modo === 'misto') idsEscolhidos = unicos([...idsManuais, ...idsAuto]);
     else idsEscolhidos = idsAuto;
 
-    const banners = bannersAtivosCarrossel(bannersVal).slice(0, 5);
-    const vagasProdutos = Math.max(0, 5 - banners.length);
-    const produtosDestaque = idsEscolhidos
+    const destaques = idsEscolhidos
         .map(montarDestaqueDoProduto)
         .filter(Boolean)
-        .slice(0, vagasProdutos);
-    const destaques = [...banners, ...produtosDestaque];
+        .slice(0, 5);
 
     if (destaques.length > 0) {
         montarCarrossel(destaques);
@@ -944,52 +909,17 @@ function carregarCarrosselDestaques() {
         produtos: db.ref('produtos'),
         modo: db.ref('configuracao/carrosselModo'),
         auto: db.ref('configuracao/carrosselDestaquesAuto'),
-        manuais: db.ref('configuracao/destaquesManuais'),
-        banners: db.ref('configuracao/bannersCarrossel')
+        manuais: db.ref('configuracao/destaquesManuais')
     };
     refsCarrosselDestaques = Object.values(refs);
 
-    const estado = { produtos: {}, modo: 'automatico', auto: [], manuais: [], banners: {} };
-    const atualizar = () => recalcularCarrosselDestaques(estado.produtos, estado.modo, estado.auto, estado.manuais, estado.banners);
+    const estado = { produtos: {}, modo: 'automatico', auto: [], manuais: [] };
+    const atualizar = () => recalcularCarrosselDestaques(estado.produtos, estado.modo, estado.auto, estado.manuais);
 
     refs.produtos.on('value', snap => { estado.produtos = snap.val() || {}; atualizar(); });
     refs.modo.on('value', snap => { estado.modo = snap.val(); atualizar(); });
     refs.auto.on('value', snap => { estado.auto = snap.val() || []; atualizar(); });
     refs.manuais.on('value', snap => { estado.manuais = snap.val() || []; atualizar(); });
-    refs.banners.on('value', snap => { estado.banners = snap.val() || {}; atualizar(); });
-}
-
-function escaparHtmlCarrossel(valor) {
-    return String(valor == null ? '' : valor)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
-
-function escaparAtributoCarrossel(valor) {
-    return escaparHtmlCarrossel(valor);
-}
-
-function escaparJsCarrossel(valor) {
-    return String(valor == null ? '' : valor).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-}
-
-function acaoBannerCarrossel(link) {
-    if (!link) return;
-    if (link.startsWith('#')) {
-        const alvo = document.querySelector(link);
-        if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return;
-    }
-    try {
-        const url = new URL(link, window.location.href);
-        if (url.origin === window.location.origin) window.location.href = url.href;
-        else window.open(url.href, '_blank', 'noopener');
-    } catch (e) {
-        window.location.href = link;
-    }
 }
 
 function montarCarrossel(destaques) {
@@ -1005,29 +935,19 @@ function montarCarrossel(destaques) {
         return;
     }
 
-    trilho.innerHTML = destaquesVisiveis.map(d => {
-        if (d.tipo === 'banner') {
-            const linkCodificado = encodeURIComponent(d.link || '');
-            const classeLink = d.link ? ' tem-link' : '';
-            const clique = d.link ? ` onclick="acaoBannerCarrossel(decodeURIComponent('${linkCodificado}'))"` : '';
-            return `
-                <div class="carrossel-slide carrossel-slide-banner${classeLink}"${clique}>
-                    <img class="carrossel-banner-imagem" src="${escaparAtributoCarrossel(d.imagem)}" alt="${escaparAtributoCarrossel(d.titulo || 'Banner de campanha')}">
-                </div>`;
-        }
-        return `
-            <div class="carrossel-slide" data-produto-id="${escaparAtributoCarrossel(d.id || '')}" onclick="irParaProdutoDestaque('${escaparJsCarrossel(d.id || '')}')">
-                ${d.imagem ? `<img class="carrossel-fundo" src="${escaparAtributoCarrossel(d.imagem)}" alt="" aria-hidden="true">` : ''}
-                ${d.imagem ? `<img class="carrossel-foto" src="${escaparAtributoCarrossel(d.imagem)}" alt="${escaparAtributoCarrossel(d.nome || 'Produto em destaque')}">` : ''}
-                <div class="carrossel-slide-info">
-                    <span class="carrossel-kicker">✨ DESTAQUE DE HOJE</span>
-                    <strong>${escaparHtmlCarrossel(d.nome || 'Delícia em destaque')}</strong>
-                    ${d.preco != null ? `<span class="carrossel-preco">R$ ${Number(d.preco).toFixed(2).replace('.', ',')}</span>` : ''}
-                    <span class="carrossel-microcopy">Peça direto pelo site, é rapidinho.</span>
-                    <button type="button" class="carrossel-cta" onclick="event.stopPropagation(); acaoCarrosselDestaque('${escaparJsCarrossel(d.id || '')}')">+ Adicionar ao carrinho</button>
-                </div>
-            </div>`;
-    }).join('');
+    trilho.innerHTML = destaquesVisiveis.map(d => `
+        <div class="carrossel-slide" data-produto-id="${d.id || ''}" onclick="irParaProdutoDestaque('${d.id || ''}')">
+            ${d.imagem ? `<img class="carrossel-fundo" src="${d.imagem}" alt="" aria-hidden="true">` : ''}
+            ${d.imagem ? `<img class="carrossel-foto" src="${d.imagem}" alt="${d.nome || 'Produto em destaque'}">` : ''}
+            <div class="carrossel-slide-info">
+                <span class="carrossel-kicker">✨ DESTAQUE DE HOJE</span>
+                <strong>${d.nome || 'Delícia em destaque'}</strong>
+                ${d.preco != null ? `<span class="carrossel-preco">R$ ${Number(d.preco).toFixed(2).replace('.', ',')}</span>` : ''}
+                <span class="carrossel-microcopy">Peça direto pelo site, é rapidinho.</span>
+                <button type="button" class="carrossel-cta" onclick="event.stopPropagation(); acaoCarrosselDestaque('${d.id || ''}')">+ Adicionar ao carrinho</button>
+            </div>
+        </div>
+    `).join('');
     bolinhas.innerHTML = destaquesVisiveis.map((_, i) => `<button type="button" class="carrossel-bolinha ${i === 0 ? 'ativa' : ''}" onclick="irParaSlideCarrossel(${i})" aria-label="Ir para destaque ${i + 1}"></button>`).join('');
 
     container.dataset.totalSlides = String(destaquesVisiveis.length);
@@ -1815,9 +1735,57 @@ function atualizarPrecoModalAdicionais() {
     document.getElementById('modalAdicionaisBtnConfirmar').textContent = `Adicionar · ${formatarPrecoTexto(total)}`;
 }
 
+// ---------- Estoque por produto (opcional) ----------
+// Só interfere nos produtos que tiverem "Controlar estoque" ativado no painel.
+// Produtos sem controle continuam funcionando exatamente como antes.
+function limiteEstoqueProduto(produtoId) {
+    const produto = produtos.find(p => p.id === produtoId);
+    if (!produto || !produto.controlarEstoque) return null;
+    return Math.max(0, parseInt(produto.estoqueProduto, 10) || 0);
+}
+
+function quantidadeProdutoNoCarrinho(produtoId) {
+    return carrinho
+        .filter(item => item.produtoId === produtoId)
+        .reduce((soma, item) => soma + (parseInt(item.quantidade, 10) || 0), 0);
+}
+
+function validarQuantidadeEstoqueProduto(produtoId, quantidadeAdicionar, mostrarAviso) {
+    const limite = limiteEstoqueProduto(produtoId);
+    if (limite === null) return true;
+    const atualCarrinho = quantidadeProdutoNoCarrinho(produtoId);
+    const solicitado = atualCarrinho + Math.max(0, parseInt(quantidadeAdicionar, 10) || 0);
+    if (solicitado <= limite) return true;
+    if (mostrarAviso !== false) {
+        const restante = Math.max(0, limite - atualCarrinho);
+        alert(restante > 0
+            ? `Só temos ${limite} unidade${limite === 1 ? '' : 's'} disponível${limite === 1 ? '' : 'is'} desse produto. Você ainda pode adicionar ${restante}.`
+            : `Você já colocou no carrinho toda a quantidade disponível desse produto (${limite}).`);
+    }
+    return false;
+}
+
+function validarEstoqueCarrinhoAtual() {
+    const totais = {};
+    carrinho.forEach(item => {
+        if (!item.produtoId) return;
+        totais[item.produtoId] = (totais[item.produtoId] || 0) + (parseInt(item.quantidade, 10) || 0);
+    });
+    for (const [produtoId, quantidade] of Object.entries(totais)) {
+        const limite = limiteEstoqueProduto(produtoId);
+        if (limite !== null && quantidade > limite) {
+            const produto = produtos.find(p => p.id === produtoId);
+            alert(`${produto ? produto.nome : 'Um produto'} tem apenas ${limite} unidade${limite === 1 ? '' : 's'} disponível${limite === 1 ? '' : 'is'}. Ajuste o carrinho antes de finalizar.`);
+            return false;
+        }
+    }
+    return true;
+}
+
 // Adiciona o item de verdade no carrinho — usada tanto pelo caminho direto (produto sem
 // adicionais) quanto pelo modal de adicionais, depois que a pessoa confirma as escolhas
 function finalizarAdicaoAoCarrinho(produtoId, nomeProduto, precoEfetivo, quantidade, observacao, adicionaisTexto, adicionaisEscolhidos) {
+    if (produtoId && !validarQuantidadeEstoqueProduto(produtoId, quantidade, true)) return false;
     const carrinhoEstavaVazio = carrinho.length === 0;
     // Só agrupa como "mesmo item" se nome, observação E adicionais escolhidos forem
     // idênticos — senão, dois bolos com recheios diferentes viram uma linha só, errado
@@ -1918,7 +1886,9 @@ function renderizarProdutos() {
         produtoItemDiv.classList.add('produto-item');
         if (produto.id) produtoItemDiv.id = 'produto-' + produto.id;
 
-        if (!produto.disponivel) {
+        const estoqueControladoEsgotado = produto.controlarEstoque && (parseInt(produto.estoqueProduto, 10) || 0) <= 0;
+        const produtoDisponivelEfetivo = produto.disponivel !== false && !estoqueControladoEsgotado;
+        if (!produtoDisponivelEfetivo) {
             produtoItemDiv.classList.add('indisponivel');
         }
 
@@ -1947,18 +1917,18 @@ function renderizarProdutos() {
             <p class="preco">
                 ${emOferta ? `<span class="preco-original">R$ ${produto.precoOriginal.toFixed(2).replace('.', ',')}</span> ` : ''}R$ ${produto.preco.toFixed(2).replace('.', ',')}
             </p>
-            ${produto.disponivel && temVariantes
+            ${produtoDisponivelEfetivo && temVariantes
                 ? `<div class="variantes-lista">${produto.variantes.map(v => `<button type="button" class="variante-pill" data-variante="${v}">${v}</button>`).join('')}</div>`
                 : ''
             }
-            ${produto.disponivel ? `
+            ${produtoDisponivelEfetivo ? `
                 <div class="produto-quantidade-stepper">
                     <button type="button" class="qtd-btn qtd-menos">−</button>
                     <span class="qtd-valor">1</span>
                     <button type="button" class="qtd-btn qtd-mais">+</button>
                 </div>` : ''
             }
-            ${produto.disponivel
+            ${produtoDisponivelEfetivo
                 ? `<button class="adicionar-carrinho" data-nome="${produto.nome}" data-preco="${produto.preco}">Adicionar ao Carrinho</button>`
                 : `<button class="adicionar-carrinho indisponivel-btn" disabled>Esgotado</button>`
             }
@@ -2082,6 +2052,16 @@ function renderizarProdutos() {
         });
         stepper.querySelector('.qtd-mais').addEventListener('click', () => {
             const v = parseInt(valorEl.textContent, 10) || 1;
+            const card = stepper.closest('.produto-item');
+            const produtoId = card && card.id && card.id.startsWith('produto-') ? card.id.slice('produto-'.length) : null;
+            if (produtoId) {
+                const limite = limiteEstoqueProduto(produtoId);
+                const jaNoCarrinho = quantidadeProdutoNoCarrinho(produtoId);
+                if (limite !== null && jaNoCarrinho + v >= limite) {
+                    validarQuantidadeEstoqueProduto(produtoId, v + 1, true);
+                    return;
+                }
+            }
             valorEl.textContent = v + 1;
         });
     });
@@ -2511,6 +2491,8 @@ function removerItemCarrinho(index) {
 // Função para gerenciar a quantidade de um item no carrinho
 function gerenciarQuantidade(index, acao) {
     if (acao === 'aumentar') {
+        const item = carrinho[index];
+        if (item && item.produtoId && !validarQuantidadeEstoqueProduto(item.produtoId, 1, true)) return;
         carrinho[index].quantidade++;
     } else if (acao === 'diminuir') {
         if (carrinho[index].quantidade > 1) {
@@ -2566,15 +2548,6 @@ function escutarRecursosLiberadosCardapio() {
     if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
     firebase.database().ref('configuracao/recursosLiberados').on('value', snap => {
         recursosLiberadosCardapio = snap.val();
-        const container = document.getElementById('carrosselDestaques');
-        if (!carrosselLiberadoNoPlano()) {
-            if (container) container.style.display = 'none';
-            if (carrosselTimer) { clearInterval(carrosselTimer); carrosselTimer = null; }
-        } else if (carrosselRealtimeAtivo) {
-            // Os listeners já estão ativos; a próxima atualização mantém o carrossel visível.
-            // Força uma leitura leve do nó de banners para recalcular imediatamente.
-            firebase.database().ref('configuracao/bannersCarrossel').once('value').then(() => {});
-        }
     });
 }
 escutarRecursosLiberadosCardapio();
@@ -2865,6 +2838,10 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         alert('Seu carrinho está vazio. Adicione alguns produtos antes de finalizar a compra!');
         return;
     }
+    // Última conferência local antes de chamar o servidor. O servidor confere novamente
+    // e faz a reserva de forma transacional, então dois clientes não conseguem vender
+    // a mesma última unidade ao mesmo tempo.
+    if (!validarEstoqueCarrinhoAtual()) return;
 
     // Confere o pedido mínimo (se configurado) antes de deixar finalizar
     if (pedidoMinimoValor > 0) {
