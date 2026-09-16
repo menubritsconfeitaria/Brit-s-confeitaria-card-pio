@@ -565,30 +565,68 @@
                 </div>
             </section>
 
-            <section data-tab="produtos">
-                <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px;">
-                    <h2 style="margin:0;">📦 Produtos</h2>
-                    <button class="btn-novo-produto" onclick="adicionarNovoProduto()" style="margin:0; width:auto; white-space:nowrap; padding:4px 10px; font-size:1.15em; font-weight:700; line-height:1.2;">+ Adicionar produto</button>
+            <section data-tab="produtos" class="produtos-premium-v4 produtos-catalogo-premium">
+                <div class="produtos-premium-hero">
+                    <div class="produtos-premium-hero-copy">
+                        <span class="produtos-premium-eyebrow">CATÁLOGO E VENDAS</span>
+                        <h2>📦 Produtos</h2>
+                        <p>Gerencie preço, disponibilidade, estoque, fotos, ficha técnica e opções do cardápio em uma visão mais clara e profissional.</p>
+                    </div>
+                    <div class="produtos-premium-hero-lateral">
+                        <div class="produtos-premium-tags" aria-label="Recursos da área de produtos">
+                            <span>⚡ Status rápido</span>
+                            <span>📦 Estoque opcional</span>
+                            <span>🎂 Encomendas</span>
+                        </div>
+                        <button class="btn-novo-produto produtos-premium-btn-novo" onclick="adicionarNovoProduto()">＋ Novo produto</button>
+                    </div>
                 </div>
-                <button id="btnImportarDados" class="btn-importar-dados" onclick="importarDadosIniciais()" style="display:none;">
+
+                <button id="btnImportarDados" class="btn-importar-dados produtos-premium-importar" onclick="importarDadosIniciais()" style="display:none;">
                     ⬆️ Importar produtos e cupons que já existiam no cardápio
                 </button>
-                <div class="produto-busca-wrap">
-                    <span class="produto-busca-icone" aria-hidden="true">🔎</span>
-                    <input type="search" id="buscaProdutosAdmin" class="produto-busca-input" placeholder="Pesquisar por nome ou categoria..." autocomplete="off" oninput="filtrarProdutosAdmin()">
-                    <button type="button" class="produto-busca-limpar" onclick="limparBuscaProdutosAdmin()" title="Limpar pesquisa" aria-label="Limpar pesquisa">×</button>
+
+                <div class="produtos-premium-toolbar">
+                    <div class="produto-busca-wrap produtos-premium-busca">
+                        <span class="produto-busca-icone" aria-hidden="true">🔎</span>
+                        <input type="search" id="buscaProdutosAdmin" class="produto-busca-input" placeholder="Pesquisar por nome ou categoria..." autocomplete="off" oninput="filtrarProdutosAdmin()">
+                        <button type="button" class="produto-busca-limpar" onclick="limparBuscaProdutosAdmin()" title="Limpar pesquisa" aria-label="Limpar pesquisa">×</button>
+                    </div>
+                    <p id="resultadoBuscaProdutosAdmin" class="produto-busca-resultado produtos-premium-busca-resultado" aria-live="polite"></p>
                 </div>
-                <p id="resultadoBuscaProdutosAdmin" class="produto-busca-resultado" aria-live="polite"></p>
-                <div id="produtosAdminList" class="produtos-admin-list"></div>
+
+                <div class="produtos-premium-lista-shell">
+                    <div class="produtos-premium-lista-head">
+                        <div>
+                            <span class="produtos-premium-kicker">CATÁLOGO ATUAL</span>
+                            <strong>Produtos cadastrados</strong>
+                        </div>
+                        <small>Edite somente o que precisar e salve no próprio card.</small>
+                    </div>
+                    <div id="produtosAdminList" class="produtos-admin-list"></div>
+                </div>
             </section>
 
-            <section data-tab="produtos">
-                <h2>🗂️ Ordem das categorias no cardápio</h2>
-                <p class="dica-secao">Digite as categorias na ordem que quer que apareçam, separadas por vírgula. As que você não listar aqui aparecem depois, na ordem que forem cadastradas.</p>
-                <input type="text" id="ordemCategoriasInput" placeholder="Ex: Bolo, Sobremesa, Brigadeiro, Salgados, Bebidas" oninput="atualizarPreviaOrdemCategorias()">
-                <div id="previaOrdemCategorias" class="previa-variantes"></div>
-                <button class="btn-salvar-ordem" onclick="salvarOrdemCategorias()">Salvar ordem</button>
-                <p id="ordemCategoriasMsg" class="ordem-categorias-msg"></p>
+            <section data-tab="produtos" class="produtos-premium-v4 produtos-categorias-premium">
+                <div class="produtos-categorias-card">
+                    <div class="produtos-categorias-head">
+                        <div>
+                            <span class="produtos-premium-eyebrow">ORGANIZAÇÃO DO CARDÁPIO</span>
+                            <h2>🗂️ Ordem das categorias</h2>
+                            <p class="dica-secao">Defina a sequência em que as categorias aparecem para o cliente. As não listadas continuam aparecendo depois, sem perder nenhum produto.</p>
+                        </div>
+                        <span class="produtos-categorias-badge">Exibição da vitrine</span>
+                    </div>
+                    <div class="produtos-categorias-form">
+                        <div class="campo-com-label">
+                            <label class="campo-label" for="ordemCategoriasInput">Categorias na ordem desejada</label>
+                            <input type="text" id="ordemCategoriasInput" placeholder="Ex: Bolo, Sobremesa, Brigadeiro, Salgados, Bebidas" oninput="atualizarPreviaOrdemCategorias()">
+                        </div>
+                        <button class="btn-salvar-ordem produtos-categorias-salvar" onclick="salvarOrdemCategorias()">💾 Salvar ordem</button>
+                    </div>
+                    <div id="previaOrdemCategorias" class="previa-variantes produtos-categorias-previa"></div>
+                    <p id="ordemCategoriasMsg" class="ordem-categorias-msg"></p>
+                </div>
             </section>
 
             <section data-tab="clientes-marketing" class="clientes-marketing-premium">
