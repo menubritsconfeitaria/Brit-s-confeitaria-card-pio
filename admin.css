@@ -4866,3 +4866,539 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
     }
 }
 
+
+/* =========================================================
+   GESTÃO — SISTEMA PREMIUM
+   Refinamento visual isolado. IDs e funções JS preservados.
+   ========================================================= */
+.gestao-subconteudo[data-subtab-content="sub-sistema"].sistema-premium {
+    width: min(100%, 980px);
+    margin: 0 auto;
+    padding: 0 0 28px;
+}
+
+.sistema-premium .loja-status-card {
+    margin: 0;
+}
+
+.sistema-premium .sistema-hero-card,
+.sistema-premium .sistema-card {
+    border: 1px solid #eadfd5;
+    border-radius: 16px;
+    background:
+        radial-gradient(circle at 100% 0, rgba(201,151,76,.055), transparent 34%),
+        linear-gradient(180deg, #fff 0%, #fffdfa 100%);
+    box-shadow: 0 10px 28px rgba(83,57,37,.07);
+}
+
+.sistema-premium .sistema-hero-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 22px;
+    margin-bottom: 14px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.sistema-premium .sistema-hero-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: linear-gradient(180deg, #b35f31 0%, #d99a54 100%);
+}
+
+.sistema-premium .sistema-hero-copy {
+    min-width: 0;
+}
+
+.sistema-premium .sistema-eyebrow {
+    display: block;
+    margin-bottom: 4px;
+    color: #ad754d;
+    font-size: .58rem;
+    font-weight: 850;
+    letter-spacing: .11em;
+}
+
+.sistema-premium .sistema-eyebrow--danger {
+    color: #a94b43;
+}
+
+.sistema-premium .sistema-hero-copy h3,
+.sistema-premium .sistema-card-header h3 {
+    margin: 0;
+    color: #75442b;
+    font-size: 1rem;
+    line-height: 1.3;
+}
+
+.sistema-premium .sistema-hero-copy p,
+.sistema-premium .sistema-card-header p,
+.sistema-premium .sistema-subsection-heading p,
+.sistema-premium .sistema-tools-heading p {
+    margin: 5px 0 0;
+    color: #9b8779;
+    font-size: .67rem;
+    line-height: 1.5;
+}
+
+.sistema-premium .sistema-hero-tags {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
+.sistema-premium .sistema-hero-tags span,
+.sistema-premium .sistema-safe-badge,
+.sistema-premium .sistema-danger-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 6px 9px;
+    border-radius: 999px;
+    border: 1px solid #eadfd5;
+    background: #fcf8f4;
+    color: #8f705d;
+    font-size: .58rem;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.sistema-premium .sistema-grid--principal {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(320px, .88fr);
+    gap: 14px;
+    align-items: start;
+}
+
+.sistema-premium .sistema-card {
+    padding: 20px;
+}
+
+.sistema-premium .sistema-card--importacao {
+    margin-top: 14px;
+}
+
+.sistema-premium .sistema-card-header,
+.sistema-premium .sistema-subsection-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+}
+
+.sistema-premium .sistema-card-header {
+    margin-bottom: 15px;
+}
+
+.sistema-premium .sistema-card-header > div:not(.sistema-card-icon) {
+    min-width: 0;
+}
+
+.sistema-premium .sistema-card-icon {
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    border: 1px solid #eadfd5;
+    background: #fcf8f4;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.7);
+    font-size: .95rem;
+}
+
+.sistema-premium .sistema-card-icon--backup { background: #fbf6ef; }
+.sistema-premium .sistema-card-icon--restore { background: #f3faf5; }
+.sistema-premium .sistema-card-icon--diagnostic { background: #f5f7fb; }
+.sistema-premium .sistema-card-icon--import { background: #f6f8fc; }
+
+.sistema-premium .sistema-info-box,
+.sistema-premium .sistema-warning-box,
+.sistema-premium .sistema-critical-zone {
+    border-radius: 12px;
+}
+
+.sistema-premium .sistema-info-box {
+    margin: 14px 0;
+    padding: 12px 13px;
+    border: 1px solid #eee4da;
+    background: #fcf9f6;
+}
+
+.sistema-premium .sistema-info-box strong,
+.sistema-premium .sistema-import-step strong {
+    display: block;
+    color: #6d4a35;
+    font-size: .66rem;
+    font-weight: 800;
+}
+
+.sistema-premium .sistema-info-box p,
+.sistema-premium .sistema-import-step p {
+    margin: 4px 0 0;
+    color: #9a8778;
+    font-size: .62rem;
+    line-height: 1.5;
+}
+
+.sistema-premium .sistema-primary-btn {
+    width: 100%;
+    min-height: 40px;
+    border-radius: 10px;
+    box-shadow: 0 6px 14px rgba(174,83,38,.12);
+}
+
+.sistema-premium .sistema-secondary-btn {
+    width: 100%;
+    min-height: 38px;
+    border-radius: 10px;
+}
+
+.sistema-premium .sistema-msg {
+    min-height: 0;
+    margin: 7px 0 0;
+    font-size: .62rem;
+}
+
+.sistema-premium .sistema-divider {
+    height: 1px;
+    margin: 18px 0;
+    background: #eee4da;
+}
+
+.sistema-premium .sistema-subsection-heading h4,
+.sistema-premium .sistema-critical-heading h4,
+.sistema-premium .sistema-tools-heading h4 {
+    margin: 0;
+    color: #6d4630;
+    font-size: .82rem;
+    line-height: 1.3;
+}
+
+.sistema-premium .sistema-warning-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    margin: 13px 0;
+    padding: 11px 12px;
+    border: 1px solid #efd9bb;
+    background: #fffaf1;
+}
+
+.sistema-premium .sistema-warning-box > span {
+    flex: 0 0 auto;
+    font-size: .8rem;
+    line-height: 1.2;
+}
+
+.sistema-premium .sistema-warning-box p {
+    margin: 0;
+    color: #8a6c4f;
+    font-size: .61rem;
+    line-height: 1.5;
+}
+
+.sistema-premium .sistema-file-row,
+.sistema-premium .sistema-import-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: end;
+}
+
+.sistema-premium .sistema-file-field {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+
+.sistema-premium .sistema-file-field > span {
+    color: #6e5545;
+    font-size: .61rem;
+    font-weight: 750;
+}
+
+.sistema-premium .sistema-file-field input[type="file"] {
+    width: 100%;
+    min-height: 39px;
+    padding: 6px;
+    border: 1px solid #e7dacd;
+    border-radius: 10px;
+    background: #fff;
+    color: #7d6859;
+    font: inherit;
+    font-size: .60rem;
+}
+
+.sistema-premium .sistema-file-field input[type="file"]::file-selector-button {
+    margin-right: 9px;
+    padding: 7px 10px;
+    border: 1px solid #e5d6c8;
+    border-radius: 8px;
+    background: #fbf6f1;
+    color: #7d543b;
+    font: inherit;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+.sistema-premium .sistema-restore-btn {
+    width: auto;
+    min-height: 39px;
+    padding: 8px 13px;
+    border-radius: 10px;
+    background: #fff8ef;
+    color: #8b5f3e;
+    border-color: #ebd5bd;
+}
+
+.sistema-premium .sistema-action-stack {
+    display: grid;
+    gap: 8px;
+}
+
+.sistema-premium .sistema-diagnostic-result {
+    margin-top: 12px;
+}
+
+.sistema-premium .sistema-diagnostic-result:empty {
+    display: none;
+}
+
+.sistema-premium .sistema-critical-zone {
+    margin-top: 17px;
+    padding: 14px;
+    border: 1px solid #efd1cd;
+    background: linear-gradient(180deg, #fffafa 0%, #fff5f4 100%);
+}
+
+.sistema-premium .sistema-critical-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 11px;
+}
+
+.sistema-premium .sistema-critical-heading p {
+    max-width: 390px;
+    margin: 5px 0 0;
+    color: #9a7772;
+    font-size: .60rem;
+    line-height: 1.48;
+}
+
+.sistema-premium .sistema-danger-badge {
+    border-color: #efcfca;
+    background: #fff0ee;
+    color: #a64b43;
+}
+
+.sistema-premium .sistema-critical-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.sistema-premium .sistema-danger-btn {
+    width: 100%;
+    min-height: 37px;
+    padding: 8px 10px;
+    border-radius: 9px;
+    background: #fff;
+    color: #a24b43;
+    border: 1px solid #e8c2bd;
+    box-shadow: none;
+}
+
+.sistema-premium .sistema-danger-btn--strong {
+    background: #8b2f2f;
+    border-color: #8b2f2f;
+    color: #fff;
+}
+
+.sistema-premium .sistema-critical-zone > small {
+    display: block;
+    margin-top: 8px;
+    color: #a07b76;
+    font-size: .56rem;
+    line-height: 1.4;
+}
+
+.sistema-premium .sistema-card-header--importacao {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    align-items: start;
+}
+
+.sistema-premium .sistema-safe-badge {
+    border-color: #d7e8da;
+    background: #f3faf4;
+    color: #548360;
+}
+
+.sistema-premium .sistema-import-flow {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 9px;
+    margin: 2px 0 16px;
+}
+
+.sistema-premium .sistema-import-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    min-width: 0;
+    padding: 11px;
+    border: 1px solid #eee3d9;
+    border-radius: 11px;
+    background: #fcfaf8;
+}
+
+.sistema-premium .sistema-step-number {
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border: 1px solid #ead8c9;
+    border-radius: 9px;
+    background: #fff;
+    color: #b16d43;
+    font-size: .58rem;
+    font-weight: 850;
+}
+
+.sistema-premium .sistema-import-main {
+    padding: 14px;
+    border: 1px solid #e9ddd2;
+    border-radius: 12px;
+    background: #fffdfb;
+}
+
+.sistema-premium .sistema-import-btn {
+    width: auto;
+    min-width: 150px;
+    padding-inline: 16px;
+}
+
+.sistema-premium .sistema-tools-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+    margin: 18px 0 10px;
+}
+
+.sistema-premium .sistema-tools-heading p {
+    max-width: 430px;
+    text-align: right;
+}
+
+.sistema-premium .sistema-tools-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.sistema-premium .sistema-tool-btn {
+    min-height: 64px;
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: 8px;
+    align-items: center;
+    justify-content: stretch;
+    padding: 10px 11px;
+    border-radius: 11px;
+    text-align: left;
+    white-space: normal;
+}
+
+.sistema-premium .sistema-tool-btn > span {
+    grid-row: 1 / 3;
+    font-size: .83rem;
+}
+
+.sistema-premium .sistema-tool-btn strong {
+    align-self: end;
+    color: #704b35;
+    font-size: .62rem;
+    line-height: 1.25;
+}
+
+.sistema-premium .sistema-tool-btn small {
+    align-self: start;
+    color: #a08b7d;
+    font-size: .54rem;
+    line-height: 1.3;
+}
+
+@media (max-width: 900px) {
+    .gestao-subconteudo[data-subtab-content="sub-sistema"].sistema-premium {
+        width: min(100%, calc(100vw - 30px));
+    }
+
+    .sistema-premium .sistema-grid--principal {
+        grid-template-columns: 1fr;
+    }
+
+    .sistema-premium .sistema-import-flow,
+    .sistema-premium .sistema-tools-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 620px) {
+    .gestao-subconteudo[data-subtab-content="sub-sistema"].sistema-premium {
+        width: calc(100vw - 20px);
+        padding-bottom: 18px;
+    }
+
+    .sistema-premium .sistema-hero-card,
+    .sistema-premium .sistema-card {
+        padding: 15px;
+        border-radius: 14px;
+    }
+
+    .sistema-premium .sistema-hero-card,
+    .sistema-premium .sistema-tools-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .sistema-premium .sistema-hero-tags {
+        justify-content: flex-start;
+    }
+
+    .sistema-premium .sistema-file-row,
+    .sistema-premium .sistema-import-main,
+    .sistema-premium .sistema-critical-actions,
+    .sistema-premium .sistema-import-flow,
+    .sistema-premium .sistema-tools-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sistema-premium .sistema-card-header--importacao {
+        grid-template-columns: 34px minmax(0, 1fr);
+    }
+
+    .sistema-premium .sistema-safe-badge {
+        grid-column: 1 / -1;
+        justify-self: start;
+    }
+
+    .sistema-premium .sistema-restore-btn,
+    .sistema-premium .sistema-import-btn {
+        width: 100%;
+    }
+
+    .sistema-premium .sistema-tools-heading p {
+        text-align: left;
+    }
+}

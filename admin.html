@@ -1857,64 +1857,160 @@
                         <div id="previewOrcamento" class="orcamento-preview-content"></div>
                     </div>
                 </div>
-                <div class="gestao-subconteudo" data-subtab-content="sub-sistema" style="display:none;">
-                    <div class="loja-status-card">
-                        <h3>🛠️ Sistema</h3>
-                        <p class="dica-secao">Backup, diagnóstico e importação reunidos em um só lugar.</p>
+                <div class="gestao-subconteudo sistema-premium" data-subtab-content="sub-sistema" style="display:none;">
+                    <div class="loja-status-card sistema-hero-card">
+                        <div class="sistema-hero-copy">
+                            <span class="sistema-eyebrow">CENTRO DE MANUTENÇÃO</span>
+                            <h3>🛠️ Sistema</h3>
+                            <p>Backup, restauração, diagnóstico e migração organizados com mais segurança para a operação da loja.</p>
+                        </div>
+                        <div class="sistema-hero-tags" aria-label="Áreas do sistema">
+                            <span>💾 Backup</span>
+                            <span>🩺 Diagnóstico</span>
+                            <span>📥 Migração</span>
+                        </div>
                     </div>
 
-                    <div class="loja-status-card">
-                        <h3>💾 Backup completo da loja</h3>
-                        <p class="dica-secao">
-                            Baixa uma cópia dos dados importantes da loja no Firebase: pedidos, produtos, configurações,
-                            cupons, fidelidade, clientes, estoque/fichas, notificações, métricas e dispositivos autorizados.
-                            Dados temporários de presença online não entram no arquivo.
-                        </p>
-                        <button class="btn-salvar-ordem" id="btnBackupCompleto" onclick="exportarBackupGestaoCompleto()">⬇️ Baixar backup completo (JSON)</button>
-                        <p id="msgExportarBackupGestao" class="ordem-categorias-msg"></p>
+                    <div class="sistema-grid sistema-grid--principal">
+                        <section class="loja-status-card sistema-card sistema-card--backup">
+                            <div class="sistema-card-header">
+                                <div class="sistema-card-icon sistema-card-icon--backup">💾</div>
+                                <div>
+                                    <span class="sistema-eyebrow">PROTEÇÃO DOS DADOS</span>
+                                    <h3>Backup completo da loja</h3>
+                                    <p>Crie uma cópia dos dados importantes antes de qualquer manutenção ou alteração relevante.</p>
+                                </div>
+                            </div>
 
-                        <hr style="margin:18px 0; border:0; border-top:1px solid var(--border);">
+                            <div class="sistema-info-box sistema-info-box--soft">
+                                <strong>O backup inclui</strong>
+                                <p>Pedidos, produtos, configurações, cupons, fidelidade, clientes, estoque/fichas, notificações, métricas e dispositivos autorizados. Dados temporários de presença online não entram no arquivo.</p>
+                            </div>
 
-                        <h4 style="margin-bottom:8px;">♻️ Restaurar backup completo</h4>
-                        <p class="dica-secao">
-                            Use somente um arquivo gerado pelo botão acima. A restauração substitui os dados atuais
-                            pelos dados daquele backup. Por segurança, baixe um backup atual antes de restaurar.
-                        </p>
-                        <input type="file" id="inputRestaurarBackupCompleto" accept=".json,application/json">
-                        <button class="btn-excluir-cupom" id="btnRestaurarBackupCompleto" style="width:auto; margin-top:10px; padding:8px 14px;" onclick="restaurarBackupCompleto()">♻️ Restaurar este backup</button>
-                        <p id="msgRestaurarBackupCompleto" class="ordem-categorias-msg"></p>
+                            <button class="btn-salvar-ordem sistema-primary-btn" id="btnBackupCompleto" onclick="exportarBackupGestaoCompleto()">⬇️ Baixar backup completo (JSON)</button>
+                            <p id="msgExportarBackupGestao" class="ordem-categorias-msg sistema-msg"></p>
+
+                            <div class="sistema-divider"></div>
+
+                            <div class="sistema-subsection-heading">
+                                <div class="sistema-card-icon sistema-card-icon--restore">♻️</div>
+                                <div>
+                                    <span class="sistema-eyebrow">RESTAURAÇÃO</span>
+                                    <h4>Restaurar backup completo</h4>
+                                    <p>Substitui os dados atuais pelos dados do arquivo selecionado.</p>
+                                </div>
+                            </div>
+
+                            <div class="sistema-warning-box">
+                                <span>⚠️</span>
+                                <p><strong>Antes de restaurar:</strong> baixe um backup atual. Use somente um arquivo gerado por este próprio sistema.</p>
+                            </div>
+
+                            <div class="sistema-file-row">
+                                <label class="sistema-file-field">
+                                    <span>Arquivo de backup</span>
+                                    <input type="file" id="inputRestaurarBackupCompleto" accept=".json,application/json">
+                                </label>
+                                <button class="btn-excluir-cupom sistema-restore-btn" id="btnRestaurarBackupCompleto" onclick="restaurarBackupCompleto()">♻️ Restaurar este backup</button>
+                            </div>
+                            <p id="msgRestaurarBackupCompleto" class="ordem-categorias-msg sistema-msg"></p>
+                        </section>
+
+                        <section class="loja-status-card sistema-card sistema-card--diagnostico">
+                            <div class="sistema-card-header">
+                                <div class="sistema-card-icon sistema-card-icon--diagnostic">🩺</div>
+                                <div>
+                                    <span class="sistema-eyebrow">SAÚDE DOS DADOS</span>
+                                    <h3>Diagnóstico e manutenção</h3>
+                                    <p>Verifique referências quebradas, corrija duplicidades e concentre as ações de manutenção em um único lugar.</p>
+                                </div>
+                            </div>
+
+                            <div class="sistema-action-stack">
+                                <button class="btn-salvar-ordem sistema-primary-btn" onclick="diagnosticarComponentesQuebrados()">🩺 Verificar integridade agora</button>
+                                <button class="btn-secondary sistema-secondary-btn" onclick="removerDuplicatas()">🧹 Remover duplicatas</button>
+                            </div>
+
+                            <div id="resultadoDiagnostico" class="sistema-diagnostic-result"></div>
+
+                            <div class="sistema-critical-zone">
+                                <div class="sistema-critical-heading">
+                                    <div>
+                                        <span class="sistema-eyebrow sistema-eyebrow--danger">AÇÕES CRÍTICAS</span>
+                                        <h4>Zona de risco</h4>
+                                        <p>Use somente quando tiver certeza. Estas ações podem remover dados e não devem fazer parte da rotina diária.</p>
+                                    </div>
+                                    <span class="sistema-danger-badge">Atenção</span>
+                                </div>
+                                <div class="sistema-critical-actions">
+                                    <button class="btn-excluir-cupom sistema-danger-btn" onclick="zerarSistemaGestao()">☢️ Zerar tudo</button>
+                                    <button class="btn-excluir-cupom sistema-danger-btn sistema-danger-btn--strong" onclick="limparTodosOsPedidosDeTeste()">🚨 Limpar pedidos de teste</button>
+                                </div>
+                                <small>“Limpar pedidos de teste” deve ser usado somente antes do lançamento.</small>
+                            </div>
+                        </section>
                     </div>
 
-                    <div class="loja-status-card">
-                        <h3>🩺 Diagnóstico de dados</h3>
-                        <p class="dica-secao">Verifica se alguma base ou ficha técnica está com referência quebrada (aponta pra um ingrediente/base que não existe mais) — útil depois de importar dados antigos.</p>
-                        <button class="btn-salvar-ordem" onclick="diagnosticarComponentesQuebrados()">🩺 Verificar agora</button>
-                        <button class="btn-secondary" onclick="removerDuplicatas()">🧹 Remover duplicatas</button>
-                        <button class="btn-excluir-cupom" style="width:auto; padding:6px 12px;" onclick="zerarSistemaGestao()">☢️ Zerar tudo (começar do zero)</button>
-                        <button class="btn-excluir-cupom" style="width:auto; padding:6px 12px; background:#8b0000;" onclick="limparTodosOsPedidosDeTeste()">🚨 Limpar TODOS os pedidos de teste (só antes de lançar)</button>
-                        <div id="resultadoDiagnostico" style="margin-top:10px;"></div>
-                    </div>
+                    <section class="loja-status-card sistema-card sistema-card--importacao">
+                        <div class="sistema-card-header sistema-card-header--importacao">
+                            <div class="sistema-card-icon sistema-card-icon--import">📥</div>
+                            <div>
+                                <span class="sistema-eyebrow">MIGRAÇÃO ASSISTIDA</span>
+                                <h3>Importar do Sistema de Gestão antigo</h3>
+                                <p>Traga ingredientes, bases, fichas técnicas, clientes e pedidos do sistema anterior sem apagar o que já existe.</p>
+                            </div>
+                            <span class="sistema-safe-badge">Não apaga dados atuais</span>
+                        </div>
 
-                    <div class="loja-status-card" style="margin-top:16px;">
-                        <h3>📥 Importar do Sistema de Gestão antigo</h3>
-                        <p class="dica-secao">
-                            No Sistema de Gestão que você já usa (arquivo local), vai na aba "Backup" e clica em
-                            "⬇️ Baixar Backup (JSON)". Depois escolhe esse arquivo aqui embaixo.
-                        </p>
-                        <p class="dica-secao">
-                            Importa Ingredientes, Bases, Ficha Técnica, Clientes e Pedidos — item que já existir
-                            aqui (mesmo nome/telefone) é reaproveitado, nunca duplicado. Isso <strong>adiciona</strong>
-                            ao que já existe, nunca apaga nada.
-                        </p>
-                        <input type="file" id="inputImportarBackupGestao" accept=".json">
-                        <button class="btn-salvar-ordem" id="btnImportarBackupGestao" style="margin-top:10px;" onclick="importarBackupSistemaGestao()">📥 Importar</button>
-                        <button class="btn-secondary" style="margin-top:10px;" onclick="corrigirStatusPedidosImportados()">🔧 Corrigir status dos já importados (mesmo arquivo)</button>
-                        <button class="btn-secondary" style="margin-top:10px;" onclick="sincronizarPrecosIngredientes()">💲 Sincronizar preços de ingredientes (mesmo arquivo)</button>
-                        <button class="btn-secondary" style="margin-top:10px;" onclick="corrigirVinculosComponentes()">🔗 Corrigir vínculos de Bases/Fichas (mesmo arquivo)</button>
-                        <button class="btn-secondary" style="margin-top:10px;" onclick="autoVincularFichaTecnicaPorNome()">🔗 Vincular produtos à Ficha Técnica (automático, por nome)</button>
-                        <button class="btn-secondary" style="margin-top:10px;" onclick="corrigirFichaTecnicaPedidosAntigos()">🔧 Corrigir CMV de pedidos do cardápio já feitos</button>
-                        <p id="msgImportarBackup" class="ordem-categorias-msg"></p>
-                    </div>
+                        <div class="sistema-import-flow">
+                            <div class="sistema-import-step">
+                                <span class="sistema-step-number">01</span>
+                                <div>
+                                    <strong>Baixe o backup no sistema antigo</strong>
+                                    <p>Na aba “Backup”, use a opção “⬇️ Baixar Backup (JSON)”.</p>
+                                </div>
+                            </div>
+                            <div class="sistema-import-step">
+                                <span class="sistema-step-number">02</span>
+                                <div>
+                                    <strong>Selecione o arquivo aqui</strong>
+                                    <p>Itens existentes com o mesmo nome ou telefone são reaproveitados, evitando duplicação.</p>
+                                </div>
+                            </div>
+                            <div class="sistema-import-step">
+                                <span class="sistema-step-number">03</span>
+                                <div>
+                                    <strong>Importe e faça os ajustes finais</strong>
+                                    <p>Use as ferramentas abaixo somente quando a migração exigir correções complementares.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sistema-import-main">
+                            <label class="sistema-file-field sistema-file-field--import">
+                                <span>Arquivo JSON do sistema antigo</span>
+                                <input type="file" id="inputImportarBackupGestao" accept=".json">
+                            </label>
+                            <button class="btn-salvar-ordem sistema-primary-btn sistema-import-btn" id="btnImportarBackupGestao" onclick="importarBackupSistemaGestao()">📥 Importar dados</button>
+                        </div>
+
+                        <div class="sistema-tools-heading">
+                            <div>
+                                <span class="sistema-eyebrow">PÓS-IMPORTAÇÃO</span>
+                                <h4>Ferramentas de correção</h4>
+                            </div>
+                            <p>Use apenas quando necessário para ajustar dados trazidos do arquivo antigo.</p>
+                        </div>
+
+                        <div class="sistema-tools-grid">
+                            <button class="btn-secondary sistema-tool-btn" onclick="corrigirStatusPedidosImportados()"><span>🔧</span><strong>Corrigir status</strong><small>Pedidos já importados</small></button>
+                            <button class="btn-secondary sistema-tool-btn" onclick="sincronizarPrecosIngredientes()"><span>💲</span><strong>Sincronizar preços</strong><small>Ingredientes do mesmo arquivo</small></button>
+                            <button class="btn-secondary sistema-tool-btn" onclick="corrigirVinculosComponentes()"><span>🔗</span><strong>Corrigir vínculos</strong><small>Bases e fichas técnicas</small></button>
+                            <button class="btn-secondary sistema-tool-btn" onclick="autoVincularFichaTecnicaPorNome()"><span>🧩</span><strong>Vincular produtos</strong><small>Ficha técnica por nome</small></button>
+                            <button class="btn-secondary sistema-tool-btn" onclick="corrigirFichaTecnicaPedidosAntigos()"><span>📊</span><strong>Corrigir CMV</strong><small>Pedidos do cardápio já feitos</small></button>
+                        </div>
+                        <p id="msgImportarBackup" class="ordem-categorias-msg sistema-msg"></p>
+                    </section>
                 </div>
             </section>
         </main>
