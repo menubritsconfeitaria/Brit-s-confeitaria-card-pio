@@ -7503,7 +7503,8 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
 .pedidos-operacao-premium .kanban-coluna {
     display: flex;
     flex-direction: column;
-    height: clamp(470px, 61vh, 690px);
+    /* + ~120px de área útil no desktop para manter as ações do pedido visíveis. */
+    height: clamp(590px, 70vh, 810px);
     min-height: 0;
     padding: 0;
     overflow: hidden;
