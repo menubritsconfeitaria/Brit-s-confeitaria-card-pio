@@ -1399,102 +1399,188 @@
                     </div>
                 </div>
 
-                <div class="gestao-subconteudo" data-subtab-content="sub-pedidos-manuais" style="display:none;">
-                    <div class="loja-status-card">
-                        <h3>📝 Lançar Pedido (balcão, telefone, etc.)</h3>
-                        <p class="dica-secao">Some junto com os pedidos do cardápio nos relatórios e no fechamento do dia.</p>
 
-                        <div class="produto-admin-linha">
-                            <div class="campo-com-label">
-                                <label class="campo-label">Cliente</label>
-                                <input type="text" id="pmCliente" list="pmClientesDatalist" placeholder="Digite ou escolhe o nome do cliente">
-                                <datalist id="pmClientesDatalist"></datalist>
-                            </div>
-                            <div class="campo-com-label">
-                                <label class="campo-label">Data</label>
-                                <input type="date" id="pmData">
-                            </div>
-                            <div class="campo-com-label">
-                                <label class="campo-label">Status</label>
-                                <select id="pmStatus">
-                                    <option value="pendente">Pendente</option>
-                                    <option value="aceito">Aceito</option>
-                                    <option value="em_rota">Em rota</option>
-                                    <option value="pronto_retirada">Pronto pra retirada</option>
-                                    <option value="entregue">Entregue</option>
-                                    <option value="recusado">Cancelado</option>
-                                </select>
-                            </div>
+                <div class="gestao-subconteudo lancar-pedido-premium" data-subtab-content="sub-pedidos-manuais" style="display:none;">
+                    <!-- Lançar Pedido premium: somente apresentação. IDs, eventos e lógica original preservados. -->
+                    <div class="loja-status-card lancar-pedido-hero">
+                        <div>
+                            <span class="lancar-pedido-eyebrow">ATENDIMENTO ASSISTIDO</span>
+                            <h3>📝 Lançar Pedido</h3>
+                            <p class="dica-secao">Registre pedidos de balcão, telefone ou atendimento direto com o mesmo fluxo usado nos relatórios e no fechamento.</p>
                         </div>
-
-                        <h3 style="margin-top:16px;">Itens do pedido</h3>
-                        <div class="produto-admin-linha">
-                            <div class="campo-com-label" style="flex:2;">
-                                <label class="campo-label">Produto (com ficha técnica)</label>
-                                <select id="pmSelectProduto"></select>
-                            </div>
-                            <div class="campo-com-label">
-                                <label class="campo-label">Quantidade</label>
-                                <input type="text" inputmode="decimal" id="pmQtdItem" value="1">
-                            </div>
+                        <div class="lancar-pedido-hero-tags" aria-label="Canais do pedido manual">
+                            <span>Balcão</span>
+                            <span>Telefone</span>
+                            <span>Atendimento</span>
                         </div>
-                        <button class="btn-secondary" style="margin-top:8px;" onclick="adicionarItemPedidoManual()">+ Adicionar item</button>
-                        <div id="pmListaItens" style="margin-top:10px;"></div>
-                        <p class="dica-secao">Subtotal: <strong id="pmSubtotalTemp">R$ 0,00</strong></p>
-
-                        <div class="produto-admin-linha" style="margin-top:10px;">
-                            <div class="campo-com-label">
-                                <label class="campo-label">Desconto (%)</label>
-                                <input type="text" inputmode="decimal" id="pmDesconto" value="0" oninput="renderItensPedidoManual()">
-                            </div>
-                            <div class="campo-com-label">
-                                <label class="campo-label">Frete (R$)</label>
-                                <input type="text" inputmode="decimal" id="pmFrete" value="0" oninput="renderItensPedidoManual()">
-                            </div>
-                            <div class="campo-com-label">
-                                <label class="campo-label">Forma de pagamento</label>
-                                <select id="pmFormaPagamento">
-                                    <option value="">Selecione</option>
-                                    <option>Dinheiro</option><option>Cartão de Crédito</option><option>Cartão de Débito</option><option>Pix</option><option>Transferência Bancária</option><option>Outros</option>
-                                </select>
-                            </div>
-                        </div>
-                        <p class="dica-secao">Total: <strong id="pmTotalTemp">R$ 0,00</strong></p>
-
-                        <label class="campo-label" style="margin-top:10px;">É uma encomenda com sinal?</label>
-                        <div class="toggle-sim-nao">
-                            <button type="button" id="btnEncomendaSim" class="toggle-opcao" onclick="definirEhEncomenda(true)">Sim</button>
-                            <button type="button" id="btnEncomendaNao" class="toggle-opcao selecionado" onclick="definirEhEncomenda(false)">Não</button>
-                        </div>
-                        <input type="hidden" id="pmEhEncomenda" value="nao">
-                        <div id="blocoEncomendaSinal" style="display:none; margin-top:8px;">
-                            <div class="produto-admin-linha">
-                                <div class="campo-com-label">
-                                    <label class="campo-label">Sinal recebido (R$)</label>
-                                    <input type="text" inputmode="decimal" id="pmSinalRecebido" value="0">
-                                </div>
-                                <div class="campo-com-label">
-                                    <label class="campo-label">Restante já recebido também?</label>
-                                    <div class="toggle-sim-nao">
-                                        <button type="button" id="btnRestanteNao" class="toggle-opcao selecionado" onclick="definirRestanteJaRecebido(false)">Não</button>
-                                        <button type="button" id="btnRestanteSim" class="toggle-opcao" onclick="definirRestanteJaRecebido(true)">Sim</button>
-                                    </div>
-                                    <input type="hidden" id="pmRestanteJaRecebido" value="nao">
-                                </div>
-                            </div>
-                        </div>
-
-                        <label class="campo-label" style="margin-top:10px;">Observações</label>
-                        <textarea id="pmObs" class="campo-adicionais" rows="2"></textarea>
-
-                        <button class="btn-salvar-ordem" id="btnSalvarPedidoManual" style="margin-top:10px;" onclick="salvarPedidoManual()">Salvar Pedido</button>
-                        <p id="msgPedidoManual" class="ordem-categorias-msg"></p>
                     </div>
 
-                    <div class="loja-status-card" style="margin-top:16px;">
-                        <h3>🧾 Todos os Pedidos</h3>
-                        <p class="dica-secao">Manuais e do cardápio, juntos. Clica no 🗑️ pra excluir qualquer pedido da lista — de teste ou não.</p>
-                        <div id="listaPedidosManuais" style="overflow-x:auto;"></div>
+                    <div class="lancar-pedido-layout">
+                        <div class="loja-status-card lancar-pedido-card lancar-pedido-card--form">
+                            <div class="lancar-pedido-card-head">
+                                <div class="lancar-pedido-step">01</div>
+                                <div>
+                                    <span class="lancar-pedido-kicker">IDENTIFICAÇÃO</span>
+                                    <h3>Dados do pedido</h3>
+                                    <p class="dica-secao">Informe cliente, data e o status inicial do atendimento.</p>
+                                </div>
+                            </div>
+
+                            <div class="lancar-pedido-grid lancar-pedido-grid--dados">
+                                <div class="campo-com-label lancar-pedido-field lancar-pedido-field--cliente">
+                                    <label class="campo-label" for="pmCliente">Cliente</label>
+                                    <input type="text" id="pmCliente" list="pmClientesDatalist" placeholder="Digite ou escolha o nome do cliente">
+                                    <datalist id="pmClientesDatalist"></datalist>
+                                </div>
+                                <div class="campo-com-label lancar-pedido-field">
+                                    <label class="campo-label" for="pmData">Data</label>
+                                    <input type="date" id="pmData">
+                                </div>
+                                <div class="campo-com-label lancar-pedido-field">
+                                    <label class="campo-label" for="pmStatus">Status</label>
+                                    <select id="pmStatus">
+                                        <option value="pendente">Pendente</option>
+                                        <option value="aceito">Aceito</option>
+                                        <option value="em_rota">Em rota</option>
+                                        <option value="pronto_retirada">Pronto pra retirada</option>
+                                        <option value="entregue">Entregue</option>
+                                        <option value="recusado">Cancelado</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="lancar-pedido-divider"></div>
+
+                            <div class="lancar-pedido-card-head lancar-pedido-card-head--compact">
+                                <div class="lancar-pedido-step">02</div>
+                                <div>
+                                    <span class="lancar-pedido-kicker">ITENS</span>
+                                    <h3>Monte o pedido</h3>
+                                    <p class="dica-secao">Selecione um produto com ficha técnica e informe a quantidade.</p>
+                                </div>
+                            </div>
+
+                            <div class="lancar-pedido-add-row">
+                                <div class="campo-com-label lancar-pedido-field lancar-pedido-field--produto">
+                                    <label class="campo-label" for="pmSelectProduto">Produto</label>
+                                    <select id="pmSelectProduto"></select>
+                                </div>
+                                <div class="campo-com-label lancar-pedido-field lancar-pedido-field--qtd">
+                                    <label class="campo-label" for="pmQtdItem">Quantidade</label>
+                                    <input type="text" inputmode="decimal" id="pmQtdItem" value="1">
+                                </div>
+                                <button class="btn-secondary lancar-pedido-add-btn" type="button" onclick="adicionarItemPedidoManual()">+ Adicionar item</button>
+                            </div>
+
+                            <div id="pmListaItens" class="lancar-pedido-itens-vazio">
+                                <div class="lancar-pedido-empty-state lancar-pedido-empty-state--placeholder">
+                                    <span>🛍️</span>
+                                    <strong>Itens do pedido</strong>
+                                    <small>Os produtos adicionados aparecerão aqui.</small>
+                                </div>
+                            </div>
+
+                            <div class="lancar-pedido-divider"></div>
+
+                            <div class="lancar-pedido-card-head lancar-pedido-card-head--compact">
+                                <div class="lancar-pedido-step">03</div>
+                                <div>
+                                    <span class="lancar-pedido-kicker">PAGAMENTO</span>
+                                    <h3>Valores e recebimento</h3>
+                                    <p class="dica-secao">Ajuste desconto, frete e forma de pagamento antes de concluir.</p>
+                                </div>
+                            </div>
+
+                            <div class="lancar-pedido-grid lancar-pedido-grid--financeiro">
+                                <div class="campo-com-label lancar-pedido-field">
+                                    <label class="campo-label" for="pmDesconto">Desconto (%)</label>
+                                    <input type="text" inputmode="decimal" id="pmDesconto" value="0" oninput="renderItensPedidoManual()">
+                                </div>
+                                <div class="campo-com-label lancar-pedido-field">
+                                    <label class="campo-label" for="pmFrete">Frete (R$)</label>
+                                    <input type="text" inputmode="decimal" id="pmFrete" value="0" oninput="renderItensPedidoManual()">
+                                </div>
+                                <div class="campo-com-label lancar-pedido-field lancar-pedido-field--pagamento">
+                                    <label class="campo-label" for="pmFormaPagamento">Forma de pagamento</label>
+                                    <select id="pmFormaPagamento">
+                                        <option value="">Selecione</option>
+                                        <option>Dinheiro</option><option>Cartão de Crédito</option><option>Cartão de Débito</option><option>Pix</option><option>Transferência Bancária</option><option>Outros</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="lancar-pedido-encomenda-box">
+                                <div>
+                                    <span class="lancar-pedido-kicker">ENCOMENDA</span>
+                                    <strong>É uma encomenda com sinal?</strong>
+                                    <small>Ative apenas quando houver entrada antecipada.</small>
+                                </div>
+                                <div class="toggle-sim-nao lancar-pedido-toggle">
+                                    <button type="button" id="btnEncomendaSim" class="toggle-opcao" onclick="definirEhEncomenda(true)">Sim</button>
+                                    <button type="button" id="btnEncomendaNao" class="toggle-opcao selecionado" onclick="definirEhEncomenda(false)">Não</button>
+                                </div>
+                                <input type="hidden" id="pmEhEncomenda" value="nao">
+                            </div>
+
+                            <div id="blocoEncomendaSinal" class="lancar-pedido-sinal-box" style="display:none;">
+                                <div class="produto-admin-linha">
+                                    <div class="campo-com-label lancar-pedido-field">
+                                        <label class="campo-label" for="pmSinalRecebido">Sinal recebido (R$)</label>
+                                        <input type="text" inputmode="decimal" id="pmSinalRecebido" value="0">
+                                    </div>
+                                    <div class="campo-com-label lancar-pedido-field">
+                                        <label class="campo-label">Restante já recebido também?</label>
+                                        <div class="toggle-sim-nao lancar-pedido-toggle lancar-pedido-toggle--inline">
+                                            <button type="button" id="btnRestanteNao" class="toggle-opcao selecionado" onclick="definirRestanteJaRecebido(false)">Não</button>
+                                            <button type="button" id="btnRestanteSim" class="toggle-opcao" onclick="definirRestanteJaRecebido(true)">Sim</button>
+                                        </div>
+                                        <input type="hidden" id="pmRestanteJaRecebido" value="nao">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="campo-com-label lancar-pedido-field lancar-pedido-observacoes">
+                                <label class="campo-label" for="pmObs">Observações</label>
+                                <textarea id="pmObs" class="campo-adicionais" rows="3" placeholder="Ex: retirar às 18h, sem cebola, pagamento na entrega..."></textarea>
+                            </div>
+
+                            <button class="btn-salvar-ordem lancar-pedido-save" id="btnSalvarPedidoManual" onclick="salvarPedidoManual()">Salvar Pedido</button>
+                            <p id="msgPedidoManual" class="ordem-categorias-msg lancar-pedido-msg"></p>
+                        </div>
+
+                        <aside class="loja-status-card lancar-pedido-card lancar-pedido-card--resumo" aria-label="Resumo do pedido atual">
+                            <span class="lancar-pedido-kicker">RESUMO</span>
+                            <h3>Conferência do pedido</h3>
+                            <p class="dica-secao">Acompanhe os valores enquanto monta o atendimento.</p>
+
+                            <div class="lancar-pedido-resumo-valores">
+                                <div class="lancar-pedido-resumo-linha">
+                                    <span>Subtotal</span>
+                                    <strong id="pmSubtotalTemp">R$ 0,00</strong>
+                                </div>
+                                <div class="lancar-pedido-resumo-total">
+                                    <span>Total do pedido</span>
+                                    <strong id="pmTotalTemp">R$ 0,00</strong>
+                                </div>
+                            </div>
+
+                            <div class="lancar-pedido-resumo-note">
+                                <span>💡</span>
+                                <p>Desconto e frete são atualizados automaticamente no total acima.</p>
+                            </div>
+                        </aside>
+                    </div>
+
+                    <div class="loja-status-card lancar-pedido-historico-card">
+                        <div class="lancar-pedido-historico-head">
+                            <div>
+                                <span class="lancar-pedido-eyebrow">HISTÓRICO OPERACIONAL</span>
+                                <h3>🧾 Todos os Pedidos</h3>
+                                <p class="dica-secao">Pedidos manuais e do cardápio em uma única visão. Use as ações da última coluna para WhatsApp, impressão, edição ou exclusão.</p>
+                            </div>
+                            <span class="lancar-pedido-table-badge">Até 1000 pedidos</span>
+                        </div>
+                        <div id="listaPedidosManuais" class="lancar-pedido-tabela-wrap"></div>
                     </div>
                 </div>
 
