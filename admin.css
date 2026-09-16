@@ -5408,7 +5408,7 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
    IDs, eventos e lógica permanecem no admin.js.
    ========================================================= */
 .gestao-subconteudo[data-subtab-content="sub-pedidos-manuais"].lancar-pedido-premium {
-    width: min(1180px, calc(100vw - 44px));
+    width: min(1080px, calc(100vw - 44px));
     margin: 0 auto;
     padding-bottom: 30px;
 }
@@ -5494,14 +5494,23 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
 
 .lancar-pedido-premium .lancar-pedido-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 270px;
-    gap: 14px;
+    width: min(100%, 1020px);
+    margin: 0 auto;
+    grid-template-columns: minmax(0, 1fr) 250px;
+    gap: 16px;
     align-items: start;
 }
 
 .lancar-pedido-premium .lancar-pedido-card {
     padding: 20px;
     background: rgba(255,255,255,.96);
+}
+
+.lancar-pedido-premium .lancar-pedido-hero,
+.lancar-pedido-premium .lancar-pedido-historico-card {
+    width: min(100%, 1020px);
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .lancar-pedido-premium .lancar-pedido-card--form {
@@ -5895,6 +5904,12 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
 @media (max-width: 980px) {
     .gestao-subconteudo[data-subtab-content="sub-pedidos-manuais"].lancar-pedido-premium {
         width: min(100%, calc(100vw - 30px));
+    }
+
+    .lancar-pedido-premium .lancar-pedido-hero,
+    .lancar-pedido-premium .lancar-pedido-layout,
+    .lancar-pedido-premium .lancar-pedido-historico-card {
+        width: 100%;
     }
 
     .lancar-pedido-premium .lancar-pedido-layout {
