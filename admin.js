@@ -6159,75 +6159,81 @@ function montarLinhaProduto(id, produto) {
             <div class="produto-topo-ajuda" id="prodTopoAjuda_${id}" aria-live="polite">${obterStatusProdutoAdmin(produto) === 'ativo' ? 'Disponível para venda no cardápio.' : (obterStatusProdutoAdmin(produto) === 'em_falta' ? 'Continua visível no cardápio como esgotado.' : 'Fica oculto do cardápio até ser ativado novamente.')}</div>
         </div>
 
-        <div class="produto-config-grid">
-            <div class="campo-vincular-ficha-tecnica">
-                <label class="campo-label">📋 Vincular à Ficha Técnica</label>
-                <span class="campo-ajuda-inline">Opcional — consome estoque automaticamente</span>
-                <select id="prodFichaTecnica_${id}">
-                    <option value="">— Nenhuma —</option>
-                    ${fichaTecnica.map(ft => `<option value="${ft.id}" ${produto.fichaTecnicaId === ft.id ? 'selected' : ''}>${ft.nome}</option>`).join('')}
-                </select>
-            </div>
-            ${htmlAgendaDisponibilidadeProduto(id, produto)}
-        </div>
+        <div class="produto-editor-grid">
+            <div class="produto-editor-col produto-editor-col--principal">
+            <textarea id="prodDesc_${id}" placeholder="Descrição" rows="2">${produto.descricao || ''}</textarea>
 
-        <div class="produto-oferta-grid">
-            <label class="produto-disponivel-check campo-oferta-check">
-                <input type="checkbox" id="prodOfertaAtiva_${id}" ${produto.ofertaAtiva ? 'checked' : ''}> 🎁 Sugerir este produto como oferta no carrinho
-            </label>
-            <div class="campo-oferta-preco">
-                <label class="campo-label" for="prodOfertaPreco_${id}">Preço especial na oferta</label>
-                <input type="text" inputmode="decimal" id="prodOfertaPreco_${id}" value="${produto.ofertaPrecoEspecial != null ? produto.ofertaPrecoEspecial : ''}" placeholder="Opcional — vazio usa o preço normal">
-            </div>
-        </div>
-        <textarea id="prodDesc_${id}" placeholder="Descrição" rows="2">${produto.descricao || ''}</textarea>
-
-        <div class="produto-admin-linha">
-            <div class="campo-com-label">
-                <label class="campo-label">Preço atual</label>
-                <input type="text" inputmode="decimal" id="prodPreco_${id}" value="${produto.preco != null ? produto.preco : ''}" placeholder="Ex: 45,00">
-            </div>
-            <div class="campo-com-label">
-                <label class="campo-label">Preço "de" (oferta — precisa ser MAIOR)</label>
-                <input type="text" inputmode="decimal" id="prodPrecoOriginal_${id}" value="${produto.precoOriginal != null ? produto.precoOriginal : ''}" placeholder="Ex: 55,00 (opcional)">
-            </div>
-        </div>
-
-        <div class="produto-fotos-grid">
-            <div class="produto-upload-bloco">
-                <label class="campo-label">📷 Foto principal</label>
-                <input type="hidden" id="prodImagens_${id}" value="${(Array.isArray(produto.imagens) && produto.imagens.length ? produto.imagens : (produto.imagem ? [produto.imagem] : [])).join(', ')}">
-                <div class="produto-upload-linha">
-                    <input type="file" id="prodUploadFoto_${id}" accept="image/*">
-                    <button type="button" class="btn-secondary" onclick="enviarFotoProduto('${id}')">📤 Enviar foto</button>
+            <div class="produto-admin-linha produto-precos-grid">
+                <div class="campo-com-label">
+                    <label class="campo-label">Preço atual</label>
+                    <input type="text" inputmode="decimal" id="prodPreco_${id}" value="${produto.preco != null ? produto.preco : ''}" placeholder="Ex: 45,00">
                 </div>
-                <p id="prodMsgUpload_${id}" class="ordem-categorias-msg"></p>
-                <div id="previaImagens_${id}" class="previa-imagens"></div>
-            </div>
-
-            <div class="produto-upload-bloco produto-upload-carrossel">
-                <label class="campo-label">🎠 Foto do Carrossel <span class="campo-ajuda-inline">opcional — sem foto usa a principal</span></label>
-                <input type="hidden" id="prodImagemCarrossel_${id}" value="${produto.imagemCarrossel || ''}">
-                <div class="produto-upload-linha">
-                    <input type="file" id="prodUploadCarrossel_${id}" accept="image/*">
-                    <button type="button" class="btn-secondary" onclick="enviarFotoCarrossel('${id}')">📤 Enviar foto do carrossel</button>
+                <div class="campo-com-label">
+                    <label class="campo-label">Preço "de" (oferta — precisa ser MAIOR)</label>
+                    <input type="text" inputmode="decimal" id="prodPrecoOriginal_${id}" value="${produto.precoOriginal != null ? produto.precoOriginal : ''}" placeholder="Ex: 55,00 (opcional)">
                 </div>
-                <p id="prodMsgUploadCarrossel_${id}" class="ordem-categorias-msg"></p>
+            </div>
+
+            <div class="produto-meta-grid">
+                <div class="campo-com-label">
+                    <label class="campo-label">Categoria</label>
+                    <input type="text" id="prodCategoria_${id}" value="${produto.categoria || ''}" placeholder="Categoria" list="categoriasDatalist">
+                </div>
+                <div class="campo-com-label">
+                    <label class="campo-label">Sabores/opções <span class="campo-ajuda-inline">separe por vírgula</span></label>
+                    <input type="text" id="prodVariantes_${id}" value="${(produto.variantes || []).join(', ')}" placeholder="Ex: Chocolate, Morango, Baunilha" oninput="atualizarPreviaVariantes('${id}')">
+                    <div id="previaVariantes_${id}" class="previa-variantes"></div>
+                </div>
+            </div>
+            </div>
+
+            <div class="produto-editor-col produto-editor-col--operacional">
+            <div class="produto-config-grid">
+                <div class="campo-vincular-ficha-tecnica">
+                    <label class="campo-label">📋 Vincular à Ficha Técnica</label>
+                    <span class="campo-ajuda-inline">Opcional — consome estoque automaticamente</span>
+                    <select id="prodFichaTecnica_${id}">
+                        <option value="">— Nenhuma —</option>
+                        ${fichaTecnica.map(ft => `<option value="${ft.id}" ${produto.fichaTecnicaId === ft.id ? 'selected' : ''}>${ft.nome}</option>`).join('')}
+                    </select>
+                </div>
+                ${htmlAgendaDisponibilidadeProduto(id, produto)}
+            </div>
+
+            <div class="produto-oferta-grid">
+                <label class="produto-disponivel-check campo-oferta-check">
+                    <input type="checkbox" id="prodOfertaAtiva_${id}" ${produto.ofertaAtiva ? 'checked' : ''}> 🎁 Sugerir este produto como oferta no carrinho
+                </label>
+                <div class="campo-oferta-preco">
+                    <label class="campo-label" for="prodOfertaPreco_${id}">Preço especial na oferta</label>
+                    <input type="text" inputmode="decimal" id="prodOfertaPreco_${id}" value="${produto.ofertaPrecoEspecial != null ? produto.ofertaPrecoEspecial : ''}" placeholder="Opcional — vazio usa o preço normal">
+                </div>
+            </div>
+
+            <div class="produto-fotos-grid">
+                <div class="produto-upload-bloco">
+                    <label class="campo-label">📷 Foto principal</label>
+                    <input type="hidden" id="prodImagens_${id}" value="${(Array.isArray(produto.imagens) && produto.imagens.length ? produto.imagens : (produto.imagem ? [produto.imagem] : [])).join(', ')}">
+                    <div class="produto-upload-linha">
+                        <input type="file" id="prodUploadFoto_${id}" accept="image/*">
+                        <button type="button" class="btn-secondary" onclick="enviarFotoProduto('${id}')">📤 Enviar foto</button>
+                    </div>
+                    <p id="prodMsgUpload_${id}" class="ordem-categorias-msg"></p>
+                    <div id="previaImagens_${id}" class="previa-imagens"></div>
+                </div>
+
+                <div class="produto-upload-bloco produto-upload-carrossel">
+                    <label class="campo-label">🎠 Foto do Carrossel <span class="campo-ajuda-inline">opcional — sem foto usa a principal</span></label>
+                    <input type="hidden" id="prodImagemCarrossel_${id}" value="${produto.imagemCarrossel || ''}">
+                    <div class="produto-upload-linha">
+                        <input type="file" id="prodUploadCarrossel_${id}" accept="image/*">
+                        <button type="button" class="btn-secondary" onclick="enviarFotoCarrossel('${id}')">📤 Enviar foto do carrossel</button>
+                    </div>
+                    <p id="prodMsgUploadCarrossel_${id}" class="ordem-categorias-msg"></p>
+                </div>
+            </div>
             </div>
         </div>
-
-        <div class="produto-meta-grid">
-            <div class="campo-com-label">
-                <label class="campo-label">Categoria</label>
-                <input type="text" id="prodCategoria_${id}" value="${produto.categoria || ''}" placeholder="Categoria" list="categoriasDatalist">
-            </div>
-            <div class="campo-com-label">
-                <label class="campo-label">Sabores/opções <span class="campo-ajuda-inline">separe por vírgula</span></label>
-                <input type="text" id="prodVariantes_${id}" value="${(produto.variantes || []).join(', ')}" placeholder="Ex: Chocolate, Morango, Baunilha" oninput="atualizarPreviaVariantes('${id}')">
-                <div id="previaVariantes_${id}" class="previa-variantes"></div>
-            </div>
-        </div>
-
         <div id="blocoAdicionais_${id}" style="display:${adicionaisAtivo ? 'block' : 'none'};">
             <label class="campo-label">
                 Grupos de adicionais (opcional) — um grupo por linha, formato:

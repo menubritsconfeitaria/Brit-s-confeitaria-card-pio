@@ -9333,3 +9333,330 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
         grid-template-columns: 1fr;
     }
 }
+
+/* ============================================================
+   PRODUTOS PREMIUM V6 — composição compacta, alinhada e sem vazios
+   Somente apresentação da aba Produtos. O editor agora usa duas
+   colunas independentes, evitando que um bloco alto estique o bloco
+   vizinho (especialmente Preço atual / Preço de oferta).
+   ============================================================ */
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-item {
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+        "topo"
+        "editor"
+        "adicionais"
+        "acoes" !important;
+    gap: 7px !important;
+    padding: 12px 13px 11px !important;
+    align-items: start;
+}
+
+/* Duas colunas com fluxo independente: não há mais linhas compartilhadas
+   forçando grandes áreas vazias entre descrição, preços, fotos e oferta. */
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-grid {
+    grid-area: editor;
+    display: grid;
+    grid-template-columns: minmax(0, 1.06fr) minmax(340px, .94fr);
+    gap: 9px 11px;
+    align-items: start;
+    min-width: 0;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+}
+
+/* Cabeçalho operacional: Status, opções, Estoque e Encomenda na mesma linha-base. */
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-topo-premium {
+    grid-template-columns: minmax(250px, .84fr) minmax(0, 1.76fr) !important;
+    gap: 3px 12px !important;
+    padding: 0 0 7px !important;
+    align-items: start;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-identidade-estoque .produto-nome-topo {
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 6px 9px !important;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-controles-topo {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex-wrap: nowrap;
+    gap: 5px !important;
+    min-height: 34px !important;
+    padding: 0 !important;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-controles-titulo {
+    display: inline-flex !important;
+    align-items: center !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    margin: 0 2px 0 0 !important;
+    padding: 0 2px !important;
+    line-height: 1 !important;
+    font-size: .63rem !important;
+    font-weight: 800;
+    color: #806d5f;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-status-opcoes {
+    display: inline-flex !important;
+    align-items: center !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    margin: 0 !important;
+    padding: 2px !important;
+    box-sizing: border-box;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-status-opcao {
+    height: 22px !important;
+    min-height: 22px !important;
+    padding: 3px 7px !important;
+    box-sizing: border-box;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-status-opcao span {
+    font-size: .67rem !important;
+    line-height: 1 !important;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-status-ponto {
+    width: 6px;
+    height: 6px;
+    flex-basis: 6px;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-topo-toggle {
+    display: inline-flex !important;
+    align-items: center !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    margin: 0 !important;
+    padding: 3px 7px !important;
+    box-sizing: border-box;
+    font-size: .67rem !important;
+    line-height: 1 !important;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-topo-toggle input {
+    margin: 0 2px 0 0;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-topo-ajuda {
+    grid-column: 2 !important;
+    min-height: 0 !important;
+    margin: -1px 0 0 !important;
+    padding: 0 2px !important;
+    font-size: .58rem !important;
+    line-height: 1.15 !important;
+}
+
+/* Descrição curta e útil: continua redimensionável, mas deixa de criar um grande vazio. */
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--principal > textarea[id^="prodDesc_"] {
+    width: 100%;
+    height: 48px !important;
+    min-height: 48px !important;
+    margin: 0 !important;
+    padding: 8px 9px !important;
+    border-radius: 9px !important;
+    box-sizing: border-box;
+    line-height: 1.32 !important;
+    resize: vertical;
+}
+
+/* Preços: mesmo eixo, mesma altura e nenhuma área bege esticada pelas fotos. */
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-precos-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, .72fr) minmax(0, 1.28fr);
+    gap: 7px !important;
+    align-items: end;
+    align-self: start;
+    width: 100%;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 7px 8px !important;
+    border: 1px solid #eee4d9;
+    border-radius: 10px !important;
+    background: #fcfaf7;
+    box-sizing: border-box;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-precos-grid .campo-com-label {
+    min-width: 0;
+    justify-content: flex-start;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-precos-grid .campo-label {
+    display: flex;
+    align-items: flex-end;
+    min-height: 18px;
+    margin: 0 0 3px !important;
+    font-size: .62rem !important;
+    line-height: 1.12;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-precos-grid input {
+    width: 100%;
+    height: 31px !important;
+    min-height: 31px !important;
+    padding: 5px 8px !important;
+    box-sizing: border-box;
+    font-size: .71rem !important;
+}
+
+/* Categoria e sabores seguem o mesmo ritmo visual dos preços. */
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--principal .produto-meta-grid {
+    display: grid;
+    grid-template-columns: minmax(145px, .55fr) minmax(0, 1.45fr);
+    gap: 7px;
+    align-items: start;
+    width: 100%;
+    margin: 0 !important;
+    padding: 7px 8px !important;
+    border-radius: 10px !important;
+    box-sizing: border-box;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--principal .produto-meta-grid input {
+    height: 31px !important;
+    min-height: 31px !important;
+    padding: 5px 8px !important;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--principal .previa-variantes {
+    margin: 3px 0 0 !important;
+    line-height: 1.15;
+}
+
+/* Coluna operacional mais densa: ficha/agenda, oferta e fotos ficam encadeadas. */
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .produto-config-grid,
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .produto-oferta-grid,
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .produto-fotos-grid {
+    width: 100%;
+    margin: 0 !important;
+    box-sizing: border-box;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .produto-config-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 7px;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .campo-vincular-ficha-tecnica,
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .produto-agenda-card {
+    min-height: 52px !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .produto-agenda-card > summary {
+    min-height: 40px !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+}
+
+/* Oferta no carrinho compacta e alinhada com o preço atual. */
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .produto-oferta-grid {
+    grid-template-columns: minmax(0, 1.15fr) minmax(150px, .85fr);
+    gap: 7px;
+    align-items: end;
+    padding: 6px 8px !important;
+    border-radius: 10px !important;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .campo-oferta-check {
+    min-height: 31px;
+    margin: 0;
+    align-items: center;
+    white-space: normal;
+    line-height: 1.2;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .campo-oferta-preco .campo-label {
+    min-height: 15px;
+    margin: 0 0 3px !important;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .campo-oferta-preco input {
+    height: 31px !important;
+    min-height: 31px !important;
+    padding: 5px 8px !important;
+}
+
+/* Fotos menores e sem caixas altas. A miniatura continua visível para conferência. */
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .produto-fotos-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 7px;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .produto-upload-bloco {
+    min-height: 68px !important;
+    padding: 6px 7px !important;
+    border-radius: 9px !important;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .produto-upload-linha {
+    gap: 4px !important;
+    margin-top: 2px !important;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .produto-upload-linha input[type="file"] {
+    font-size: .57rem !important;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .produto-upload-linha .btn-secondary {
+    min-height: 27px !important;
+    padding: 5px 7px !important;
+    font-size: .59rem !important;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .previa-imagens {
+    margin: 3px 0 0 !important;
+    min-height: 0;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .previa-imagem-thumb {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 7px !important;
+}
+
+/* Adicionais e ações fecham o card sem excesso de altura. */
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-item > [id^="blocoAdicionais_"] {
+    padding: 7px 8px !important;
+    border-radius: 10px !important;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-item > [id^="blocoAdicionais_"] .campo-adicionais {
+    min-height: 48px !important;
+    height: 48px;
+    padding: 7px 8px !important;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-acoes {
+    gap: 6px !important;
+    margin-top: 0 !important;
+    padding-top: 6px !important;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-acoes button {
+    min-height: 30px !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+}
+
+@media (max-width: 1180px) {
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-grid {
+        grid-template-columns: 1fr;
+        gap: 7px;
+    }
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .produto-config-grid,
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .produto-fotos-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 900px) {
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-topo-premium {
+        grid-template-columns: 1fr !important;
+    }
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-controles-topo {
+        flex-wrap: wrap;
+    }
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-topo-ajuda {
+        grid-column: 1 !important;
+    }
+}
+
+@media (max-width: 680px) {
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-precos-grid,
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--principal .produto-meta-grid,
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .produto-config-grid,
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .produto-oferta-grid,
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .produto-fotos-grid {
+        grid-template-columns: 1fr;
+    }
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-controles-titulo {
+        flex-basis: 100%;
+        height: auto !important;
+        min-height: 18px !important;
+    }
+}
