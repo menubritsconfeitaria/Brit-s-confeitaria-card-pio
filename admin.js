@@ -7283,6 +7283,49 @@ function formatarHorario(timestamp) {
 
 // Guarda os pedidos do fechamento em memória, pra usar nos botões de copiar/marcar sem buscar de novo
 let fechamentoPedidosAtuais = {};
+// A marca de "já lançado" fica fora de /pedidos para não tocar no status, estoque ou gatilhos do pedido.
+// Ela é persistida em /configuracao/fechamentoLancados, que já é área administrativa do painel.
+let fechamentoLancadosAtuais = {};
+
+function pedidoEstaLancadoFechamento(id) {
+    const registro = fechamentoLancadosAtuais[id];
+    return registro === true || !!(registro && registro.lancado !== false);
+}
+
+function atualizarBotaoLancadoFechamento(id) {
+    const btn = document.getElementById('btnFechamentoLancado-' + id);
+    if (!btn) return;
+    const lancado = pedidoEstaLancadoFechamento(id);
+    btn.classList.toggle('lancado', lancado);
+    btn.textContent = lancado ? '✅ Já lançado no sistema' : '☐ Marcar como lançado';
+}
+
+async function alternarLancadoFechamento(id) {
+    if (!id || !fechamentoPedidosAtuais[id]) return;
+
+    const estavaLancado = pedidoEstaLancadoFechamento(id);
+    const btn = document.getElementById('btnFechamentoLancado-' + id);
+    if (btn) btn.disabled = true;
+
+    try {
+        const ref = db.ref('configuracao/fechamentoLancados/' + id);
+        if (estavaLancado) {
+            await ref.remove();
+            delete fechamentoLancadosAtuais[id];
+        } else {
+            await ref.set({
+                lancado: true,
+                lancadoEm: firebase.database.ServerValue.TIMESTAMP
+            });
+            fechamentoLancadosAtuais[id] = { lancado: true, lancadoEm: Date.now() };
+        }
+        atualizarBotaoLancadoFechamento(id);
+    } catch (err) {
+        alert('Não foi possível atualizar a marcação de lançamento: ' + err.message);
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
 
 function carregarFechamentoDiario() {
     const dataInicioInput = document.getElementById('fechamentoDataInicio').value; // formato yyyy-mm-dd
@@ -7297,9 +7340,13 @@ function carregarFechamentoDiario() {
     const inicio = new Date(anoI, mesI - 1, diaI, 0, 0, 0, 0).getTime();
     const fim = new Date(anoF, mesF - 1, diaF, 23, 59, 59, 999).getTime();
 
-    // Busca todos os pedidos e filtra o período aqui mesmo (mais confiável do que depender
-    // de um índice do Firebase, que exigiria configuração extra na regra de segurança)
-    db.ref('pedidos').once('value').then(snap => {
+    // Busca os pedidos e, em paralelo, as marcações administrativas de "já lançado".
+    // A marcação fica separada de /pedidos para não disparar nenhuma lógica de status/estoque.
+    Promise.all([
+        db.ref('pedidos').once('value'),
+        db.ref('configuracao/fechamentoLancados').once('value')
+    ]).then(([snap, lancadosSnap]) => {
+        fechamentoLancadosAtuais = lancadosSnap.val() || {};
         let pedidosDoDia = [];
         snap.forEach(child => {
             const p = child.val();
@@ -7338,15 +7385,17 @@ function renderFechamentoDiario(pedidos, dataInicioInput, dataFimInput) {
     const cancelados = pedidos.filter(p => p.status === 'recusado');
     const validos = pedidos.filter(p => p.status !== 'recusado');
     const concluidos = pedidos.filter(p => p.status === 'entregue');
-    const emAndamento = pedidos.filter(p => ['pendente', 'aceito', 'em_rota', 'pronto_retirada'].includes(p.status));
-    const totalValidos = validos.reduce((s, p) => s + totalDoPedido(p), 0);
+    const emAndamento = pedidos.filter(p => p.status !== 'entregue' && p.status !== 'recusado');
+    const totalConcluidos = concluidos.reduce((s, p) => s + totalDoPedido(p), 0);
+    const totalEmAndamento = emAndamento.reduce((s, p) => s + totalDoPedido(p), 0);
 
     const resumoHtml = `
-        <div class="pedido-total-linha"><span>📦 Pedidos recebidos</span><span><strong>${pedidos.length}</strong></span></div>
+        <div class="pedido-total-linha"><span>📦 Pedidos no período</span><span><strong>${pedidos.length}</strong></span></div>
         <div class="pedido-total-linha"><span>✅ Pedidos concluídos</span><span><strong>${concluidos.length}</strong></span></div>
         <div class="pedido-total-linha"><span>⏳ Em andamento</span><span><strong>${emAndamento.length}</strong></span></div>
         <div class="pedido-total-linha"><span>❌ Cancelados</span><span><strong>${cancelados.length}</strong></span></div>
-        <div class="pedido-total-linha total-final"><span>💰 Total dos pedidos válidos</span><span><strong>${formatarPreco(totalValidos)}</strong></span></div>
+        <div class="pedido-total-linha"><span>🕒 Valor em andamento <small>(não contabilizado)</small></span><span><strong>${formatarPreco(totalEmAndamento)}</strong></span></div>
+        <div class="pedido-total-linha total-final"><span>💰 Vendas concluídas</span><span><strong>${formatarPreco(totalConcluidos)}</strong></span></div>
     `;
 
     const listaValidosHtml = validos.map(p => montarCardPedidoFechamento(p)).join('');
@@ -7355,27 +7404,27 @@ function renderFechamentoDiario(pedidos, dataInicioInput, dataFimInput) {
         ${cancelados.map(p => montarCardPedidoFechamento(p)).join('')}
     ` : '';
 
-    // Produtos vendidos (só conta pedidos válidos, não cancelados)
+    // Produtos vendidos: para fechamento financeiro, só contabiliza pedidos concluídos.
     const produtosAgregados = {};
-    validos.forEach(p => (p.itens || []).forEach(item => {
+    concluidos.forEach(p => (p.itens || []).forEach(item => {
         if (!produtosAgregados[item.nome]) produtosAgregados[item.nome] = { quantidade: 0, subtotal: 0 };
         produtosAgregados[item.nome].quantidade += item.quantidade;
         produtosAgregados[item.nome].subtotal += (item.preco || 0) * item.quantidade;
     }));
     const produtosOrdenados = Object.entries(produtosAgregados).sort((a, b) => b[1].quantidade - a[1].quantidade);
     const produtosHtml = produtosOrdenados.length > 0 ? `
-        <h3 style="margin-top:20px;">🛍️ Produtos vendidos no dia</h3>
+        <h3 style="margin-top:20px;">🛍️ Produtos dos pedidos concluídos</h3>
         ${produtosOrdenados.map(([nome, dados]) => `<div class="pedido-total-linha"><span>${nome} — ${dados.quantidade} un.</span><span>${formatarPreco(dados.subtotal)}</span></div>`).join('')}
     ` : '';
 
-    // Formas de pagamento (só pedidos válidos, e só as formas que realmente aparecem)
+    // Formas de pagamento: soma somente vendas concluídas, sem misturar pedidos em andamento.
     const pagamentosAgregados = {};
-    validos.forEach(p => {
+    concluidos.forEach(p => {
         const forma = p.formaPagamento || 'Não informado';
         pagamentosAgregados[forma] = (pagamentosAgregados[forma] || 0) + totalDoPedido(p);
     });
     const pagamentosHtml = Object.keys(pagamentosAgregados).length > 0 ? `
-        <h3 style="margin-top:20px;">💳 Formas de pagamento</h3>
+        <h3 style="margin-top:20px;">💳 Formas de pagamento das vendas concluídas</h3>
         ${Object.entries(pagamentosAgregados).map(([forma, valor]) => `<div class="pedido-total-linha"><span>${forma}</span><span>${formatarPreco(valor)}</span></div>`).join('')}
     ` : '';
 
@@ -7401,6 +7450,7 @@ function renderFechamentoDiario(pedidos, dataInicioInput, dataFimInput) {
 function montarCardPedidoFechamento(p) {
     const statusLabel = STATUS_LABELS_FECHAMENTO[p.status] || p.status;
     const tipoLabel = p.tipoEntrega === 'entrega' ? '🛵 Delivery' : (p.tipoEntrega === 'retirada' ? '🏪 Retirada no local' : 'Não informado');
+    const lancado = pedidoEstaLancadoFechamento(p.id);
     const itensHtml = (p.itens || []).map(item =>
         `<div class="pedido-total-linha"><span>${item.quantidade}x ${item.nome}${item.adicionaisTexto ? ` <em>(${item.adicionaisTexto})</em>` : ''}</span><span>${formatarPreco((item.preco || 0) * item.quantidade)}</span></div>`
     ).join('');
@@ -7427,6 +7477,7 @@ function montarCardPedidoFechamento(p) {
 
         <div class="fechamento-pedido-acoes">
             <button class="btn-secondary" onclick="copiarPedidoIndividual('${p.id}')">📋 Copiar pedido</button>
+            <button id="btnFechamentoLancado-${p.id}" class="btn-lancado${lancado ? ' lancado' : ''}" onclick="alternarLancadoFechamento('${p.id}')">${lancado ? '✅ Já lançado no sistema' : '☐ Marcar como lançado'}</button>
         </div>
     </div>`;
 }
@@ -7469,15 +7520,19 @@ function copiarTodosPedidos(dataFormatada) {
     const todos = Object.values(fechamentoPedidosAtuais).sort((a, b) => (a.numero || a.timestamp || 0) - (b.numero || b.timestamp || 0));
     if (todos.length === 0) return;
 
-    const validos = todos.filter(p => p.status !== 'recusado');
-    const totalDia = validos.reduce((s, p) => s + totalDoPedido(p), 0);
+    const concluidos = todos.filter(p => p.status === 'entregue');
+    const emAndamento = todos.filter(p => p.status !== 'entregue' && p.status !== 'recusado');
+    const totalConcluido = concluidos.reduce((s, p) => s + totalDoPedido(p), 0);
+    const totalEmAndamento = emAndamento.reduce((s, p) => s + totalDoPedido(p), 0);
 
     let texto = `📋 FECHAMENTO DE PEDIDOS\n${LOJA_CONFIG.nome.toUpperCase()}\nData: ${dataFormatada}\n\n--------------------------------\n\n`;
     todos.forEach(p => {
         texto += montarTextoPedido(p);
         texto += `\n--------------------------------\n\n`;
     });
-    texto += `TOTAL DO DIA: ${formatarPreco(totalDia)}\nPEDIDOS: ${todos.length}\n`;
+    texto += `TOTAL CONCLUÍDO: ${formatarPreco(totalConcluido)}\n`;
+    texto += `EM ANDAMENTO (NÃO CONTABILIZADO): ${formatarPreco(totalEmAndamento)}\n`;
+    texto += `PEDIDOS NO FILTRO: ${todos.length}\n`;
 
     copiarTexto(texto);
 }
