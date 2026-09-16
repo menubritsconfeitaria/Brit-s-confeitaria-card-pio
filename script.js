@@ -346,7 +346,6 @@ function aplicarConfigDaLoja(config) {
 aplicarConfigDaLoja(LOJA_CONFIG); // aplica a configuração real assim que a página carrega
 
 let lojaAbertaAtual = true;
-let lojaPausadaAtual = false; // pausa operacional bloqueia novos pedidos sem fechar o cardápio
 let pagamentoOnlineAtivo = false; // só vira true se a loja ativou isso no painel
 let adicionaisAtivo = false; // idem, pro recurso de adicionais por produto
 let agendamentoAtivo = false; // idem, pro recurso de encomenda com data agendada
@@ -435,8 +434,7 @@ function atualizarStatusLoja(config) {
     // real da loja, a pessoa vendo a prévia precisa ver o site "no seu melhor momento"
     if (modoDemoAtivo) {
         lojaAbertaAtual = true;
-        lojaPausadaAtual = false;
-        banner.classList.remove('loja-fechada', 'loja-pausada');
+        banner.classList.remove('loja-fechada');
         banner.classList.add('loja-aberta');
         texto.textContent = '🟢 Estamos abertos! Pode fazer seu pedido.';
         if (botaoFinalizarCompra) {
@@ -448,21 +446,6 @@ function atualizarStatusLoja(config) {
 
     const horarios = config && config.horarios;
     const modoManual = config && config.modoManual;
-    const pausada = !!(config && config.pausada);
-
-    lojaPausadaAtual = pausada;
-    if (pausada) {
-        lojaAbertaAtual = false;
-        banner.classList.remove('loja-aberta', 'loja-fechada', 'loja-pausada');
-        banner.classList.add('loja-pausada');
-        texto.textContent = '🟡 Pedidos temporariamente pausados. Voltaremos a atender em breve — o cardápio continua disponível para consulta.';
-        if (botaoFinalizarCompra) {
-            botaoFinalizarCompra.disabled = true;
-            botaoFinalizarCompra.textContent = 'Pedidos temporariamente pausados';
-        }
-        ajustarPosicaoCategorias();
-        return;
-    }
 
     let aberta;
     if (modoManual === 'aberto') aberta = true;
@@ -876,13 +859,45 @@ function idsDaListaCarrossel(valor) {
         .filter(Boolean);
 }
 
-function recalcularCarrosselDestaques(produtosVal, modoSalvo, autoVal, manuaisVal) {
+function dataLocalISOCarrossel() {
+    const agora = new Date();
+    return agora.getFullYear() + '-' + String(agora.getMonth() + 1).padStart(2, '0') + '-' + String(agora.getDate()).padStart(2, '0');
+}
+
+function bannersAtivosCarrossel(valor) {
+    const hoje = dataLocalISOCarrossel();
+    const itens = valor ? Object.entries(valor) : [];
+    return itens
+        .map(([id, banner]) => ({ id, ...(banner || {}) }))
+        .filter(banner => banner.imagem && banner.ativo !== false)
+        .filter(banner => !banner.inicio || banner.inicio <= hoje)
+        .filter(banner => !banner.fim || banner.fim >= hoje)
+        .sort((a, b) => (Number(a.ordem) || 999) - (Number(b.ordem) || 999) || (Number(a.criadoEm) || 0) - (Number(b.criadoEm) || 0))
+        .map(banner => ({ ...banner, tipo: 'banner' }));
+}
+
+function carrosselLiberadoNoPlano() {
+    // Compatibilidade: clientes antigos sem a chave 'carrossel' continuam como estavam
+    // até o recurso ser configurado explicitamente no Painel Mestre.
+    return recursosLiberadosCardapio == null ||
+        recursosLiberadosCardapio.carrossel == null ||
+        !!recursosLiberadosCardapio.carrossel;
+}
+
+function recalcularCarrosselDestaques(produtosVal, modoSalvo, autoVal, manuaisVal, bannersVal) {
+    if (!carrosselLiberadoNoPlano()) {
+        const container = document.getElementById('carrosselDestaques');
+        if (container) container.style.display = 'none';
+        if (carrosselTimer) { clearInterval(carrosselTimer); carrosselTimer = null; }
+        return;
+    }
     const modo = ['manual','automatico','misto'].includes(modoSalvo) ? modoSalvo : 'automatico';
     const produtoPodeAparecer = (p) => !!(p && p.disponivel === true && !p.escondido);
     const montarDestaqueDoProduto = (id) => {
         const p = produtosVal[id];
         if (!produtoPodeAparecer(p)) return null;
         return {
+            tipo: 'produto',
             id,
             nome: p.nome,
             preco: p.preco,
@@ -898,10 +913,13 @@ function recalcularCarrosselDestaques(produtosVal, modoSalvo, autoVal, manuaisVa
     else if (modo === 'misto') idsEscolhidos = unicos([...idsManuais, ...idsAuto]);
     else idsEscolhidos = idsAuto;
 
-    const destaques = idsEscolhidos
+    const banners = bannersAtivosCarrossel(bannersVal).slice(0, 5);
+    const vagasProdutos = Math.max(0, 5 - banners.length);
+    const produtosDestaque = idsEscolhidos
         .map(montarDestaqueDoProduto)
         .filter(Boolean)
-        .slice(0, 5);
+        .slice(0, vagasProdutos);
+    const destaques = [...banners, ...produtosDestaque];
 
     if (destaques.length > 0) {
         montarCarrossel(destaques);
@@ -926,17 +944,52 @@ function carregarCarrosselDestaques() {
         produtos: db.ref('produtos'),
         modo: db.ref('configuracao/carrosselModo'),
         auto: db.ref('configuracao/carrosselDestaquesAuto'),
-        manuais: db.ref('configuracao/destaquesManuais')
+        manuais: db.ref('configuracao/destaquesManuais'),
+        banners: db.ref('configuracao/bannersCarrossel')
     };
     refsCarrosselDestaques = Object.values(refs);
 
-    const estado = { produtos: {}, modo: 'automatico', auto: [], manuais: [] };
-    const atualizar = () => recalcularCarrosselDestaques(estado.produtos, estado.modo, estado.auto, estado.manuais);
+    const estado = { produtos: {}, modo: 'automatico', auto: [], manuais: [], banners: {} };
+    const atualizar = () => recalcularCarrosselDestaques(estado.produtos, estado.modo, estado.auto, estado.manuais, estado.banners);
 
     refs.produtos.on('value', snap => { estado.produtos = snap.val() || {}; atualizar(); });
     refs.modo.on('value', snap => { estado.modo = snap.val(); atualizar(); });
     refs.auto.on('value', snap => { estado.auto = snap.val() || []; atualizar(); });
     refs.manuais.on('value', snap => { estado.manuais = snap.val() || []; atualizar(); });
+    refs.banners.on('value', snap => { estado.banners = snap.val() || {}; atualizar(); });
+}
+
+function escaparHtmlCarrossel(valor) {
+    return String(valor == null ? '' : valor)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function escaparAtributoCarrossel(valor) {
+    return escaparHtmlCarrossel(valor);
+}
+
+function escaparJsCarrossel(valor) {
+    return String(valor == null ? '' : valor).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+function acaoBannerCarrossel(link) {
+    if (!link) return;
+    if (link.startsWith('#')) {
+        const alvo = document.querySelector(link);
+        if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+    }
+    try {
+        const url = new URL(link, window.location.href);
+        if (url.origin === window.location.origin) window.location.href = url.href;
+        else window.open(url.href, '_blank', 'noopener');
+    } catch (e) {
+        window.location.href = link;
+    }
 }
 
 function montarCarrossel(destaques) {
@@ -952,19 +1005,29 @@ function montarCarrossel(destaques) {
         return;
     }
 
-    trilho.innerHTML = destaquesVisiveis.map(d => `
-        <div class="carrossel-slide" data-produto-id="${d.id || ''}" onclick="irParaProdutoDestaque('${d.id || ''}')">
-            ${d.imagem ? `<img class="carrossel-fundo" src="${d.imagem}" alt="" aria-hidden="true">` : ''}
-            ${d.imagem ? `<img class="carrossel-foto" src="${d.imagem}" alt="${d.nome || 'Produto em destaque'}">` : ''}
-            <div class="carrossel-slide-info">
-                <span class="carrossel-kicker">✨ DESTAQUE DE HOJE</span>
-                <strong>${d.nome || 'Delícia em destaque'}</strong>
-                ${d.preco != null ? `<span class="carrossel-preco">R$ ${Number(d.preco).toFixed(2).replace('.', ',')}</span>` : ''}
-                <span class="carrossel-microcopy">Peça direto pelo site, é rapidinho.</span>
-                <button type="button" class="carrossel-cta" onclick="event.stopPropagation(); acaoCarrosselDestaque('${d.id || ''}')">+ Adicionar ao carrinho</button>
-            </div>
-        </div>
-    `).join('');
+    trilho.innerHTML = destaquesVisiveis.map(d => {
+        if (d.tipo === 'banner') {
+            const linkCodificado = encodeURIComponent(d.link || '');
+            const classeLink = d.link ? ' tem-link' : '';
+            const clique = d.link ? ` onclick="acaoBannerCarrossel(decodeURIComponent('${linkCodificado}'))"` : '';
+            return `
+                <div class="carrossel-slide carrossel-slide-banner${classeLink}"${clique}>
+                    <img class="carrossel-banner-imagem" src="${escaparAtributoCarrossel(d.imagem)}" alt="${escaparAtributoCarrossel(d.titulo || 'Banner de campanha')}">
+                </div>`;
+        }
+        return `
+            <div class="carrossel-slide" data-produto-id="${escaparAtributoCarrossel(d.id || '')}" onclick="irParaProdutoDestaque('${escaparJsCarrossel(d.id || '')}')">
+                ${d.imagem ? `<img class="carrossel-fundo" src="${escaparAtributoCarrossel(d.imagem)}" alt="" aria-hidden="true">` : ''}
+                ${d.imagem ? `<img class="carrossel-foto" src="${escaparAtributoCarrossel(d.imagem)}" alt="${escaparAtributoCarrossel(d.nome || 'Produto em destaque')}">` : ''}
+                <div class="carrossel-slide-info">
+                    <span class="carrossel-kicker">✨ DESTAQUE DE HOJE</span>
+                    <strong>${escaparHtmlCarrossel(d.nome || 'Delícia em destaque')}</strong>
+                    ${d.preco != null ? `<span class="carrossel-preco">R$ ${Number(d.preco).toFixed(2).replace('.', ',')}</span>` : ''}
+                    <span class="carrossel-microcopy">Peça direto pelo site, é rapidinho.</span>
+                    <button type="button" class="carrossel-cta" onclick="event.stopPropagation(); acaoCarrosselDestaque('${escaparJsCarrossel(d.id || '')}')">+ Adicionar ao carrinho</button>
+                </div>
+            </div>`;
+    }).join('');
     bolinhas.innerHTML = destaquesVisiveis.map((_, i) => `<button type="button" class="carrossel-bolinha ${i === 0 ? 'ativa' : ''}" onclick="irParaSlideCarrossel(${i})" aria-label="Ir para destaque ${i + 1}"></button>`).join('');
 
     container.dataset.totalSlides = String(destaquesVisiveis.length);
@@ -1507,18 +1570,13 @@ function atualizarResumoEncomendaCheckout() {
     // Reage na hora se a loja estiver fechada: escolher (ou desmarcar) uma encomenda
     // libera ou trava o botão de finalizar na hora, sem esperar a próxima atualização
     // de status da loja (que só roda a cada 1 minuto)
-    if (botaoFinalizarCompra && !modoDemoAtivo) {
-        if (lojaPausadaAtual) {
+    if (!lojaAbertaAtual && botaoFinalizarCompra && !modoDemoAtivo) {
+        if (dataEncomendaEscolhida) {
+            botaoFinalizarCompra.disabled = false;
+            botaoFinalizarCompra.textContent = 'Finalizar Compra';
+        } else {
             botaoFinalizarCompra.disabled = true;
-            botaoFinalizarCompra.textContent = 'Pedidos temporariamente pausados';
-        } else if (!lojaAbertaAtual) {
-            if (dataEncomendaEscolhida) {
-                botaoFinalizarCompra.disabled = false;
-                botaoFinalizarCompra.textContent = 'Finalizar Compra';
-            } else {
-                botaoFinalizarCompra.disabled = true;
-                botaoFinalizarCompra.textContent = 'No momento, estamos fechados';
-            }
+            botaoFinalizarCompra.textContent = 'No momento, estamos fechados';
         }
     }
 
@@ -1757,79 +1815,9 @@ function atualizarPrecoModalAdicionais() {
     document.getElementById('modalAdicionaisBtnConfirmar').textContent = `Adicionar · ${formatarPrecoTexto(total)}`;
 }
 
-// ---------- Estoque por produto (opcional) ----------
-// Só interfere nos produtos que tiverem "Controlar estoque" ativado no painel.
-// Produtos sem controle continuam funcionando exatamente como antes.
-function limiteEstoqueProduto(produtoId) {
-    const produto = produtos.find(p => p.id === produtoId);
-    if (!produto || !produto.controlarEstoque) return null;
-    return Math.max(0, parseInt(produto.estoqueProduto, 10) || 0);
-}
-
-function quantidadeProdutoNoCarrinho(produtoId) {
-    return carrinho
-        .filter(item => item.produtoId === produtoId)
-        .reduce((soma, item) => soma + (parseInt(item.quantidade, 10) || 0), 0);
-}
-
-function validarQuantidadeEstoqueProduto(produtoId, quantidadeAdicionar, mostrarAviso) {
-    const limite = limiteEstoqueProduto(produtoId);
-    if (limite === null) return true;
-    const atualCarrinho = quantidadeProdutoNoCarrinho(produtoId);
-    const solicitado = atualCarrinho + Math.max(0, parseInt(quantidadeAdicionar, 10) || 0);
-    if (solicitado <= limite) return true;
-    if (mostrarAviso !== false) {
-        const restante = Math.max(0, limite - atualCarrinho);
-        alert(restante > 0
-            ? `No momento, temos ${limite} unidade${limite === 1 ? '' : 's'} ${limite === 1 ? 'disponível' : 'disponíveis'} deste produto. Você ainda pode adicionar ${restante}.`
-            : `Você já adicionou ao carrinho toda a quantidade disponível deste produto (${limite}).`);
-    }
-    return false;
-}
-
-function quantidadeDisponivelParaAdicionar(produtoId, quantidadeSolicitada) {
-    const solicitada = Math.max(0, parseInt(quantidadeSolicitada, 10) || 0);
-    const limite = limiteEstoqueProduto(produtoId);
-    if (limite === null) return solicitada;
-    const jaNoCarrinho = quantidadeProdutoNoCarrinho(produtoId);
-    const restante = Math.max(0, limite - jaNoCarrinho);
-    return Math.min(solicitada, restante);
-}
-
-function validarEstoqueCarrinhoAtual() {
-    const totais = {};
-    carrinho.forEach(item => {
-        if (!item.produtoId) return;
-        totais[item.produtoId] = (totais[item.produtoId] || 0) + (parseInt(item.quantidade, 10) || 0);
-    });
-    for (const [produtoId, quantidade] of Object.entries(totais)) {
-        const limite = limiteEstoqueProduto(produtoId);
-        if (limite !== null && quantidade > limite) {
-            const produto = produtos.find(p => p.id === produtoId);
-            alert(`${produto ? produto.nome : 'Um produto'} tem apenas ${limite} unidade${limite === 1 ? '' : 's'} ${limite === 1 ? 'disponível' : 'disponíveis'}. Ajuste o carrinho antes de finalizar.`);
-            return false;
-        }
-    }
-    return true;
-}
-
 // Adiciona o item de verdade no carrinho — usada tanto pelo caminho direto (produto sem
 // adicionais) quanto pelo modal de adicionais, depois que a pessoa confirma as escolhas
 function finalizarAdicaoAoCarrinho(produtoId, nomeProduto, precoEfetivo, quantidade, observacao, adicionaisTexto, adicionaisEscolhidos) {
-    const quantidadeSolicitada = Math.max(1, parseInt(quantidade, 10) || 1);
-    let quantidadeAdicionar = quantidadeSolicitada;
-    let limitouPorEstoque = false;
-
-    if (produtoId) {
-        quantidadeAdicionar = quantidadeDisponivelParaAdicionar(produtoId, quantidadeSolicitada);
-        if (quantidadeAdicionar <= 0) {
-            const limite = limiteEstoqueProduto(produtoId);
-            alert(`No momento, temos ${limite || 0} unidades disponíveis deste produto. Você já adicionou toda a quantidade disponível ao carrinho.`);
-            return false;
-        }
-        limitouPorEstoque = quantidadeAdicionar < quantidadeSolicitada;
-    }
-
     const carrinhoEstavaVazio = carrinho.length === 0;
     // Só agrupa como "mesmo item" se nome, observação E adicionais escolhidos forem
     // idênticos — senão, dois bolos com recheios diferentes viram uma linha só, errado
@@ -1840,27 +1828,21 @@ function finalizarAdicaoAoCarrinho(produtoId, nomeProduto, precoEfetivo, quantid
     );
 
     if (produtoExistente) {
-        produtoExistente.quantidade += quantidadeAdicionar;
+        produtoExistente.quantidade += quantidade;
         produtoExistente.preco = precoEfetivo; // Garante que o preço fica sempre atualizado (ex: entrou em oferta)
     } else {
         carrinho.push({
             produtoId: produtoId || null,
             nome: nomeProduto,
             preco: precoEfetivo,
-            quantidade: quantidadeAdicionar,
+            quantidade,
             observacao: observacao || null,
             adicionaisTexto: adicionaisTexto || null,
             adicionaisEscolhidos: Array.isArray(adicionaisEscolhidos) ? adicionaisEscolhidos : null
         });
     }
 
-    if (limitouPorEstoque) {
-        const limite = limiteEstoqueProduto(produtoId);
-        const totalNoCarrinho = quantidadeProdutoNoCarrinho(produtoId);
-        alert(`No momento, temos ${limite} unidade${limite === 1 ? '' : 's'} ${limite === 1 ? 'disponível' : 'disponíveis'} deste produto. ${totalNoCarrinho} ${totalNoCarrinho === 1 ? 'unidade foi adicionada' : 'unidades foram adicionadas'} ao carrinho.`);
-    } else {
-        alert(`${quantidadeAdicionar}x ${nomeProduto} adicionado ao carrinho!`);
-    }
+    alert(`${quantidade}x ${nomeProduto} adicionado ao carrinho!`);
     console.log('Carrinho atual:', carrinho);
     salvarCarrinho();
     atualizarCarrinhoHTML();
@@ -1936,9 +1918,7 @@ function renderizarProdutos() {
         produtoItemDiv.classList.add('produto-item');
         if (produto.id) produtoItemDiv.id = 'produto-' + produto.id;
 
-        const estoqueControladoEsgotado = produto.controlarEstoque && (parseInt(produto.estoqueProduto, 10) || 0) <= 0;
-        const produtoDisponivelEfetivo = produto.disponivel !== false && !estoqueControladoEsgotado;
-        if (!produtoDisponivelEfetivo) {
+        if (!produto.disponivel) {
             produtoItemDiv.classList.add('indisponivel');
         }
 
@@ -1967,18 +1947,18 @@ function renderizarProdutos() {
             <p class="preco">
                 ${emOferta ? `<span class="preco-original">R$ ${produto.precoOriginal.toFixed(2).replace('.', ',')}</span> ` : ''}R$ ${produto.preco.toFixed(2).replace('.', ',')}
             </p>
-            ${produtoDisponivelEfetivo && temVariantes
+            ${produto.disponivel && temVariantes
                 ? `<div class="variantes-lista">${produto.variantes.map(v => `<button type="button" class="variante-pill" data-variante="${v}">${v}</button>`).join('')}</div>`
                 : ''
             }
-            ${produtoDisponivelEfetivo ? `
+            ${produto.disponivel ? `
                 <div class="produto-quantidade-stepper">
                     <button type="button" class="qtd-btn qtd-menos">−</button>
                     <span class="qtd-valor">1</span>
                     <button type="button" class="qtd-btn qtd-mais">+</button>
                 </div>` : ''
             }
-            ${produtoDisponivelEfetivo
+            ${produto.disponivel
                 ? `<button class="adicionar-carrinho" data-nome="${produto.nome}" data-preco="${produto.preco}">Adicionar ao Carrinho</button>`
                 : `<button class="adicionar-carrinho indisponivel-btn" disabled>Esgotado</button>`
             }
@@ -2102,9 +2082,6 @@ function renderizarProdutos() {
         });
         stepper.querySelector('.qtd-mais').addEventListener('click', () => {
             const v = parseInt(valorEl.textContent, 10) || 1;
-            // Deixa o cliente informar a quantidade desejada. Se passar do estoque,
-            // o clique em "Adicionar ao Carrinho" coloca automaticamente tudo que
-            // ainda estiver disponível, sem obrigar a pessoa a refazer a quantidade.
             valorEl.textContent = v + 1;
         });
     });
@@ -2534,8 +2511,6 @@ function removerItemCarrinho(index) {
 // Função para gerenciar a quantidade de um item no carrinho
 function gerenciarQuantidade(index, acao) {
     if (acao === 'aumentar') {
-        const item = carrinho[index];
-        if (item && item.produtoId && !validarQuantidadeEstoqueProduto(item.produtoId, 1, true)) return;
         carrinho[index].quantidade++;
     } else if (acao === 'diminuir') {
         if (carrinho[index].quantidade > 1) {
@@ -2591,6 +2566,15 @@ function escutarRecursosLiberadosCardapio() {
     if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
     firebase.database().ref('configuracao/recursosLiberados').on('value', snap => {
         recursosLiberadosCardapio = snap.val();
+        const container = document.getElementById('carrosselDestaques');
+        if (!carrosselLiberadoNoPlano()) {
+            if (container) container.style.display = 'none';
+            if (carrosselTimer) { clearInterval(carrosselTimer); carrosselTimer = null; }
+        } else if (carrosselRealtimeAtivo) {
+            // Os listeners já estão ativos; a próxima atualização mantém o carrossel visível.
+            // Força uma leitura leve do nó de banners para recalcular imediatamente.
+            firebase.database().ref('configuracao/bannersCarrossel').once('value').then(() => {});
+        }
     });
 }
 escutarRecursosLiberadosCardapio();
@@ -2871,12 +2855,6 @@ botaoFinalizarCompra.addEventListener('click', async () => {
     // cria 2 pedidos duplicados de verdade, com cobrança/contagem em dobro
     if (botaoFinalizarCompra.disabled) return;
 
-    // Pausa operacional bloqueia qualquer novo pedido, inclusive encomenda, até a loja retomar.
-    if (lojaPausadaAtual) {
-        alert('Os pedidos estão temporariamente pausados. Voltaremos a atender em breve!');
-        return;
-    }
-
     // Encomenda agendada é pra uma data futura — não faz sentido bloquear só porque a
     // loja está fechada agora, nesse exato momento (diferente de um pedido pro dia)
     if (!lojaAbertaAtual && !dataEncomendaEscolhida) {
@@ -2887,10 +2865,6 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         alert('Seu carrinho está vazio. Adicione alguns produtos antes de finalizar a compra!');
         return;
     }
-    // Última conferência local antes de chamar o servidor. O servidor confere novamente
-    // e faz a reserva de forma transacional, então dois clientes não conseguem vender
-    // a mesma última unidade ao mesmo tempo.
-    if (!validarEstoqueCarrinhoAtual()) return;
 
     // Confere o pedido mínimo (se configurado) antes de deixar finalizar
     if (pedidoMinimoValor > 0) {
@@ -3268,22 +3242,11 @@ verificarPedidoSalvo(); // Mostra o status do último pedido, se ainda for recen
 escutarStatusLoja(); // Mostra se a loja está aberta ou fechada agora
 
 // Registra o Service Worker (pra permitir instalar como app / carregar mais rápido)
-// e, depois que ele estiver pronto, restaura a escuta do push em todo carregamento.
-// Antes, o listener de mensagem em primeiro plano só existia na mesma sessão em que
-// o cliente clicava em "Ativar notificações". Ao recarregar a página, o token continuava
-// salvo, mas a aba aberta deixava de exibir as mensagens recebidas.
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' })
-            .then(registration => {
-                // Pede ao navegador para conferir se há uma versão mais nova do SW.
-                // Falha de update não deve impedir o push atual de funcionar.
-                registration.update().catch(() => null);
-                return sincronizarNotificacoesAtivas();
-            })
-            .catch(err => {
-                console.log('Não foi possível registrar o service worker:', err);
-            });
+        navigator.serviceWorker.register('service-worker.js').catch(err => {
+            console.log('Não foi possível registrar o service worker:', err);
+        });
     });
 }
 
@@ -3385,77 +3348,6 @@ function podeReceberNotificacoes() {
         'serviceWorker' in navigator;
 }
 
-// Mantém apenas um listener de mensagens em primeiro plano por carregamento.
-let listenerNotificacaoForegroundAtivo = false;
-
-function configurarListenerNotificacaoForeground(messaging) {
-    if (!messaging || listenerNotificacaoForegroundAtivo) return;
-    listenerNotificacaoForegroundAtivo = true;
-
-    messaging.onMessage(async (payload) => {
-        const titulo = (payload.notification && payload.notification.title) || LOJA_CONFIG.nome;
-        const corpo = (payload.notification && payload.notification.body) || '';
-
-        // Quando o cardápio está aberto, o FCM entrega a mensagem para a página e não
-        // mostra automaticamente uma notificação do sistema. Exibimos o aviso na tela
-        // e também tentamos mostrar a notificação nativa pelo Service Worker.
-        mostrarToastNotificacao(titulo, corpo);
-
-        try {
-            if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
-                const registration = await navigator.serviceWorker.ready;
-                await registration.showNotification(titulo, {
-                    body: corpo,
-                    icon: LOJA_CONFIG.logo,
-                    badge: LOJA_CONFIG.logo,
-                    tag: 'pedeaki-' + Date.now(),
-                    data: { url: LOJA_CONFIG.urlCardapio || window.location.href }
-                });
-            }
-        } catch (e) {
-            // O toast já foi exibido; uma falha no aviso nativo não interrompe o cardápio.
-            console.log('Não foi possível mostrar a notificação nativa em primeiro plano:', e);
-        }
-    });
-}
-
-// Revalida o token e recria o listener toda vez que o cliente abre/recarrega o cardápio.
-// Isso também corrige tokens que o navegador tenha renovado desde a ativação original.
-async function sincronizarNotificacoesAtivas() {
-    if (!podeReceberNotificacoes()) return;
-    if (localStorage.getItem('notificacoesAtivas') !== '1') return;
-
-    if (Notification.permission !== 'granted') {
-        // A pessoa revogou a permissão no navegador/SO. Não fica fingindo que está ativo.
-        localStorage.removeItem('notificacoesAtivas');
-        localStorage.removeItem('notificacaoToken');
-        atualizarBotaoNotificacao();
-        return;
-    }
-
-    try {
-        const registration = await navigator.serviceWorker.ready;
-        const messaging = firebase.messaging();
-        configurarListenerNotificacaoForeground(messaging);
-
-        const tokenAtual = await messaging.getToken({
-            vapidKey: VAPID_KEY,
-            serviceWorkerRegistration: registration
-        });
-
-        if (!tokenAtual) return;
-
-        const registrarToken = firebase.functions().httpsCallable('registrarTokenNotificacao');
-        await registrarToken({ token: tokenAtual });
-
-        localStorage.setItem('notificacoesAtivas', '1');
-        localStorage.setItem('notificacaoToken', tokenAtual);
-        atualizarBotaoNotificacao();
-    } catch (err) {
-        console.log('Não foi possível sincronizar as notificações ativas:', err);
-    }
-}
-
 function atualizarBotaoNotificacao() {
     const ativado = localStorage.getItem('notificacoesAtivas') === '1';
     const btnGrande = document.getElementById('btnAtivarNotificacoesGrande');
@@ -3535,10 +3427,15 @@ async function ativarNotificacoes() {
         const messaging = firebase.messaging();
         const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
         if (token) {
-            // Escuta mensagens em primeiro plano usando o mesmo listener reutilizável
-            // que também é restaurado automaticamente nos próximos carregamentos.
+            // Escuta mensagens em primeiro plano (aba aberta) usando esse MESMO
+            // messaging já configurado com o nosso Service Worker — reaproveitar
+            // evita o Firebase tentar registrar um arquivo próprio dele mesmo.
             try {
-                configurarListenerNotificacaoForeground(messaging);
+                messaging.onMessage((payload) => {
+                    const titulo = (payload.notification && payload.notification.title) || LOJA_CONFIG.nome;
+                    const corpo = (payload.notification && payload.notification.body) || '';
+                    mostrarToastNotificacao(titulo, corpo);
+                });
             } catch (e) {
                 console.log('Não foi possível escutar notificações em primeiro plano:', e);
             }
