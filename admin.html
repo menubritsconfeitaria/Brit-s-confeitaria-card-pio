@@ -1498,111 +1498,190 @@
                     </div>
                 </div>
 
-                <div class="gestao-subconteudo" data-subtab-content="sub-dashboard" style="display:none;">
-                    <div class="loja-status-card">
-                        <h3>📅 Relatório por período</h3>
-                        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-                            <button class="btn-secondary" onclick="filtrarDashboardPeriodo('hoje')">Hoje</button>
-                            <button class="btn-secondary" onclick="filtrarDashboardPeriodo('7')">Últimos 7 dias</button>
-                            <button class="btn-secondary" onclick="filtrarDashboardPeriodo('30')">Últimos 30 dias</button>
-                            <button class="btn-secondary" onclick="filtrarDashboardPeriodo('mes')">Este mês</button>
-                            <button class="btn-secondary" onclick="filtrarDashboardPeriodo('tudo')">Tudo</button>
-                        </div>
-                        <div class="produto-admin-linha">
-                            <div class="campo-com-label"><label class="campo-label">De</label><input type="date" id="dashPeriodoDe"></div>
-                            <div class="campo-com-label"><label class="campo-label">Até</label><input type="date" id="dashPeriodoAte"></div>
-                            <button class="btn-salvar-ordem" style="align-self:flex-end;" onclick="filtrarDashboardPeriodo('custom')">Aplicar</button>
-                        </div>
-                        <p class="dica-secao" id="dashPeriodoLabel">Período selecionado: Últimos 7 dias</p>
-                    </div>
-
-                    <div class="produto-admin-linha" style="margin-top:16px; flex-wrap:wrap;">
-                        <div class="loja-status-card" style="flex:1; min-width:130px; text-align:center;">
-                            <div style="font-size:1.4em; font-weight:700;" id="dashFaturamento">R$ 0,00</div>
-                            <div class="dica-secao">Faturamento</div>
-                        </div>
-                        <div class="loja-status-card" style="flex:1; min-width:130px; text-align:center;">
-                            <div style="font-size:1.4em; font-weight:700; color:var(--accent);" id="dashCMV">R$ 0,00</div>
-                            <div class="dica-secao">CMV <span id="dashCMVPercent"></span></div>
-                        </div>
-                        <div class="loja-status-card" style="flex:1; min-width:130px; text-align:center;">
-                            <div style="font-size:1.4em; font-weight:700; color:var(--primary);" id="dashLucro">R$ 0,00</div>
-                            <div class="dica-secao">Lucro bruto</div>
-                        </div>
-                        <div class="loja-status-card" style="flex:1; min-width:130px; text-align:center;">
-                            <div style="font-size:1.4em; font-weight:700;" id="dashPedidos">0</div>
-                            <div class="dica-secao">Pedidos</div>
-                        </div>
-                        <div class="loja-status-card" style="flex:1; min-width:130px; text-align:center;">
-                            <div style="font-size:1.4em; font-weight:700;" id="dashTicket">R$ 0,00</div>
-                            <div class="dica-secao">Ticket médio</div>
-                        </div>
-                        <div class="loja-status-card" style="flex:1; min-width:130px; text-align:center;">
-                            <div style="font-size:1.4em; font-weight:700;" id="dashLucroEmpresa">R$ 0,00</div>
-                            <div class="dica-secao">Lucro empresa</div>
-                        </div>
-                        <div class="loja-status-card" style="flex:1; min-width:130px; text-align:center;">
-                            <div style="font-size:1.4em; font-weight:700;" id="dashLucroCasal">R$ 0,00</div>
-                            <div class="dica-secao">Lucro pró-labore</div>
-                        </div>
-                        <div class="loja-status-card" style="flex:1; min-width:130px; text-align:center;">
-                            <div style="font-size:1.4em; font-weight:700; color:var(--primary);" id="dashRecebido">R$ 0,00</div>
-                            <div class="dica-secao">Recebido de fato</div>
-                        </div>
-                    </div>
-
-                    <div class="loja-status-card" style="margin-top:16px;">
-                        <h3 style="margin-bottom:10px;">🏆 Destaques do período</h3>
-                        <div class="produto-admin-linha" style="gap:10px; flex-wrap:wrap;">
-                            <div style="flex:1; min-width:170px;">
-                                <div class="dica-secao" style="margin:0 0 3px;">Mais vendido</div>
-                                <strong id="dashMaisVendido">—</strong>
-                            </div>
-                            <div style="flex:1; min-width:170px;">
-                                <div class="dica-secao" style="margin:0 0 3px;">Mais faturou em itens</div>
-                                <strong id="dashMaisFaturou">—</strong>
-                            </div>
-                            <div style="flex:1; min-width:170px;">
-                                <div class="dica-secao" style="margin:0 0 3px;">Maior lucro estimado</div>
-                                <strong id="dashMaisLucrativo">—</strong>
+                <div class="gestao-subconteudo dashboard-premium" data-subtab-content="sub-dashboard" style="display:none;">
+                    <!-- Dashboard premium: somente apresentação. IDs, eventos e lógica original preservados. -->
+                    <div class="loja-status-card dashboard-filter-card">
+                        <div class="dashboard-section-head">
+                            <div>
+                                <span class="dashboard-eyebrow">VISÃO GERENCIAL</span>
+                                <h3>📅 Relatório por período</h3>
+                                <p class="dica-secao dashboard-section-subtitle">Escolha um intervalo para acompanhar vendas, custos, lucro e comportamento dos pedidos.</p>
                             </div>
                         </div>
-                        <p class="dica-secao" style="margin:10px 0 0;">Calculado somente com os pedidos entregues do período selecionado, usando a mesma ficha técnica/CMV do Dashboard.</p>
+
+                        <div class="dashboard-filter-presets" aria-label="Períodos rápidos do dashboard">
+                            <button type="button" class="btn-secondary dashboard-period-chip" onclick="filtrarDashboardPeriodo('hoje')">Hoje</button>
+                            <button type="button" class="btn-secondary dashboard-period-chip" onclick="filtrarDashboardPeriodo('7')">Últimos 7 dias</button>
+                            <button type="button" class="btn-secondary dashboard-period-chip" onclick="filtrarDashboardPeriodo('30')">Últimos 30 dias</button>
+                            <button type="button" class="btn-secondary dashboard-period-chip" onclick="filtrarDashboardPeriodo('mes')">Este mês</button>
+                            <button type="button" class="btn-secondary dashboard-period-chip" onclick="filtrarDashboardPeriodo('tudo')">Tudo</button>
+                        </div>
+
+                        <div class="dashboard-filter-grid">
+                            <div class="campo-com-label dashboard-date-field">
+                                <label class="campo-label" for="dashPeriodoDe">De</label>
+                                <input type="date" id="dashPeriodoDe">
+                            </div>
+                            <div class="campo-com-label dashboard-date-field">
+                                <label class="campo-label" for="dashPeriodoAte">Até</label>
+                                <input type="date" id="dashPeriodoAte">
+                            </div>
+                            <button type="button" class="btn-salvar-ordem dashboard-filter-apply" onclick="filtrarDashboardPeriodo('custom')">Aplicar período</button>
+                        </div>
+
+                        <p class="dica-secao dashboard-period-label" id="dashPeriodoLabel">Período selecionado: Últimos 7 dias</p>
                     </div>
 
-                    <div class="loja-status-card" style="margin-top:16px;">
-                        <h3>Faturamento por mês</h3>
-                        <canvas id="chartFaturamento" height="200"></canvas>
-                    </div>
-                    <div class="loja-status-card" style="margin-top:16px;">
-                        <h3>Lucro por mês</h3>
-                        <canvas id="chartLucro" height="200"></canvas>
-                    </div>
-                    <div class="loja-status-card" style="margin-top:16px;">
-                        <h3>Produtos mais vendidos</h3>
-                        <canvas id="chartTopProdutos" height="200"></canvas>
+                    <div class="dashboard-kpi-grid" aria-label="Indicadores do período">
+                        <div class="loja-status-card dashboard-kpi-card dashboard-kpi-card--primary">
+                            <span class="dashboard-kpi-icon" aria-hidden="true">💰</span>
+                            <div class="dashboard-kpi-value" id="dashFaturamento">R$ 0,00</div>
+                            <div class="dica-secao dashboard-kpi-label">Faturamento</div>
+                        </div>
+                        <div class="loja-status-card dashboard-kpi-card dashboard-kpi-card--accent">
+                            <span class="dashboard-kpi-icon" aria-hidden="true">📦</span>
+                            <div class="dashboard-kpi-value" id="dashCMV">R$ 0,00</div>
+                            <div class="dica-secao dashboard-kpi-label">CMV <span id="dashCMVPercent"></span></div>
+                        </div>
+                        <div class="loja-status-card dashboard-kpi-card dashboard-kpi-card--profit">
+                            <span class="dashboard-kpi-icon" aria-hidden="true">📈</span>
+                            <div class="dashboard-kpi-value" id="dashLucro">R$ 0,00</div>
+                            <div class="dica-secao dashboard-kpi-label">Lucro bruto</div>
+                        </div>
+                        <div class="loja-status-card dashboard-kpi-card">
+                            <span class="dashboard-kpi-icon" aria-hidden="true">🧾</span>
+                            <div class="dashboard-kpi-value" id="dashPedidos">0</div>
+                            <div class="dica-secao dashboard-kpi-label">Pedidos</div>
+                        </div>
+                        <div class="loja-status-card dashboard-kpi-card">
+                            <span class="dashboard-kpi-icon" aria-hidden="true">🎯</span>
+                            <div class="dashboard-kpi-value" id="dashTicket">R$ 0,00</div>
+                            <div class="dica-secao dashboard-kpi-label">Ticket médio</div>
+                        </div>
+                        <div class="loja-status-card dashboard-kpi-card">
+                            <span class="dashboard-kpi-icon" aria-hidden="true">🏪</span>
+                            <div class="dashboard-kpi-value" id="dashLucroEmpresa">R$ 0,00</div>
+                            <div class="dica-secao dashboard-kpi-label">Lucro empresa</div>
+                        </div>
+                        <div class="loja-status-card dashboard-kpi-card dashboard-kpi-card--wide-soft">
+                            <span class="dashboard-kpi-icon" aria-hidden="true">👥</span>
+                            <div class="dashboard-kpi-value" id="dashLucroCasal">R$ 0,00</div>
+                            <div class="dica-secao dashboard-kpi-label">Lucro pró-labore</div>
+                        </div>
+                        <div class="loja-status-card dashboard-kpi-card dashboard-kpi-card--wide-soft dashboard-kpi-card--received">
+                            <span class="dashboard-kpi-icon" aria-hidden="true">✅</span>
+                            <div class="dashboard-kpi-value" id="dashRecebido">R$ 0,00</div>
+                            <div class="dica-secao dashboard-kpi-label">Recebido de fato</div>
+                        </div>
                     </div>
 
-                    <div class="loja-status-card" style="margin-top:16px;">
-                        <h3>🎯 Funil de conversão</h3>
-                        <p class="dica-secao" style="margin-bottom:10px;">Mostra por onde os visitantes estão passando até o pagamento online confirmado. As métricas não guardam nome, telefone ou endereço.</p>
-                        <div class="produto-admin-linha" style="gap:10px; flex-wrap:wrap;">
-                            <div style="flex:1; min-width:125px; text-align:center;"><strong id="funilVisitas" style="font-size:1.35em;">0</strong><div class="dica-secao">Visitas</div></div>
-                            <div style="flex:1; min-width:125px; text-align:center;"><strong id="funilCarrinhos" style="font-size:1.35em;">0</strong><div class="dica-secao">Carrinhos iniciados</div></div>
-                            <div style="flex:1; min-width:125px; text-align:center;"><strong id="funilFinalizacoes" style="font-size:1.35em;">0</strong><div class="dica-secao">Finalizações</div></div>
-                            <div style="flex:1; min-width:125px; text-align:center;"><strong id="funilCheckouts" style="font-size:1.35em;">0</strong><div class="dica-secao">Checkouts online</div></div>
-                            <div style="flex:1; min-width:125px; text-align:center;"><strong id="funilPagamentos" style="font-size:1.35em;">0</strong><div class="dica-secao">Pagamentos confirmados</div></div>
-                            <div style="flex:1; min-width:125px; text-align:center;"><strong id="funilConversao" style="font-size:1.35em;">0%</strong><div class="dica-secao">Conversão visita → pagamento</div></div>
+                    <div class="loja-status-card dashboard-highlights-card">
+                        <div class="dashboard-card-header">
+                            <div>
+                                <span class="dashboard-eyebrow">DESEMPENHO</span>
+                                <h3>🏆 Destaques do período</h3>
+                            </div>
                         </div>
-                        <hr style="margin:14px 0; border:none; border-top:1px solid var(--border);">
-                        <h3 style="margin-bottom:8px;">🤖 Vendedor Inteligente</h3>
-                        <div class="produto-admin-linha" style="gap:10px; flex-wrap:wrap;">
-                            <div style="flex:1; min-width:135px; text-align:center;"><strong id="funilVendedorExibicoes">0</strong><div class="dica-secao">Exibições</div></div>
-                            <div style="flex:1; min-width:135px; text-align:center;"><strong id="funilVendedorCliques">0</strong><div class="dica-secao">Cliques</div></div>
-                            <div style="flex:1; min-width:135px; text-align:center;"><strong id="funilVendedorCTR">0%</strong><div class="dica-secao">Taxa de clique</div></div>
-                            <div style="flex:1; min-width:135px; text-align:center;"><strong id="funilVendedorVendas">0</strong><div class="dica-secao">Vendas online atribuídas</div></div>
+                        <div class="dashboard-highlights-grid">
+                            <div class="dashboard-highlight-item">
+                                <span class="dashboard-highlight-icon" aria-hidden="true">🥇</span>
+                                <div>
+                                    <div class="dica-secao dashboard-highlight-label">Mais vendido</div>
+                                    <strong id="dashMaisVendido">—</strong>
+                                </div>
+                            </div>
+                            <div class="dashboard-highlight-item">
+                                <span class="dashboard-highlight-icon" aria-hidden="true">💵</span>
+                                <div>
+                                    <div class="dica-secao dashboard-highlight-label">Mais faturou em itens</div>
+                                    <strong id="dashMaisFaturou">—</strong>
+                                </div>
+                            </div>
+                            <div class="dashboard-highlight-item">
+                                <span class="dashboard-highlight-icon" aria-hidden="true">✨</span>
+                                <div>
+                                    <div class="dica-secao dashboard-highlight-label">Maior lucro estimado</div>
+                                    <strong id="dashMaisLucrativo">—</strong>
+                                </div>
+                            </div>
                         </div>
-                        <p id="funilConversaoMsg" class="dica-secao" style="margin:10px 0 0;"></p>
+                        <p class="dica-secao dashboard-card-note">Calculado somente com os pedidos entregues do período selecionado, usando a mesma ficha técnica/CMV do Dashboard.</p>
+                    </div>
+
+                    <div class="dashboard-charts-grid">
+                        <div class="loja-status-card dashboard-chart-card">
+                            <div class="dashboard-card-header">
+                                <div>
+                                    <span class="dashboard-eyebrow">RECEITA</span>
+                                    <h3>Faturamento por mês</h3>
+                                </div>
+                            </div>
+                            <div class="dashboard-chart-wrap">
+                                <canvas id="chartFaturamento" height="200"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="loja-status-card dashboard-chart-card">
+                            <div class="dashboard-card-header">
+                                <div>
+                                    <span class="dashboard-eyebrow">RESULTADO</span>
+                                    <h3>Lucro por mês</h3>
+                                </div>
+                            </div>
+                            <div class="dashboard-chart-wrap">
+                                <canvas id="chartLucro" height="200"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="loja-status-card dashboard-chart-card dashboard-chart-card--wide">
+                            <div class="dashboard-card-header">
+                                <div>
+                                    <span class="dashboard-eyebrow">PRODUTOS</span>
+                                    <h3>Produtos mais vendidos</h3>
+                                    <p class="dica-secao dashboard-section-subtitle">Ranking dos produtos com maior quantidade vendida no período selecionado.</p>
+                                </div>
+                            </div>
+                            <div class="dashboard-chart-wrap dashboard-chart-wrap--products">
+                                <canvas id="chartTopProdutos" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-insights-grid">
+                        <div class="loja-status-card dashboard-insight-card dashboard-funnel-card">
+                            <div class="dashboard-card-header">
+                                <div>
+                                    <span class="dashboard-eyebrow">JORNADA ONLINE</span>
+                                    <h3>🎯 Funil de conversão</h3>
+                                    <p class="dica-secao dashboard-section-subtitle">Mostra por onde os visitantes estão passando até o pagamento online confirmado. As métricas não guardam nome, telefone ou endereço.</p>
+                                </div>
+                            </div>
+                            <div class="dashboard-funnel-grid">
+                                <div class="dashboard-funnel-metric"><strong id="funilVisitas">0</strong><span>Visitas</span></div>
+                                <div class="dashboard-funnel-metric"><strong id="funilCarrinhos">0</strong><span>Carrinhos iniciados</span></div>
+                                <div class="dashboard-funnel-metric"><strong id="funilFinalizacoes">0</strong><span>Finalizações</span></div>
+                                <div class="dashboard-funnel-metric"><strong id="funilCheckouts">0</strong><span>Checkouts online</span></div>
+                                <div class="dashboard-funnel-metric"><strong id="funilPagamentos">0</strong><span>Pagamentos confirmados</span></div>
+                                <div class="dashboard-funnel-metric dashboard-funnel-metric--conversion"><strong id="funilConversao">0%</strong><span>Conversão visita → pagamento</span></div>
+                            </div>
+                        </div>
+
+                        <div class="loja-status-card dashboard-insight-card dashboard-seller-card">
+                            <div class="dashboard-card-header">
+                                <div>
+                                    <span class="dashboard-eyebrow">VENDA ASSISTIDA</span>
+                                    <h3>🤖 Vendedor Inteligente</h3>
+                                    <p class="dica-secao dashboard-section-subtitle">Acompanhe a exposição das sugestões e o quanto elas ajudam a gerar novas vendas.</p>
+                                </div>
+                            </div>
+                            <div class="dashboard-seller-grid">
+                                <div class="dashboard-seller-metric"><strong id="funilVendedorExibicoes">0</strong><span>Exibições</span></div>
+                                <div class="dashboard-seller-metric"><strong id="funilVendedorCliques">0</strong><span>Cliques</span></div>
+                                <div class="dashboard-seller-metric"><strong id="funilVendedorCTR">0%</strong><span>Taxa de clique</span></div>
+                                <div class="dashboard-seller-metric"><strong id="funilVendedorVendas">0</strong><span>Vendas online atribuídas</span></div>
+                            </div>
+                            <p id="funilConversaoMsg" class="dica-secao dashboard-card-note dashboard-funnel-message"></p>
+                        </div>
                     </div>
                 </div>
 
