@@ -1200,52 +1200,101 @@
                 </div>
                 </div>
 
-                <div class="gestao-subconteudo" data-subtab-content="sub-bases" style="display:none;">
-                <p class="dica-secao">Ex: Bolo de Chocolate, Recheio de Ninho com Nutella. Uma base pode usar ingredientes E outras bases.</p>
-
-                <div class="loja-status-card">
-                    <h3 id="tituloCadastroBase">Cadastro de Base</h3>
-                    <label class="campo-label">Nome da base</label>
-                    <input type="text" id="baseNome">
-                    <div class="produto-admin-linha" style="margin-top:10px;">
-                        <div class="campo-com-label">
-                            <label class="campo-label">Tipo</label>
-                            <select id="baseTipo">
-                                <option>Bolo</option><option>Recheio</option><option>Cobertura</option><option>Docinho</option><option>Salgado</option><option>Outro</option>
-                            </select>
+                <div class="gestao-subconteudo bases-premium" data-subtab-content="sub-bases" style="display:none;">
+                    <!-- Bases premium: reorganização visual. IDs, eventos, cálculos e Firebase preservados. -->
+                    <div class="loja-status-card bases-hero">
+                        <div>
+                            <span class="bases-eyebrow">PREPAROS E RECEITAS</span>
+                            <h3>🍰 Bases de Produção</h3>
+                            <p class="dica-secao">Cadastre massas, recheios, coberturas, docinhos e outros preparos reutilizáveis nas fichas técnicas.</p>
                         </div>
-                        <div class="campo-com-label">
-                            <label class="campo-label">Rendimento</label>
-                            <input type="text" inputmode="decimal" id="baseRendimento">
+                        <div class="bases-hero-tags" aria-label="Recursos das bases">
+                            <span>Composição</span>
+                            <span>Rendimento</span>
+                            <span>Custo</span>
                         </div>
                     </div>
-                    <label class="campo-label" style="margin-top:10px;">Unidade do rendimento</label>
-                    <select id="baseUnidadeRendimento">
-                        <option value="g">g</option><option value="ml">ml</option><option value="un">un</option>
-                    </select>
 
-                    <h3 style="margin-top:16px;">Ingredientes/Bases usados nessa base</h3>
-                    <div class="produto-admin-linha">
-                        <div class="campo-com-label" style="flex:2;">
-                            <label class="campo-label">Ingrediente ou Base</label>
-                            <select id="selectIngredienteBase"></select>
+                    <div class="loja-status-card bases-cadastro-card">
+                        <div class="bases-section-head">
+                            <div class="bases-step">01</div>
+                            <div>
+                                <span class="bases-kicker">IDENTIFICAÇÃO</span>
+                                <h3 id="tituloCadastroBase">Cadastro de Base</h3>
+                                <p class="dica-secao">Defina o preparo e o rendimento usado como referência de custo.</p>
+                            </div>
                         </div>
-                        <div class="campo-com-label">
-                            <label class="campo-label">Quantidade</label>
-                            <input type="text" inputmode="decimal" id="qtdComponenteBase">
+
+                        <div class="bases-grid bases-grid--identificacao">
+                            <div class="campo-com-label bases-field bases-field--nome">
+                                <label class="campo-label">Nome da base</label>
+                                <input type="text" id="baseNome" placeholder="Ex: Recheio de Ninho">
+                            </div>
+                            <div class="campo-com-label bases-field">
+                                <label class="campo-label">Tipo</label>
+                                <select id="baseTipo">
+                                    <option>Bolo</option><option>Recheio</option><option>Cobertura</option><option>Docinho</option><option>Salgado</option><option>Outro</option>
+                                </select>
+                            </div>
+                            <div class="campo-com-label bases-field">
+                                <label class="campo-label">Rendimento</label>
+                                <input type="text" inputmode="decimal" id="baseRendimento" placeholder="Ex: 850">
+                            </div>
+                            <div class="campo-com-label bases-field">
+                                <label class="campo-label">Unidade do rendimento</label>
+                                <select id="baseUnidadeRendimento">
+                                    <option value="g">g</option><option value="ml">ml</option><option value="un">un</option>
+                                </select>
+                            </div>
                         </div>
+
+                        <div class="bases-divider"></div>
+
+                        <div class="bases-section-head bases-section-head--compact">
+                            <div class="bases-step">02</div>
+                            <div>
+                                <span class="bases-kicker">COMPOSIÇÃO</span>
+                                <h3>Ingredientes e bases usados</h3>
+                                <p class="dica-secao">Uma base pode combinar ingredientes e também outras bases já cadastradas.</p>
+                            </div>
+                        </div>
+
+                        <div class="bases-add-row">
+                            <div class="campo-com-label bases-field bases-field--componente">
+                                <label class="campo-label">Ingrediente ou Base</label>
+                                <select id="selectIngredienteBase"></select>
+                            </div>
+                            <div class="campo-com-label bases-field bases-field--quantidade">
+                                <label class="campo-label">Quantidade</label>
+                                <input type="text" inputmode="decimal" id="qtdComponenteBase">
+                            </div>
+                            <button class="btn-secondary bases-add-btn" type="button" onclick="adicionarComponenteBase()">+ Adicionar</button>
+                        </div>
+
+                        <div id="listaComponentesBase" class="bases-componentes"></div>
+
+                        <div class="bases-cost-summary">
+                            <div>
+                                <span class="bases-kicker">CUSTO DA RECEITA</span>
+                                <small>Atualizado conforme os componentes adicionados.</small>
+                            </div>
+                            <strong id="custoTotalBaseTemp">R$ 0,00</strong>
+                        </div>
+
+                        <button class="btn-salvar-ordem bases-save" id="btnSalvarBase" onclick="salvarBase()">Salvar Base</button>
+                        <p id="msgBase" class="ordem-categorias-msg bases-msg"></p>
                     </div>
-                    <button class="btn-secondary" style="margin-top:8px;" onclick="adicionarComponenteBase()">+ Adicionar</button>
-                    <div id="listaComponentesBase" style="margin-top:10px;"></div>
-                    <p class="dica-secao">Custo total: <strong id="custoTotalBaseTemp">R$ 0,00</strong></p>
 
-                    <button class="btn-salvar-ordem" id="btnSalvarBase" style="margin-top:10px;" onclick="salvarBase()">Salvar Base</button>
-                    <p id="msgBase" class="ordem-categorias-msg"></p>
-                </div>
-
-                <div class="loja-status-card" style="margin-top:16px;">
-                    <div id="listaBases"></div>
-                </div>
+                    <div class="loja-status-card bases-lista-card">
+                        <div class="bases-lista-head">
+                            <div>
+                                <span class="bases-eyebrow">BIBLIOTECA DE PREPAROS</span>
+                                <h3>📚 Bases cadastradas</h3>
+                                <p class="dica-secao">Consulte rendimento e custo e edite apenas quando precisar atualizar a receita.</p>
+                            </div>
+                        </div>
+                        <div id="listaBases"></div>
+                    </div>
                 </div>
                 <div class="gestao-subconteudo ficha-tecnica-premium" data-subtab-content="sub-ficha-tecnica" style="display:none;">
                     <!-- Ficha Técnica premium: reorganização visual. IDs, eventos, cálculos e Firebase preservados. -->
