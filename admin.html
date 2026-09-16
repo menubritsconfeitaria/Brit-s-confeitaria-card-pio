@@ -157,6 +157,7 @@
         <div id="bannerAssinatura" class="banner-assinatura" style="display:none;"></div>
 
         <nav class="painel-tabs" id="painelTabsNav">
+            <button class="painel-tab-btn" data-tab="resumo">📊 Resumo Geral</button>
             <button class="painel-tab-btn" data-tab="pedidos">🔔 Pedidos</button>
             <button class="painel-tab-btn" data-tab="fechamento">📋 Fechamento</button>
             <button class="painel-tab-btn" data-tab="produtos">📦 Produtos</button>
@@ -168,6 +169,51 @@
         </nav>
 
         <main class="painel-main">
+            <section data-tab="resumo" class="resumo-geral-premium">
+                <div class="resumo-filtro-periodo">
+                    <button class="resumo-filtro-btn active" data-periodo="hoje" onclick="mudarPeriodoResumo('hoje')">Hoje</button>
+                    <button class="resumo-filtro-btn" data-periodo="7dias" onclick="mudarPeriodoResumo('7dias')">7 dias</button>
+                    <button class="resumo-filtro-btn" data-periodo="mes" onclick="mudarPeriodoResumo('mes')">Mês</button>
+                    <button class="resumo-filtro-btn" data-periodo="personalizado" onclick="mudarPeriodoResumo('personalizado')">Personalizado</button>
+                </div>
+                <div id="resumoPeriodoPersonalizado" style="display:none; margin:10px 0; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <label>De <input type="date" id="resumoDataInicio" onchange="recalcularResumoGeral()"></label>
+                    <label>Até <input type="date" id="resumoDataFim" onchange="recalcularResumoGeral()"></label>
+                </div>
+
+                <div class="resumo-kpis-grade">
+                    <div class="resumo-kpi-card">
+                        <div class="resumo-kpi-valor" id="resumoFaturamento">R$ 0,00</div>
+                        <div class="resumo-kpi-label">Faturamento</div>
+                    </div>
+                    <div class="resumo-kpi-card">
+                        <div class="resumo-kpi-valor" id="resumoPedidos">0</div>
+                        <div class="resumo-kpi-label">Pedidos</div>
+                    </div>
+                    <div class="resumo-kpi-card">
+                        <div class="resumo-kpi-valor" id="resumoTicketMedio">R$ 0,00</div>
+                        <div class="resumo-kpi-label">Ticket médio</div>
+                    </div>
+                    <div class="resumo-kpi-card">
+                        <div class="resumo-kpi-valor" id="resumoClientes">0</div>
+                        <div class="resumo-kpi-label">Clientes únicos</div>
+                    </div>
+                    <div class="resumo-kpi-card">
+                        <div class="resumo-kpi-valor" id="resumoDescontos">R$ 0,00</div>
+                        <div class="resumo-kpi-label">Descontos/cupons</div>
+                    </div>
+                    <div class="resumo-kpi-card">
+                        <div class="resumo-kpi-valor" id="resumoFrete">R$ 0,00</div>
+                        <div class="resumo-kpi-label">Frete cobrado</div>
+                    </div>
+                </div>
+
+                <div class="resumo-produtos-mais-vendidos">
+                    <h3>🏆 Produtos mais vendidos</h3>
+                    <div id="resumoTopProdutos"><p class="vazio">Sem dados no período.</p></div>
+                </div>
+            </section>
+
             <section data-tab="pedidos" class="pedidos-operacao-premium">
                 <div class="pedidos-operacao-hero">
                     <div class="pedidos-operacao-copy">
@@ -1124,9 +1170,8 @@
                     <div class="fechamento-filtros-cabecalho">
                         <div>
                             <strong>Período e filtros</strong>
-                            <p class="dica-secao">Consulte os pedidos do dia ou de um período, confira os totais e deixe o fechamento pronto para conferência.</p>
+                            <p class="dica-secao">Confira os pedidos do dia (ou de um período), copie pra lançar no seu Sistema de Gestão, e marque o que já foi lançado.</p>
                         </div>
-                        <span class="fechamento-filtros-status">Conferência rápida</span>
                     </div>
 
                     <div class="fechamento-filtros-grid">
@@ -1164,20 +1209,7 @@
                     </div>
                 </div>
 
-                <div id="fechamentoConteudo" class="fechamento-conteudo">
-                    <div class="fechamento-estado-inicial">
-                        <div class="fechamento-estado-icone">📊</div>
-                        <div class="fechamento-estado-texto">
-                            <strong>Seu fechamento aparece aqui</strong>
-                            <span>Escolha o período e clique em “Ver pedidos do período” para conferir pedidos, total válido, produtos e formas de pagamento.</span>
-                        </div>
-                        <div class="fechamento-passos">
-                            <span><b>1</b> Período</span>
-                            <span><b>2</b> Filtros</span>
-                            <span><b>3</b> Conferência</span>
-                        </div>
-                    </div>
-                </div>
+                <div id="fechamentoConteudo" class="fechamento-conteudo"></div>
             </section>
 
             

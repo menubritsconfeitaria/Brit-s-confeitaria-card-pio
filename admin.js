@@ -265,6 +265,7 @@ function inicializarAbasPainel() {
     botoes.forEach(btn => {
         btn.addEventListener('click', () => {
             mostrarAba(btn.dataset.tab, true);
+            if (btn.dataset.tab === 'resumo') recalcularResumoGeral();
             // Ao clicar na aba de Administração, sempre reconfere se já está logado
             // no Firebase Mestre de verdade (evita pedir login de novo à toa, caso
             // algo tenha "escondido" visualmente o conteúdo sem realmente deslogar)
@@ -272,12 +273,13 @@ function inicializarAbasPainel() {
         });
     });
 
-    // Abre na mesma aba que estava da última vez (ou "pedidos" se for a primeira vez)
-    let abaSalva = localStorage.getItem('painelAbaAtiva') || 'pedidos';
+    // Abre na mesma aba que estava da última vez (ou "resumo" se for a primeira vez)
+    let abaSalva = localStorage.getItem('painelAbaAtiva') || 'resumo';
     // Migração visual: abas antigas agora vivem dentro dos novos hubs.
     if (['cupons', 'fidelidade', 'mensagens'].includes(abaSalva)) abaSalva = 'clientes-marketing';
     if (abaSalva === 'visitantes') abaSalva = 'loja';
     mostrarAba(abaSalva, false);
+    if (abaSalva === 'resumo') recalcularResumoGeral();
 }
 
 // ---------- MANTER A ROLAGEM AO ATUALIZAR A PÁGINA ----------
@@ -4631,6 +4633,95 @@ async function carregarMetricasConversaoDashboard(inicio, fim) {
         if (msg) msg.textContent = 'As métricas vão aparecer após publicar as novas Functions.';
         console.log('Não foi possível carregar métricas de conversão:', err.message);
     }
+}
+
+// ---------- RESUMO GERAL (tela inicial do painel) ----------
+let periodoResumoAtivo = 'hoje';
+
+function calcularIntervaloPeriodoResumo(periodo) {
+    const agora = new Date();
+    const fimDoDia = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 23, 59, 59, 999).getTime();
+    if (periodo === 'hoje') {
+        const inicio = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 0, 0, 0, 0).getTime();
+        return { inicio, fim: fimDoDia };
+    }
+    if (periodo === '7dias') {
+        const inicio = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() - 6, 0, 0, 0, 0).getTime();
+        return { inicio, fim: fimDoDia };
+    }
+    if (periodo === 'mes') {
+        const inicio = new Date(agora.getFullYear(), agora.getMonth(), 1, 0, 0, 0, 0).getTime();
+        return { inicio, fim: fimDoDia };
+    }
+    // personalizado
+    const dataInicioEl = document.getElementById('resumoDataInicio');
+    const dataFimEl = document.getElementById('resumoDataFim');
+    const inicio = dataInicioEl && dataInicioEl.value ? new Date(dataInicioEl.value + 'T00:00:00').getTime() : (agora.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const fim = dataFimEl && dataFimEl.value ? new Date(dataFimEl.value + 'T23:59:59').getTime() : fimDoDia;
+    return { inicio, fim };
+}
+
+function mudarPeriodoResumo(periodo) {
+    periodoResumoAtivo = periodo;
+    document.querySelectorAll('.resumo-filtro-btn').forEach(b => b.classList.toggle('active', b.dataset.periodo === periodo));
+    const areaPersonalizado = document.getElementById('resumoPeriodoPersonalizado');
+    if (areaPersonalizado) areaPersonalizado.style.display = periodo === 'personalizado' ? 'flex' : 'none';
+    recalcularResumoGeral();
+}
+
+function formatarMoedaResumo(valor) {
+    return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function recalcularResumoGeral() {
+    const { inicio, fim } = calcularIntervaloPeriodoResumo(periodoResumoAtivo);
+    db.ref('pedidos').once('value').then(snap => {
+        const val = snap.val() || {};
+        const pedidosDoPeriodo = Object.values(val).filter(p => {
+            const dataPedido = p.timestamp || p.criadoEm || 0;
+            return p.status === 'entregue' && dataPedido >= inicio && dataPedido <= fim;
+        });
+
+        let faturamento = 0, descontos = 0, frete = 0;
+        const clientesUnicos = new Set();
+        const produtoQuantidade = {};
+
+        pedidosDoPeriodo.forEach(p => {
+            faturamento += p.total || 0;
+            descontos += p.desconto || 0;
+            frete += p.frete || 0;
+            if (p.telefone) clientesUnicos.add(p.telefone);
+            (p.itens || []).forEach(item => {
+                const nome = item.nome || 'Produto';
+                const qtd = Number(item.quantidade) || 1;
+                produtoQuantidade[nome] = (produtoQuantidade[nome] || 0) + qtd;
+            });
+        });
+
+        const totalPedidos = pedidosDoPeriodo.length;
+        const ticketMedio = totalPedidos > 0 ? faturamento / totalPedidos : 0;
+
+        const elFaturamento = document.getElementById('resumoFaturamento');
+        const elPedidos = document.getElementById('resumoPedidos');
+        const elTicket = document.getElementById('resumoTicketMedio');
+        const elClientes = document.getElementById('resumoClientes');
+        const elDescontos = document.getElementById('resumoDescontos');
+        const elFrete = document.getElementById('resumoFrete');
+        if (elFaturamento) elFaturamento.textContent = formatarMoedaResumo(faturamento);
+        if (elPedidos) elPedidos.textContent = totalPedidos;
+        if (elTicket) elTicket.textContent = formatarMoedaResumo(ticketMedio);
+        if (elClientes) elClientes.textContent = clientesUnicos.size;
+        if (elDescontos) elDescontos.textContent = formatarMoedaResumo(descontos);
+        if (elFrete) elFrete.textContent = formatarMoedaResumo(frete);
+
+        const topProdutosEl = document.getElementById('resumoTopProdutos');
+        if (topProdutosEl) {
+            const ranking = Object.entries(produtoQuantidade).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            topProdutosEl.innerHTML = ranking.length === 0
+                ? '<p class="vazio">Sem dados no período.</p>'
+                : ranking.map(([nome, qtd], i) => `<div class="resumo-produto-linha"><span>${i + 1}º ${nome}</span><strong>${qtd}x</strong></div>`).join('');
+        }
+    });
 }
 
 function carregarDashboard(inicio, fim) {
