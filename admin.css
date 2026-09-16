@@ -7174,3 +7174,77 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
         max-height: 620px;
     }
 }
+
+/* =========================================================
+   GESTÃO COMPLETA — LARGURA PREMIUM DESKTOP
+   Amplia somente a área visual da Gestão. Não altera lógica.
+   ========================================================= */
+@media (min-width: 981px) {
+    .painel-main > section[data-tab="gestao"] {
+        width: min(1240px, calc(100vw - 56px));
+        max-width: none;
+        margin-left: 50%;
+        transform: translateX(-50%);
+        box-sizing: border-box;
+    }
+
+    .painel-main > section[data-tab="gestao"] > h2 {
+        margin: 8px 0 14px;
+        font-size: 1.28rem;
+        letter-spacing: -0.015em;
+    }
+
+    .painel-main > section[data-tab="gestao"] > .gestao-subtabs {
+        width: 100%;
+        box-sizing: border-box;
+        align-items: center;
+        padding: 10px 12px;
+        margin: 0 0 18px !important;
+        gap: 9px !important;
+        border: 1px solid rgba(141, 101, 70, .12);
+        border-radius: 19px;
+        background: linear-gradient(180deg, rgba(255,255,255,.82), rgba(255,252,247,.72));
+        box-shadow: 0 9px 26px rgba(72,45,25,.055);
+    }
+
+    .painel-main > section[data-tab="gestao"] > .gestao-subtabs .gestao-subtab-btn {
+        padding: 9px 16px;
+        border-radius: 999px;
+        transition: background .16s ease, color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+    }
+
+    .painel-main > section[data-tab="gestao"] > .gestao-subtabs .gestao-subtab-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 5px 13px rgba(91,57,34,.06);
+    }
+
+    .painel-main > section[data-tab="gestao"] > .gestao-subtabs .gestao-subtab-btn.active {
+        box-shadow: 0 7px 16px rgba(171,87,45,.18);
+    }
+
+    /* Todas as subáreas passam a usar o mesmo eixo e a mesma largura-mãe. */
+    .painel-main > section[data-tab="gestao"] > .gestao-subconteudo {
+        width: 100% !important;
+        max-width: none !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        left: auto !important;
+        transform: none !important;
+        box-sizing: border-box;
+    }
+}
+
+@media (max-width: 980px) {
+    .painel-main > section[data-tab="gestao"] {
+        width: 100%;
+        max-width: none;
+        margin-left: 0;
+        transform: none;
+    }
+
+    .painel-main > section[data-tab="gestao"] > .gestao-subtabs {
+        width: 100%;
+        box-sizing: border-box;
+    }
+}
+
