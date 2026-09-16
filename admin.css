@@ -2601,182 +2601,346 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
 
 /* ===== GESTÃO PREMIUM — ESTOQUE (visual somente) ===== */
 /* Escopo restrito à subaba Estoque. Não altera IDs, eventos, cálculos ou Firebase. */
-.gestao-subconteudo[data-subtab-content="sub-estoque"] {
-    --estoque-border: #eadfce;
+.gestao-subconteudo[data-subtab-content="sub-estoque"].estoque-premium {
+    --estoque-border: rgba(125, 86, 59, .13);
     --estoque-soft: #fffdf9;
-    --estoque-shadow: 0 8px 22px rgba(72, 45, 25, 0.065);
+    --estoque-muted: #8c7868;
+    --estoque-shadow: 0 14px 32px rgba(72, 45, 25, .065);
+    padding-bottom: 28px;
 }
 
-/* Indicadores superiores: compactos e com hierarquia clara */
-.gestao-subconteudo[data-subtab-content="sub-estoque"] > .produto-admin-linha:first-child {
+.estoque-premium .loja-status-card {
+    border: 1px solid var(--estoque-border);
+    box-shadow: var(--estoque-shadow);
+}
+
+.estoque-premium .estoque-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 22px;
+    padding: 19px 21px;
+    margin-bottom: 13px;
+    overflow: hidden;
+    border-radius: 16px;
+    background: linear-gradient(125deg, rgba(255,255,255,.99), rgba(251,247,241,.96));
+}
+
+.estoque-premium .estoque-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: linear-gradient(180deg, #b45b2c, #d69b67);
+}
+
+.estoque-premium .estoque-eyebrow,
+.estoque-premium .estoque-kicker {
+    display: block;
+    margin-bottom: 3px;
+    color: #a06a43;
+    font-size: .61rem;
+    line-height: 1.2;
+    font-weight: 800;
+    letter-spacing: .14em;
+}
+
+.estoque-premium .estoque-hero h3,
+.estoque-premium .estoque-section-head h3,
+.estoque-premium .estoque-inventario-head h3 {
+    margin: 0;
+    color: #4d382b;
+}
+
+.estoque-premium .estoque-hero .dica-secao,
+.estoque-premium .estoque-section-head .dica-secao,
+.estoque-premium .estoque-inventario-head .dica-secao {
+    margin: 4px 0 0;
+    color: var(--estoque-muted);
+}
+
+.estoque-premium .estoque-hero-tags {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 7px;
+}
+
+.estoque-premium .estoque-hero-tags span,
+.estoque-premium .estoque-legenda span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 27px;
+    padding: 5px 9px;
+    border: 1px solid rgba(132, 92, 65, .12);
+    border-radius: 999px;
+    background: rgba(255,255,255,.78);
+    color: #8c6247;
+    font-size: .64rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.estoque-premium .estoque-kpis {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
-    margin-bottom: 12px;
+    margin-bottom: 13px;
 }
 
-.gestao-subconteudo[data-subtab-content="sub-estoque"] > .produto-admin-linha:first-child > .loja-status-card {
-    margin: 0 !important;
-    min-height: 92px;
-    padding: 14px 16px;
-    border: 1px solid var(--estoque-border);
-    border-radius: 15px;
-    background: var(--estoque-soft);
-    box-shadow: var(--estoque-shadow);
+.estoque-premium .estoque-kpi {
     display: flex;
-    flex-direction: column;
-    justify-content: center;
+    align-items: center;
+    gap: 13px;
+    min-height: 92px;
+    padding: 15px 17px;
+    border-radius: 15px;
+    background: linear-gradient(145deg, #fff, #fdfaf6);
 }
 
-#cardEstoqueTotal,
-#cardEstoqueBaixo {
+.estoque-premium .estoque-kpi-icon {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    border: 1px solid rgba(132, 92, 65, .1);
+    border-radius: 11px;
+    background: #fbf5ee;
+    font-size: 1rem;
+}
+
+.estoque-premium .estoque-kpi-value {
+    margin-bottom: 4px;
+    color: #4b3529;
+    font-size: 1.55rem;
     line-height: 1;
-    margin-bottom: 6px;
+    font-weight: 800;
 }
 
-.gestao-subconteudo[data-subtab-content="sub-estoque"] > .produto-admin-linha:first-child .dica-secao {
+.estoque-premium .estoque-kpi--alerta .estoque-kpi-value {
+    color: #b47720;
+}
+
+.estoque-premium .estoque-kpi .dica-secao {
     margin: 0;
-    font-size: .78em;
-    color: #8a7665;
+    color: var(--estoque-muted);
+    font-size: .75rem;
 }
 
-/* Entrada de estoque: uma faixa operacional limpa */
-.gestao-subconteudo[data-subtab-content="sub-estoque"] > .loja-status-card:nth-of-type(1) {
-    margin-top: 0 !important;
-    padding: 16px 18px 17px;
-    border: 1px solid var(--estoque-border);
+.estoque-premium .estoque-entrada-card,
+.estoque-premium .estoque-inventario-card {
+    padding: 18px;
     border-radius: 16px;
-    background: var(--estoque-soft);
-    box-shadow: var(--estoque-shadow);
+    background: rgba(255,255,255,.96);
 }
 
-.gestao-subconteudo[data-subtab-content="sub-estoque"] > .loja-status-card:nth-of-type(1) h3 {
-    margin: 0 0 12px;
-    font-size: 1em;
+.estoque-premium .estoque-entrada-card {
+    margin-bottom: 13px;
 }
 
-.gestao-subconteudo[data-subtab-content="sub-estoque"] > .loja-status-card:nth-of-type(1) .produto-admin-linha {
+.estoque-premium .estoque-section-head {
+    display: grid;
+    grid-template-columns: 31px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    margin-bottom: 13px;
+}
+
+.estoque-premium .estoque-step {
+    display: grid;
+    place-items: center;
+    width: 31px;
+    height: 31px;
+    border: 1px solid rgba(160, 82, 45, .13);
+    border-radius: 10px;
+    background: #fff8f0;
+    color: #b45b2c;
+    font-size: .69rem;
+    font-weight: 800;
+}
+
+.estoque-premium .estoque-entrada-grid {
     display: grid;
     grid-template-columns: 1.45fr .8fr .8fr;
-    gap: 12px;
+    gap: 11px;
     align-items: end;
 }
 
-.gestao-subconteudo[data-subtab-content="sub-estoque"] > .loja-status-card:nth-of-type(1) .campo-com-label {
+.estoque-premium .estoque-entrada-grid .campo-com-label {
     min-width: 0;
 }
 
-#estSelectIngrediente,
-#estQtdEntrada,
-#estNovoPreco {
+.estoque-premium .campo-label {
+    margin-bottom: 5px;
+    color: #6f5747;
+    font-size: .71rem;
+    font-weight: 700;
+}
+
+.estoque-premium #estSelectIngrediente,
+.estoque-premium #estQtdEntrada,
+.estoque-premium #estNovoPreco {
     width: 100%;
-    min-height: 39px;
-    padding: 7px 10px;
+    min-height: 40px;
+    padding: 8px 10px;
     border: 1px solid #dfd1bf;
-    border-radius: 9px;
+    border-radius: 10px;
     background: #fff;
     color: var(--text);
     font-family: inherit;
     outline: none;
 }
 
-#estSelectIngrediente:focus,
-#estQtdEntrada:focus,
-#estNovoPreco:focus {
+.estoque-premium #estSelectIngrediente:focus,
+.estoque-premium #estQtdEntrada:focus,
+.estoque-premium #estNovoPreco:focus {
     border-color: #c9976c;
     box-shadow: 0 0 0 3px rgba(160, 82, 45, .08);
 }
 
-.gestao-subconteudo[data-subtab-content="sub-estoque"] > .loja-status-card:nth-of-type(1) .btn-salvar-ordem {
-    min-height: 40px;
-    margin-top: 10px !important;
+.estoque-premium .estoque-entrada-btn {
+    width: 100%;
+    min-height: 41px;
+    margin-top: 11px;
     border-radius: 10px;
-    box-shadow: 0 5px 14px rgba(160, 82, 45, .13);
+    box-shadow: 0 6px 15px rgba(160, 82, 45, .12);
 }
 
-.gestao-subconteudo[data-subtab-content="sub-estoque"] #msgEstoque {
+.estoque-premium #msgEstoque {
     margin: 7px 0 0;
     min-height: 0;
 }
 
-/* Lista: menos corredor vertical, mais painel de estoque */
-.gestao-subconteudo[data-subtab-content="sub-estoque"] > .loja-status-card:nth-of-type(2) {
-    margin-top: 12px !important;
-    padding: 12px;
-    border: 1px solid var(--estoque-border);
-    border-radius: 16px;
-    background: rgba(255,255,255,.52);
-    box-shadow: var(--estoque-shadow);
+.estoque-premium .estoque-inventario-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 12px;
 }
 
-#listaEstoque {
+.estoque-premium .estoque-legenda {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.estoque-premium .estoque-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+}
+
+.estoque-premium .estoque-dot--ok { background: #55b67a; }
+.estoque-premium .estoque-dot--baixo { background: #d89b36; }
+
+.estoque-premium .estoque-list-scroll {
+    max-height: 690px;
+    overflow: auto;
+    padding: 2px 5px 2px 2px;
+    scrollbar-width: thin;
+}
+
+.estoque-premium #listaEstoque {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 9px;
+    gap: 8px;
 }
 
-#listaEstoque > .pedido-card {
+.estoque-premium #listaEstoque > .pedido-card {
     margin-top: 0 !important;
     min-width: 0;
-    min-height: 66px;
-    padding: 11px 13px;
+    min-height: 64px;
+    padding: 10px 12px;
     border: 1px solid #e9dfd2;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(72,45,25,.045);
+    border-radius: 11px;
     background: #fff;
-    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+    box-shadow: 0 3px 10px rgba(72,45,25,.038);
+    transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
 }
 
-#listaEstoque > .pedido-card:hover {
+.estoque-premium #listaEstoque > .pedido-card:hover {
     transform: translateY(-1px);
     border-color: #dcc9b4;
-    box-shadow: 0 7px 17px rgba(72,45,25,.075);
+    box-shadow: 0 6px 15px rgba(72,45,25,.065);
 }
 
-#listaEstoque > .pedido-card strong {
+.estoque-premium #listaEstoque > .pedido-card strong {
     display: block;
-    font-size: .91em;
     color: #4d382b;
-    line-height: 1.25;
+    font-size: .88rem;
+    line-height: 1.24;
 }
 
-#listaEstoque > .pedido-card p {
+.estoque-premium #listaEstoque > .pedido-card p {
     margin: 4px 0 0 !important;
-    font-size: .76em !important;
+    color: var(--muted) !important;
+    font-size: .72rem !important;
     line-height: 1.3;
 }
 
-#listaEstoque .pedido-tag {
+.estoque-premium #listaEstoque .pedido-tag {
     flex: 0 0 auto;
     margin-left: 10px;
     padding: 4px 8px;
     border-radius: 999px;
-    font-size: .68em;
-    font-weight: 700;
+    font-size: .65rem;
+    font-weight: 800;
     white-space: nowrap;
 }
 
 @media (max-width: 900px) {
-    .gestao-subconteudo[data-subtab-content="sub-estoque"] > .loja-status-card:nth-of-type(1) .produto-admin-linha {
+    .estoque-premium .estoque-entrada-grid {
         grid-template-columns: 1fr 1fr;
     }
-    .gestao-subconteudo[data-subtab-content="sub-estoque"] > .loja-status-card:nth-of-type(1) .campo-com-label:first-child {
+    .estoque-premium .estoque-entrada-grid .campo-com-label:first-child {
         grid-column: 1 / -1;
     }
 }
 
 @media (max-width: 760px) {
-    .gestao-subconteudo[data-subtab-content="sub-estoque"] > .produto-admin-linha:first-child,
-    #listaEstoque {
+    .estoque-premium .estoque-hero,
+    .estoque-premium .estoque-inventario-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .estoque-premium .estoque-hero-tags,
+    .estoque-premium .estoque-legenda {
+        justify-content: flex-start;
+    }
+
+    .estoque-premium .estoque-kpis,
+    .estoque-premium #listaEstoque,
+    .estoque-premium .estoque-entrada-grid {
         grid-template-columns: 1fr;
     }
 
-    .gestao-subconteudo[data-subtab-content="sub-estoque"] > .loja-status-card:nth-of-type(1) .produto-admin-linha {
-        grid-template-columns: 1fr;
-    }
-
-    .gestao-subconteudo[data-subtab-content="sub-estoque"] > .loja-status-card:nth-of-type(1) .campo-com-label:first-child {
+    .estoque-premium .estoque-entrada-grid .campo-com-label:first-child {
         grid-column: auto;
+    }
+
+    .estoque-premium .estoque-list-scroll {
+        max-height: 64vh;
+    }
+}
+
+@media (max-width: 520px) {
+    .estoque-premium .estoque-hero,
+    .estoque-premium .estoque-entrada-card,
+    .estoque-premium .estoque-inventario-card {
+        padding: 14px;
+        border-radius: 14px;
+    }
+
+    .estoque-premium .estoque-kpi {
+        min-height: 82px;
+        padding: 13px 14px;
     }
 }
 

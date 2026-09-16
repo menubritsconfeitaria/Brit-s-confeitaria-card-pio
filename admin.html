@@ -1329,21 +1329,48 @@
                     </div>
                 </div>
 
-                <div class="gestao-subconteudo" data-subtab-content="sub-estoque" style="display:none;">
-                    <div class="produto-admin-linha">
-                        <div class="loja-status-card" style="flex:1; text-align:center;">
-                            <div style="font-size:1.8em; font-weight:700;" id="cardEstoqueTotal">0</div>
-                            <div class="dica-secao">Itens em estoque</div>
+                <div class="gestao-subconteudo estoque-premium" data-subtab-content="sub-estoque" style="display:none;">
+                    <!-- Estoque premium: apresentação reorganizada sem alterar IDs, eventos, cálculos ou Firebase. -->
+                    <div class="loja-status-card estoque-hero">
+                        <div>
+                            <span class="estoque-eyebrow">CONTROLE OPERACIONAL</span>
+                            <h3>📦 Controle de Estoque</h3>
+                            <p class="dica-secao">Acompanhe saldos, estoque mínimo e registre entradas sem perder a visão do inventário.</p>
                         </div>
-                        <div class="loja-status-card" style="flex:1; text-align:center;">
-                            <div style="font-size:1.8em; font-weight:700; color:var(--accent);" id="cardEstoqueBaixo">0</div>
-                            <div class="dica-secao">Itens em estoque baixo</div>
+                        <div class="estoque-hero-tags" aria-label="Recursos do estoque">
+                            <span>Entradas</span>
+                            <span>Estoque mínimo</span>
+                            <span>Status visual</span>
                         </div>
                     </div>
 
-                    <div class="loja-status-card" style="margin-top:16px;">
-                        <h3>Registrar entrada de estoque</h3>
-                        <div class="produto-admin-linha">
+                    <div class="estoque-kpis">
+                        <div class="loja-status-card estoque-kpi">
+                            <span class="estoque-kpi-icon">📦</span>
+                            <div>
+                                <div class="estoque-kpi-value" id="cardEstoqueTotal">0</div>
+                                <div class="dica-secao">Itens cadastrados</div>
+                            </div>
+                        </div>
+                        <div class="loja-status-card estoque-kpi estoque-kpi--alerta">
+                            <span class="estoque-kpi-icon">⚠️</span>
+                            <div>
+                                <div class="estoque-kpi-value" id="cardEstoqueBaixo">0</div>
+                                <div class="dica-secao">Itens com estoque baixo</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="loja-status-card estoque-entrada-card">
+                        <div class="estoque-section-head">
+                            <div class="estoque-step">01</div>
+                            <div>
+                                <span class="estoque-kicker">MOVIMENTAÇÃO</span>
+                                <h3>Registrar entrada de estoque</h3>
+                                <p class="dica-secao">Selecione o ingrediente, informe a quantidade recebida e atualize o preço pago quando necessário.</p>
+                            </div>
+                        </div>
+                        <div class="produto-admin-linha estoque-entrada-grid">
                             <div class="campo-com-label">
                                 <label class="campo-label">Ingrediente</label>
                                 <select id="estSelectIngrediente"></select>
@@ -1357,12 +1384,25 @@
                                 <input type="text" inputmode="decimal" id="estNovoPreco">
                             </div>
                         </div>
-                        <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="registrarEntradaEstoque()">Registrar Entrada</button>
+                        <button class="btn-salvar-ordem estoque-entrada-btn" onclick="registrarEntradaEstoque()">Registrar Entrada</button>
                         <p id="msgEstoque" class="ordem-categorias-msg"></p>
                     </div>
 
-                    <div class="loja-status-card" style="margin-top:16px;">
-                        <div id="listaEstoque"></div>
+                    <div class="loja-status-card estoque-inventario-card">
+                        <div class="estoque-inventario-head">
+                            <div>
+                                <span class="estoque-kicker">INVENTÁRIO</span>
+                                <h3>Estoque atual</h3>
+                                <p class="dica-secao">Consulte o saldo de cada ingrediente e identifique rapidamente o que precisa de reposição.</p>
+                            </div>
+                            <div class="estoque-legenda" aria-label="Legenda de status">
+                                <span><i class="estoque-dot estoque-dot--ok"></i> OK</span>
+                                <span><i class="estoque-dot estoque-dot--baixo"></i> Baixo</span>
+                            </div>
+                        </div>
+                        <div class="estoque-list-scroll">
+                            <div id="listaEstoque"></div>
+                        </div>
                     </div>
                 </div>
 
