@@ -630,36 +630,96 @@
             </section>
 
             <section data-tab="clientes-marketing" class="clientes-marketing-premium">
-                <div class="hub-premium-head">
-                    <div>
+                <div class="hub-premium-head clientes-marketing-hero">
+                    <div class="clientes-marketing-hero-copy">
+                        <span class="hub-premium-eyebrow">CENTRAL DE CRESCIMENTO</span>
                         <h2>📈 Clientes &amp; Marketing</h2>
-                        <p>Clientes, incentivos, fidelização e campanhas reunidos numa central de crescimento.</p>
+                        <p>Transforme relacionamento em recorrência: acompanhe clientes, crie incentivos e mantenha suas campanhas organizadas em um só lugar.</p>
+                        <div class="clientes-marketing-hero-tags" aria-label="Recursos da central">
+                            <span>👥 Relacionamento</span>
+                            <span>⭐ Fidelização</span>
+                            <span>📣 Campanhas</span>
+                        </div>
                     </div>
-                    <span class="hub-premium-badge">Crescimento</span>
+                    <div class="clientes-marketing-hero-selo" aria-label="Central de crescimento">
+                        <span class="clientes-marketing-hero-selo-icone">↗</span>
+                        <div><small>FOCO</small><strong>Crescimento</strong></div>
+                    </div>
                 </div>
-                <div class="hub-subtabs" role="tablist" aria-label="Clientes e Marketing">
+                <div class="hub-subtabs clientes-marketing-subtabs" role="tablist" aria-label="Clientes e Marketing">
                     <button type="button" class="hub-subtab-btn active" data-cm-subtab-btn="clientes" onclick="mostrarSubabaClientesMarketing('clientes')">👥 Clientes</button>
                     <button type="button" class="hub-subtab-btn" data-cm-subtab-btn="cupons" onclick="mostrarSubabaClientesMarketing('cupons')">🎟️ Cupons</button>
                     <button type="button" class="hub-subtab-btn" data-cm-subtab-btn="fidelidade" onclick="mostrarSubabaClientesMarketing('fidelidade')">⭐ Fidelidade</button>
                     <button type="button" class="hub-subtab-btn" data-cm-subtab-btn="promocoes" onclick="mostrarSubabaClientesMarketing('promocoes')">🔥 Promoções</button>
                     <button type="button" class="hub-subtab-btn" data-cm-subtab-btn="mensagem-massa" onclick="mostrarSubabaClientesMarketing('mensagem-massa')">📣 Campanhas no WhatsApp</button>
-                    <button type="button" class="hub-subtab-btn" data-cm-subtab-btn="campanhas" onclick="mostrarSubabaClientesMarketing('campanhas')">📣 Campanhas</button>
+                    <button type="button" class="hub-subtab-btn" data-cm-subtab-btn="campanhas" onclick="mostrarSubabaClientesMarketing('campanhas')">📢 Notificações &amp; Campanhas</button>
                 </div>
-                <div class="hub-subpanel active" data-cm-subtab="clientes">
-
-                <h2>🔄 Reativação de clientes</h2>
-                <p class="dica-secao">Encontre clientes que estão há alguns dias sem comprar e chame pelo WhatsApp com a mensagem pronta. Nada é enviado automaticamente: você escolhe quem deseja reativar e confirma o contato.</p>
-                <label class="campo-label">Mensagem (use <code>{nome}</code> pro nome do cliente, <code>{loja}</code> pro nome da loja, <code>{link}</code> pro link do cardápio)</label>
-                <textarea id="mensagemClientes" class="campo-adicionais" style="min-height:60px;">Oi {nome}! Sentimos sua falta por aqui na {loja} 🥹 Que tal dar uma olhada nas novidades? {link}</textarea>
-                <div class="produto-admin-linha" style="margin:10px 0;">
-                    <div class="campo-com-label">
-                        <label class="campo-label">Clientes sem comprar há quantos dias? (0 = mostrar todos)</label>
-                        <input type="text" inputmode="numeric" id="diasInatividade" value="30">
+                <div class="hub-subpanel active clientes-reactivacao-premium" data-cm-subtab="clientes">
+                    <div class="clientes-reactivacao-head">
+                        <div class="clientes-reactivacao-head-copy">
+                            <span class="clientes-reactivacao-kicker">RECORRÊNCIA E RELACIONAMENTO</span>
+                            <h2>🔄 Reativação de clientes</h2>
+                            <p>Encontre clientes que estão há alguns dias sem comprar e prepare um contato pessoal pelo WhatsApp. Nada é disparado sozinho: você escolhe quem chamar e confirma cada mensagem.</p>
+                        </div>
+                        <span class="clientes-reactivacao-badge">Contato assistido</span>
                     </div>
-                    <button class="btn-salvar-ordem" onclick="carregarClientesInativos()" style="align-self:flex-end;">🔎 Buscar</button>
-                </div>
-                <div id="listaClientesInativos"></div>
-            
+
+                    <div class="clientes-reactivacao-grid">
+                        <div class="clientes-reactivacao-card clientes-reactivacao-card--mensagem">
+                            <div class="clientes-reactivacao-card-head">
+                                <span class="clientes-reactivacao-step">01</span>
+                                <div>
+                                    <span class="clientes-reactivacao-card-kicker">MENSAGEM</span>
+                                    <h3>Prepare o texto de reativação</h3>
+                                </div>
+                            </div>
+                            <label class="campo-label" for="mensagemClientes">Mensagem personalizada</label>
+                            <textarea id="mensagemClientes" class="campo-adicionais clientes-reactivacao-textarea">Oi {nome}! Sentimos sua falta por aqui na {loja} 🥹 Que tal dar uma olhada nas novidades? {link}</textarea>
+                            <div class="clientes-variaveis-ajuda" aria-label="Variáveis disponíveis">
+                                <span><code>{nome}</code> Cliente</span>
+                                <span><code>{loja}</code> Loja</span>
+                                <span><code>{link}</code> Cardápio</span>
+                            </div>
+                        </div>
+
+                        <div class="clientes-reactivacao-card clientes-reactivacao-card--filtro">
+                            <div class="clientes-reactivacao-card-head">
+                                <span class="clientes-reactivacao-step">02</span>
+                                <div>
+                                    <span class="clientes-reactivacao-card-kicker">FILTRO</span>
+                                    <h3>Defina quem deseja recuperar</h3>
+                                </div>
+                            </div>
+                            <div class="campo-com-label clientes-inatividade-campo">
+                                <label class="campo-label" for="diasInatividade">Sem comprar há quantos dias?</label>
+                                <div class="clientes-inatividade-input-wrap">
+                                    <input type="text" inputmode="numeric" id="diasInatividade" value="30" aria-describedby="diasInatividadeAjuda">
+                                    <span>dias</span>
+                                </div>
+                                <small id="diasInatividadeAjuda">Use <strong>0</strong> para mostrar todos os clientes registrados.</small>
+                            </div>
+                            <button class="btn-salvar-ordem clientes-reactivacao-buscar" onclick="carregarClientesInativos()">🔎 Buscar clientes</button>
+                            <p class="clientes-reactivacao-seguranca">✓ Você decide quem receberá a mensagem. Nenhum envio é automático.</p>
+                        </div>
+                    </div>
+
+                    <div class="clientes-resultados-card">
+                        <div class="clientes-resultados-head">
+                            <div>
+                                <span class="clientes-reactivacao-card-kicker">RESULTADOS</span>
+                                <h3>Clientes encontrados</h3>
+                                <p>Abra os detalhes para conferir histórico, pontos e valor já gasto antes de iniciar o contato.</p>
+                            </div>
+                            <span class="clientes-resultados-selo">WhatsApp individual</span>
+                        </div>
+                        <div id="listaClientesInativos" class="clientes-resultados-lista">
+                            <div class="clientes-resultados-vazio">
+                                <span>👥</span>
+                                <strong>Pronto para buscar</strong>
+                                <p>Defina o período de inatividade acima e clique em “Buscar clientes”.</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="hub-subpanel" data-cm-subtab="cupons">
 

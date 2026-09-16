@@ -9915,3 +9915,581 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
         grid-template-columns: 1fr !important;
     }
 }
+
+/* ============================================================
+   CLIENTES & MARKETING — PREMIUM REFINADO V2
+   Escopo isolado ao hub de crescimento. IDs, eventos e lógica preservados.
+   ============================================================ */
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium {
+    --cm-ink: #4b382c;
+    --cm-muted: #8b7768;
+    --cm-border: #eadfd3;
+    --cm-soft: #fffaf5;
+    --cm-soft-2: #f8f1e8;
+    --cm-primary: #ab572d;
+    --cm-primary-dark: #8f4524;
+    --cm-green: #2d8a59;
+    --cm-shadow: 0 12px 30px rgba(71, 43, 25, .07);
+    width: min(1180px, calc(100vw - 44px));
+    max-width: none;
+    margin: 0 auto;
+    padding: 20px 0 54px;
+}
+
+/* Hero da central */
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-hero {
+    position: relative;
+    overflow: hidden;
+    align-items: center;
+    margin: 0 0 12px;
+    padding: 22px 24px;
+    border: 1px solid var(--cm-border);
+    border-radius: 20px;
+    background:
+        radial-gradient(circle at 86% 18%, rgba(255, 181, 104, .14), transparent 28%),
+        linear-gradient(135deg, rgba(255,255,255,.97), rgba(255,249,243,.94));
+    box-shadow: var(--cm-shadow);
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-hero::after {
+    content: "";
+    position: absolute;
+    right: -44px;
+    bottom: -72px;
+    width: 210px;
+    height: 210px;
+    border-radius: 50%;
+    background: rgba(171, 87, 45, .045);
+    pointer-events: none;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-hero-copy {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .hub-premium-eyebrow {
+    display: inline-block;
+    margin-bottom: 5px;
+    color: #b0673f;
+    font-size: .64rem;
+    font-weight: 800;
+    letter-spacing: .11em;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-hero h2 {
+    margin: 0 0 5px;
+    color: var(--cm-ink);
+    font-size: 1.38rem;
+    letter-spacing: -.025em;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-hero p {
+    max-width: 770px;
+    margin: 0;
+    color: var(--cm-muted);
+    font-size: .84rem;
+    line-height: 1.48;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-hero-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 12px;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-hero-tags span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 27px;
+    padding: 5px 10px;
+    border: 1px solid #eadfd3;
+    border-radius: 999px;
+    background: rgba(255,255,255,.82);
+    color: #7c6251;
+    font-size: .65rem;
+    font-weight: 700;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-hero-selo {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 0 0 auto;
+    min-width: 154px;
+    padding: 11px 14px;
+    border: 1px solid #ead8c8;
+    border-radius: 16px;
+    background: rgba(255,255,255,.82);
+    box-shadow: 0 7px 20px rgba(79, 48, 28, .06);
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-hero-selo-icone {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
+    background: linear-gradient(145deg, #fff4e8, #f5dfcc);
+    color: var(--cm-primary);
+    font-size: 1rem;
+    font-weight: 900;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-hero-selo div {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-hero-selo small {
+    margin-bottom: 3px;
+    color: #aa8b75;
+    font-size: .55rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-hero-selo strong {
+    color: var(--cm-primary-dark);
+    font-size: .78rem;
+}
+
+/* Navegação interna */
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-subtabs {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 6px;
+    margin: 0 0 14px;
+    padding: 6px;
+    border: 1px solid var(--cm-border);
+    border-radius: 17px;
+    background: rgba(255,255,255,.78);
+    box-shadow: 0 8px 24px rgba(73, 44, 27, .055);
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-subtabs .hub-subtab-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    min-height: 42px;
+    padding: 8px 9px;
+    border-radius: 11px;
+    color: #765f4e;
+    font-size: .72rem;
+    line-height: 1.18;
+    text-align: center;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-subtabs .hub-subtab-btn.active {
+    background: linear-gradient(135deg, #b45d31, #a34e28);
+    color: #fff;
+    box-shadow: 0 6px 15px rgba(164, 79, 40, .19);
+}
+
+/* Painéis internos */
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .hub-subpanel {
+    animation: cmPanelIn .18s ease;
+}
+@keyframes cmPanelIn {
+    from { opacity: .45; transform: translateY(3px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* CLIENTES / REATIVAÇÃO */
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-premium {
+    padding: 19px;
+    border: 1px solid var(--cm-border);
+    border-radius: 19px;
+    background: rgba(255,255,255,.78);
+    box-shadow: var(--cm-shadow);
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 14px;
+    padding: 2px 2px 14px;
+    border-bottom: 1px solid #efe5da;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-head-copy {
+    min-width: 0;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-kicker,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-card-kicker {
+    display: block;
+    margin-bottom: 3px;
+    color: #b1714b;
+    font-size: .58rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-head h2 {
+    margin: 0 0 5px;
+    color: var(--cm-ink);
+    font-size: 1.08rem;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-head p {
+    max-width: 800px;
+    margin: 0;
+    color: var(--cm-muted);
+    font-size: .76rem;
+    line-height: 1.5;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-badge,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-resultados-selo {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    min-height: 29px;
+    padding: 6px 11px;
+    border: 1px solid #dce9df;
+    border-radius: 999px;
+    background: #f6fbf7;
+    color: #367552;
+    font-size: .61rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(280px, .75fr);
+    gap: 12px;
+    align-items: stretch;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-card,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-resultados-card {
+    border: 1px solid #ebe0d5;
+    border-radius: 15px;
+    background: linear-gradient(180deg, #fff, #fffdfa);
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-card {
+    padding: 15px;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-card-head {
+    display: grid;
+    grid-template-columns: 31px minmax(0, 1fr);
+    gap: 9px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-step {
+    display: grid;
+    place-items: center;
+    width: 31px;
+    height: 31px;
+    border: 1px solid #ead6c6;
+    border-radius: 10px;
+    background: linear-gradient(145deg, #fff8f1, #f6e7d9);
+    color: #ab5b32;
+    font-size: .6rem;
+    font-weight: 900;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-card-head h3 {
+    margin: 0;
+    color: var(--cm-ink);
+    font-size: .86rem;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-card .campo-label {
+    margin: 0 0 6px;
+    color: #6f5949;
+    font-size: .67rem;
+    font-weight: 800;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-textarea {
+    width: 100%;
+    min-height: 102px !important;
+    margin: 0 !important;
+    padding: 12px 13px !important;
+    border: 1px solid #dfd1c4 !important;
+    border-radius: 12px !important;
+    background: #fff !important;
+    color: #4d3d31;
+    font-family: inherit;
+    font-size: .78rem !important;
+    line-height: 1.5;
+    resize: vertical;
+    box-sizing: border-box;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-textarea:focus,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-inatividade-input-wrap:focus-within {
+    outline: none;
+    border-color: #ca9b7e !important;
+    box-shadow: 0 0 0 3px rgba(171, 87, 45, .08);
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-variaveis-ajuda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-variaveis-ajuda span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 24px;
+    padding: 4px 8px;
+    border: 1px solid #ece1d6;
+    border-radius: 999px;
+    background: #faf6f2;
+    color: #826d5d;
+    font-size: .58rem;
+    font-weight: 700;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-variaveis-ajuda code {
+    color: #a4512a;
+    font-size: .58rem;
+    font-weight: 800;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-card--filtro {
+    display: flex;
+    flex-direction: column;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-inatividade-campo {
+    margin: 0;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-inatividade-input-wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    min-height: 42px;
+    border: 1px solid #dfd1c4;
+    border-radius: 11px;
+    background: #fff;
+    overflow: hidden;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-inatividade-input-wrap input {
+    width: 100%;
+    height: 40px;
+    margin: 0;
+    padding: 7px 10px;
+    border: 0 !important;
+    background: transparent;
+    box-shadow: none !important;
+    font-family: inherit;
+    font-size: .82rem;
+    box-sizing: border-box;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-inatividade-input-wrap span {
+    padding: 0 11px;
+    color: #9a8372;
+    font-size: .68rem;
+    font-weight: 700;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-inatividade-campo small {
+    display: block;
+    margin-top: 6px;
+    color: #9a8677;
+    font-size: .59rem;
+    line-height: 1.35;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-buscar {
+    width: 100%;
+    min-height: 40px;
+    margin: 11px 0 0 !important;
+    border-radius: 10px;
+    box-shadow: 0 7px 15px rgba(168, 82, 43, .14);
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-seguranca {
+    margin: auto 0 0;
+    padding-top: 10px;
+    color: #6f8c78;
+    font-size: .57rem;
+    line-height: 1.35;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-resultados-card {
+    margin-top: 12px;
+    padding: 15px;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-resultados-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding-bottom: 11px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #f0e6dc;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-resultados-head h3 {
+    margin: 0 0 3px;
+    color: var(--cm-ink);
+    font-size: .9rem;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-resultados-head p {
+    margin: 0;
+    color: var(--cm-muted);
+    font-size: .64rem;
+    line-height: 1.4;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-resultados-lista {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    max-height: 520px;
+    overflow-y: auto;
+    padding-right: 3px;
+    scrollbar-width: thin;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-resultados-vazio {
+    grid-column: 1 / -1;
+    display: grid;
+    place-items: center;
+    min-height: 118px;
+    padding: 18px;
+    border: 1px dashed #dfd3c7;
+    border-radius: 12px;
+    background: #fcfaf7;
+    color: #9b8778;
+    text-align: center;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-resultados-vazio > span {
+    margin-bottom: 4px;
+    font-size: 1.1rem;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-resultados-vazio strong {
+    color: #6e5849;
+    font-size: .72rem;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-resultados-vazio p {
+    margin: 3px 0 0;
+    font-size: .62rem;
+}
+
+/* Cards gerados pela busca de clientes */
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium #listaClientesInativos > .loja-status-card {
+    min-width: 0;
+    margin: 0 !important;
+    padding: 12px 13px !important;
+    border: 1px solid #eadfd4 !important;
+    border-radius: 12px !important;
+    background: #fff !important;
+    box-shadow: 0 4px 12px rgba(70, 43, 27, .045) !important;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium #listaClientesInativos > .loja-status-card > div:first-child {
+    align-items: center !important;
+    gap: 9px !important;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium #listaClientesInativos strong {
+    color: #513d30;
+    font-size: .76rem;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium #listaClientesInativos .dica-secao {
+    color: #907b6b;
+    font-size: .6rem !important;
+    line-height: 1.35;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium #listaClientesInativos .btn-salvar-ordem {
+    min-height: 31px;
+    padding: 7px 10px !important;
+    border-radius: 9px;
+    font-size: .62rem;
+    white-space: nowrap;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium #listaClientesInativos [id^="detalheCliente_"] {
+    margin-top: 9px !important;
+    padding-top: 9px !important;
+    font-size: .66rem;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium #listaClientesInativos [id^="detalheCliente_"] p {
+    margin-bottom: 4px !important;
+}
+
+/* Demais subabas do hub recebem a mesma linguagem visual, sem alterar estrutura/lógica. */
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .hub-subpanel:not(.clientes-reactivacao-premium) {
+    padding: 18px;
+    border: 1px solid var(--cm-border);
+    border-radius: 18px;
+    background: rgba(255,255,255,.78);
+    box-shadow: var(--cm-shadow);
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .hub-subpanel:not(.clientes-reactivacao-premium) > h2,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .hub-subpanel:not(.clientes-reactivacao-premium) > h3 {
+    color: var(--cm-ink);
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .hub-context-note {
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #fffaf5;
+    box-shadow: none;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .loja-status-card {
+    border-color: #eadfd4;
+    border-radius: 14px;
+    box-shadow: 0 7px 20px rgba(71,43,25,.05);
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-novo-form {
+    gap: 8px;
+    padding: 13px;
+    border: 1px solid #eadfd4;
+    border-radius: 13px;
+    background: #fffdfa;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-novo-form input,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-novo-form select {
+    min-height: 38px;
+    border-radius: 9px;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium [data-cm-subtab="fidelidade"] > .loja-status-card,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium [data-cm-subtab="promocoes"] > .loja-status-card,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium [data-cm-subtab="campanhas"] > .loja-status-card {
+    margin-top: 0 !important;
+    padding: 16px 17px;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium [data-cm-subtab="fidelidade"] .produto-admin-linha,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium [data-cm-subtab="campanhas"] .produto-admin-linha {
+    gap: 8px;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium [data-cm-subtab="campanhas"] #cardNotificacoes > input[type="text"],
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium [data-cm-subtab="campanhas"] #cardNotificacoes > textarea {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+@media (max-width: 1080px) {
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-subtabs {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 760px) {
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium {
+        width: calc(100vw - 24px);
+        padding-top: 12px;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-hero {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 17px;
+        border-radius: 16px;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-hero-selo {
+        display: none;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-subtabs {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding: 5px;
+        scrollbar-width: thin;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-subtabs .hub-subtab-btn {
+        flex: 0 0 auto;
+        min-height: 38px;
+        padding: 7px 11px;
+        white-space: nowrap;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-premium,
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .hub-subpanel:not(.clientes-reactivacao-premium) {
+        padding: 14px;
+        border-radius: 15px;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-head,
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-resultados-head {
+        flex-direction: column;
+        gap: 8px;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-badge,
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-resultados-selo {
+        align-self: flex-start;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-resultados-lista {
+        grid-template-columns: 1fr;
+        max-height: none;
+    }
+}
