@@ -2211,6 +2211,7 @@ function fechamentoAutomaticoOperacao(dataIso, horarios) {
 
 function calcularEstadoEfetivoLoja(config) {
     const cfg = config || operacaoLojaConfigAtual || {};
+    if (cfg.pausada === true) return false;
     const modo = cfg.modoManual || 'auto';
     if (modo === 'aberto') return true;
     if (modo === 'fechado') return false;
@@ -2229,23 +2230,43 @@ function atualizarUiTempoOperacaoLoja() {
         totalHoje += sessaoAtualMs;
     }
 
-    const aberta = !!operacaoLojaAbertaEfetiva;
+    const config = operacaoLojaConfigAtual || {};
+    const pausada = config.pausada === true;
+    const aberta = !pausada && !!operacaoLojaAbertaEfetiva;
     const tempoEl = document.getElementById('tempoOperacaoHoje');
     const statusEl = document.getElementById('tempoOperacaoStatus');
     const sessaoEl = document.getElementById('tempoOperacaoSessao');
     const card = document.querySelector('.tempo-operacao-card');
 
     if (tempoEl) tempoEl.textContent = formatarDuracaoOperacaoLoja(totalHoje);
-    if (statusEl) statusEl.textContent = aberta ? 'Loja aberta' : 'Loja fechada';
+    if (statusEl) statusEl.textContent = pausada ? 'Loja pausada' : (aberta ? 'Loja aberta' : 'Loja fechada');
     if (sessaoEl) {
-        sessaoEl.textContent = aberta && sessaoAtualMs > 0
-            ? `Aberta há ${formatarDuracaoOperacaoLoja(sessaoAtualMs)}`
-            : (aberta ? 'Contagem em andamento' : 'Contagem pausada');
+        if (pausada) {
+            const pausadaEm = Number(config.pausadaEm) || 0;
+            const pausaMs = pausadaEm ? Math.max(0, agora - pausadaEm) : 0;
+            sessaoEl.textContent = pausadaEm ? `Pausa atual: ${formatarDuracaoOperacaoLoja(pausaMs)}` : 'Contagem pausada';
+        } else if (aberta) {
+            sessaoEl.textContent = sessaoAtualMs > 0 ? `Aberta há ${formatarDuracaoOperacaoLoja(sessaoAtualMs)}` : 'Contagem em andamento';
+        } else {
+            sessaoEl.textContent = 'Contagem encerrada';
+        }
     }
+
     if (card) {
         card.classList.toggle('is-open', aberta);
-        card.classList.toggle('is-closed', !aberta);
+        card.classList.toggle('is-paused', pausada);
+        card.classList.toggle('is-closed', !aberta && !pausada);
     }
+
+    const btnAbrir = document.getElementById('btnOperacaoAbrir');
+    const btnPausar = document.getElementById('btnOperacaoPausar');
+    const btnRetomar = document.getElementById('btnOperacaoRetomar');
+    const btnFechar = document.getElementById('btnOperacaoFechar');
+
+    if (btnAbrir) btnAbrir.style.display = (!aberta && !pausada) ? '' : 'none';
+    if (btnPausar) btnPausar.style.display = aberta ? '' : 'none';
+    if (btnRetomar) btnRetomar.style.display = pausada ? '' : 'none';
+    if (btnFechar) btnFechar.style.display = (aberta || pausada) ? '' : 'none';
 }
 
 function escutarDiaOperacaoLojaAtual() {
@@ -2396,11 +2417,12 @@ function aplicarEstadoOperacionalLoja(config) {
     const aberta = calcularEstadoEfetivoLoja(operacaoLojaConfigAtual);
     operacaoLojaAbertaEfetiva = aberta;
 
+    const pausada = operacaoLojaConfigAtual.pausada === true;
     const statusLoja = document.getElementById('lojaStatusAtual');
-    if (statusLoja) statusLoja.textContent = aberta ? '🟢 Aberta' : '🔴 Fechada';
+    if (statusLoja) statusLoja.textContent = pausada ? '🟡 Pausada' : (aberta ? '🟢 Aberta' : '🔴 Fechada');
 
     atualizarUiTempoOperacaoLoja();
-    sincronizarTempoOperacaoLoja(aberta, modo);
+    sincronizarTempoOperacaoLoja(aberta, pausada ? 'pausa' : modo);
 }
 
 function iniciarTempoOperacaoLoja() {
@@ -2432,10 +2454,11 @@ function iniciarTempoOperacaoLoja() {
         const abertaAgora = calcularEstadoEfetivoLoja(operacaoLojaConfigAtual);
         if (abertaAgora !== operacaoLojaAbertaEfetiva) {
             operacaoLojaAbertaEfetiva = abertaAgora;
+            const pausada = operacaoLojaConfigAtual.pausada === true;
             const statusLoja = document.getElementById('lojaStatusAtual');
-            if (statusLoja) statusLoja.textContent = abertaAgora ? '🟢 Aberta' : '🔴 Fechada';
+            if (statusLoja) statusLoja.textContent = pausada ? '🟡 Pausada' : (abertaAgora ? '🟢 Aberta' : '🔴 Fechada');
             atualizarUiTempoOperacaoLoja();
-            sincronizarTempoOperacaoLoja(abertaAgora, operacaoLojaConfigAtual.modoManual || 'auto');
+            sincronizarTempoOperacaoLoja(abertaAgora, pausada ? 'pausa' : (operacaoLojaConfigAtual.modoManual || 'auto'));
         }
     }, 30000);
 }
@@ -2487,10 +2510,46 @@ function salvarHorarios() {
         .catch(err => alert('Erro ao salvar horários: ' + err.message));
 }
 
-// Só ESCREVE o modo escolhido; quem atualiza os botões na tela é o listener em escutarConfigLoja()
+// Só ESCREVE o modo escolhido; quem atualiza os botões na tela é o listener em escutarConfigLoja().
+// Trocar o modo pela aba Loja também encerra uma eventual pausa operacional.
 function definirModoLoja(modo) {
-    db.ref('configuracao/loja/modoManual').set(modo)
-        .catch(err => alert('Erro ao atualizar o status da loja: ' + err.message));
+    db.ref('configuracao/loja').update({
+        modoManual: modo,
+        pausada: false,
+        pausadaEm: null
+    }).catch(err => alert('Erro ao atualizar o status da loja: ' + err.message));
+}
+
+function abrirLojaOperacao() {
+    db.ref('configuracao/loja').update({
+        modoManual: 'aberto',
+        pausada: false,
+        pausadaEm: null
+    }).catch(err => alert('Erro ao abrir a loja: ' + err.message));
+}
+
+function pausarLojaOperacao() {
+    if (!operacaoLojaAbertaEfetiva || (operacaoLojaConfigAtual && operacaoLojaConfigAtual.pausada)) return;
+    db.ref('configuracao/loja').update({
+        pausada: true,
+        pausadaEm: agoraOperacaoLoja()
+    }).catch(err => alert('Erro ao pausar a loja: ' + err.message));
+}
+
+function retomarLojaOperacao() {
+    db.ref('configuracao/loja').update({
+        pausada: false,
+        pausadaEm: null
+    }).catch(err => alert('Erro ao retomar a loja: ' + err.message));
+}
+
+function fecharLojaOperacao() {
+    if (!confirm('Fechar a loja agora? Novos pedidos serão bloqueados até você abrir novamente.')) return;
+    db.ref('configuracao/loja').update({
+        modoManual: 'fechado',
+        pausada: false,
+        pausadaEm: null
+    }).catch(err => alert('Erro ao fechar a loja: ' + err.message));
 }
 
 // Ativa/desativa o botão "Pagar Online Agora" no cardápio. Fica desativado por padrão

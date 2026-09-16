@@ -889,6 +889,7 @@ footer {
     color: var(--muted);
 }
 .status-loja-banner.loja-aberta { background: #d4edda; color: #1e6b34; }
+.status-loja-banner.loja-pausada { background: #fff1cf; color: #805b13; }
 .status-loja-banner.loja-fechada { background: #f8d7da; color: #a53238; }
 
 /* Faixa de status do pedido (aparece pro cliente acompanhar aceite/recusa) */

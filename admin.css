@@ -7314,12 +7314,21 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
 }
 
 .tempo-operacao-card {
-    min-width: 236px;
-    padding: 13px 15px;
+    min-width: 390px;
+    display: grid;
+    grid-template-columns: minmax(150px, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 13px 12px 15px;
     border: 1px solid rgba(130, 91, 62, .13);
     border-radius: 14px;
-    background: rgba(255,255,255,.88);
+    background: rgba(255,255,255,.9);
     box-shadow: 0 8px 22px rgba(80, 55, 36, .05);
+    transition: border-color .2s ease, background .2s ease;
+}
+
+.tempo-operacao-info {
+    min-width: 0;
 }
 
 .tempo-operacao-status {
@@ -7349,7 +7358,17 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
     box-shadow: 0 0 0 4px rgba(198,93,80,.11);
 }
 
-.tempo-operacao-card > strong {
+.tempo-operacao-card.is-paused {
+    border-color: rgba(190, 139, 36, .22);
+    background: linear-gradient(135deg, rgba(255,255,255,.94), rgba(255,249,235,.92));
+}
+
+.tempo-operacao-card.is-paused .tempo-operacao-ponto {
+    background: #d99a22;
+    box-shadow: 0 0 0 4px rgba(217,154,34,.12);
+}
+
+.tempo-operacao-info > strong {
     display: block;
     margin-top: 5px;
     color: #513b2e;
@@ -7357,11 +7376,58 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
     letter-spacing: -.02em;
 }
 
-.tempo-operacao-card > small {
+.tempo-operacao-info > small {
     display: block;
     margin-top: 1px;
     color: #9a887a;
     font-size: .66rem;
+}
+
+.tempo-operacao-acoes {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
+.tempo-operacao-btn {
+    min-height: 34px;
+    padding: 7px 10px;
+    border: 1px solid rgba(120, 84, 58, .14);
+    border-radius: 9px;
+    background: rgba(255,255,255,.82);
+    color: #6a5547;
+    font: inherit;
+    font-size: .68rem;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    transition: transform .15s ease, border-color .15s ease, background .15s ease;
+}
+
+.tempo-operacao-btn:hover {
+    transform: translateY(-1px);
+    border-color: rgba(120, 84, 58, .25);
+}
+
+.tempo-operacao-btn--abrir,
+.tempo-operacao-btn--retomar {
+    color: #267447;
+    border-color: rgba(38,116,71,.18);
+    background: rgba(236,248,241,.88);
+}
+
+.tempo-operacao-btn--pausar {
+    color: #8a651d;
+    border-color: rgba(177,128,30,.2);
+    background: rgba(255,248,231,.92);
+}
+
+.tempo-operacao-btn--fechar {
+    color: #a64b43;
+    border-color: rgba(166,75,67,.18);
+    background: rgba(253,241,240,.9);
 }
 
 .pedidos-operacao-toolbar {
@@ -7645,5 +7711,21 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
     .pedidos-operacao-toolbar .btn-secondary,
     .pedidos-operacao-print {
         width: 100%;
+    }
+}
+
+@media (max-width: 520px) {
+    .tempo-operacao-card {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .tempo-operacao-acoes {
+        justify-content: flex-start;
+    }
+
+    .tempo-operacao-btn {
+        min-height: 38px;
+        padding: 8px 11px;
     }
 }

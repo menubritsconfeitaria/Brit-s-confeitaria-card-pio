@@ -346,6 +346,7 @@ function aplicarConfigDaLoja(config) {
 aplicarConfigDaLoja(LOJA_CONFIG); // aplica a configuração real assim que a página carrega
 
 let lojaAbertaAtual = true;
+let lojaPausadaAtual = false; // pausa operacional bloqueia novos pedidos sem fechar o cardápio
 let pagamentoOnlineAtivo = false; // só vira true se a loja ativou isso no painel
 let adicionaisAtivo = false; // idem, pro recurso de adicionais por produto
 let agendamentoAtivo = false; // idem, pro recurso de encomenda com data agendada
@@ -434,7 +435,8 @@ function atualizarStatusLoja(config) {
     // real da loja, a pessoa vendo a prévia precisa ver o site "no seu melhor momento"
     if (modoDemoAtivo) {
         lojaAbertaAtual = true;
-        banner.classList.remove('loja-fechada');
+        lojaPausadaAtual = false;
+        banner.classList.remove('loja-fechada', 'loja-pausada');
         banner.classList.add('loja-aberta');
         texto.textContent = '🟢 Estamos abertos! Pode fazer seu pedido.';
         if (botaoFinalizarCompra) {
@@ -446,6 +448,21 @@ function atualizarStatusLoja(config) {
 
     const horarios = config && config.horarios;
     const modoManual = config && config.modoManual;
+    const pausada = !!(config && config.pausada);
+
+    lojaPausadaAtual = pausada;
+    if (pausada) {
+        lojaAbertaAtual = false;
+        banner.classList.remove('loja-aberta', 'loja-fechada', 'loja-pausada');
+        banner.classList.add('loja-pausada');
+        texto.textContent = '🟡 Pedidos temporariamente pausados. Voltaremos a atender em breve — o cardápio continua disponível para consulta.';
+        if (botaoFinalizarCompra) {
+            botaoFinalizarCompra.disabled = true;
+            botaoFinalizarCompra.textContent = 'Pedidos temporariamente pausados';
+        }
+        ajustarPosicaoCategorias();
+        return;
+    }
 
     let aberta;
     if (modoManual === 'aberto') aberta = true;
@@ -1490,13 +1507,18 @@ function atualizarResumoEncomendaCheckout() {
     // Reage na hora se a loja estiver fechada: escolher (ou desmarcar) uma encomenda
     // libera ou trava o botão de finalizar na hora, sem esperar a próxima atualização
     // de status da loja (que só roda a cada 1 minuto)
-    if (!lojaAbertaAtual && botaoFinalizarCompra && !modoDemoAtivo) {
-        if (dataEncomendaEscolhida) {
-            botaoFinalizarCompra.disabled = false;
-            botaoFinalizarCompra.textContent = 'Finalizar Compra';
-        } else {
+    if (botaoFinalizarCompra && !modoDemoAtivo) {
+        if (lojaPausadaAtual) {
             botaoFinalizarCompra.disabled = true;
-            botaoFinalizarCompra.textContent = 'No momento, estamos fechados';
+            botaoFinalizarCompra.textContent = 'Pedidos temporariamente pausados';
+        } else if (!lojaAbertaAtual) {
+            if (dataEncomendaEscolhida) {
+                botaoFinalizarCompra.disabled = false;
+                botaoFinalizarCompra.textContent = 'Finalizar Compra';
+            } else {
+                botaoFinalizarCompra.disabled = true;
+                botaoFinalizarCompra.textContent = 'No momento, estamos fechados';
+            }
         }
     }
 
@@ -2848,6 +2870,12 @@ botaoFinalizarCompra.addEventListener('click', async () => {
     // Proteção contra clique duplo — sem isso, clicar 2x rápido (comum no celular)
     // cria 2 pedidos duplicados de verdade, com cobrança/contagem em dobro
     if (botaoFinalizarCompra.disabled) return;
+
+    // Pausa operacional bloqueia qualquer novo pedido, inclusive encomenda, até a loja retomar.
+    if (lojaPausadaAtual) {
+        alert('Os pedidos estão temporariamente pausados. Voltaremos a atender em breve!');
+        return;
+    }
 
     // Encomenda agendada é pra uma data futura — não faz sentido bloquear só porque a
     // loja está fechada agora, nesse exato momento (diferente de um pedido pro dia)
