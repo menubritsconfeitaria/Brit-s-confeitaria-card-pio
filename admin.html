@@ -1247,85 +1247,164 @@
                     <div id="listaBases"></div>
                 </div>
                 </div>
+                <div class="gestao-subconteudo ficha-tecnica-premium" data-subtab-content="sub-ficha-tecnica" style="display:none;">
+                    <!-- Ficha Técnica premium: reorganização visual. IDs, eventos, cálculos e Firebase preservados. -->
+                    <div class="loja-status-card ficha-tecnica-hero">
+                        <div>
+                            <span class="ficha-tecnica-eyebrow">ENGENHARIA DO PRODUTO</span>
+                            <h3>📋 Ficha Técnica</h3>
+                            <p class="dica-secao">Organize composição, rendimento, custos e margens para formar preços com mais segurança.</p>
+                        </div>
+                        <div class="ficha-tecnica-hero-tags" aria-label="Recursos da ficha técnica">
+                            <span>Composição</span>
+                            <span>Custos</span>
+                            <span>Margens</span>
+                        </div>
+                    </div>
 
-                <div class="gestao-subconteudo" data-subtab-content="sub-ficha-tecnica" style="display:none;">
-                    <div class="loja-status-card">
-                        <h3 id="tituloCadastroFichaTecnica">Cadastro de Produto - Ficha Técnica</h3>
-                        <div class="produto-admin-linha">
-                            <div class="campo-com-label">
-                                <label class="campo-label">Nome do produto</label>
-                                <input type="text" id="ftNome">
-                            </div>
-                            <div class="campo-com-label">
-                                <label class="campo-label">Rendimento (unidades)</label>
-                                <input type="text" inputmode="decimal" id="ftRendimento">
+                    <div class="loja-status-card ficha-tecnica-form-card">
+                        <div class="ficha-tecnica-section-head">
+                            <span class="ficha-tecnica-step">01</span>
+                            <div>
+                                <span class="ficha-tecnica-kicker">IDENTIFICAÇÃO</span>
+                                <h3 id="tituloCadastroFichaTecnica">Produto e rendimento</h3>
+                                <p class="dica-secao">Defina o produto e quantas unidades a receita ou produção entrega.</p>
                             </div>
                         </div>
 
-                        <h3 style="margin-top:16px;">Componentes (bases ou ingredientes)</h3>
-                        <div class="produto-admin-linha">
-                            <div class="campo-com-label" style="flex:2;">
+                        <div class="ficha-tecnica-grid ficha-tecnica-grid--produto">
+                            <div class="campo-com-label ficha-tecnica-field">
+                                <label class="campo-label">Nome do produto</label>
+                                <input type="text" id="ftNome" placeholder="Ex: Brownie de Chocolate">
+                            </div>
+                            <div class="campo-com-label ficha-tecnica-field">
+                                <label class="campo-label">Rendimento (unidades)</label>
+                                <input type="text" inputmode="decimal" id="ftRendimento" placeholder="Ex: 10">
+                            </div>
+                        </div>
+
+                        <div class="ficha-tecnica-divider"></div>
+
+                        <div class="ficha-tecnica-section-head">
+                            <span class="ficha-tecnica-step">02</span>
+                            <div>
+                                <span class="ficha-tecnica-kicker">COMPOSIÇÃO</span>
+                                <h3>Componentes da receita</h3>
+                                <p class="dica-secao">Adicione ingredientes ou bases e informe a quantidade usada na produção.</p>
+                            </div>
+                        </div>
+
+                        <div class="ficha-tecnica-add-row">
+                            <div class="campo-com-label ficha-tecnica-field ficha-tecnica-field--componente">
                                 <label class="campo-label">Base ou ingrediente</label>
                                 <select id="ftSelectComponente"></select>
                             </div>
-                            <div class="campo-com-label">
+                            <div class="campo-com-label ficha-tecnica-field ficha-tecnica-field--qtd">
                                 <label class="campo-label">Quantidade</label>
                                 <input type="text" inputmode="decimal" id="ftQtdComponente">
                             </div>
+                            <button class="btn-secondary ficha-tecnica-add-btn" type="button" onclick="adicionarComponenteFichaTecnica()">+ Adicionar</button>
                         </div>
-                        <button class="btn-secondary" style="margin-top:8px;" onclick="adicionarComponenteFichaTecnica()">+ Adicionar</button>
-                        <div id="ftListaComponentes" style="margin-top:10px;"></div>
-                        <p class="dica-secao">Custo componentes: <strong id="ftCustoComponentesTemp">R$ 0,00</strong> · Peso total: <strong id="ftPesoTotalTemp">0g</strong></p>
 
-                        <h3 style="margin-top:16px;">Outros custos</h3>
-                        <div class="produto-admin-linha">
-                            <div class="campo-com-label">
+                        <div class="ficha-tecnica-composicao-box">
+                            <div id="ftListaComponentes" class="ficha-tecnica-componentes"></div>
+                            <div class="ficha-tecnica-composicao-resumo">
+                                <div>
+                                    <span>Custo dos componentes</span>
+                                    <strong id="ftCustoComponentesTemp">R$ 0,00</strong>
+                                </div>
+                                <div>
+                                    <span>Peso total</span>
+                                    <strong id="ftPesoTotalTemp">0g</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="ficha-tecnica-divider"></div>
+
+                        <div class="ficha-tecnica-section-head">
+                            <span class="ficha-tecnica-step">03</span>
+                            <div>
+                                <span class="ficha-tecnica-kicker">CUSTOS OPERACIONAIS</span>
+                                <h3>Outros custos</h3>
+                                <p class="dica-secao">Inclua embalagem, custo fixo e mão de obra para chegar ao custo real por unidade.</p>
+                            </div>
+                        </div>
+
+                        <div class="ficha-tecnica-grid ficha-tecnica-grid--custos">
+                            <div class="campo-com-label ficha-tecnica-field">
                                 <label class="campo-label">Embalagem extra (R$/un)</label>
                                 <input type="text" inputmode="decimal" id="ftEmbalagem">
                             </div>
-                            <div class="campo-com-label">
+                            <div class="campo-com-label ficha-tecnica-field">
                                 <label class="campo-label">Custo fixo rateado (R$/un)</label>
                                 <input type="text" inputmode="decimal" id="ftCustoFixo">
                             </div>
-                        </div>
-                        <div class="produto-admin-linha" style="margin-top:10px;">
-                            <div class="campo-com-label">
+                            <div class="campo-com-label ficha-tecnica-field">
                                 <label class="campo-label">Horas de trabalho</label>
                                 <input type="text" inputmode="decimal" id="ftHoras">
                             </div>
-                            <div class="campo-com-label">
+                            <div class="campo-com-label ficha-tecnica-field">
                                 <label class="campo-label">Valor da hora (R$)</label>
                                 <input type="text" inputmode="decimal" id="ftValorHora">
                             </div>
                         </div>
 
-                        <h3 style="margin-top:16px;">Margens de lucro</h3>
-                        <p class="dica-secao">As duas margens definem a proporção da divisão do lucro entre Empresa e Pró-labore (não precisam somar 100%). Também são usadas juntas pra sugerir o preço de venda inicial.</p>
-                        <div class="produto-admin-linha">
-                            <div class="campo-com-label">
+                        <div class="ficha-tecnica-divider"></div>
+
+                        <div class="ficha-tecnica-section-head">
+                            <span class="ficha-tecnica-step">04</span>
+                            <div>
+                                <span class="ficha-tecnica-kicker">RENTABILIDADE</span>
+                                <h3>Margens e preço</h3>
+                                <p class="dica-secao">Configure a divisão do lucro, taxas de venda e, se desejar, fixe um preço redondo.</p>
+                            </div>
+                        </div>
+
+                        <div class="ficha-tecnica-info-box">
+                            <span>💡</span>
+                            <p>As margens de Empresa e Pró-labore definem a proporção da divisão do lucro e não precisam somar 100%. Juntas, elas também ajudam a sugerir o preço inicial.</p>
+                        </div>
+
+                        <div class="ficha-tecnica-grid ficha-tecnica-grid--margens">
+                            <div class="campo-com-label ficha-tecnica-field">
                                 <label class="campo-label">Margem da empresa (%)</label>
                                 <input type="text" inputmode="decimal" id="ftMargemEmpresa">
                             </div>
-                            <div class="campo-com-label">
+                            <div class="campo-com-label ficha-tecnica-field">
                                 <label class="campo-label">Margem do pró-labore (%)</label>
                                 <input type="text" inputmode="decimal" id="ftMargemCasal">
                             </div>
+                            <div class="campo-com-label ficha-tecnica-field">
+                                <label class="campo-label">Taxas de venda (%)</label>
+                                <input type="text" inputmode="decimal" id="ftTaxaVenda">
+                            </div>
+                            <div class="campo-com-label ficha-tecnica-field">
+                                <label class="campo-label">Preço de venda redondo (opcional)</label>
+                                <input type="text" inputmode="decimal" id="ftPrecoManual" placeholder="Ex: 15,00">
+                                <small>Deixe em branco para usar o preço calculado pelas margens.</small>
+                            </div>
                         </div>
-                        <label class="campo-label" style="margin-top:10px;">Taxas de venda (%)</label>
-                        <input type="text" inputmode="decimal" id="ftTaxaVenda">
 
-                        <label class="campo-label" style="margin-top:10px;">Preço de venda redondo (opcional)</label>
-                        <p class="dica-secao" style="margin:2px 0 6px;">Deixe em branco pra usar o preço calculado pelas margens. Preencha só se quiser fixar um valor redondo — o lucro é recalculado de verdade em cima desse preço.</p>
-                        <input type="text" inputmode="decimal" id="ftPrecoManual" placeholder="Ex: 15,00">
-
-                        <button class="btn-salvar-ordem" id="btnSalvarFichaTecnica" style="margin-top:10px;" onclick="salvarFichaTecnica()">Calcular e Salvar</button>
-                        <div id="ftResultado" style="margin-top:10px;"></div>
-                        <p id="msgFichaTecnica" class="ordem-categorias-msg"></p>
+                        <button class="btn-salvar-ordem ficha-tecnica-save" id="btnSalvarFichaTecnica" onclick="salvarFichaTecnica()">Calcular e Salvar</button>
+                        <div id="ftResultado" class="ficha-tecnica-resultado"></div>
+                        <p id="msgFichaTecnica" class="ordem-categorias-msg ficha-tecnica-msg"></p>
                     </div>
 
-                    <div class="loja-status-card" style="margin-top:16px;">
-                        <input type="text" id="ftBusca" placeholder="🔍 Pesquisar..." oninput="renderFichaTecnica()">
-                        <div id="ftListaProdutos" style="margin-top:10px;"></div>
+                    <div class="loja-status-card ficha-tecnica-carteira-card">
+                        <div class="ficha-tecnica-carteira-head">
+                            <div>
+                                <span class="ficha-tecnica-kicker">CATÁLOGO TÉCNICO</span>
+                                <h3>Fichas cadastradas</h3>
+                                <p class="dica-secao">Encontre rapidamente uma ficha para editar ou publicar como produto.</p>
+                            </div>
+                            <div class="ficha-tecnica-search-wrap">
+                                <input type="text" id="ftBusca" placeholder="🔍 Pesquisar ficha técnica..." oninput="renderFichaTecnica()">
+                            </div>
+                        </div>
+                        <div class="ficha-tecnica-list-scroll">
+                            <div id="ftListaProdutos"></div>
+                        </div>
                     </div>
                 </div>
 

@@ -2944,142 +2944,364 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
     }
 }
 
-/* ===== GESTÃO PREMIUM — FICHA TÉCNICA (visual somente) ===== */
-/* Escopo restrito à subaba Ficha Técnica. Não altera IDs, eventos, cálculos ou Firebase. */
-.gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] {
-    --ft-border: #eadfce;
-    --ft-soft: #fffdf9;
-    --ft-shadow: 0 8px 22px rgba(72, 45, 25, .065);
+/* ===== GESTÃO PREMIUM — FICHA TÉCNICA ===== */
+/* Escopo restrito à subaba Ficha Técnica. IDs, eventos, cálculos e Firebase permanecem intactos. */
+.gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"].ficha-tecnica-premium {
+    --ft-border: rgba(128, 88, 58, .13);
+    --ft-border-strong: rgba(128, 88, 58, .20);
+    --ft-soft: #fdf9f4;
+    --ft-soft-2: #fffaf4;
+    --ft-text: #4a3426;
+    --ft-muted: #806c5d;
+    --ft-accent: #ad592d;
+    --ft-shadow: 0 14px 34px rgba(72, 48, 31, .07);
+    width: 100%;
+    margin: 0 auto;
+    padding-bottom: 28px;
 }
 
-/* Card de cadastro: mantém a lógica atual, só melhora hierarquia e densidade. */
-.gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] > .loja-status-card:first-child {
-    padding: 17px 18px 18px;
+.ficha-tecnica-premium .loja-status-card {
     border: 1px solid var(--ft-border);
-    border-radius: 16px;
-    background: var(--ft-soft);
     box-shadow: var(--ft-shadow);
 }
 
-.gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] > .loja-status-card:first-child > h3:first-child {
-    margin: 0 0 13px;
-    font-size: 1.03em;
-    color: #4d382b;
+.ficha-tecnica-premium .ficha-tecnica-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 14px;
+    padding: 19px 21px;
+    overflow: hidden;
+    border-radius: 16px;
+    background: linear-gradient(125deg, rgba(255,255,255,.99), rgba(251,247,241,.96));
 }
 
-.gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] > .loja-status-card:first-child h3:not(:first-child) {
-    margin: 15px 0 8px !important;
-    padding-top: 12px;
-    border-top: 1px solid #efe5d9;
-    font-size: .91em;
-    color: #8e4f2d;
+.ficha-tecnica-premium .ficha-tecnica-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: linear-gradient(180deg, #d4935e, #a8522a);
 }
 
-.gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] .produto-admin-linha {
-    gap: 11px;
+.ficha-tecnica-premium .ficha-tecnica-eyebrow,
+.ficha-tecnica-premium .ficha-tecnica-kicker {
+    display: block;
+    margin-bottom: 3px;
+    color: #ad6b43;
+    font-size: .61rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-hero h3,
+.ficha-tecnica-premium .ficha-tecnica-section-head h3,
+.ficha-tecnica-premium .ficha-tecnica-carteira-head h3 {
+    margin: 0;
+    color: var(--ft-text);
+    font-size: 1.03rem;
+    line-height: 1.22;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-hero .dica-secao,
+.ficha-tecnica-premium .ficha-tecnica-section-head .dica-secao,
+.ficha-tecnica-premium .ficha-tecnica-carteira-head .dica-secao {
+    margin: 4px 0 0;
+    color: var(--ft-muted);
+    font-size: .73rem;
+    line-height: 1.42;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-hero-tags {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-hero-tags span {
+    padding: 5px 9px;
+    border: 1px solid rgba(128,88,58,.11);
+    border-radius: 999px;
+    background: rgba(255,255,255,.82);
+    color: #8c6247;
+    font-size: .62rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-form-card,
+.ficha-tecnica-premium .ficha-tecnica-carteira-card {
+    padding: 18px;
+    border-radius: 16px;
+    background: rgba(255,255,255,.97);
+}
+
+.ficha-tecnica-premium .ficha-tecnica-section-head {
+    display: grid;
+    grid-template-columns: 34px minmax(0,1fr);
+    gap: 10px;
+    align-items: start;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-step {
+    display: inline-grid;
+    place-items: center;
+    width: 31px;
+    height: 31px;
+    border: 1px solid rgba(173,89,45,.16);
+    border-radius: 10px;
+    background: #fff8f1;
+    color: var(--ft-accent);
+    font-size: .7rem;
+    font-weight: 900;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-divider {
+    height: 1px;
+    margin: 17px 0;
+    background: linear-gradient(90deg, rgba(160,108,71,.10), rgba(160,108,71,.22), rgba(160,108,71,.10));
+}
+
+.ficha-tecnica-premium .ficha-tecnica-grid {
+    display: grid;
+    gap: 10px;
+    margin-top: 11px;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-grid--produto {
+    grid-template-columns: minmax(0, 1.45fr) minmax(180px, .55fr);
+}
+
+.ficha-tecnica-premium .ficha-tecnica-grid--custos,
+.ficha-tecnica-premium .ficha-tecnica-grid--margens {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ficha-tecnica-premium .ficha-tecnica-add-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 150px auto;
+    gap: 9px;
     align-items: end;
+    margin-top: 11px;
 }
 
-.gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] .campo-com-label {
+.ficha-tecnica-premium .ficha-tecnica-field {
     min-width: 0;
 }
 
-#ftNome,
-#ftRendimento,
-#ftSelectComponente,
-#ftQtdComponente,
-#ftEmbalagem,
-#ftCustoFixo,
-#ftHoras,
-#ftValorHora,
-#ftMargemEmpresa,
-#ftMargemCasal,
-#ftTaxaVenda,
-#ftPrecoManual,
-#ftBusca {
+.ficha-tecnica-premium .ficha-tecnica-field .campo-label {
+    margin-bottom: 4px;
+    color: #695345;
+    font-size: .71rem;
+    font-weight: 700;
+}
+
+.ficha-tecnica-premium #ftNome,
+.ficha-tecnica-premium #ftRendimento,
+.ficha-tecnica-premium #ftSelectComponente,
+.ficha-tecnica-premium #ftQtdComponente,
+.ficha-tecnica-premium #ftEmbalagem,
+.ficha-tecnica-premium #ftCustoFixo,
+.ficha-tecnica-premium #ftHoras,
+.ficha-tecnica-premium #ftValorHora,
+.ficha-tecnica-premium #ftMargemEmpresa,
+.ficha-tecnica-premium #ftMargemCasal,
+.ficha-tecnica-premium #ftTaxaVenda,
+.ficha-tecnica-premium #ftPrecoManual,
+.ficha-tecnica-premium #ftBusca {
     width: 100%;
-    min-height: 38px;
+    min-height: 40px;
     box-sizing: border-box;
-    padding: 7px 10px;
+    padding: 8px 10px;
     border: 1px solid #dfd1bf;
-    border-radius: 9px;
+    border-radius: 10px;
     background: #fff;
     color: var(--text);
     font-family: inherit;
     outline: none;
-    transition: border-color .15s ease, box-shadow .15s ease;
+    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
 }
 
-#ftNome:focus,
-#ftRendimento:focus,
-#ftSelectComponente:focus,
-#ftQtdComponente:focus,
-#ftEmbalagem:focus,
-#ftCustoFixo:focus,
-#ftHoras:focus,
-#ftValorHora:focus,
-#ftMargemEmpresa:focus,
-#ftMargemCasal:focus,
-#ftTaxaVenda:focus,
-#ftPrecoManual:focus,
-#ftBusca:focus {
+.ficha-tecnica-premium #ftNome:focus,
+.ficha-tecnica-premium #ftRendimento:focus,
+.ficha-tecnica-premium #ftSelectComponente:focus,
+.ficha-tecnica-premium #ftQtdComponente:focus,
+.ficha-tecnica-premium #ftEmbalagem:focus,
+.ficha-tecnica-premium #ftCustoFixo:focus,
+.ficha-tecnica-premium #ftHoras:focus,
+.ficha-tecnica-premium #ftValorHora:focus,
+.ficha-tecnica-premium #ftMargemEmpresa:focus,
+.ficha-tecnica-premium #ftMargemCasal:focus,
+.ficha-tecnica-premium #ftTaxaVenda:focus,
+.ficha-tecnica-premium #ftPrecoManual:focus,
+.ficha-tecnica-premium #ftBusca:focus {
     border-color: #c9976c;
-    box-shadow: 0 0 0 3px rgba(160, 82, 45, .08);
+    box-shadow: 0 0 0 3px rgba(160,82,45,.08);
 }
 
-.gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] .campo-label {
-    margin-bottom: 4px;
-    font-size: .76em;
-    color: #6f5a49;
+.ficha-tecnica-premium .ficha-tecnica-field small {
+    display: block;
+    margin-top: 4px;
+    color: #9a8779;
+    font-size: .64rem;
+    line-height: 1.3;
 }
 
-.gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] .dica-secao {
-    margin: 7px 0 0;
-    line-height: 1.42;
-    color: #8a7665;
-    font-size: .76em;
-}
-
-.gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] .btn-secondary {
-    padding: 7px 11px;
-    border-radius: 9px;
-    font-size: .79em;
-}
-
-#btnSalvarFichaTecnica {
-    min-height: 41px;
-    margin-top: 13px !important;
+.ficha-tecnica-premium .ficha-tecnica-add-btn {
+    min-height: 40px;
+    padding: 8px 13px;
     border-radius: 10px;
-    box-shadow: 0 5px 14px rgba(160, 82, 45, .13);
+    white-space: nowrap;
 }
 
-#ftResultado {
-    margin-top: 9px !important;
+.ficha-tecnica-premium .ficha-tecnica-composicao-box {
+    margin-top: 10px;
+    overflow: hidden;
+    border: 1px dashed rgba(128,88,58,.16);
+    border-radius: 12px;
+    background: #fefbf7;
 }
 
-/* Busca e catálogo de fichas: mais painel, menos corredor vertical. */
-.gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] > .loja-status-card:nth-of-type(2) {
-    margin-top: 12px !important;
-    padding: 12px;
-    border: 1px solid var(--ft-border);
-    border-radius: 16px;
-    background: rgba(255,255,255,.52);
-    box-shadow: var(--ft-shadow);
+.ficha-tecnica-premium .ficha-tecnica-componentes {
+    min-height: 54px;
+    padding: 4px 12px;
 }
 
-#ftBusca {
-    max-width: 420px;
-    margin-bottom: 2px;
-}
-
-#ftListaProdutos {
+.ficha-tecnica-premium .ficha-tecnica-componentes:empty::after {
+    content: "Nenhum componente adicionado ainda.";
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-height: 50px;
+    place-items: center;
+    color: #aa9789;
+    font-size: .7rem;
+}
+
+.ficha-tecnica-premium #ftListaComponentes > div {
+    padding: 8px 0 !important;
+    border-bottom: 1px solid #eee3d8 !important;
+    color: #5d4637;
+    font-size: .75rem;
+    gap: 10px;
+}
+
+.ficha-tecnica-premium #ftListaComponentes > div:last-child {
+    border-bottom: 0 !important;
+}
+
+.ficha-tecnica-premium #ftListaComponentes .btn-excluir-cupom {
+    flex: 0 0 auto;
+    opacity: .55;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-composicao-resumo {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    border-top: 1px solid #eee3d8;
+    background: #fff;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-composicao-resumo > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-composicao-resumo > div + div {
+    border-left: 1px solid #eee3d8;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-composicao-resumo span {
+    color: #8a7768;
+    font-size: .66rem;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-composicao-resumo strong {
+    color: var(--ft-text);
+    font-size: .79rem;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-info-box {
+    display: flex;
+    align-items: flex-start;
     gap: 9px;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid rgba(207,163,96,.20);
+    border-radius: 11px;
+    background: #fffaf1;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-info-box p {
+    margin: 0;
+    color: #806d5d;
+    font-size: .7rem;
+    line-height: 1.45;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-save {
+    width: 100%;
+    min-height: 42px;
+    margin-top: 14px !important;
+    border-radius: 10px;
+    box-shadow: 0 6px 15px rgba(160,82,45,.12);
+}
+
+.ficha-tecnica-premium .ficha-tecnica-resultado {
     margin-top: 10px !important;
 }
 
-#ftListaProdutos > .pedido-card {
+.ficha-tecnica-premium .ficha-tecnica-resultado:empty {
+    display: none;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-msg {
+    margin: 7px 0 0;
+    min-height: 0;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-carteira-card {
+    margin-top: 14px !important;
+    background: rgba(255,255,255,.93);
+}
+
+.ficha-tecnica-premium .ficha-tecnica-carteira-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 11px;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-search-wrap {
+    flex: 0 1 360px;
+    width: 100%;
+}
+
+.ficha-tecnica-premium #ftBusca {
+    max-width: none;
+    margin: 0;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-list-scroll {
+    max-height: 680px;
+    overflow: auto;
+    padding: 2px 5px 2px 2px;
+    scrollbar-width: thin;
+}
+
+.ficha-tecnica-premium #ftListaProdutos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+    margin: 0 !important;
+}
+
+.ficha-tecnica-premium #ftListaProdutos > .pedido-card {
     margin-top: 0 !important;
     min-width: 0;
     padding: 12px 13px;
@@ -3090,66 +3312,105 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
     transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
 }
 
-#ftListaProdutos > .pedido-card:hover {
+.ficha-tecnica-premium #ftListaProdutos > .pedido-card:hover {
     transform: translateY(-1px);
     border-color: #dcc9b4;
     box-shadow: 0 7px 17px rgba(72,45,25,.075);
 }
 
-#ftListaProdutos > .pedido-card > strong {
-    font-size: .91em;
+.ficha-tecnica-premium #ftListaProdutos > .pedido-card > strong {
     color: #4d382b;
+    font-size: .84rem;
     line-height: 1.28;
 }
 
-#ftListaProdutos > .pedido-card p {
+.ficha-tecnica-premium #ftListaProdutos > .pedido-card p {
     margin: 5px 0 8px !important;
-    font-size: .75em !important;
-    line-height: 1.38;
+    color: #887567 !important;
+    font-size: .69rem !important;
+    line-height: 1.4;
 }
 
-#ftListaProdutos .pedido-tag {
+.ficha-tecnica-premium #ftListaProdutos .pedido-tag {
     display: inline-flex;
     align-items: center;
-    padding: 3px 7px;
     margin-left: 4px;
+    padding: 3px 7px;
     border-radius: 999px;
-    font-size: .66em;
+    font-size: .62rem;
     vertical-align: middle;
 }
 
-#ftListaProdutos .btn-secondary {
+.ficha-tecnica-premium #ftListaProdutos .btn-secondary {
+    margin-right: 4px;
     padding: 6px 9px;
     border-radius: 8px;
-    font-size: .75em;
-    margin-right: 4px;
+    font-size: .7rem;
 }
 
-#ftListaProdutos .btn-excluir-cupom {
-    opacity: .55;
+.ficha-tecnica-premium #ftListaProdutos .btn-excluir-cupom {
+    opacity: .5;
     transform: scale(.9);
     transition: opacity .16s ease, transform .16s ease;
 }
 
-#ftListaProdutos .btn-excluir-cupom:hover {
+.ficha-tecnica-premium #ftListaProdutos .btn-excluir-cupom:hover {
     opacity: 1;
     transform: scale(1);
 }
 
-@media (max-width: 900px) {
-    #ftListaProdutos {
+@media (max-width: 800px) {
+    .ficha-tecnica-premium .ficha-tecnica-hero,
+    .ficha-tecnica-premium .ficha-tecnica-carteira-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .ficha-tecnica-premium .ficha-tecnica-hero-tags {
+        justify-content: flex-start;
+    }
+
+    .ficha-tecnica-premium .ficha-tecnica-search-wrap {
+        flex-basis: auto;
+        width: 100%;
+    }
+
+    .ficha-tecnica-premium .ficha-tecnica-grid--produto,
+    .ficha-tecnica-premium .ficha-tecnica-grid--custos,
+    .ficha-tecnica-premium .ficha-tecnica-grid--margens,
+    .ficha-tecnica-premium #ftListaProdutos {
         grid-template-columns: 1fr;
+    }
+
+    .ficha-tecnica-premium .ficha-tecnica-add-row {
+        grid-template-columns: minmax(0, 1fr) 130px;
+    }
+
+    .ficha-tecnica-premium .ficha-tecnica-add-btn {
+        grid-column: 1 / -1;
     }
 }
 
-@media (max-width: 760px) {
-    .gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] > .loja-status-card:first-child,
-    .gestao-subconteudo[data-subtab-content="sub-ficha-tecnica"] > .loja-status-card:nth-of-type(2) {
-        padding: 13px;
+@media (max-width: 520px) {
+    .ficha-tecnica-premium .ficha-tecnica-hero,
+    .ficha-tecnica-premium .ficha-tecnica-form-card,
+    .ficha-tecnica-premium .ficha-tecnica-carteira-card {
+        padding: 14px;
+        border-radius: 14px;
     }
 
-    #ftBusca {
-        max-width: none;
+    .ficha-tecnica-premium .ficha-tecnica-add-row,
+    .ficha-tecnica-premium .ficha-tecnica-composicao-resumo {
+        grid-template-columns: 1fr;
+    }
+
+    .ficha-tecnica-premium .ficha-tecnica-composicao-resumo > div + div {
+        border-top: 1px solid #eee3d8;
+        border-left: 0;
+    }
+
+    .ficha-tecnica-premium .ficha-tecnica-list-scroll {
+        max-height: 64vh;
     }
 }
 
