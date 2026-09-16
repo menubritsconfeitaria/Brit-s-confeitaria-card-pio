@@ -168,28 +168,42 @@
         </nav>
 
         <main class="painel-main">
-            <section data-tab="pedidos">
-                <div class="kanban-cabecalho">
-                    <div>
-                        <h2>📋 Fluxo de Pedidos <span id="contadorPendentes" class="badge-contador">0</span></h2>
-                        <p class="dica-secao">Os pedidos mudam de coluna automaticamente conforme o status, sem alterar o fluxo atual.</p>
+            <section data-tab="pedidos" class="pedidos-operacao-premium">
+                <div class="pedidos-operacao-hero">
+                    <div class="pedidos-operacao-copy">
+                        <span class="pedidos-operacao-eyebrow">OPERAÇÃO EM TEMPO REAL</span>
+                        <h2>📋 Central de Pedidos <span id="contadorPendentes" class="badge-contador">0</span></h2>
+                        <p class="dica-secao">Acompanhe o fluxo da cozinha à entrega, com cada etapa organizada em uma única visão.</p>
+                    </div>
+                    <div class="tempo-operacao-card" aria-label="Tempo operacional da loja hoje">
+                        <div class="tempo-operacao-status">
+                            <span id="tempoOperacaoPonto" class="tempo-operacao-ponto"></span>
+                            <span id="tempoOperacaoStatus">Carregando operação...</span>
+                        </div>
+                        <strong id="tempoOperacaoHoje">00h 00min</strong>
+                        <small id="tempoOperacaoSessao">Tempo aberto hoje</small>
                     </div>
                 </div>
-                <div class="produto-admin-linha" style="margin-bottom:14px;">
-                    <select id="selectSomAlerta">
-                        <option value="classico">🔔 Clássico (2 bips)</option>
-                        <option value="suave">🎵 Suave</option>
-                        <option value="urgente">⚠️ Urgente (3 bips)</option>
-                        <option value="sino">🔊 Sino</option>
-                    </select>
-                    <button class="btn-secondary" onclick="inicializarAudioContext(); tocarAlerta(document.getElementById('selectSomAlerta').value);">▶️ Testar</button>
-                    <button class="btn-secondary" onclick="salvarSomAlerta()">💾 Salvar som</button>
-                    <button id="btnAtivarAlertasPainel" class="btn-secondary" onclick="ativarAlertasPainel()">🔔 Ativar alertas neste aparelho</button>
-                    <label class="produto-disponivel-check" style="align-self:center; margin:0;">
-                        <input type="checkbox" id="chkImpressaoAutomatica" onchange="salvarImpressaoAutomaticaAtiva(this.checked)"> 🖨️ Imprimir automaticamente ao aceitar
+
+                <div class="pedidos-operacao-toolbar">
+                    <div class="pedidos-operacao-toolbar-grupo">
+                        <span class="pedidos-operacao-toolbar-label">🔔 Alertas</span>
+                        <select id="selectSomAlerta" aria-label="Som do alerta de novo pedido">
+                            <option value="classico">Clássico (2 bips)</option>
+                            <option value="suave">Suave</option>
+                            <option value="urgente">Urgente (3 bips)</option>
+                            <option value="sino">Sino</option>
+                        </select>
+                        <button class="btn-secondary" onclick="inicializarAudioContext(); tocarAlerta(document.getElementById('selectSomAlerta').value);">▶ Testar</button>
+                        <button class="btn-secondary" onclick="salvarSomAlerta()">💾 Salvar</button>
+                        <button id="btnAtivarAlertasPainel" class="btn-secondary" onclick="ativarAlertasPainel()">🔔 Ativar neste aparelho</button>
+                    </div>
+                    <label class="pedidos-operacao-print">
+                        <input type="checkbox" id="chkImpressaoAutomatica" onchange="salvarImpressaoAutomaticaAtiva(this.checked)">
+                        <span>🖨️ Impressão automática ao aceitar</span>
                     </label>
-                    <span id="msgImpressaoAutomatica" class="dica-secao" style="align-self:center;"></span>
-                    <span id="statusAlertasPainel" class="dica-secao" style="align-self:center;"></span>
+                    <span id="msgImpressaoAutomatica" class="dica-secao pedidos-operacao-msg"></span>
+                    <span id="statusAlertasPainel" class="dica-secao pedidos-operacao-msg"></span>
                 </div>
 
                 <div id="kanbanPedidos" class="kanban-pedidos">
@@ -235,9 +249,15 @@
                 </div>
             </section>
 
-            <section data-tab="pedidos">
-                <h2>🕒 Últimos pedidos (histórico)</h2>
-                <div id="listaHistorico" class="lista-pedidos historico">
+            <section data-tab="pedidos" class="pedidos-historico-premium">
+                <div class="pedidos-historico-head">
+                    <div>
+                        <span class="pedidos-operacao-eyebrow">HISTÓRICO RECENTE</span>
+                        <h2>🕒 Últimos pedidos</h2>
+                        <p class="dica-secao">Consulte os pedidos mais recentes sem alongar a página de operação.</p>
+                    </div>
+                </div>
+                <div id="listaHistorico" class="lista-pedidos historico pedidos-historico-lista">
                     <p class="vazio">Ainda não há pedidos no histórico.</p>
                 </div>
             </section>

@@ -2141,6 +2141,306 @@ function atualizarContador() {
 
 // ---------- STATUS / HORÁRIO DA LOJA ----------
 
+
+// ---------- TEMPO OPERACIONAL DA LOJA ----------
+// Mede quanto tempo a loja ficou efetivamente aberta no dia. A contagem só grava
+// abertura/fechamento no Firebase; o relógio da tela corre localmente, sem escrita por segundo.
+let operacaoLojaServerOffset = 0;
+let operacaoLojaConfigAtual = null;
+let operacaoLojaAbertaEfetiva = null;
+let operacaoLojaEstadoDb = null;
+let operacaoLojaDiaDb = null;
+let operacaoLojaDiaEscutado = '';
+let operacaoLojaDiaRef = null;
+let operacaoLojaDiaCallback = null;
+let operacaoLojaSincronizando = false;
+let operacaoLojaIniciado = false;
+
+function agoraOperacaoLoja() {
+    return Date.now() + operacaoLojaServerOffset;
+}
+
+function dataIsoOperacaoLoja(timestamp = agoraOperacaoLoja()) {
+    const d = new Date(timestamp);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function inicioDiaOperacaoLoja(dataIso) {
+    const partes = String(dataIso || '').split('-').map(Number);
+    if (partes.length !== 3 || partes.some(n => !Number.isFinite(n))) return null;
+    return new Date(partes[0], partes[1] - 1, partes[2], 0, 0, 0, 0).getTime();
+}
+
+function fimDiaOperacaoLoja(dataIso) {
+    const inicio = inicioDiaOperacaoLoja(dataIso);
+    return inicio == null ? null : inicio + (24 * 60 * 60 * 1000);
+}
+
+function formatarDuracaoOperacaoLoja(ms) {
+    const totalMin = Math.max(0, Math.floor((Number(ms) || 0) / 60000));
+    const horas = Math.floor(totalMin / 60);
+    const minutos = totalMin % 60;
+    return `${String(horas).padStart(2, '0')}h ${String(minutos).padStart(2, '0')}min`;
+}
+
+
+function obterDiaConfigOperacao(dataIso, horarios) {
+    const inicio = inicioDiaOperacaoLoja(dataIso);
+    if (inicio == null) return null;
+    const d = new Date(inicio);
+    return (horarios && horarios[d.getDay()]) || horariosPadraoAdmin[d.getDay()] || null;
+}
+
+function timestampHorarioOperacao(dataIso, horario) {
+    const inicio = inicioDiaOperacaoLoja(dataIso);
+    if (inicio == null || !horario || !/^\d{2}:\d{2}$/.test(horario)) return null;
+    const [h, m] = horario.split(':').map(Number);
+    const d = new Date(inicio);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m, 0, 0).getTime();
+}
+
+function aberturaAutomaticaOperacao(dataIso, horarios) {
+    const cfg = obterDiaConfigOperacao(dataIso, horarios);
+    return cfg && cfg.aberto ? timestampHorarioOperacao(dataIso, cfg.abre) : null;
+}
+
+function fechamentoAutomaticoOperacao(dataIso, horarios) {
+    const cfg = obterDiaConfigOperacao(dataIso, horarios);
+    return cfg && cfg.aberto ? timestampHorarioOperacao(dataIso, cfg.fecha) : null;
+}
+
+function calcularEstadoEfetivoLoja(config) {
+    const cfg = config || operacaoLojaConfigAtual || {};
+    const modo = cfg.modoManual || 'auto';
+    if (modo === 'aberto') return true;
+    if (modo === 'fechado') return false;
+    return calcularAbertoPorHorarioAdmin(cfg.horarios);
+}
+
+function atualizarUiTempoOperacaoLoja() {
+    const hoje = dataIsoOperacaoLoja();
+    const agora = agoraOperacaoLoja();
+    const totalFechado = Number((operacaoLojaDiaDb || {}).totalMs) || 0;
+    let totalHoje = totalFechado;
+    let sessaoAtualMs = 0;
+
+    if (operacaoLojaEstadoDb && operacaoLojaEstadoDb.aberta && operacaoLojaEstadoDb.data === hoje && operacaoLojaEstadoDb.abriuEm) {
+        sessaoAtualMs = Math.max(0, agora - Number(operacaoLojaEstadoDb.abriuEm));
+        totalHoje += sessaoAtualMs;
+    }
+
+    const aberta = !!operacaoLojaAbertaEfetiva;
+    const tempoEl = document.getElementById('tempoOperacaoHoje');
+    const statusEl = document.getElementById('tempoOperacaoStatus');
+    const sessaoEl = document.getElementById('tempoOperacaoSessao');
+    const card = document.querySelector('.tempo-operacao-card');
+
+    if (tempoEl) tempoEl.textContent = formatarDuracaoOperacaoLoja(totalHoje);
+    if (statusEl) statusEl.textContent = aberta ? 'Loja aberta' : 'Loja fechada';
+    if (sessaoEl) {
+        sessaoEl.textContent = aberta && sessaoAtualMs > 0
+            ? `Aberta há ${formatarDuracaoOperacaoLoja(sessaoAtualMs)}`
+            : (aberta ? 'Contagem em andamento' : 'Contagem pausada');
+    }
+    if (card) {
+        card.classList.toggle('is-open', aberta);
+        card.classList.toggle('is-closed', !aberta);
+    }
+}
+
+function escutarDiaOperacaoLojaAtual() {
+    const hoje = dataIsoOperacaoLoja();
+    if (operacaoLojaDiaEscutado === hoje && operacaoLojaDiaRef) return;
+
+    if (operacaoLojaDiaRef && operacaoLojaDiaCallback) {
+        operacaoLojaDiaRef.off('value', operacaoLojaDiaCallback);
+    }
+
+    operacaoLojaDiaEscutado = hoje;
+    operacaoLojaDiaRef = db.ref(`configuracao/operacaoLoja/dias/${hoje}`);
+    operacaoLojaDiaCallback = snap => {
+        operacaoLojaDiaDb = snap.val() || {};
+        atualizarUiTempoOperacaoLoja();
+    };
+    operacaoLojaDiaRef.on('value', operacaoLojaDiaCallback);
+}
+
+function transacaoFirebase(ref, atualizador) {
+    return new Promise((resolve, reject) => {
+        ref.transaction(atualizador, (erro, committed, snapshot) => {
+            if (erro) reject(erro);
+            else resolve({ committed, snapshot });
+        });
+    });
+}
+
+async function abrirSessaoOperacaoLoja(modo, abriuEmOverride) {
+    const agora = Number(abriuEmOverride) || agoraOperacaoLoja();
+    const data = dataIsoOperacaoLoja(agora);
+    const sessaoRefBase = db.ref(`configuracao/operacaoLoja/dias/${data}/sessoes`).push();
+    const sessaoId = sessaoRefBase.key;
+    const estadoRef = db.ref('configuracao/operacaoLoja/estadoAtual');
+
+    const resultado = await transacaoFirebase(estadoRef, atual => {
+        if (atual && atual.aberta) return;
+        return {
+            aberta: true,
+            abriuEm: agora,
+            data,
+            sessaoId,
+            modo: modo || 'auto',
+            atualizadoEm: agoraOperacaoLoja()
+        };
+    });
+
+    if (!resultado.committed) return false;
+
+    await sessaoRefBase.set({
+        abriuEm: agora,
+        fechouEm: null,
+        duracaoMs: null,
+        modo: modo || 'auto'
+    });
+    return true;
+}
+
+async function fecharSessaoOperacaoLoja(estado, fechouEmOverride) {
+    const atual = estado || operacaoLojaEstadoDb;
+    if (!atual || !atual.aberta || !atual.sessaoId || !atual.abriuEm || !atual.data) return false;
+
+    const fechouEm = Math.max(Number(atual.abriuEm), Number(fechouEmOverride) || agoraOperacaoLoja());
+    const estadoRef = db.ref('configuracao/operacaoLoja/estadoAtual');
+    const sessaoId = atual.sessaoId;
+    const abriuEm = Number(atual.abriuEm);
+    const data = atual.data;
+
+    const resultado = await transacaoFirebase(estadoRef, corrente => {
+        if (!corrente || !corrente.aberta || corrente.sessaoId !== sessaoId) return;
+        return {
+            ...corrente,
+            aberta: false,
+            fechouEm,
+            atualizadoEm: agoraOperacaoLoja()
+        };
+    });
+
+    if (!resultado.committed) return false;
+
+    const duracaoMs = Math.max(0, fechouEm - abriuEm);
+    await Promise.all([
+        db.ref(`configuracao/operacaoLoja/dias/${data}/totalMs`).transaction(total => (Number(total) || 0) + duracaoMs),
+        db.ref(`configuracao/operacaoLoja/dias/${data}/sessoes/${sessaoId}`).update({ fechouEm, duracaoMs })
+    ]);
+    return true;
+}
+
+async function sincronizarTempoOperacaoLoja(abertaEfetiva, modo) {
+    if (operacaoLojaSincronizando) return;
+    operacaoLojaSincronizando = true;
+    try {
+        const agora = agoraOperacaoLoja();
+        const hoje = dataIsoOperacaoLoja(agora);
+        const estadoSnap = await db.ref('configuracao/operacaoLoja/estadoAtual').once('value');
+        let estado = estadoSnap.val() || null;
+
+        // Se uma sessão atravessou a meia-noite, fecha o dia anterior sem deixar o relógio
+        // correr indefinidamente. No automático, respeita primeiro o fechamento programado.
+        if (estado && estado.aberta && estado.data && estado.data !== hoje) {
+            let fechamentoAnterior = fimDiaOperacaoLoja(estado.data);
+            if (estado.modo === 'auto' && operacaoLojaConfigAtual) {
+                const programado = fechamentoAutomaticoOperacao(estado.data, operacaoLojaConfigAtual.horarios);
+                if (programado && programado > Number(estado.abriuEm) && programado < fechamentoAnterior) fechamentoAnterior = programado;
+            }
+            if (fechamentoAnterior) await fecharSessaoOperacaoLoja(estado, fechamentoAnterior);
+            estado = null;
+            if (abertaEfetiva) {
+                let inicioHoje = inicioDiaOperacaoLoja(hoje) || agora;
+                if ((modo || 'auto') === 'auto' && operacaoLojaConfigAtual) {
+                    inicioHoje = aberturaAutomaticaOperacao(hoje, operacaoLojaConfigAtual.horarios) || inicioHoje;
+                }
+                await abrirSessaoOperacaoLoja(modo, Math.min(inicioHoje, agora));
+            }
+            return;
+        }
+
+        if (abertaEfetiva) {
+            if (estado && estado.aberta && estado.data === hoje) return;
+
+            let inicio = agora;
+            if ((modo || 'auto') === 'auto' && operacaoLojaConfigAtual) {
+                const programado = aberturaAutomaticaOperacao(hoje, operacaoLojaConfigAtual.horarios);
+                const ultimoFechamento = estado && estado.data === hoje ? Number(estado.fechouEm || 0) : 0;
+                // Se não houve fechamento depois da abertura programada, podemos recuperar
+                // com segurança o tempo desde o horário automático, mesmo se o painel abriu depois.
+                if (programado && programado <= agora && ultimoFechamento < programado) inicio = programado;
+            }
+            await abrirSessaoOperacaoLoja(modo, inicio);
+        } else if (estado && estado.aberta) {
+            let fechamento = agora;
+            if ((modo || 'auto') === 'auto' && estado.modo === 'auto' && operacaoLojaConfigAtual) {
+                const programado = fechamentoAutomaticoOperacao(hoje, operacaoLojaConfigAtual.horarios);
+                if (programado && programado >= Number(estado.abriuEm) && programado <= agora) fechamento = programado;
+            }
+            await fecharSessaoOperacaoLoja(estado, fechamento);
+        }
+    } catch (err) {
+        console.log('Não foi possível sincronizar o tempo operacional da loja:', err.message);
+    } finally {
+        operacaoLojaSincronizando = false;
+    }
+}
+
+function aplicarEstadoOperacionalLoja(config) {
+    operacaoLojaConfigAtual = config || {};
+    const modo = operacaoLojaConfigAtual.modoManual || 'auto';
+    const aberta = calcularEstadoEfetivoLoja(operacaoLojaConfigAtual);
+    operacaoLojaAbertaEfetiva = aberta;
+
+    const statusLoja = document.getElementById('lojaStatusAtual');
+    if (statusLoja) statusLoja.textContent = aberta ? '🟢 Aberta' : '🔴 Fechada';
+
+    atualizarUiTempoOperacaoLoja();
+    sincronizarTempoOperacaoLoja(aberta, modo);
+}
+
+function iniciarTempoOperacaoLoja() {
+    if (operacaoLojaIniciado) return;
+    operacaoLojaIniciado = true;
+
+    db.ref('.info/serverTimeOffset').on('value', snap => {
+        operacaoLojaServerOffset = Number(snap.val()) || 0;
+        atualizarUiTempoOperacaoLoja();
+    });
+
+    db.ref('configuracao/operacaoLoja/estadoAtual').on('value', snap => {
+        operacaoLojaEstadoDb = snap.val() || null;
+        atualizarUiTempoOperacaoLoja();
+    });
+
+    escutarDiaOperacaoLojaAtual();
+
+    // O relógio visual é local. Nenhuma escrita acontece a cada segundo.
+    setInterval(() => {
+        if (operacaoLojaDiaEscutado !== dataIsoOperacaoLoja()) escutarDiaOperacaoLojaAtual();
+        atualizarUiTempoOperacaoLoja();
+    }, 1000);
+
+    // No modo automático, o Firebase não muda quando chega o horário de abrir/fechar.
+    // Esta checagem leve percebe a virada do horário e registra apenas a mudança real.
+    setInterval(() => {
+        if (!operacaoLojaConfigAtual) return;
+        const abertaAgora = calcularEstadoEfetivoLoja(operacaoLojaConfigAtual);
+        if (abertaAgora !== operacaoLojaAbertaEfetiva) {
+            operacaoLojaAbertaEfetiva = abertaAgora;
+            const statusLoja = document.getElementById('lojaStatusAtual');
+            if (statusLoja) statusLoja.textContent = abertaAgora ? '🟢 Aberta' : '🔴 Fechada';
+            atualizarUiTempoOperacaoLoja();
+            sincronizarTempoOperacaoLoja(abertaAgora, operacaoLojaConfigAtual.modoManual || 'auto');
+        }
+    }, 30000);
+}
+
+
 const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
 const horariosPadraoAdmin = [
@@ -5446,12 +5746,7 @@ function escutarConfigLoja() {
         const modo = config.modoManual || 'auto';
         marcarModoSelecionado(modo);
 
-        let aberta;
-        if (modo === 'aberto') aberta = true;
-        else if (modo === 'fechado') aberta = false;
-        else aberta = calcularAbertoPorHorarioAdmin(config.horarios);
-
-        document.getElementById('lojaStatusAtual').textContent = aberta ? '🟢 Aberta' : '🔴 Fechada';
+        aplicarEstadoOperacionalLoja(config);
 
         const chkPagamento = document.getElementById('chkPagamentoOnlineAtivo');
         if (chkPagamento) chkPagamento.checked = !!config.pagamentoOnlineAtivo;
@@ -7236,6 +7531,7 @@ function removerRecompensa(index) {
 function iniciarEscutaPedidos() {
     document.getElementById('statusConexao').textContent = 'Conectado — atualizando em tempo real';
 
+    iniciarTempoOperacaoLoja();
     escutarConfigLoja();
     escutarNotificacaoAberturaAtiva();
     escutarModelosNotificacao();
@@ -7466,7 +7762,7 @@ function iniciarEscutaPedidos() {
         const listaFinalizados = document.getElementById('listaKanbanFinalizados');
         if (listaFinalizados) {
             listaFinalizados.innerHTML = '';
-            const finalizados = itens.filter(item => item.pedido.status === 'entregue').slice(0, 10);
+            const finalizados = itens.filter(item => item.pedido.status === 'entregue');
             if (finalizados.length === 0) {
                 listaFinalizados.innerHTML = '<p class="vazio">Nenhum finalizado nas últimas 24h.</p>';
             } else {
