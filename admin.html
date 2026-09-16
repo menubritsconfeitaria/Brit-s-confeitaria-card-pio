@@ -1366,36 +1366,72 @@
                     </div>
                 </div>
 
-                <div class="gestao-subconteudo" data-subtab-content="sub-clientes-gestao" style="display:none;">
-                    <div class="loja-status-card">
-                        <h3 id="tituloCadastroClienteGestao">Cadastro de Cliente</h3>
-                        <div class="produto-admin-linha">
-                            <div class="campo-com-label">
-                                <label class="campo-label">Nome</label>
-                                <input type="text" id="cgNome">
+                <div class="gestao-subconteudo clientes-gestao-premium" data-subtab-content="sub-clientes-gestao" style="display:none;">
+                    <!-- Clientes premium: apresentação reorganizada sem alterar IDs, eventos ou lógica. -->
+                    <div class="loja-status-card clientes-gestao-hero">
+                        <div>
+                            <span class="clientes-gestao-eyebrow">RELACIONAMENTO</span>
+                            <h3>👥 Base de Clientes</h3>
+                            <p class="dica-secao">Cadastre, encontre e mantenha os contatos organizados para pedidos e relacionamento.</p>
+                        </div>
+                        <div class="clientes-gestao-hero-tags" aria-label="Recursos da base de clientes">
+                            <span>Cadastro rápido</span>
+                            <span>Busca instantânea</span>
+                            <span>Dados centralizados</span>
+                        </div>
+                    </div>
+
+                    <div class="loja-status-card clientes-gestao-card clientes-gestao-card--cadastro">
+                        <div class="clientes-gestao-section-head">
+                            <div class="clientes-gestao-step">01</div>
+                            <div>
+                                <span class="clientes-gestao-kicker">NOVO CONTATO</span>
+                                <h3 id="tituloCadastroClienteGestao">Cadastro de Cliente</h3>
+                                <p class="dica-secao">Preencha os dados principais. Telefone e endereço ajudam no atendimento e nos pedidos manuais.</p>
                             </div>
-                            <div class="campo-com-label">
+                        </div>
+
+                        <div class="clientes-gestao-form-grid">
+                            <div class="campo-com-label clientes-gestao-field">
+                                <label class="campo-label">Nome</label>
+                                <input type="text" id="cgNome" placeholder="Ex: Maria da Silva">
+                            </div>
+                            <div class="campo-com-label clientes-gestao-field">
                                 <label class="campo-label">Telefone (com DDD)</label>
                                 <input type="text" id="cgTelefone" placeholder="Ex: 27997633871">
                             </div>
-                        </div>
-                        <div class="produto-admin-linha" style="margin-top:10px;">
-                            <div class="campo-com-label">
+                            <div class="campo-com-label clientes-gestao-field">
                                 <label class="campo-label">E-mail</label>
-                                <input type="text" id="cgEmail">
+                                <input type="text" id="cgEmail" placeholder="Ex: cliente@email.com">
                             </div>
-                            <div class="campo-com-label">
+                            <div class="campo-com-label clientes-gestao-field">
                                 <label class="campo-label">Endereço</label>
-                                <input type="text" id="cgEndereco">
+                                <input type="text" id="cgEndereco" placeholder="Rua, número, bairro...">
                             </div>
                         </div>
-                        <button class="btn-salvar-ordem" id="btnSalvarClienteGestao" style="margin-top:10px;" onclick="salvarClienteGestao()">+ Adicionar Cliente</button>
-                        <p id="msgClienteGestao" class="ordem-categorias-msg"></p>
+
+                        <button class="btn-salvar-ordem clientes-gestao-save" id="btnSalvarClienteGestao" onclick="salvarClienteGestao()">+ Adicionar Cliente</button>
+                        <p id="msgClienteGestao" class="ordem-categorias-msg clientes-gestao-msg"></p>
                     </div>
 
-                    <div class="loja-status-card" style="margin-top:16px;">
-                        <input type="text" id="cgBusca" placeholder="🔍 Pesquisar cliente..." oninput="renderClientesGestao()">
-                        <div id="listaClientesGestao" style="margin-top:10px;"></div>
+                    <div class="loja-status-card clientes-gestao-card clientes-gestao-card--carteira">
+                        <div class="clientes-gestao-section-head clientes-gestao-section-head--carteira">
+                            <div class="clientes-gestao-step">02</div>
+                            <div>
+                                <span class="clientes-gestao-kicker">CARTEIRA</span>
+                                <h3>Clientes cadastrados</h3>
+                                <p class="dica-secao">Pesquise pelo nome e acesse rapidamente edição ou exclusão do cadastro.</p>
+                            </div>
+                        </div>
+
+                        <div class="clientes-gestao-search-wrap">
+                            <span aria-hidden="true">🔎</span>
+                            <input type="text" id="cgBusca" placeholder="Pesquisar cliente pelo nome..." oninput="renderClientesGestao()">
+                        </div>
+
+                        <div class="clientes-gestao-list-scroll">
+                            <div id="listaClientesGestao"></div>
+                        </div>
                     </div>
                 </div>
 

@@ -2989,175 +2989,325 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
     }
 }
 
-/* ===== GESTÃO PREMIUM — CLIENTES (visual somente) ===== */
-/* Escopo restrito à subaba Clientes da Gestão. Não altera IDs, eventos, Firebase ou regras. */
-.gestao-subconteudo[data-subtab-content="sub-clientes-gestao"] {
-    --cli-border: #e8dccd;
-    --cli-soft: #fffdf9;
-    --cli-shadow: 0 8px 22px rgba(72, 45, 25, .06);
+/* ===== GESTÃO PREMIUM — CLIENTES ===== */
+/* Escopo restrito à subaba Clientes. IDs, eventos, Firebase e lógica permanecem intactos. */
+.gestao-subconteudo[data-subtab-content="sub-clientes-gestao"].clientes-gestao-premium {
+    --cli-border: rgba(128, 88, 58, .13);
+    --cli-border-strong: rgba(128, 88, 58, .20);
+    --cli-soft: #fdf9f4;
+    --cli-soft-2: #fffaf4;
+    --cli-text: #4a3426;
+    --cli-muted: #806c5d;
+    --cli-accent: #ad592d;
+    --cli-shadow: 0 14px 34px rgba(72, 48, 31, .07);
+    width: 100%;
+    margin: 0 auto;
+    padding-bottom: 28px;
 }
 
-.gestao-subconteudo[data-subtab-content="sub-clientes-gestao"] > .loja-status-card:first-child {
-    padding: 17px 18px 18px;
+.clientes-gestao-premium .loja-status-card {
     border: 1px solid var(--cli-border);
-    border-radius: 16px;
-    background: var(--cli-soft);
     box-shadow: var(--cli-shadow);
 }
 
-#tituloCadastroClienteGestao {
-    margin: 0 0 13px;
-    font-size: 1.03em;
-    color: #4d382b;
+.clientes-gestao-premium .clientes-gestao-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 14px;
+    padding: 19px 21px;
+    overflow: hidden;
+    border-radius: 16px;
+    background: linear-gradient(125deg, rgba(255,255,255,.99), rgba(251,247,241,.96));
 }
 
-.gestao-subconteudo[data-subtab-content="sub-clientes-gestao"] .produto-admin-linha {
+.clientes-gestao-premium .clientes-gestao-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: linear-gradient(180deg, #d4935e, #a8522a);
+}
+
+.clientes-gestao-premium .clientes-gestao-eyebrow,
+.clientes-gestao-premium .clientes-gestao-kicker {
+    display: block;
+    margin-bottom: 3px;
+    color: #ad6b43;
+    font-size: .61rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+}
+
+.clientes-gestao-premium .clientes-gestao-hero h3,
+.clientes-gestao-premium .clientes-gestao-section-head h3 {
+    margin: 0;
+    color: var(--cli-text);
+    line-height: 1.22;
+}
+
+.clientes-gestao-premium .clientes-gestao-hero h3 {
+    font-size: 1.04rem;
+}
+
+.clientes-gestao-premium .clientes-gestao-hero .dica-secao,
+.clientes-gestao-premium .clientes-gestao-section-head .dica-secao {
+    margin: 4px 0 0;
+    color: var(--cli-muted);
+    font-size: .69rem;
+    line-height: 1.45;
+}
+
+.clientes-gestao-premium .clientes-gestao-hero-tags {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.clientes-gestao-premium .clientes-gestao-hero-tags span {
+    padding: 6px 9px;
+    border: 1px solid rgba(128,88,58,.11);
+    border-radius: 999px;
+    background: rgba(255,255,255,.80);
+    color: #845e45;
+    font-size: .60rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.clientes-gestao-premium .clientes-gestao-card {
+    padding: 18px;
+    border-radius: 16px;
+    background: rgba(255,255,255,.97);
+}
+
+.clientes-gestao-premium .clientes-gestao-card--carteira {
+    margin-top: 14px;
+}
+
+.clientes-gestao-premium .clientes-gestao-section-head {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr);
+    align-items: start;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.clientes-gestao-premium .clientes-gestao-step {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid rgba(173,89,45,.16);
+    border-radius: 10px;
+    background: #fff8f1;
+    color: #a95b31;
+    font-size: .66rem;
+    font-weight: 800;
+}
+
+.clientes-gestao-premium .clientes-gestao-section-head h3 {
+    font-size: .96rem;
+}
+
+.clientes-gestao-premium .clientes-gestao-form-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 11px;
-    margin-top: 0 !important;
+    gap: 11px 12px;
 }
 
-.gestao-subconteudo[data-subtab-content="sub-clientes-gestao"] .produto-admin-linha + .produto-admin-linha {
-    margin-top: 10px !important;
-}
-
-.gestao-subconteudo[data-subtab-content="sub-clientes-gestao"] .campo-com-label {
+.clientes-gestao-premium .clientes-gestao-field {
     min-width: 0;
 }
 
-.gestao-subconteudo[data-subtab-content="sub-clientes-gestao"] .campo-label {
-    margin-bottom: 4px;
-    font-size: .76em;
-    color: #6f5a49;
+.clientes-gestao-premium .clientes-gestao-field .campo-label {
+    margin-bottom: 5px;
+    color: #654d3c;
+    font-size: .70rem;
+    font-weight: 700;
 }
 
-#cgNome,
-#cgTelefone,
-#cgEmail,
-#cgEndereco,
-#cgBusca {
+.clientes-gestao-premium #cgNome,
+.clientes-gestao-premium #cgTelefone,
+.clientes-gestao-premium #cgEmail,
+.clientes-gestao-premium #cgEndereco,
+.clientes-gestao-premium #cgBusca {
     width: 100%;
-    min-height: 38px;
     box-sizing: border-box;
-    padding: 7px 10px;
-    border: 1px solid #dfd1bf;
-    border-radius: 9px;
+    min-height: 40px;
+    padding: 8px 11px;
+    border: 1px solid #e3d7c9;
+    border-radius: 10px;
     background: #fff;
     color: var(--text);
     font-family: inherit;
+    font-size: .73rem;
     outline: none;
-    transition: border-color .15s ease, box-shadow .15s ease;
+    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
 }
 
-#cgNome:focus,
-#cgTelefone:focus,
-#cgEmail:focus,
-#cgEndereco:focus,
-#cgBusca:focus {
-    border-color: #c9976c;
-    box-shadow: 0 0 0 3px rgba(160, 82, 45, .08);
+.clientes-gestao-premium #cgNome:focus,
+.clientes-gestao-premium #cgTelefone:focus,
+.clientes-gestao-premium #cgEmail:focus,
+.clientes-gestao-premium #cgEndereco:focus,
+.clientes-gestao-premium #cgBusca:focus {
+    border-color: #c89570;
+    background: #fffefa;
+    box-shadow: 0 0 0 3px rgba(160,82,45,.08);
 }
 
-#btnSalvarClienteGestao {
-    min-height: 40px;
-    margin-top: 12px !important;
-    padding: 8px 14px;
+.clientes-gestao-premium .clientes-gestao-save {
+    width: 100%;
+    min-height: 42px;
+    margin-top: 13px;
     border-radius: 10px;
-    box-shadow: 0 5px 14px rgba(160, 82, 45, .12);
+    box-shadow: 0 7px 16px rgba(160,82,45,.14);
 }
 
-#msgClienteGestao {
+.clientes-gestao-premium .clientes-gestao-msg {
     margin-top: 7px;
 }
 
-.gestao-subconteudo[data-subtab-content="sub-clientes-gestao"] > .loja-status-card:nth-of-type(2) {
-    margin-top: 12px !important;
-    padding: 12px;
-    border: 1px solid var(--cli-border);
-    border-radius: 16px;
-    background: rgba(255,255,255,.52);
-    box-shadow: var(--cli-shadow);
+.clientes-gestao-premium .clientes-gestao-section-head--carteira {
+    margin-bottom: 11px;
 }
 
-#cgBusca {
-    max-width: 440px;
+.clientes-gestao-premium .clientes-gestao-search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 11px;
+    padding: 0 10px;
+    border: 1px solid #e4d8ca;
+    border-radius: 11px;
+    background: #fbf8f4;
 }
 
-#listaClientesGestao {
+.clientes-gestao-premium .clientes-gestao-search-wrap > span {
+    flex: 0 0 auto;
+    opacity: .72;
+    font-size: .78rem;
+}
+
+.clientes-gestao-premium .clientes-gestao-search-wrap #cgBusca {
+    min-height: 42px;
+    padding-left: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.clientes-gestao-premium .clientes-gestao-list-scroll {
+    max-height: 760px;
+    overflow: auto;
+    padding: 2px 4px 2px 2px;
+    scrollbar-width: thin;
+    scrollbar-color: #d2b79f transparent;
+}
+
+.clientes-gestao-premium #listaClientesGestao {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 9px;
-    margin-top: 10px !important;
+    margin-top: 0 !important;
 }
 
-#listaClientesGestao > .pedido-card {
-    margin-top: 0 !important;
+.clientes-gestao-premium #listaClientesGestao > .pedido-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
     min-width: 0;
-    padding: 12px 13px;
-    border: 1px solid #e9dfd2;
+    min-height: 108px;
+    margin-top: 0 !important;
+    padding: 12px 13px 11px;
+    border: 1px solid #e9dfd3;
     border-radius: 12px;
-    background: #fff;
-    box-shadow: 0 4px 12px rgba(72,45,25,.045);
+    background: linear-gradient(180deg, #fff, #fffdfa);
+    box-shadow: 0 4px 12px rgba(72,45,25,.04);
     transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
 }
 
-#listaClientesGestao > .pedido-card:hover {
+.clientes-gestao-premium #listaClientesGestao > .pedido-card:hover {
     transform: translateY(-1px);
-    border-color: #dcc9b4;
-    box-shadow: 0 7px 17px rgba(72,45,25,.075);
+    border-color: #dcc6b0;
+    box-shadow: 0 8px 18px rgba(72,45,25,.07);
 }
 
-#listaClientesGestao > .pedido-card > strong {
+.clientes-gestao-premium #listaClientesGestao > .pedido-card > strong {
     display: block;
-    font-size: .93em;
-    color: #4d382b;
+    padding-right: 8px;
+    color: #493427;
+    font-size: .79rem;
+    font-weight: 800;
     line-height: 1.28;
-    margin-bottom: 4px;
 }
 
-#listaClientesGestao > .pedido-card p {
+.clientes-gestao-premium #listaClientesGestao > .pedido-card p {
     margin: 3px 0 !important;
-    font-size: .75em !important;
-    line-height: 1.38;
+    color: #817063 !important;
+    font-size: .66rem !important;
+    line-height: 1.35 !important;
+    overflow-wrap: anywhere;
 }
 
-#listaClientesGestao .btn-secondary {
-    margin-top: 7px;
-    padding: 6px 9px;
+.clientes-gestao-premium #listaClientesGestao > .pedido-card .btn-secondary {
+    align-self: flex-start;
+    margin-top: auto;
+    padding: 5px 8px;
     border-radius: 8px;
-    font-size: .75em;
+    font-size: .64rem;
+    font-weight: 700;
 }
 
-#listaClientesGestao .btn-excluir-cupom {
-    opacity: .55;
-    transform: scale(.9);
+.clientes-gestao-premium #listaClientesGestao > .pedido-card .btn-excluir-cupom {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    opacity: .38;
+    transform: scale(.86);
     transition: opacity .16s ease, transform .16s ease;
 }
 
-#listaClientesGestao .btn-excluir-cupom:hover {
+.clientes-gestao-premium #listaClientesGestao > .pedido-card .btn-excluir-cupom:hover {
     opacity: 1;
-    transform: scale(1);
+    transform: scale(.96);
+}
+
+.clientes-gestao-premium #listaClientesGestao > .dica-secao {
+    grid-column: 1 / -1;
+    padding: 24px;
+    text-align: center;
 }
 
 @media (max-width: 900px) {
-    #listaClientesGestao {
-        grid-template-columns: 1fr;
+    .clientes-gestao-premium .clientes-gestao-hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .clientes-gestao-premium .clientes-gestao-hero-tags {
+        justify-content: flex-start;
     }
 }
 
 @media (max-width: 760px) {
-    .gestao-subconteudo[data-subtab-content="sub-clientes-gestao"] > .loja-status-card:first-child,
-    .gestao-subconteudo[data-subtab-content="sub-clientes-gestao"] > .loja-status-card:nth-of-type(2) {
-        padding: 13px;
+    .clientes-gestao-premium .clientes-gestao-card,
+    .clientes-gestao-premium .clientes-gestao-hero {
+        padding: 14px;
+        border-radius: 14px;
     }
 
-    .gestao-subconteudo[data-subtab-content="sub-clientes-gestao"] .produto-admin-linha {
+    .clientes-gestao-premium .clientes-gestao-form-grid,
+    .clientes-gestao-premium #listaClientesGestao {
         grid-template-columns: 1fr;
     }
 
-    #cgBusca {
-        max-width: none;
+    .clientes-gestao-premium .clientes-gestao-list-scroll {
+        max-height: 680px;
     }
 }
 
@@ -4361,7 +4511,7 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
 }
 
 @media (max-width: 900px) {
-    .gestao-subconteudo[data-subtab-content="sub-relatorios"].relatorios-premium {
+   .gestao-subconteudo[data-subtab-content="sub-relatorios"].relatorios-premium {
         width: min(100%, calc(100vw - 28px));
     }
     .relatorios-premium .relatorios-card-header {
@@ -4376,7 +4526,7 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
 }
 
 @media (max-width: 620px) {
-    .gestao-subconteudo[data-subtab-content="sub-relatorios"].relatorios-premium {
+   .gestao-subconteudo[data-subtab-content="sub-relatorios"].relatorios-premium {
         width: 100%;
         padding-bottom: 16px;
     }
@@ -5411,7 +5561,7 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
    IDs, eventos e lógica permanecem no admin.js.
    ========================================================= */
 .gestao-subconteudo[data-subtab-content="sub-pedidos-manuais"].lancar-pedido-premium {
-    width: min(1080px, calc(100vw - 44px));
+    width: min(1180px, calc(100vw - 44px));
     max-width: none;
     margin: 0;
     position: relative;
@@ -5501,23 +5651,14 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
 
 .lancar-pedido-premium .lancar-pedido-layout {
     display: grid;
-    width: min(100%, 1020px);
-    margin: 0 auto;
-    grid-template-columns: minmax(0, 1fr) 250px;
-    gap: 16px;
+    grid-template-columns: minmax(0, 1fr) 270px;
+    gap: 14px;
     align-items: start;
 }
 
 .lancar-pedido-premium .lancar-pedido-card {
     padding: 20px;
     background: rgba(255,255,255,.96);
-}
-
-.lancar-pedido-premium .lancar-pedido-hero,
-.lancar-pedido-premium .lancar-pedido-historico-card {
-    width: min(100%, 1020px);
-    margin-left: auto;
-    margin-right: auto;
 }
 
 .lancar-pedido-premium .lancar-pedido-card--form {
@@ -5911,12 +6052,6 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
 @media (max-width: 980px) {
     .gestao-subconteudo[data-subtab-content="sub-pedidos-manuais"].lancar-pedido-premium {
         width: min(100%, calc(100vw - 30px));
-    }
-
-    .lancar-pedido-premium .lancar-pedido-hero,
-    .lancar-pedido-premium .lancar-pedido-layout,
-    .lancar-pedido-premium .lancar-pedido-historico-card {
-        width: 100%;
     }
 
     .lancar-pedido-premium .lancar-pedido-layout {
