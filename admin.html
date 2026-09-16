@@ -1157,47 +1157,85 @@
                     <button class="gestao-subtab-btn" data-subtab="sub-sistema" onclick="mostrarSubabaGestao('sub-sistema')">🛠️ Sistema</button>
                 </div>
 
-                <div class="gestao-subconteudo" data-subtab-content="sub-ingredientes">
-                <p class="dica-secao">Cadastre tudo que você compra. O custo unitário e o estoque são usados automaticamente pelas bases e produtos.</p>
-
-                <div class="loja-status-card">
-                    <h3 id="tituloCadastroIngrediente">Cadastro de Ingrediente</h3>
-                    <label class="campo-label">Nome</label>
-                    <input type="text" id="ingNome" placeholder="Ex: Leite Ninho">
-                    <div class="produto-admin-linha" style="margin-top:10px;">
-                        <div class="campo-com-label">
-                            <label class="campo-label">Unidade</label>
-                            <select id="ingUnidade">
-                                <option value="g">g</option>
-                                <option value="ml">ml</option>
-                                <option value="un">un</option>
-                            </select>
-                        </div>
-                        <div class="campo-com-label">
-                            <label class="campo-label">Qtd. comprada</label>
-                            <input type="text" inputmode="decimal" id="ingQtdComprada">
+                <div class="gestao-subconteudo ingredientes-premium" data-subtab-content="sub-ingredientes">
+                    <!-- Ingredientes premium: reorganização visual. IDs, eventos, cálculos e Firebase preservados. -->
+                    <div class="loja-status-card ingredientes-hero">
+                        <div>
+                            <span class="ingredientes-eyebrow">INSUMOS E MATÉRIA-PRIMA</span>
+                            <h3>🥄 Ingredientes</h3>
+                            <p class="dica-secao">Cadastre o que a loja compra e mantenha custo e estoque organizados para bases, fichas técnicas e produção.</p>
                         </div>
                     </div>
-                    <div class="produto-admin-linha" style="margin-top:10px;">
-                        <div class="campo-com-label">
-                            <label class="campo-label">Preço pago (R$)</label>
-                            <input type="text" inputmode="decimal" id="ingPreco">
-                        </div>
-                        <div class="campo-com-label">
-                            <label class="campo-label">Estoque atual</label>
-                            <input type="text" inputmode="decimal" id="ingEstoqueAtual">
-                        </div>
-                    </div>
-                    <label class="campo-label" style="margin-top:10px;">Estoque mínimo (alerta)</label>
-                    <input type="text" inputmode="decimal" id="ingEstoqueMinimo">
-                    <button class="btn-salvar-ordem" id="btnSalvarIngrediente" style="margin-top:10px;" onclick="salvarIngrediente()">+ Adicionar Ingrediente</button>
-                    <p id="msgIngrediente" class="ordem-categorias-msg"></p>
-                </div>
 
-                <div class="loja-status-card" style="margin-top:16px;">
-                    <input type="text" id="buscaIngrediente" placeholder="🔍 Pesquisar ingrediente..." oninput="renderIngredientes()">
-                    <div id="listaIngredientes" style="margin-top:10px;"></div>
-                </div>
+                    <div class="loja-status-card ingredientes-card ingredientes-card--cadastro">
+                        <div class="ingredientes-section-head">
+                            <div class="ingredientes-step">01</div>
+                            <div>
+                                <span class="ingredientes-kicker">NOVO INSUMO</span>
+                                <h3 id="tituloCadastroIngrediente">Cadastro de Ingrediente</h3>
+                                <p class="dica-secao">Informe a unidade de controle, dados da compra e níveis de estoque.</p>
+                            </div>
+                        </div>
+
+                        <div class="ingredientes-grid ingredientes-grid--identificacao">
+                            <div class="campo-com-label ingredientes-field ingredientes-field--nome">
+                                <label class="campo-label">Nome</label>
+                                <input type="text" id="ingNome" placeholder="Ex: Leite Ninho">
+                            </div>
+                            <div class="campo-com-label ingredientes-field">
+                                <label class="campo-label">Unidade</label>
+                                <select id="ingUnidade">
+                                    <option value="g">g</option>
+                                    <option value="ml">ml</option>
+                                    <option value="un">un</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="ingredientes-divider"></div>
+
+                        <div class="ingredientes-section-label">
+                            <span class="ingredientes-kicker">COMPRA E ESTOQUE</span>
+                            <p class="dica-secao">Esses valores alimentam o custo unitário e os alertas de reposição.</p>
+                        </div>
+
+                        <div class="ingredientes-grid ingredientes-grid--estoque">
+                            <div class="campo-com-label ingredientes-field">
+                                <label class="campo-label">Qtd. comprada</label>
+                                <input type="text" inputmode="decimal" id="ingQtdComprada">
+                            </div>
+                            <div class="campo-com-label ingredientes-field">
+                                <label class="campo-label">Preço pago (R$)</label>
+                                <input type="text" inputmode="decimal" id="ingPreco">
+                            </div>
+                            <div class="campo-com-label ingredientes-field">
+                                <label class="campo-label">Estoque atual</label>
+                                <input type="text" inputmode="decimal" id="ingEstoqueAtual">
+                            </div>
+                            <div class="campo-com-label ingredientes-field">
+                                <label class="campo-label">Estoque mínimo (alerta)</label>
+                                <input type="text" inputmode="decimal" id="ingEstoqueMinimo">
+                            </div>
+                        </div>
+
+                        <button class="btn-salvar-ordem ingredientes-save" id="btnSalvarIngrediente" onclick="salvarIngrediente()">+ Adicionar Ingrediente</button>
+                        <p id="msgIngrediente" class="ordem-categorias-msg ingredientes-msg"></p>
+                    </div>
+
+                    <div class="loja-status-card ingredientes-card ingredientes-card--carteira">
+                        <div class="ingredientes-section-head ingredientes-section-head--carteira">
+                            <div class="ingredientes-step">02</div>
+                            <div>
+                                <span class="ingredientes-kicker">INVENTÁRIO DE INSUMOS</span>
+                                <h3>Ingredientes cadastrados</h3>
+                                <p class="dica-secao">Pesquise rapidamente e acesse edição ou exclusão quando necessário.</p>
+                            </div>
+                        </div>
+                        <div class="ingredientes-search-wrap">
+                            <input type="text" id="buscaIngrediente" placeholder="🔍 Pesquisar ingrediente..." oninput="renderIngredientes()">
+                        </div>
+                        <div id="listaIngredientes" class="ingredientes-lista"></div>
+                    </div>
                 </div>
 
                 <div class="gestao-subconteudo bases-premium" data-subtab-content="sub-bases" style="display:none;">
