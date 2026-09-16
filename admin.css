@@ -10493,3 +10493,107 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
         max-height: none;
     }
 }
+
+/* ============================================================
+   CLIENTES & MARKETING — AJUSTE FINAL DE CENTRALIZAÇÃO
+   Centraliza o hub e distribui o peso visual de forma equilibrada.
+   Escopo isolado; nenhuma lógica/ID é alterada.
+   ============================================================ */
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium {
+    width: min(1080px, calc(100vw - 44px)) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+/* Hero realmente central: conteúdo e selo passam a formar um único eixo visual. */
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-hero {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 14px !important;
+    text-align: center;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-hero-copy {
+    width: min(100%, 780px);
+    margin-inline: auto;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-hero p {
+    margin-inline: auto !important;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-hero-tags {
+    justify-content: center !important;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-hero-selo {
+    align-self: center !important;
+    min-width: 170px;
+    justify-content: center;
+}
+
+/* Navegação interna permanece larga, porém perfeitamente centrada. */
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-subtabs {
+    width: 100%;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+/* Cabeçalho da área de trabalho centralizado, evitando peso visual só à esquerda. */
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-head {
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 9px !important;
+    text-align: center;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-head-copy {
+    width: min(100%, 820px);
+    margin-inline: auto;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-head p {
+    margin-inline: auto !important;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-badge {
+    align-self: center !important;
+}
+
+/* Mensagem e filtro agora dividem a tela de maneira equilibrada. */
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    align-items: start !important;
+    gap: 12px !important;
+}
+
+/* Resultados ocupam o mesmo eixo central do restante do hub. */
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-resultados-card,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .hub-subpanel:not(.clientes-reactivacao-premium) {
+    width: 100%;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box;
+}
+
+@media (max-width: 1080px) {
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+@media (max-width: 760px) {
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium {
+        width: calc(100vw - 24px) !important;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-hero {
+        text-align: left;
+        align-items: stretch !important;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-hero-tags {
+        justify-content: flex-start !important;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-head {
+        align-items: flex-start !important;
+        text-align: left;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-badge {
+        align-self: flex-start !important;
+    }
+}
