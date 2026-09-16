@@ -3155,9 +3155,11 @@ escutarStatusLoja(); // Mostra se a loja está aberta ou fechada agora
 // Registra o Service Worker (pra permitir instalar como app / carregar mais rápido)
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js').catch(err => {
-            console.log('Não foi possível registrar o service worker:', err);
-        });
+        navigator.serviceWorker.register('service-worker.js')
+            .then(() => sincronizarTokenNotificacaoAtivo())
+            .catch(err => {
+                console.log('Não foi possível registrar o service worker:', err);
+            });
     });
 }
 
@@ -3315,6 +3317,51 @@ function agendarConviteNotificacoes() {
     }, 9000);
 }
 
+let listenerNotificacaoForegroundAtivo = false;
+
+function configurarListenerNotificacaoForeground(messaging) {
+    if (!messaging || listenerNotificacaoForegroundAtivo) return;
+    listenerNotificacaoForegroundAtivo = true;
+
+    messaging.onMessage((payload) => {
+        const titulo = (payload.notification && payload.notification.title) || LOJA_CONFIG.nome;
+        const corpo = (payload.notification && payload.notification.body) || '';
+        mostrarToastNotificacao(titulo, corpo);
+    });
+}
+
+// Se o cliente já autorizou notificações em uma visita anterior, confere o token FCM
+// atual toda vez que o cardápio carregar. O Firebase pode renovar esse token com o tempo;
+// manter o servidor e o localStorage sincronizados evita que avisos e mudanças de status
+// sejam enviados para um token antigo do aparelho.
+async function sincronizarTokenNotificacaoAtivo() {
+    try {
+        if (localStorage.getItem('notificacoesAtivas') !== '1') return;
+        if (!podeReceberNotificacoes()) return;
+        if (ehIOS() && !ehPWAInstalada()) return;
+        if (Notification.permission !== 'granted') return;
+        if (VAPID_KEY === 'COLE_AQUI_A_SUA_CHAVE_VAPID') return;
+
+        const registration = await navigator.serviceWorker.ready;
+        const messaging = firebase.messaging();
+        configurarListenerNotificacaoForeground(messaging);
+        const tokenAtual = await messaging.getToken({
+            vapidKey: VAPID_KEY,
+            serviceWorkerRegistration: registration
+        });
+        if (!tokenAtual) return;
+
+        const registrarToken = firebase.functions().httpsCallable('registrarTokenNotificacao');
+        await registrarToken({ token: tokenAtual });
+
+        // O pedido usa esse valor para receber as notificações das mudanças de status.
+        localStorage.setItem('notificacaoToken', tokenAtual);
+    } catch (err) {
+        // A sincronização é preventiva e nunca pode impedir o cardápio de funcionar.
+        console.log('Não foi possível sincronizar o token de notificação:', err);
+    }
+}
+
 async function ativarNotificacoes() {
     if (ehIOS() && !ehPWAInstalada()) {
         alert('No iPhone, para receber notificações, primeiro adicione o cardápio à Tela de Início (toque em Compartilhar 📤 → "Adicionar à Tela de Início"). Você pode continuar fazendo seu pedido normalmente enquanto isso.');
@@ -3338,15 +3385,9 @@ async function ativarNotificacoes() {
         const messaging = firebase.messaging();
         const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
         if (token) {
-            // Escuta mensagens em primeiro plano (aba aberta) usando esse MESMO
-            // messaging já configurado com o nosso Service Worker — reaproveitar
-            // evita o Firebase tentar registrar um arquivo próprio dele mesmo.
+            // Mantém a escuta em primeiro plano sem criar listeners duplicados.
             try {
-                messaging.onMessage((payload) => {
-                    const titulo = (payload.notification && payload.notification.title) || LOJA_CONFIG.nome;
-                    const corpo = (payload.notification && payload.notification.body) || '';
-                    mostrarToastNotificacao(titulo, corpo);
-                });
+                configurarListenerNotificacaoForeground(messaging);
             } catch (e) {
                 console.log('Não foi possível escutar notificações em primeiro plano:', e);
             }
