@@ -3268,11 +3268,22 @@ verificarPedidoSalvo(); // Mostra o status do último pedido, se ainda for recen
 escutarStatusLoja(); // Mostra se a loja está aberta ou fechada agora
 
 // Registra o Service Worker (pra permitir instalar como app / carregar mais rápido)
+// e, depois que ele estiver pronto, restaura a escuta do push em todo carregamento.
+// Antes, o listener de mensagem em primeiro plano só existia na mesma sessão em que
+// o cliente clicava em "Ativar notificações". Ao recarregar a página, o token continuava
+// salvo, mas a aba aberta deixava de exibir as mensagens recebidas.
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js').catch(err => {
-            console.log('Não foi possível registrar o service worker:', err);
-        });
+        navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' })
+            .then(registration => {
+                // Pede ao navegador para conferir se há uma versão mais nova do SW.
+                // Falha de update não deve impedir o push atual de funcionar.
+                registration.update().catch(() => null);
+                return sincronizarNotificacoesAtivas();
+            })
+            .catch(err => {
+                console.log('Não foi possível registrar o service worker:', err);
+            });
     });
 }
 
@@ -3374,6 +3385,77 @@ function podeReceberNotificacoes() {
         'serviceWorker' in navigator;
 }
 
+// Mantém apenas um listener de mensagens em primeiro plano por carregamento.
+let listenerNotificacaoForegroundAtivo = false;
+
+function configurarListenerNotificacaoForeground(messaging) {
+    if (!messaging || listenerNotificacaoForegroundAtivo) return;
+    listenerNotificacaoForegroundAtivo = true;
+
+    messaging.onMessage(async (payload) => {
+        const titulo = (payload.notification && payload.notification.title) || LOJA_CONFIG.nome;
+        const corpo = (payload.notification && payload.notification.body) || '';
+
+        // Quando o cardápio está aberto, o FCM entrega a mensagem para a página e não
+        // mostra automaticamente uma notificação do sistema. Exibimos o aviso na tela
+        // e também tentamos mostrar a notificação nativa pelo Service Worker.
+        mostrarToastNotificacao(titulo, corpo);
+
+        try {
+            if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+                const registration = await navigator.serviceWorker.ready;
+                await registration.showNotification(titulo, {
+                    body: corpo,
+                    icon: LOJA_CONFIG.logo,
+                    badge: LOJA_CONFIG.logo,
+                    tag: 'pedeaki-' + Date.now(),
+                    data: { url: LOJA_CONFIG.urlCardapio || window.location.href }
+                });
+            }
+        } catch (e) {
+            // O toast já foi exibido; uma falha no aviso nativo não interrompe o cardápio.
+            console.log('Não foi possível mostrar a notificação nativa em primeiro plano:', e);
+        }
+    });
+}
+
+// Revalida o token e recria o listener toda vez que o cliente abre/recarrega o cardápio.
+// Isso também corrige tokens que o navegador tenha renovado desde a ativação original.
+async function sincronizarNotificacoesAtivas() {
+    if (!podeReceberNotificacoes()) return;
+    if (localStorage.getItem('notificacoesAtivas') !== '1') return;
+
+    if (Notification.permission !== 'granted') {
+        // A pessoa revogou a permissão no navegador/SO. Não fica fingindo que está ativo.
+        localStorage.removeItem('notificacoesAtivas');
+        localStorage.removeItem('notificacaoToken');
+        atualizarBotaoNotificacao();
+        return;
+    }
+
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        const messaging = firebase.messaging();
+        configurarListenerNotificacaoForeground(messaging);
+
+        const tokenAtual = await messaging.getToken({
+            vapidKey: VAPID_KEY,
+            serviceWorkerRegistration: registration
+        });
+
+        if (!tokenAtual) return;
+
+        const registrarToken = firebase.functions().httpsCallable('registrarTokenNotificacao');
+        await registrarToken({ token: tokenAtual });
+
+        localStorage.setItem('notificacoesAtivas', '1');
+        localStorage.setItem('notificacaoToken', tokenAtual);
+        atualizarBotaoNotificacao();
+    } catch (err) {
+        console.log('Não foi possível sincronizar as notificações ativas:', err);
+    }
+}
+
 function atualizarBotaoNotificacao() {
     const ativado = localStorage.getItem('notificacoesAtivas') === '1';
     const btnGrande = document.getElementById('btnAtivarNotificacoesGrande');
@@ -3453,15 +3535,10 @@ async function ativarNotificacoes() {
         const messaging = firebase.messaging();
         const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
         if (token) {
-            // Escuta mensagens em primeiro plano (aba aberta) usando esse MESMO
-            // messaging já configurado com o nosso Service Worker — reaproveitar
-            // evita o Firebase tentar registrar um arquivo próprio dele mesmo.
+            // Escuta mensagens em primeiro plano usando o mesmo listener reutilizável
+            // que também é restaurado automaticamente nos próximos carregamentos.
             try {
-                messaging.onMessage((payload) => {
-                    const titulo = (payload.notification && payload.notification.title) || LOJA_CONFIG.nome;
-                    const corpo = (payload.notification && payload.notification.body) || '';
-                    mostrarToastNotificacao(titulo, corpo);
-                });
+                configurarListenerNotificacaoForeground(messaging);
             } catch (e) {
                 console.log('Não foi possível escutar notificações em primeiro plano:', e);
             }
