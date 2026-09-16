@@ -9019,3 +9019,317 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
         display: none;
     }
 }
+
+/* ============================================================
+   PRODUTOS PREMIUM V5 — COMPACTO E ALINHADO
+   Refinamento exclusivamente visual sobre a V4.
+   Reduz espaços vazios, aproxima grupos relacionados e alinha
+   o bloco de Status sem alterar IDs, eventos ou lógica JS.
+   ============================================================ */
+.painel-main > section[data-tab="produtos"].produtos-premium-v4 {
+    width: min(1280px, calc(100vw - 44px));
+}
+
+.produtos-premium-v4 .produtos-premium-hero {
+    gap: 16px;
+    margin: 18px 0 10px;
+    padding: 16px 18px;
+    border-radius: 16px;
+}
+.produtos-premium-v4 .produtos-premium-hero h2 {
+    margin: 3px 0 4px;
+    font-size: 1.24rem;
+}
+.produtos-premium-v4 .produtos-premium-hero p {
+    font-size: .76rem;
+    line-height: 1.42;
+}
+.produtos-premium-v4 .produtos-premium-hero-lateral { gap: 8px; }
+.produtos-premium-v4 .produtos-premium-tags { gap: 5px; }
+.produtos-premium-v4 .produtos-premium-tags span {
+    min-height: 25px;
+    padding: 4px 8px;
+    font-size: .6rem;
+}
+.produtos-premium-v4 .produtos-premium-btn-novo {
+    min-width: 156px;
+    padding: 8px 13px;
+    font-size: .74rem;
+}
+
+.produtos-premium-v4 .produtos-premium-toolbar {
+    gap: 9px;
+    margin-bottom: 9px;
+}
+.produtos-premium-v4 .produtos-premium-busca {
+    min-height: 40px;
+    border-radius: 11px;
+}
+.produtos-premium-v4 .produtos-premium-busca .produto-busca-input {
+    min-height: 38px;
+    font-size: .76rem;
+}
+.produtos-premium-v4 .produtos-premium-lista-shell {
+    padding: 12px;
+    border-radius: 15px;
+}
+.produtos-premium-v4 .produtos-premium-lista-head {
+    padding: 0 2px 9px;
+    margin-bottom: 9px;
+}
+
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produtos-admin-list {
+    gap: 10px;
+}
+
+/* Pareamento 1:1 entre os blocos elimina os grandes vazios verticais da V4. */
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-item {
+    grid-template-columns: minmax(0, 1.08fr) minmax(340px, .92fr);
+    grid-template-areas:
+        "topo topo"
+        "descricao config"
+        "precos fotos"
+        "meta oferta"
+        "adicionais adicionais"
+        "acoes acoes";
+    gap: 8px 11px;
+    padding: 13px 14px 12px;
+    border-radius: 15px;
+}
+
+/* Cabeçalho mais baixo e controles perfeitamente alinhados. */
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-topo-premium {
+    grid-template-columns: minmax(230px, .82fr) minmax(0, 1.7fr);
+    gap: 5px 14px;
+    padding: 0 0 8px;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-identidade-estoque .produto-nome-topo {
+    min-height: 36px;
+    height: 36px;
+    padding: 6px 9px;
+    border-radius: 9px;
+    font-size: .84rem;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-estoque-mini {
+    margin-top: 4px;
+    padding: 4px 7px;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-controles-topo {
+    display: grid;
+    grid-template-columns: auto auto auto auto;
+    justify-content: start;
+    align-items: center;
+    gap: 5px;
+    min-height: 36px;
+    padding: 0;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-controles-titulo {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    margin: 0 2px 0 0;
+    font-size: .64rem;
+    line-height: 1;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-status-opcoes {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    margin: 0;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-status-opcao {
+    min-height: 27px;
+    padding: 4px 8px;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-status-opcao span,
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-topo-toggle {
+    font-size: .68rem;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-topo-toggle {
+    min-height: 27px;
+    padding: 4px 8px;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-topo-ajuda {
+    grid-column: 2;
+    min-height: 0;
+    margin-top: -1px;
+    padding-left: 0;
+    font-size: .61rem;
+    line-height: 1.15;
+}
+
+/* Campos principais mais baixos, mantendo conforto de edição. */
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-item > textarea[id^="prodDesc_"] {
+    min-height: 66px;
+    height: 66px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    line-height: 1.4;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-item > .produto-admin-linha,
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-meta-grid {
+    padding: 8px 9px;
+    border-radius: 11px;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-item input[type="text"],
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-item input[type="number"],
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-item select {
+    min-height: 34px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .campo-label {
+    margin-bottom: 4px;
+    font-size: .67rem;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .campo-ajuda-inline,
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .dica-secao {
+    font-size: .6rem;
+}
+
+/* Configuração e fotos passam a usar a largura disponível em vez de empilhar blocos altos. */
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-config-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 7px;
+    align-items: start;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .campo-vincular-ficha-tecnica,
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-config-grid .produto-agenda-card {
+    min-height: 66px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    border-radius: 10px;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-fotos-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 7px;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-fotos-grid .produto-upload-bloco {
+    min-height: 88px;
+    padding: 8px 9px;
+    border-radius: 10px;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-upload-linha {
+    gap: 6px;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-upload-linha input[type="file"] {
+    min-width: 0;
+    font-size: .62rem;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-upload-linha .btn-secondary {
+    padding: 7px 9px;
+    font-size: .64rem;
+    white-space: nowrap;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .previa-imagem-thumb {
+    width: 52px;
+    height: 52px;
+    border-radius: 8px;
+}
+
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-meta-grid {
+    grid-template-columns: minmax(145px, .55fr) minmax(0, 1.45fr);
+    gap: 7px;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-oferta-grid {
+    grid-template-columns: minmax(0, 1.25fr) minmax(160px, .75fr);
+    gap: 7px;
+    padding: 8px 9px;
+    border-radius: 11px;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-item > [id^="blocoAdicionais_"] {
+    padding: 9px 10px;
+    border-radius: 11px;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-item > [id^="blocoAdicionais_"] .campo-adicionais {
+    min-height: 62px;
+    padding: 8px 9px;
+}
+
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-acoes {
+    gap: 7px;
+    padding-top: 8px;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .btn-salvar-produto {
+    min-width: 146px;
+    padding: 8px 12px;
+    font-size: .73rem;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .btn-excluir-produto {
+    min-width: 92px;
+    padding: 8px 11px;
+    font-size: .7rem;
+}
+
+.produtos-categorias-premium {
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+.produtos-categorias-premium .produtos-categorias-card {
+    padding: 14px 16px;
+    border-radius: 15px;
+}
+.produtos-categorias-premium .produtos-categorias-head {
+    margin-bottom: 10px;
+}
+
+@media (max-width: 1120px) {
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-item {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "topo"
+            "descricao"
+            "precos"
+            "meta"
+            "config"
+            "oferta"
+            "fotos"
+            "adicionais"
+            "acoes";
+    }
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-config-grid,
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-fotos-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 760px) {
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4 {
+        width: calc(100vw - 20px);
+    }
+    .produtos-premium-v4 .produtos-premium-hero {
+        margin-top: 12px;
+        padding: 14px;
+    }
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-item {
+        padding: 11px;
+        gap: 7px;
+    }
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-topo-premium {
+        grid-template-columns: 1fr;
+    }
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-controles-topo {
+        grid-template-columns: auto 1fr;
+        align-items: center;
+    }
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-controles-titulo {
+        align-self: center;
+    }
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-status-opcoes {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-topo-toggle {
+        justify-self: start;
+    }
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-topo-ajuda {
+        grid-column: 1;
+    }
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-config-grid,
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-fotos-grid,
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-meta-grid,
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-oferta-grid {
+        grid-template-columns: 1fr;
+    }
+}
