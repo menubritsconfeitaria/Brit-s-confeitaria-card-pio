@@ -4408,3 +4408,461 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
         max-width: 240px;
     }
 }
+
+/* =========================================================
+   GESTÃO — ORÇAMENTO PREMIUM
+   Refinamento visual isolado. IDs e funções JS preservados.
+   ========================================================= */
+.gestao-subconteudo[data-subtab-content="sub-orcamento"].orcamento-premium {
+    width: min(100%, 920px);
+    margin: 0 auto;
+    padding: 0 0 22px;
+}
+
+.orcamento-premium .orcamento-card {
+    padding: 20px;
+    border: 1px solid #eadfd5;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #fff 0%, #fffdfa 100%);
+    box-shadow: 0 10px 28px rgba(92, 62, 39, .07);
+}
+
+.orcamento-premium .orcamento-form-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.orcamento-premium .orcamento-form-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: linear-gradient(180deg, #b35f31 0%, #d99a54 100%);
+}
+
+.orcamento-premium .orcamento-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+.orcamento-premium .orcamento-card-heading {
+    min-width: 0;
+}
+
+.orcamento-premium .orcamento-eyebrow,
+.orcamento-premium .orcamento-resumo-label {
+    display: block;
+    margin-bottom: 4px;
+    color: #ad754d;
+    font-size: .58rem;
+    font-weight: 850;
+    letter-spacing: .11em;
+}
+
+.orcamento-premium .orcamento-card-heading h3 {
+    margin: 0 !important;
+    color: #75442b;
+    font-size: 1rem;
+    line-height: 1.3;
+}
+
+.orcamento-premium .orcamento-card-heading p {
+    max-width: 590px;
+    margin: 5px 0 0;
+    color: #9b8779;
+    font-size: .67rem;
+    line-height: 1.45;
+}
+
+.orcamento-premium .orcamento-status-pill {
+    flex: 0 0 auto;
+    padding: 8px 10px;
+    border: 1px solid #eadfd5;
+    border-radius: 999px;
+    background: #fcf8f4;
+    color: #8f705d;
+    font-size: .58rem;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.orcamento-premium .orcamento-section {
+    padding: 15px;
+    border: 1px solid #eee4dc;
+    border-radius: 13px;
+    background: #fcfaf8;
+}
+
+.orcamento-premium .orcamento-section + .orcamento-section {
+    margin-top: 11px;
+}
+
+.orcamento-premium .orcamento-section-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.orcamento-premium .orcamento-step {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    border: 1px solid #ead9ca;
+    border-radius: 9px;
+    background: #fff;
+    color: #a85a30;
+    font-size: .62rem;
+    font-weight: 850;
+    box-shadow: 0 3px 9px rgba(98, 64, 40, .05);
+}
+
+.orcamento-premium .orcamento-section-heading strong {
+    display: block;
+    color: #5f4636;
+    font-size: .76rem;
+}
+
+.orcamento-premium .orcamento-section-heading small {
+    display: block;
+    margin-top: 2px;
+    color: #a18e81;
+    font-size: .59rem;
+    line-height: 1.35;
+}
+
+.orcamento-premium .orcamento-grid {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+}
+
+.orcamento-premium .orcamento-grid--cliente {
+    grid-template-columns: minmax(0, 1.35fr) minmax(180px, .65fr);
+}
+
+.orcamento-premium .orcamento-grid--produto {
+    grid-template-columns: minmax(0, 1fr) 120px auto;
+    align-items: end;
+}
+
+.orcamento-premium .campo-com-label {
+    min-width: 0;
+}
+
+.orcamento-premium .campo-label {
+    margin: 0 0 5px !important;
+    color: #7a6557;
+    font-size: .62rem;
+    font-weight: 750;
+}
+
+.orcamento-premium .campo-label small {
+    color: #aa998d;
+    font-weight: 600;
+}
+
+.orcamento-premium input,
+.orcamento-premium select,
+.orcamento-premium textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #dfd2c7;
+    border-radius: 10px;
+    background: #fff;
+    color: #514238;
+    font-family: inherit;
+    font-size: .72rem;
+    outline: none;
+    transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+
+.orcamento-premium input,
+.orcamento-premium select {
+    min-height: 38px;
+    padding: 8px 10px;
+}
+
+.orcamento-premium textarea {
+    min-height: 86px;
+    padding: 10px 11px;
+    resize: vertical;
+    line-height: 1.45;
+}
+
+.orcamento-premium input:focus,
+.orcamento-premium select:focus,
+.orcamento-premium textarea:focus {
+    border-color: rgba(165, 86, 45, .55);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(165, 86, 45, .08);
+}
+
+.orcamento-premium input::placeholder,
+.orcamento-premium textarea::placeholder {
+    color: #b4a69c;
+}
+
+.orcamento-premium .orcamento-itens-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 220px;
+    gap: 12px;
+    align-items: stretch;
+}
+
+.orcamento-premium .orcamento-itens-main {
+    min-width: 0;
+}
+
+.orcamento-premium .orcamento-add-btn {
+    min-height: 38px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    white-space: nowrap;
+}
+
+.orcamento-premium .orcamento-lista-itens {
+    margin-top: 10px !important;
+}
+
+.orcamento-premium .orcamento-lista-itens:empty + .orcamento-empty-hint {
+    display: flex;
+}
+
+.orcamento-premium .orcamento-lista-itens:not(:empty) + .orcamento-empty-hint {
+    display: none;
+}
+
+.orcamento-premium .orcamento-empty-hint {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-height: 62px;
+    margin-top: 10px;
+    padding: 12px;
+    border: 1px dashed #e3d7cc;
+    border-radius: 10px;
+    background: #fffdfa;
+    color: #aa988a;
+    font-size: .61rem;
+    text-align: center;
+}
+
+.orcamento-premium #orcListaItens > div {
+    gap: 10px;
+    align-items: center;
+    margin-top: 7px;
+    padding: 9px 10px !important;
+    border: 1px solid #eee4dc !important;
+    border-radius: 10px;
+    background: #fff;
+    color: #5f4e43;
+    font-size: .68rem;
+}
+
+.orcamento-premium #orcListaItens > div:first-child {
+    margin-top: 0;
+}
+
+.orcamento-premium #orcListaItens .btn-excluir-cupom {
+    flex: 0 0 30px;
+    width: 30px;
+    height: 30px;
+    border: 1px solid #f0ded8;
+    border-radius: 9px;
+    background: #fff8f6;
+    color: #b75b4b;
+    font-size: .8rem;
+}
+
+.orcamento-premium .orcamento-resumo-card {
+    display: flex;
+    flex-direction: column;
+    padding: 13px;
+    border: 1px solid #e9ddd3;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #fff 0%, #fbf6f1 100%);
+    box-shadow: 0 5px 16px rgba(86, 57, 35, .04);
+}
+
+.orcamento-premium .orcamento-money-input {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr);
+    align-items: center;
+    overflow: hidden;
+    border: 1px solid #dfd2c7;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.orcamento-premium .orcamento-money-input:focus-within {
+    border-color: rgba(165, 86, 45, .55);
+    box-shadow: 0 0 0 3px rgba(165, 86, 45, .08);
+}
+
+.orcamento-premium .orcamento-money-input span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    border-right: 1px solid #eee4dc;
+    background: #faf6f2;
+    color: #9a7158;
+    font-size: .64rem;
+    font-weight: 800;
+}
+
+.orcamento-premium .orcamento-money-input input {
+    min-height: 36px;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none !important;
+}
+
+.orcamento-premium .orcamento-total-box {
+    margin-top: auto;
+    padding: 13px 0 2px;
+    border-top: 1px solid #eadfd6;
+}
+
+.orcamento-premium .orcamento-total-box span {
+    display: block;
+    color: #9a8779;
+    font-size: .59rem;
+    font-weight: 700;
+}
+
+.orcamento-premium .orcamento-total-box strong {
+    display: block;
+    margin-top: 4px;
+    color: #713f27;
+    font-size: 1.18rem;
+    letter-spacing: -.02em;
+}
+
+.orcamento-premium .orcamento-section--observacoes textarea {
+    margin: 0;
+}
+
+.orcamento-premium .orcamento-actions {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    margin-top: 14px;
+}
+
+.orcamento-premium .orcamento-preview-btn {
+    min-height: 42px;
+    border-radius: 11px;
+    box-shadow: 0 8px 18px rgba(148, 76, 39, .14);
+}
+
+.orcamento-premium .orcamento-export-actions {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.orcamento-premium .orcamento-export-actions .btn-secondary {
+    min-height: 40px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    background: #fff;
+    font-size: .68rem;
+    box-shadow: 0 4px 11px rgba(80, 53, 34, .035);
+}
+
+.orcamento-premium .orcamento-preview-card {
+    margin-top: 14px !important;
+}
+
+.orcamento-premium .orcamento-card-header--preview {
+    margin-bottom: 10px;
+}
+
+.orcamento-premium .orcamento-preview-content {
+    overflow: hidden;
+    border: 1px solid #eadfd5;
+    border-radius: 13px;
+    background: #fff;
+}
+
+.orcamento-premium .orcamento-preview-content > div {
+    padding: 20px !important;
+}
+
+.orcamento-premium .orcamento-preview-content h2 {
+    margin: 0 0 4px !important;
+    color: #68402b;
+    font-size: 1.15rem;
+}
+
+.orcamento-premium .orcamento-preview-content p {
+    color: #68584d;
+    font-size: .71rem;
+    line-height: 1.5;
+}
+
+.orcamento-premium .orcamento-preview-content hr {
+    border-color: #eee3da !important;
+}
+
+@media (max-width: 900px) {
+    .gestao-subconteudo[data-subtab-content="sub-orcamento"].orcamento-premium {
+        width: min(100%, calc(100vw - 28px));
+    }
+    .orcamento-premium .orcamento-itens-layout {
+        grid-template-columns: 1fr;
+    }
+    .orcamento-premium .orcamento-total-box {
+        margin-top: 12px;
+    }
+    .orcamento-premium .orcamento-actions {
+        grid-template-columns: 1fr;
+    }
+    .orcamento-premium .orcamento-export-actions {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 620px) {
+    .gestao-subconteudo[data-subtab-content="sub-orcamento"].orcamento-premium {
+        width: 100%;
+        padding-bottom: 16px;
+    }
+    .orcamento-premium .orcamento-card {
+        padding: 15px;
+        border-radius: 14px;
+    }
+    .orcamento-premium .orcamento-card-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .orcamento-premium .orcamento-status-pill {
+        white-space: normal;
+    }
+    .orcamento-premium .orcamento-grid--cliente,
+    .orcamento-premium .orcamento-grid--produto {
+        grid-template-columns: 1fr;
+    }
+    .orcamento-premium .orcamento-add-btn {
+        width: 100%;
+    }
+    .orcamento-premium .orcamento-export-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        width: 100%;
+    }
+    .orcamento-premium .orcamento-export-actions .btn-secondary {
+        width: 100%;
+    }
+}
+

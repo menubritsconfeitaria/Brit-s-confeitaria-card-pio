@@ -1751,51 +1751,110 @@
                     </div>
                 </div>
 
-                <div class="gestao-subconteudo" data-subtab-content="sub-orcamento" style="display:none;">
-                    <div class="loja-status-card">
-                        <h3>💰 Gerar Orçamento</h3>
-                        <div class="produto-admin-linha">
-                            <div class="campo-com-label">
-                                <label class="campo-label">Nome do cliente</label>
-                                <input type="text" id="orcCliente">
+                <div class="gestao-subconteudo orcamento-premium" data-subtab-content="sub-orcamento" style="display:none;">
+                    <div class="loja-status-card orcamento-card orcamento-form-card">
+                        <div class="orcamento-card-header">
+                            <div class="orcamento-card-heading">
+                                <span class="orcamento-eyebrow">PROPOSTA COMERCIAL</span>
+                                <h3>💰 Gerar Orçamento</h3>
+                                <p>Monte uma proposta clara, profissional e pronta para apresentar ao cliente.</p>
                             </div>
-                            <div class="campo-com-label">
-                                <label class="campo-label">Validade da proposta</label>
-                                <input type="text" id="orcValidade" placeholder="Ex: 7 dias">
-                            </div>
+                            <div class="orcamento-status-pill">PDF · Impressão · JPG</div>
                         </div>
 
-                        <h3 style="margin-top:16px;">Itens do orçamento</h3>
-                        <div class="produto-admin-linha">
-                            <div class="campo-com-label" style="flex:2;">
-                                <label class="campo-label">Produto</label>
-                                <select id="orcSelectProduto"></select>
+                        <section class="orcamento-section">
+                            <div class="orcamento-section-heading">
+                                <span class="orcamento-step">01</span>
+                                <div>
+                                    <strong>Dados da proposta</strong>
+                                    <small>Identifique o cliente e defina a validade do orçamento.</small>
+                                </div>
                             </div>
-                            <div class="campo-com-label">
-                                <label class="campo-label">Quantidade</label>
-                                <input type="text" inputmode="decimal" id="orcQtdItem" value="1">
+                            <div class="produto-admin-linha orcamento-grid orcamento-grid--cliente">
+                                <div class="campo-com-label">
+                                    <label class="campo-label" for="orcCliente">Nome do cliente</label>
+                                    <input type="text" id="orcCliente" placeholder="Ex: Maria da Silva">
+                                </div>
+                                <div class="campo-com-label">
+                                    <label class="campo-label" for="orcValidade">Validade da proposta</label>
+                                    <input type="text" id="orcValidade" placeholder="Ex: 7 dias">
+                                </div>
                             </div>
-                        </div>
-                        <button class="btn-secondary" style="margin-top:8px;" onclick="adicionarItemOrcamento()">+ Adicionar item</button>
-                        <div id="orcListaItens" style="margin-top:10px;"></div>
+                        </section>
 
-                        <label class="campo-label" style="margin-top:10px;">Frete (opcional)</label>
-                        <input type="text" inputmode="decimal" id="orcFrete" value="0" oninput="renderItensOrcamento()">
+                        <section class="orcamento-section orcamento-section--itens">
+                            <div class="orcamento-section-heading">
+                                <span class="orcamento-step">02</span>
+                                <div>
+                                    <strong>Itens do orçamento</strong>
+                                    <small>Selecione os produtos e informe as quantidades desejadas.</small>
+                                </div>
+                            </div>
 
-                        <p class="dica-secao">Total do orçamento: <strong id="orcTotalTemp">R$ 0,00</strong></p>
+                            <div class="orcamento-itens-layout">
+                                <div class="orcamento-itens-main">
+                                    <div class="produto-admin-linha orcamento-grid orcamento-grid--produto">
+                                        <div class="campo-com-label orcamento-produto-field">
+                                            <label class="campo-label" for="orcSelectProduto">Produto</label>
+                                            <select id="orcSelectProduto"></select>
+                                        </div>
+                                        <div class="campo-com-label orcamento-qtd-field">
+                                            <label class="campo-label" for="orcQtdItem">Quantidade</label>
+                                            <input type="text" inputmode="decimal" id="orcQtdItem" value="1">
+                                        </div>
+                                        <button class="btn-secondary orcamento-add-btn" onclick="adicionarItemOrcamento()">＋ Adicionar item</button>
+                                    </div>
 
-                        <label class="campo-label" style="margin-top:10px;">Observações</label>
-                        <textarea id="orcObs" class="campo-adicionais" rows="2" placeholder="Ex: forma de pagamento, prazo de entrega..."></textarea>
+                                    <div id="orcListaItens" class="orcamento-lista-itens"></div>
+                                    <div class="orcamento-empty-hint">Os produtos adicionados aparecerão aqui com quantidade e valor.</div>
+                                </div>
 
-                        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
-                            <button class="btn-salvar-ordem" onclick="gerarPreviewOrcamento()">👁️ Visualizar</button>
-                            <button class="btn-secondary" onclick="baixarOrcamentoPDF()">📄 Baixar PDF</button>
-                            <button class="btn-secondary" onclick="imprimirOrcamento()">🖨️ Imprimir</button>
-                            <button class="btn-secondary" onclick="baixarOrcamentoJPG()">🖼️ Baixar JPG</button>
+                                <aside class="orcamento-resumo-card">
+                                    <span class="orcamento-resumo-label">RESUMO</span>
+                                    <label class="campo-label" for="orcFrete">Frete <small>(opcional)</small></label>
+                                    <div class="orcamento-money-input">
+                                        <span>R$</span>
+                                        <input type="text" inputmode="decimal" id="orcFrete" value="0" oninput="renderItensOrcamento()">
+                                    </div>
+                                    <div class="orcamento-total-box">
+                                        <span>Total do orçamento</span>
+                                        <strong id="orcTotalTemp">R$ 0,00</strong>
+                                    </div>
+                                </aside>
+                            </div>
+                        </section>
+
+                        <section class="orcamento-section orcamento-section--observacoes">
+                            <div class="orcamento-section-heading">
+                                <span class="orcamento-step">03</span>
+                                <div>
+                                    <strong>Condições e observações</strong>
+                                    <small>Inclua prazo, forma de pagamento ou qualquer orientação importante.</small>
+                                </div>
+                            </div>
+                            <label class="campo-label" for="orcObs">Observações</label>
+                            <textarea id="orcObs" class="campo-adicionais" rows="3" placeholder="Ex: forma de pagamento, prazo de entrega..."></textarea>
+                        </section>
+
+                        <div class="orcamento-actions">
+                            <button class="btn-salvar-ordem orcamento-preview-btn" onclick="gerarPreviewOrcamento()">👁️ Visualizar orçamento</button>
+                            <div class="orcamento-export-actions">
+                                <button class="btn-secondary" onclick="baixarOrcamentoPDF()">📄 Baixar PDF</button>
+                                <button class="btn-secondary" onclick="imprimirOrcamento()">🖨️ Imprimir</button>
+                                <button class="btn-secondary" onclick="baixarOrcamentoJPG()">🖼️ Baixar JPG</button>
+                            </div>
                         </div>
                     </div>
-                    <div class="loja-status-card" id="cardPreviewOrcamento" style="display:none; margin-top:16px;">
-                        <div id="previewOrcamento"></div>
+
+                    <div class="loja-status-card orcamento-card orcamento-preview-card" id="cardPreviewOrcamento" style="display:none;">
+                        <div class="orcamento-card-header orcamento-card-header--preview">
+                            <div class="orcamento-card-heading">
+                                <span class="orcamento-eyebrow">PRÉ-VISUALIZAÇÃO</span>
+                                <h3>📄 Orçamento para o cliente</h3>
+                                <p>Confira os dados antes de baixar, imprimir ou enviar.</p>
+                            </div>
+                        </div>
+                        <div id="previewOrcamento" class="orcamento-preview-content"></div>
                     </div>
                 </div>
                 <div class="gestao-subconteudo" data-subtab-content="sub-sistema" style="display:none;">
