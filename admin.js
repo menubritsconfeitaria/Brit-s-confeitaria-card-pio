@@ -273,8 +273,8 @@ function inicializarAbasPainel() {
         });
     });
 
-    // Abre na mesma aba que estava da última vez (ou "resumo" se for a primeira vez)
-    let abaSalva = localStorage.getItem('painelAbaAtiva') || 'resumo';
+    // Abre na mesma aba que estava da última vez (ou "pedidos" se for a primeira vez)
+    let abaSalva = localStorage.getItem('painelAbaAtiva') || 'pedidos';
     // Migração visual: abas antigas agora vivem dentro dos novos hubs.
     if (['cupons', 'fidelidade', 'mensagens'].includes(abaSalva)) abaSalva = 'clientes-marketing';
     if (abaSalva === 'visitantes') abaSalva = 'loja';
@@ -7293,11 +7293,18 @@ function pedidoEstaLancadoFechamento(id) {
 }
 
 function atualizarBotaoLancadoFechamento(id) {
-    const btn = document.getElementById('btnFechamentoLancado-' + id);
-    if (!btn) return;
     const lancado = pedidoEstaLancadoFechamento(id);
-    btn.classList.toggle('lancado', lancado);
-    btn.textContent = lancado ? '✅ Já lançado no sistema' : '☐ Marcar como lançado';
+    const btn = document.getElementById('btnFechamentoLancado-' + id);
+    if (btn) {
+        btn.classList.toggle('lancado', lancado);
+        btn.textContent = lancado ? '✅ Já lançado no sistema' : '☐ Marcar como lançado';
+    }
+
+    const selo = document.getElementById('statusFechamentoLancado-' + id);
+    if (selo) {
+        selo.classList.toggle('lancado', lancado);
+        selo.textContent = lancado ? '✓ Lançado' : 'Pendente de lançamento';
+    }
 }
 
 async function alternarLancadoFechamento(id) {
@@ -7378,7 +7385,12 @@ function renderFechamentoDiario(pedidos, dataInicioInput, dataFimInput) {
     const rotuloData = mesmodia ? 'Data' : 'Período';
 
     if (pedidos.length === 0) {
-        div.innerHTML = '<p class="vazio">Nenhum pedido encontrado com esse filtro, nesse período.</p>';
+        div.innerHTML = `
+            <div class="fechamento-vazio-premium">
+                <span>🔎</span>
+                <strong>Nenhum pedido encontrado</strong>
+                <p>Não há pedidos que correspondam aos filtros escolhidos nesse período.</p>
+            </div>`;
         return;
     }
 
@@ -7388,19 +7400,35 @@ function renderFechamentoDiario(pedidos, dataInicioInput, dataFimInput) {
     const emAndamento = pedidos.filter(p => p.status !== 'entregue' && p.status !== 'recusado');
     const totalConcluidos = concluidos.reduce((s, p) => s + totalDoPedido(p), 0);
     const totalEmAndamento = emAndamento.reduce((s, p) => s + totalDoPedido(p), 0);
+    const lancados = pedidos.filter(p => pedidoEstaLancadoFechamento(p.id)).length;
+    const pendentesLancamento = pedidos.length - lancados;
 
     const resumoHtml = `
-        <div class="pedido-total-linha"><span>📦 Pedidos no período</span><span><strong>${pedidos.length}</strong></span></div>
-        <div class="pedido-total-linha"><span>✅ Pedidos concluídos</span><span><strong>${concluidos.length}</strong></span></div>
-        <div class="pedido-total-linha"><span>⏳ Em andamento</span><span><strong>${emAndamento.length}</strong></span></div>
-        <div class="pedido-total-linha"><span>❌ Cancelados</span><span><strong>${cancelados.length}</strong></span></div>
-        <div class="pedido-total-linha"><span>🕒 Valor em andamento <small>(não contabilizado)</small></span><span><strong>${formatarPreco(totalEmAndamento)}</strong></span></div>
-        <div class="pedido-total-linha total-final"><span>💰 Vendas concluídas</span><span><strong>${formatarPreco(totalConcluidos)}</strong></span></div>
-    `;
+        <div class="fechamento-kpis" aria-label="Resumo do fechamento">
+            <div class="fechamento-kpi fechamento-kpi--concluido">
+                <span class="fechamento-kpi-icone">✓</span>
+                <div><small>Vendas concluídas</small><strong>${formatarPreco(totalConcluidos)}</strong><em>${concluidos.length} pedido${concluidos.length === 1 ? '' : 's'} entregue${concluidos.length === 1 ? '' : 's'}</em></div>
+            </div>
+            <div class="fechamento-kpi fechamento-kpi--andamento">
+                <span class="fechamento-kpi-icone">◷</span>
+                <div><small>Em andamento</small><strong>${formatarPreco(totalEmAndamento)}</strong><em>${emAndamento.length} pedido${emAndamento.length === 1 ? '' : 's'} · não contabilizado</em></div>
+            </div>
+            <div class="fechamento-kpi fechamento-kpi--cancelado">
+                <span class="fechamento-kpi-icone">×</span>
+                <div><small>Cancelados</small><strong>${cancelados.length}</strong><em>fora do faturamento</em></div>
+            </div>
+            <div class="fechamento-kpi fechamento-kpi--lancamento">
+                <span class="fechamento-kpi-icone">↗</span>
+                <div><small>Conferência</small><strong>${lancados}/${pedidos.length}</strong><em>${pendentesLancamento} pendente${pendentesLancamento === 1 ? '' : 's'} de lançamento</em></div>
+            </div>
+        </div>`;
 
     const listaValidosHtml = validos.map(p => montarCardPedidoFechamento(p)).join('');
     const listaCanceladosHtml = cancelados.length > 0 ? `
-        <h3 style="margin-top:20px; color:#a53238;">❌ Pedidos cancelados</h3>
+        <div class="fechamento-secao-head fechamento-secao-head--cancelados">
+            <div><span>EXCEÇÕES</span><h3>❌ Pedidos cancelados</h3></div>
+            <small>${cancelados.length} pedido${cancelados.length === 1 ? '' : 's'}</small>
+        </div>
         ${cancelados.map(p => montarCardPedidoFechamento(p)).join('')}
     ` : '';
 
@@ -7413,8 +7441,12 @@ function renderFechamentoDiario(pedidos, dataInicioInput, dataFimInput) {
     }));
     const produtosOrdenados = Object.entries(produtosAgregados).sort((a, b) => b[1].quantidade - a[1].quantidade);
     const produtosHtml = produtosOrdenados.length > 0 ? `
-        <h3 style="margin-top:20px;">🛍️ Produtos dos pedidos concluídos</h3>
-        ${produtosOrdenados.map(([nome, dados]) => `<div class="pedido-total-linha"><span>${nome} — ${dados.quantidade} un.</span><span>${formatarPreco(dados.subtotal)}</span></div>`).join('')}
+        <div class="fechamento-resumo-bloco">
+            <div class="fechamento-resumo-bloco-head"><div><span>CONSOLIDADO</span><h3>🛍️ Produtos dos pedidos concluídos</h3></div><small>${produtosOrdenados.length} item${produtosOrdenados.length === 1 ? '' : 's'} diferente${produtosOrdenados.length === 1 ? '' : 's'}</small></div>
+            <div class="fechamento-resumo-lista">
+                ${produtosOrdenados.map(([nome, dados]) => `<div class="pedido-total-linha"><span>${nome} <small>· ${dados.quantidade} un.</small></span><strong>${formatarPreco(dados.subtotal)}</strong></div>`).join('')}
+            </div>
+        </div>
     ` : '';
 
     // Formas de pagamento: soma somente vendas concluídas, sem misturar pedidos em andamento.
@@ -7424,8 +7456,12 @@ function renderFechamentoDiario(pedidos, dataInicioInput, dataFimInput) {
         pagamentosAgregados[forma] = (pagamentosAgregados[forma] || 0) + totalDoPedido(p);
     });
     const pagamentosHtml = Object.keys(pagamentosAgregados).length > 0 ? `
-        <h3 style="margin-top:20px;">💳 Formas de pagamento das vendas concluídas</h3>
-        ${Object.entries(pagamentosAgregados).map(([forma, valor]) => `<div class="pedido-total-linha"><span>${forma}</span><span>${formatarPreco(valor)}</span></div>`).join('')}
+        <div class="fechamento-resumo-bloco">
+            <div class="fechamento-resumo-bloco-head"><div><span>RECEBIMENTOS</span><h3>💳 Formas de pagamento das vendas concluídas</h3></div></div>
+            <div class="fechamento-resumo-lista">
+                ${Object.entries(pagamentosAgregados).map(([forma, valor]) => `<div class="pedido-total-linha"><span>${forma}</span><strong>${formatarPreco(valor)}</strong></div>`).join('')}
+            </div>
+        </div>
     ` : '';
 
     div.innerHTML = `
@@ -7433,16 +7469,27 @@ function renderFechamentoDiario(pedidos, dataInicioInput, dataFimInput) {
             <h2>${LOJA_CONFIG.nome} — Fechamento Diário de Pedidos</h2>
             <p>${rotuloData}: ${dataFormatada}</p>
         </div>
-        <h3>📊 Resumo do ${mesmodia ? 'Dia' : 'Período'}</h3>
+        <div class="fechamento-periodo-barra">
+            <div><span>PERÍODO ANALISADO</span><strong>${dataFormatada}</strong></div>
+            <div><span>PEDIDOS NO FILTRO</span><strong>${pedidos.length}</strong></div>
+        </div>
         ${resumoHtml}
-        <h3 style="margin-top:20px;">📋 Pedidos do ${mesmodia ? 'dia' : 'período'}</h3>
-        ${listaValidosHtml}
+        <div class="fechamento-secao-head">
+            <div><span>CONFERÊNCIA PEDIDO A PEDIDO</span><h3>📋 Pedidos do ${mesmodia ? 'dia' : 'período'}</h3></div>
+            <small>Clique em “Ver detalhes” somente quando precisar</small>
+        </div>
+        <div class="fechamento-lista-compacta">${listaValidosHtml}</div>
         ${listaCanceladosHtml}
-        ${produtosHtml}
-        ${pagamentosHtml}
-        <div class="fechamento-acoes">
-            <button class="btn-secondary" onclick="copiarTodosPedidos('${dataFormatada}')">📋 Copiar todos os pedidos</button>
-            <button class="btn-secondary" onclick="imprimirFechamento()">🖨️ Imprimir relatório</button>
+        <div class="fechamento-consolidados">
+            ${produtosHtml}
+            ${pagamentosHtml}
+        </div>
+        <div class="fechamento-acoes fechamento-acoes--premium">
+            <div><strong>Fechamento pronto para conferência</strong><span>Copie os dados ou gere o relatório impresso quando terminar.</span></div>
+            <div class="fechamento-acoes-botoes">
+                <button class="btn-secondary" onclick="copiarTodosPedidos('${dataFormatada}')">📋 Copiar todos os pedidos</button>
+                <button class="btn-secondary" onclick="imprimirFechamento()">🖨️ Imprimir relatório</button>
+            </div>
         </div>
     `;
 }
@@ -7451,35 +7498,53 @@ function montarCardPedidoFechamento(p) {
     const statusLabel = STATUS_LABELS_FECHAMENTO[p.status] || p.status;
     const tipoLabel = p.tipoEntrega === 'entrega' ? '🛵 Delivery' : (p.tipoEntrega === 'retirada' ? '🏪 Retirada no local' : 'Não informado');
     const lancado = pedidoEstaLancadoFechamento(p.id);
+    const numero = p.numero ? String(p.numero).padStart(3, '0') : '—';
+    const total = formatarPreco(totalDoPedido(p));
+    const formaPagamento = p.formaPagamento || 'Não informado';
     const itensHtml = (p.itens || []).map(item =>
         `<div class="pedido-total-linha"><span>${item.quantidade}x ${item.nome}${item.adicionaisTexto ? ` <em>(${item.adicionaisTexto})</em>` : ''}</span><span>${formatarPreco((item.preco || 0) * item.quantidade)}</span></div>`
     ).join('');
 
     return `
-    <div class="fechamento-pedido-card">
-        <div class="fechamento-pedido-topo">
-            <strong>🛒 Pedido #${p.numero ? String(p.numero).padStart(3, '0') : '—'}</strong>
-            <span class="fechamento-status-badge tag-status-${p.status.replace('_', '-')}">${statusLabel}</span>
+    <details class="fechamento-pedido-card fechamento-pedido-compacto${p.status === 'recusado' ? ' fechamento-pedido-compacto--cancelado' : ''}">
+        <summary class="fechamento-pedido-resumo">
+            <div class="fechamento-pedido-identidade">
+                <span class="fechamento-pedido-numero">#${numero}</span>
+                <div class="fechamento-pedido-cliente"><strong>${p.nome || 'Cliente não informado'}</strong><small>${formatarHorario(p.timestamp)} · ${tipoLabel} · ${formaPagamento}</small></div>
+            </div>
+            <div class="fechamento-pedido-resumo-direita">
+                <span class="fechamento-status-badge tag-status-${p.status.replace('_', '-')}">${statusLabel}</span>
+                <strong class="fechamento-pedido-total">${total}</strong>
+                <span id="statusFechamentoLancado-${p.id}" class="fechamento-lancamento-selo${lancado ? ' lancado' : ''}">${lancado ? '✓ Lançado' : 'Pendente de lançamento'}</span>
+                <span class="fechamento-ver-detalhes">Ver detalhes <b>⌄</b></span>
+            </div>
+        </summary>
+        <div class="fechamento-pedido-detalhes">
+            <div class="fechamento-pedido-detalhes-topo">
+                <div><span>Cliente</span><strong>${p.nome || 'Não informado'}</strong></div>
+                <div><span>Horário</span><strong>${formatarHorario(p.timestamp)}</strong></div>
+                <div><span>Modalidade</span><strong>${tipoLabel}</strong></div>
+                <div><span>Pagamento</span><strong>${formaPagamento}</strong></div>
+            </div>
+            <div class="fechamento-itens-box">
+                <span class="fechamento-detalhe-label">Itens do pedido</span>
+                ${itensHtml || '<p class="dica-secao">Itens não informados.</p>'}
+            </div>
+            <div class="fechamento-valores-grade">
+                <div><span>Subtotal</span><strong>${formatarPreco(p.subtotal || 0)}</strong></div>
+                <div><span>Desconto</span><strong>${formatarPreco(p.desconto || 0)}</strong></div>
+                <div><span>Frete</span><strong>${formatarPreco(p.frete || 0)}</strong></div>
+                <div class="total"><span>Total</span><strong>${total}</strong></div>
+            </div>
+            ${p.pagamento ? `<div class="fechamento-info-box"><strong>Status do pagamento</strong><span>${montarTagPagamento(p)}</span></div>` : ''}
+            ${p.observacoes ? `<div class="fechamento-info-box"><strong>Observações</strong><span>${p.observacoes}</span></div>` : ''}
+            ${p.tipoEntrega === 'entrega' ? `<div class="fechamento-info-box"><strong>Endereço</strong><span>${formatarEnderecoResumo(p.endereco)}</span></div>` : ''}
+            <div class="fechamento-pedido-acoes">
+                <button class="btn-secondary" onclick="copiarPedidoIndividual('${p.id}')">📋 Copiar pedido</button>
+                <button id="btnFechamentoLancado-${p.id}" class="btn-lancado${lancado ? ' lancado' : ''}" onclick="alternarLancadoFechamento('${p.id}')">${lancado ? '✅ Já lançado no sistema' : '☐ Marcar como lançado'}</button>
+            </div>
         </div>
-        <p class="dica-secao">
-            <strong>Cliente:</strong> ${p.nome || 'Não informado'} &nbsp;|&nbsp;
-            <strong>Horário:</strong> ${formatarHorario(p.timestamp)} &nbsp;|&nbsp;
-            <strong>${tipoLabel}</strong>
-        </p>
-        ${itensHtml}
-        <div class="pedido-total-linha"><span>Subtotal</span><span>${formatarPreco(p.subtotal || 0)}</span></div>
-        <div class="pedido-total-linha"><span>Desconto</span><span>${formatarPreco(p.desconto || 0)}</span></div>
-        <div class="pedido-total-linha"><span>Frete</span><span>${formatarPreco(p.frete || 0)}</span></div>
-        <div class="pedido-total-linha total-final"><span>Total</span><span>${formatarPreco(totalDoPedido(p))}</span></div>
-        <p class="dica-secao"><strong>Pagamento:</strong> ${p.formaPagamento || 'Não informado'}${p.pagamento ? ` &nbsp;|&nbsp; <strong>Status:</strong> ${montarTagPagamento(p)}` : ''}</p>
-        ${p.observacoes ? `<p class="dica-secao"><strong>Observações:</strong> ${p.observacoes}</p>` : ''}
-        ${p.tipoEntrega === 'entrega' ? `<p class="dica-secao"><strong>Endereço:</strong> ${formatarEnderecoResumo(p.endereco)}</p>` : ''}
-
-        <div class="fechamento-pedido-acoes">
-            <button class="btn-secondary" onclick="copiarPedidoIndividual('${p.id}')">📋 Copiar pedido</button>
-            <button id="btnFechamentoLancado-${p.id}" class="btn-lancado${lancado ? ' lancado' : ''}" onclick="alternarLancadoFechamento('${p.id}')">${lancado ? '✅ Já lançado no sistema' : '☐ Marcar como lançado'}</button>
-        </div>
-    </div>`;
+    </details>`;
 }
 
 function montarTextoPedido(p) {

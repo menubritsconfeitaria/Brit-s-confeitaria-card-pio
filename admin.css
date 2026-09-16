@@ -8095,3 +8095,410 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
         border-radius: 14px;
     }
 }
+
+
+/* =========================================================
+   FECHAMENTO PREMIUM V3 — leitura compacta e conferência executiva
+   Escopo exclusivo da aba Fechamento. Não altera Kanban/status/push.
+   ========================================================= */
+.fechamento-premium .fechamento-periodo-barra {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 0 0 14px;
+    padding: 13px 16px;
+    border: 1px solid #eadfce;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #fff 0%, #fdf9f4 100%);
+    box-shadow: 0 5px 16px rgba(69,43,24,.045);
+}
+.fechamento-premium .fechamento-periodo-barra > div { min-width: 0; }
+.fechamento-premium .fechamento-periodo-barra > div:last-child { text-align: right; }
+.fechamento-premium .fechamento-periodo-barra span,
+.fechamento-premium .fechamento-secao-head > div > span,
+.fechamento-premium .fechamento-resumo-bloco-head > div > span {
+    display: block;
+    color: #a28570;
+    font-size: .58rem;
+    font-weight: 800;
+    letter-spacing: .105em;
+}
+.fechamento-premium .fechamento-periodo-barra strong {
+    display: block;
+    margin-top: 2px;
+    color: #51392b;
+    font-size: .9rem;
+}
+
+.fechamento-premium .fechamento-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.fechamento-premium .fechamento-kpi {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+    min-height: 96px;
+    padding: 14px;
+    border: 1px solid #eadfd3;
+    border-radius: 15px;
+    background: #fff;
+    box-shadow: 0 5px 16px rgba(69,43,24,.05);
+}
+.fechamento-premium .fechamento-kpi-icone {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: #f8f1e9;
+    color: #9a542d;
+    font-size: 1.05rem;
+    font-weight: 900;
+}
+.fechamento-premium .fechamento-kpi small,
+.fechamento-premium .fechamento-kpi em {
+    display: block;
+    color: #8b7666;
+    font-size: .62rem;
+    font-style: normal;
+    line-height: 1.32;
+}
+.fechamento-premium .fechamento-kpi strong {
+    display: block;
+    margin: 2px 0 3px;
+    color: #4e3729;
+    font-size: 1rem;
+    line-height: 1.12;
+}
+.fechamento-premium .fechamento-kpi--concluido .fechamento-kpi-icone { background:#eaf7ef; color:#16834a; }
+.fechamento-premium .fechamento-kpi--andamento .fechamento-kpi-icone { background:#fff6dc; color:#9b6a00; }
+.fechamento-premium .fechamento-kpi--cancelado .fechamento-kpi-icone { background:#fff0f0; color:#b64b4b; }
+.fechamento-premium .fechamento-kpi--lancamento .fechamento-kpi-icone { background:#eef5ff; color:#3e6fa5; }
+
+.fechamento-premium .fechamento-secao-head,
+.fechamento-premium .fechamento-resumo-bloco-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 14px;
+}
+.fechamento-premium .fechamento-secao-head { margin: 22px 0 10px; }
+.fechamento-premium .fechamento-secao-head h3,
+.fechamento-premium .fechamento-resumo-bloco-head h3 {
+    margin: 2px 0 0 !important;
+    color: #51392b;
+    font-size: .92rem;
+}
+.fechamento-premium .fechamento-secao-head > small,
+.fechamento-premium .fechamento-resumo-bloco-head > small {
+    color: #9b8878;
+    font-size: .64rem;
+    text-align: right;
+}
+.fechamento-premium .fechamento-secao-head--cancelados { margin-top: 26px; }
+.fechamento-premium .fechamento-secao-head--cancelados h3 { color:#a54a42; }
+
+.fechamento-premium .fechamento-lista-compacta {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+}
+.fechamento-premium details.fechamento-pedido-compacto {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid #eadfd3;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 4px 14px rgba(69,43,24,.042);
+    transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+.fechamento-premium details.fechamento-pedido-compacto:hover {
+    border-color: #ddc9b7;
+    box-shadow: 0 7px 18px rgba(69,43,24,.065);
+}
+.fechamento-premium details.fechamento-pedido-compacto[open] {
+    border-color: #d9c4b1;
+    box-shadow: 0 10px 24px rgba(69,43,24,.08);
+}
+.fechamento-premium details.fechamento-pedido-compacto--cancelado { border-left: 3px solid #d17a72; }
+.fechamento-premium .fechamento-pedido-resumo {
+    list-style: none;
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(420px, .9fr);
+    gap: 14px;
+    align-items: center;
+    min-height: 72px;
+    padding: 11px 14px;
+    user-select: none;
+}
+.fechamento-premium .fechamento-pedido-resumo::-webkit-details-marker { display:none; }
+.fechamento-premium .fechamento-pedido-identidade {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+    min-width: 0;
+}
+.fechamento-premium .fechamento-pedido-numero {
+    display: grid;
+    place-items: center;
+    min-height: 38px;
+    border-radius: 11px;
+    background: linear-gradient(145deg,#fff8f2,#f7eee6);
+    color: #9a4f29;
+    font-size: .75rem;
+    font-weight: 900;
+}
+.fechamento-premium .fechamento-pedido-cliente { min-width: 0; }
+.fechamento-premium .fechamento-pedido-cliente strong {
+    display: block;
+    overflow: hidden;
+    color: #4c382b;
+    font-size: .78rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.fechamento-premium .fechamento-pedido-cliente small {
+    display: block;
+    overflow: hidden;
+    margin-top: 3px;
+    color: #937f70;
+    font-size: .62rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.fechamento-premium .fechamento-pedido-resumo-direita {
+    display: grid;
+    grid-template-columns: auto 92px 128px 96px;
+    gap: 9px;
+    align-items: center;
+    justify-content: end;
+}
+.fechamento-premium .fechamento-pedido-resumo .fechamento-status-badge {
+    margin: 0;
+    padding: 5px 8px;
+    font-size: .58rem;
+    text-align: center;
+    white-space: nowrap;
+}
+.fechamento-premium .fechamento-pedido-total {
+    color: #944a25;
+    font-size: .8rem;
+    text-align: right;
+    white-space: nowrap;
+}
+.fechamento-premium .fechamento-lancamento-selo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 27px;
+    padding: 5px 7px;
+    border: 1px solid #efddaa;
+    border-radius: 999px;
+    background: #fff8df;
+    color: #86640d;
+    font-size: .55rem;
+    font-weight: 800;
+    text-align: center;
+    white-space: nowrap;
+}
+.fechamento-premium .fechamento-lancamento-selo.lancado {
+    border-color: #bfe0c9;
+    background: #edf9f1;
+    color: #267244;
+}
+.fechamento-premium .fechamento-ver-detalhes {
+    color: #917666;
+    font-size: .59rem;
+    font-weight: 700;
+    text-align: right;
+    white-space: nowrap;
+}
+.fechamento-premium .fechamento-ver-detalhes b {
+    display: inline-block;
+    margin-left: 3px;
+    transition: transform .16s ease;
+}
+.fechamento-premium details[open] .fechamento-ver-detalhes b { transform: rotate(180deg); }
+.fechamento-premium .fechamento-pedido-detalhes {
+    padding: 15px 16px 16px;
+    border-top: 1px solid #f0e7dd;
+    background: linear-gradient(180deg,#fffdfa,#fff 72px);
+}
+.fechamento-premium .fechamento-pedido-detalhes-topo {
+    display: grid;
+    grid-template-columns: 1.5fr .65fr .8fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.fechamento-premium .fechamento-pedido-detalhes-topo > div,
+.fechamento-premium .fechamento-valores-grade > div {
+    padding: 9px 10px;
+    border: 1px solid #eee4d9;
+    border-radius: 10px;
+    background: #fff;
+}
+.fechamento-premium .fechamento-pedido-detalhes-topo span,
+.fechamento-premium .fechamento-valores-grade span,
+.fechamento-premium .fechamento-detalhe-label {
+    display: block;
+    color: #9a8677;
+    font-size: .55rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.fechamento-premium .fechamento-pedido-detalhes-topo strong,
+.fechamento-premium .fechamento-valores-grade strong {
+    display: block;
+    margin-top: 3px;
+    color: #513b2e;
+    font-size: .68rem;
+}
+.fechamento-premium .fechamento-itens-box {
+    padding: 11px 12px;
+    border: 1px solid #eee4d9;
+    border-radius: 11px;
+    background: #fcfaf7;
+}
+.fechamento-premium .fechamento-itens-box .pedido-total-linha {
+    padding: 6px 0 !important;
+    border-bottom: 1px dashed #ece1d5;
+    font-size: .68rem;
+}
+.fechamento-premium .fechamento-itens-box .pedido-total-linha:last-child { border-bottom: 0; }
+.fechamento-premium .fechamento-valores-grade {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+}
+.fechamento-premium .fechamento-valores-grade .total {
+    border-color: #e4cbb8;
+    background: #fff7f0;
+}
+.fechamento-premium .fechamento-valores-grade .total strong { color:#974d28; }
+.fechamento-premium .fechamento-info-box {
+    display: grid;
+    grid-template-columns: 150px minmax(0,1fr);
+    gap: 10px;
+    align-items: start;
+    margin-top: 8px;
+    padding: 9px 11px;
+    border: 1px solid #eee4d9;
+    border-radius: 10px;
+    background: #fff;
+    color: #715d4e;
+    font-size: .66rem;
+    line-height: 1.45;
+}
+.fechamento-premium .fechamento-info-box strong { color:#533d2f; }
+.fechamento-premium .fechamento-pedido-detalhes .fechamento-pedido-acoes {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+}
+.fechamento-premium .fechamento-pedido-detalhes .fechamento-pedido-acoes button {
+    min-height: 34px;
+    padding: 7px 11px;
+    border-radius: 9px;
+    font-size: .63rem;
+}
+
+.fechamento-premium .fechamento-consolidados {
+    display: grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 12px;
+    margin-top: 24px;
+}
+.fechamento-premium .fechamento-resumo-bloco {
+    min-width: 0;
+    padding: 15px;
+    border: 1px solid #eadfd3;
+    border-radius: 15px;
+    background: #fff;
+    box-shadow: 0 5px 16px rgba(69,43,24,.045);
+}
+.fechamento-premium .fechamento-resumo-lista { margin-top: 10px; }
+.fechamento-premium .fechamento-resumo-lista .pedido-total-linha {
+    padding: 7px 0;
+    border-bottom: 1px solid #f0e8df;
+    font-size: .68rem;
+}
+.fechamento-premium .fechamento-resumo-lista .pedido-total-linha:last-child { border-bottom:0; }
+.fechamento-premium .fechamento-resumo-lista small { color:#9b8879; }
+.fechamento-premium .fechamento-acoes--premium {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-top: 14px;
+    padding: 15px 16px;
+    background: linear-gradient(180deg,#fffdfa,#f9f3ec);
+}
+.fechamento-premium .fechamento-acoes--premium > div:first-child strong,
+.fechamento-premium .fechamento-acoes--premium > div:first-child span { display:block; }
+.fechamento-premium .fechamento-acoes--premium > div:first-child strong { color:#50392b; font-size:.75rem; }
+.fechamento-premium .fechamento-acoes--premium > div:first-child span { margin-top:3px; color:#907d6e; font-size:.61rem; }
+.fechamento-premium .fechamento-acoes-botoes { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+.fechamento-premium .fechamento-acoes-botoes button { padding:8px 11px; font-size:.63rem; border-radius:9px; }
+.fechamento-premium .fechamento-vazio-premium {
+    display:grid;
+    place-items:center;
+    min-height:170px;
+    padding:24px;
+    border:1px dashed #dccbbb;
+    border-radius:16px;
+    background:#fffdfa;
+    text-align:center;
+}
+.fechamento-premium .fechamento-vazio-premium > span { font-size:1.5rem; }
+.fechamento-premium .fechamento-vazio-premium strong { margin-top:6px; color:#513b2e; font-size:.86rem; }
+.fechamento-premium .fechamento-vazio-premium p { margin:5px 0 0; color:#927f70; font-size:.68rem; }
+
+@media (max-width: 1080px) {
+    .fechamento-premium .fechamento-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .fechamento-premium .fechamento-pedido-resumo { grid-template-columns: 1fr; gap:8px; }
+    .fechamento-premium .fechamento-pedido-resumo-direita { grid-template-columns: auto 92px 128px 96px; justify-content:start; padding-left:62px; }
+}
+@media (max-width: 760px) {
+    .fechamento-premium .fechamento-periodo-barra,
+    .fechamento-premium .fechamento-secao-head,
+    .fechamento-premium .fechamento-resumo-bloco-head,
+    .fechamento-premium .fechamento-acoes--premium { align-items:flex-start; flex-direction:column; }
+    .fechamento-premium .fechamento-periodo-barra > div:last-child { text-align:left; }
+    .fechamento-premium .fechamento-kpis,
+    .fechamento-premium .fechamento-consolidados { grid-template-columns:1fr; }
+    .fechamento-premium .fechamento-pedido-resumo-direita { grid-template-columns: repeat(2,minmax(0,1fr)); padding-left:0; }
+    .fechamento-premium .fechamento-pedido-detalhes-topo,
+    .fechamento-premium .fechamento-valores-grade { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .fechamento-premium .fechamento-info-box { grid-template-columns:1fr; }
+    .fechamento-premium .fechamento-acoes-botoes { justify-content:flex-start; }
+}
+@media (max-width: 520px) {
+    .fechamento-premium .fechamento-kpis,
+    .fechamento-premium .fechamento-pedido-detalhes-topo,
+    .fechamento-premium .fechamento-valores-grade { grid-template-columns:1fr; }
+    .fechamento-premium .fechamento-pedido-identidade { grid-template-columns:46px minmax(0,1fr); }
+    .fechamento-premium .fechamento-pedido-resumo-direita { grid-template-columns:1fr 1fr; }
+    .fechamento-premium .fechamento-pedido-detalhes .fechamento-pedido-acoes { align-items:stretch; flex-direction:column; }
+    .fechamento-premium .fechamento-pedido-detalhes .fechamento-pedido-acoes button { width:100%; }
+}
+
+@media print {
+    .fechamento-premium details.fechamento-pedido-compacto:not([open]) > :not(summary) { display:block !important; }
+    .fechamento-premium .fechamento-ver-detalhes,
+    .fechamento-premium .fechamento-lancamento-selo { display:none !important; }
+    .fechamento-premium .fechamento-pedido-resumo { min-height:auto; padding:8px 0; }
+    .fechamento-premium .fechamento-pedido-detalhes { padding:8px 0; border-top:1px solid #ddd; }
+    .fechamento-premium details.fechamento-pedido-compacto { break-inside:avoid; box-shadow:none; }
+}
