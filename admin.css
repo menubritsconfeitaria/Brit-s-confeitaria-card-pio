@@ -4009,3 +4009,402 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
         width: 100%;
     }
 }
+
+
+/* =========================================================
+   RELATÓRIOS PREMIUM — Gestão > Relatórios
+   Escopo isolado: não altera a lógica nem outras telas.
+   ========================================================= */
+.gestao-subconteudo[data-subtab-content="sub-relatorios"].relatorios-premium {
+    width: min(1180px, calc(100vw - 44px));
+    max-width: none;
+    margin: 0 auto;
+    padding-bottom: 24px;
+}
+
+.relatorios-premium .relatorios-card {
+    margin: 0;
+    padding: 20px 22px;
+    border: 1px solid #eadfd4;
+    border-radius: 16px;
+    background:
+        radial-gradient(circle at 100% 0, rgba(201,151,76,.055), transparent 32%),
+        linear-gradient(180deg, #fff 0%, #fffefd 100%);
+    box-shadow: 0 10px 28px rgba(83,57,37,.075);
+}
+
+.relatorios-premium .relatorios-detail-card {
+    margin-top: 14px;
+}
+
+.relatorios-premium .relatorios-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 16px;
+}
+
+.relatorios-premium .relatorios-card-heading {
+    min-width: 0;
+}
+
+.relatorios-premium .relatorios-eyebrow {
+    display: block;
+    margin-bottom: 4px;
+    color: #b47a4b;
+    font-size: .62rem;
+    font-weight: 800;
+    letter-spacing: .09em;
+}
+
+.relatorios-premium .relatorios-card-heading h3 {
+    margin: 0;
+    color: #61391f;
+    font-size: 1.02rem;
+    line-height: 1.2;
+}
+
+.relatorios-premium .relatorios-card-heading p {
+    max-width: 680px;
+    margin: 6px 0 0;
+    color: #9a8778;
+    font-size: .70rem;
+    line-height: 1.5;
+}
+
+.relatorios-premium .relatorios-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.relatorios-premium .relatorios-export-btn {
+    min-height: 36px;
+    margin: 0;
+    padding: 8px 12px;
+    border-color: #e8ddd3;
+    border-radius: 10px;
+    background: #fff;
+    color: #74523d;
+    font-size: .72rem;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(83,57,37,.045);
+}
+
+.relatorios-premium .relatorios-export-btn:hover {
+    border-color: rgba(160,82,45,.35);
+    background: #fffaf6;
+    transform: translateY(-1px);
+}
+
+.relatorios-premium .relatorios-summary-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 9px;
+    margin-bottom: 14px;
+}
+
+.relatorios-premium .relatorios-summary-item {
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid #eee4db;
+    border-radius: 11px;
+    background: #fcfaf8;
+}
+
+.relatorios-premium .relatorios-summary-item span {
+    display: block;
+    margin-bottom: 3px;
+    color: #aa9687;
+    font-size: .55rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+}
+
+.relatorios-premium .relatorios-summary-item strong {
+    display: block;
+    overflow: hidden;
+    color: #5b4434;
+    font-size: .72rem;
+    font-weight: 750;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.relatorios-premium .relatorios-summary-item--accent {
+    border-color: rgba(160,82,45,.18);
+    background: linear-gradient(180deg, rgba(160,82,45,.045), rgba(201,151,76,.03));
+}
+
+.relatorios-premium .relatorios-table-wrap {
+    position: relative;
+    overflow: auto !important;
+    max-height: 690px;
+    border: 1px solid #ece1d7;
+    border-radius: 12px;
+    background: #fff;
+    scrollbar-width: thin;
+    scrollbar-color: #d6c2b1 transparent;
+}
+
+.relatorios-premium .relatorios-table {
+    width: 100% !important;
+    min-width: 910px;
+    border-collapse: separate !important;
+    border-spacing: 0;
+    font-size: .77rem !important;
+}
+
+.relatorios-premium .relatorios-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+}
+
+.relatorios-premium .relatorios-table thead tr {
+    text-align: left !important;
+    border: 0 !important;
+}
+
+.relatorios-premium .relatorios-table th {
+    padding: 11px 10px !important;
+    border-bottom: 1px solid #e9ddd2;
+    background: #f8f3ed;
+    color: #72533f;
+    font-size: .62rem;
+    font-weight: 800;
+    letter-spacing: .025em;
+    line-height: 1.25;
+    white-space: nowrap;
+}
+
+.relatorios-premium .relatorios-table td {
+    padding: 10px !important;
+    border-bottom: 1px solid #f1e9e2 !important;
+    color: #5f5148;
+    line-height: 1.35;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.relatorios-premium .relatorios-table tbody tr {
+    background: #fff;
+    transition: background .16s ease, box-shadow .16s ease;
+}
+
+.relatorios-premium .relatorios-table tbody tr:nth-child(even) {
+    background: #fffdfa;
+}
+
+.relatorios-premium .relatorios-table tbody tr:hover {
+    background: #fff7f0;
+}
+
+.relatorios-premium .relatorios-table th:first-child,
+.relatorios-premium .relatorios-table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    min-width: 255px;
+    max-width: 330px;
+    white-space: normal;
+}
+
+.relatorios-premium .relatorios-table th:first-child {
+    z-index: 5;
+    background: #f8f3ed;
+}
+
+.relatorios-premium .relatorios-table tbody tr:nth-child(odd) td:first-child {
+    background: #fff;
+}
+
+.relatorios-premium .relatorios-table tbody tr:nth-child(even) td:first-child {
+    background: #fffdfa;
+}
+
+.relatorios-premium .relatorios-table tbody tr:hover td:first-child {
+    background: #fff7f0;
+}
+
+.relatorios-premium .relatorios-table td:first-child {
+    color: #4d392d;
+    font-weight: 700;
+    box-shadow: 8px 0 14px -14px rgba(69,48,33,.6);
+}
+
+.relatorios-premium .relatorios-table th:last-child,
+.relatorios-premium .relatorios-table td:last-child {
+    text-align: right;
+}
+
+.relatorios-premium .relatorios-table td:last-child {
+    color: #91622f;
+    font-weight: 800;
+}
+
+.relatorios-premium .relatorios-table-note {
+    margin: 10px 2px 0;
+    color: #a18e80;
+    font-size: .62rem;
+    line-height: 1.4;
+}
+
+.relatorios-premium .relatorios-card-header--detail {
+    margin-bottom: 12px;
+}
+
+.relatorios-premium .relatorios-detail-select {
+    display: grid;
+    grid-template-columns: minmax(140px, 190px) minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid #eee4db;
+    border-radius: 12px;
+    background: #fcfaf8;
+}
+
+.relatorios-premium .relatorios-detail-select label {
+    color: #765a47;
+    font-size: .69rem;
+    font-weight: 750;
+}
+
+.relatorios-premium #selectProdutoDetalheRelatorio {
+    width: 100%;
+    min-height: 38px;
+    margin: 0;
+    padding: 8px 10px;
+    border: 1px solid #ded0c4;
+    border-radius: 10px;
+    background: #fff;
+    color: #4f4036;
+    font-size: .72rem;
+    outline: none;
+    box-shadow: inset 0 1px 2px rgba(83,57,37,.025);
+}
+
+.relatorios-premium #selectProdutoDetalheRelatorio:focus {
+    border-color: rgba(160,82,45,.55);
+    box-shadow: 0 0 0 3px rgba(160,82,45,.08);
+}
+
+.relatorios-premium .relatorios-detail-content {
+    margin-top: 12px !important;
+}
+
+.relatorios-premium .relatorios-detail-content:empty::before {
+    content: "Selecione um produto acima para visualizar a ficha técnica detalhada.";
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 108px;
+    padding: 18px;
+    border: 1px dashed #e5d8cc;
+    border-radius: 12px;
+    background: #fffdfa;
+    color: #a08b7c;
+    font-size: .69rem;
+    text-align: center;
+}
+
+.relatorios-premium .relatorios-detail-content > p:first-child {
+    margin: 0 0 8px;
+    color: #674936;
+    font-size: .73rem;
+}
+
+.relatorios-premium .relatorios-detail-content > ul {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px 10px;
+    margin: 0 0 12px;
+    padding: 0;
+    list-style: none;
+}
+
+.relatorios-premium .relatorios-detail-content > ul li {
+    padding: 9px 10px;
+    border: 1px solid #eee5dd;
+    border-radius: 10px;
+    background: #fcfaf8;
+    color: #6c594b;
+    font-size: .68rem;
+    line-height: 1.4;
+}
+
+.relatorios-premium .relatorios-detail-content .pedido-card {
+    margin-top: 0 !important;
+    padding: 14px 15px;
+    border: 1px solid #eadfd5;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #fff 0%, #fffdfa 100%);
+    box-shadow: none;
+}
+
+.relatorios-premium .relatorios-detail-content .pedido-card > p {
+    margin: 6px 0;
+    color: #6d5a4c;
+    font-size: .69rem;
+    line-height: 1.45;
+}
+
+.relatorios-premium .relatorios-detail-content .pedido-card strong {
+    color: #50392a;
+}
+
+@media (max-width: 900px) {
+    .gestao-subconteudo[data-subtab-content="sub-relatorios"].relatorios-premium {
+        width: min(100%, calc(100vw - 28px));
+    }
+    .relatorios-premium .relatorios-card-header {
+        flex-direction: column;
+    }
+    .relatorios-premium .relatorios-actions {
+        justify-content: flex-start;
+    }
+    .relatorios-premium .relatorios-detail-content > ul {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 620px) {
+    .gestao-subconteudo[data-subtab-content="sub-relatorios"].relatorios-premium {
+        width: 100%;
+        padding-bottom: 16px;
+    }
+    .relatorios-premium .relatorios-card {
+        padding: 16px;
+        border-radius: 14px;
+    }
+    .relatorios-premium .relatorios-summary-strip {
+        grid-template-columns: 1fr;
+    }
+    .relatorios-premium .relatorios-summary-item strong {
+        white-space: normal;
+    }
+    .relatorios-premium .relatorios-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        width: 100%;
+    }
+    .relatorios-premium .relatorios-export-btn {
+        width: 100%;
+    }
+    .relatorios-premium .relatorios-detail-select {
+        grid-template-columns: 1fr;
+        gap: 7px;
+    }
+    .relatorios-premium .relatorios-table-wrap {
+        max-height: 620px;
+    }
+    .relatorios-premium .relatorios-table th:first-child,
+    .relatorios-premium .relatorios-table td:first-child {
+        min-width: 205px;
+        max-width: 240px;
+    }
+}

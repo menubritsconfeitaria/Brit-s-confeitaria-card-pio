@@ -1685,37 +1685,69 @@
                     </div>
                 </div>
 
-                <div class="gestao-subconteudo" data-subtab-content="sub-relatorios" style="display:none;">
-                    <div class="loja-status-card">
-                        <h3>Relatório de Custos</h3>
-                        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-                            <button class="btn-secondary" onclick="exportarRelatorioPDF()">📄 Exportar PDF</button>
-                            <button class="btn-secondary" onclick="exportarRelatorioExcel()">📊 Exportar Excel</button>
+                <div class="gestao-subconteudo relatorios-premium" data-subtab-content="sub-relatorios" style="display:none;">
+                    <div class="loja-status-card relatorios-card relatorios-main-card">
+                        <div class="relatorios-card-header">
+                            <div class="relatorios-card-heading">
+                                <span class="relatorios-eyebrow">GESTÃO DE CUSTOS</span>
+                                <h3>📊 Relatório de Custos</h3>
+                                <p>Compare custo, preço, lucro e margem de cada produto em uma visão única e organizada.</p>
+                            </div>
+                            <div class="relatorios-actions" aria-label="Exportar relatório">
+                                <button class="btn-secondary relatorios-export-btn" onclick="exportarRelatorioPDF()">📄 <span>Exportar PDF</span></button>
+                                <button class="btn-secondary relatorios-export-btn" onclick="exportarRelatorioExcel()">📊 <span>Exportar Excel</span></button>
+                            </div>
                         </div>
-                        <div id="relatorioTabelaWrap" style="overflow-x:auto;">
-                            <table style="width:100%; border-collapse:collapse; font-size:0.85em;">
+
+                        <div class="relatorios-summary-strip">
+                            <div class="relatorios-summary-item">
+                                <span>VISÃO</span>
+                                <strong>Custos + rentabilidade</strong>
+                            </div>
+                            <div class="relatorios-summary-item">
+                                <span>LEITURA</span>
+                                <strong>Por produto</strong>
+                            </div>
+                            <div class="relatorios-summary-item relatorios-summary-item--accent">
+                                <span>OBJETIVO</span>
+                                <strong>Decisão mais segura</strong>
+                            </div>
+                        </div>
+
+                        <div id="relatorioTabelaWrap" class="relatorios-table-wrap">
+                            <table class="relatorios-table">
                                 <thead>
-                                    <tr style="text-align:left; border-bottom:2px solid var(--border);">
-                                        <th style="padding:6px;">Produto</th>
-                                        <th style="padding:6px;">Custo total</th>
-                                        <th style="padding:6px;">Rendim.</th>
-                                        <th style="padding:6px;">Custo/un.</th>
-                                        <th style="padding:6px;">Preço</th>
-                                        <th style="padding:6px;">Lucro/un.</th>
-                                        <th style="padding:6px;">Empresa</th>
-                                        <th style="padding:6px;">Pró-labore</th>
-                                        <th style="padding:6px;">Margem</th>
+                                    <tr>
+                                        <th>Produto</th>
+                                        <th>Custo total</th>
+                                        <th>Rendim.</th>
+                                        <th>Custo/un.</th>
+                                        <th>Preço</th>
+                                        <th>Lucro/un.</th>
+                                        <th>Empresa</th>
+                                        <th>Pró-labore</th>
+                                        <th>Margem</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tbodyRelatorio"></tbody>
                             </table>
                         </div>
+                        <p class="relatorios-table-note">Os valores refletem a ficha técnica e as margens cadastradas no sistema.</p>
                     </div>
 
-                    <div class="loja-status-card" style="margin-top:16px;">
-                        <h3>Ficha técnica detalhada</h3>
-                        <select id="selectProdutoDetalheRelatorio" onchange="mostrarDetalheProdutoRelatorio()"></select>
-                        <div id="detalheProdutoRelatorio" style="margin-top:10px;"></div>
+                    <div class="loja-status-card relatorios-card relatorios-detail-card">
+                        <div class="relatorios-card-header relatorios-card-header--detail">
+                            <div class="relatorios-card-heading">
+                                <span class="relatorios-eyebrow">ANÁLISE UNITÁRIA</span>
+                                <h3>🧾 Ficha técnica detalhada</h3>
+                                <p>Selecione um produto para abrir custos, componentes, preço e distribuição do lucro.</p>
+                            </div>
+                        </div>
+                        <div class="relatorios-detail-select">
+                            <label for="selectProdutoDetalheRelatorio">Produto para análise</label>
+                            <select id="selectProdutoDetalheRelatorio" onchange="mostrarDetalheProdutoRelatorio()"></select>
+                        </div>
+                        <div id="detalheProdutoRelatorio" class="relatorios-detail-content"></div>
                     </div>
                 </div>
 
