@@ -5813,7 +5813,7 @@ async function enviarFotoProduto(id) {
     const arquivo = inputArquivo.files[0];
     if (!arquivo) { msgEl.textContent = 'Escolhe uma imagem primeiro.'; return; }
     if (!arquivo.type.startsWith('image/')) { msgEl.textContent = 'Isso não parece ser uma imagem.'; return; }
-    if (arquivo.size > 2 * 1024 * 1024) { msgEl.textContent = 'Imagem muito grande — usa algo até 2MB.'; return; }
+    if (arquivo.size > 5 * 1024 * 1024) { msgEl.textContent = 'Imagem muito grande — usa algo até 5MB.'; return; }
 
     msgEl.textContent = 'Enviando...';
     try {
