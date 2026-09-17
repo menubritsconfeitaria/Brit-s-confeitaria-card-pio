@@ -1981,7 +1981,27 @@
                         <div class="bases-add-row">
                             <div class="campo-com-label bases-field bases-field--componente">
                                 <label class="campo-label">Ingrediente ou Base</label>
-                                <select id="selectIngredienteBase"></select>
+                                <div class="bases-componente-picker" id="baseComponenteCombobox">
+                                    <div class="bases-componente-busca">
+                                        <span aria-hidden="true">🔎</span>
+                                        <input
+                                            type="search"
+                                            id="buscaComponenteBase"
+                                            placeholder="Buscar ingrediente ou base..."
+                                            autocomplete="off"
+                                            role="combobox"
+                                            aria-autocomplete="list"
+                                            aria-expanded="false"
+                                            aria-controls="resultadosComponenteBase"
+                                            oninput="filtrarComponenteBase()"
+                                            onfocus="abrirBuscaComponenteBase()"
+                                            onkeydown="tecladoBuscaComponenteBase(event)"
+                                        >
+                                        <button type="button" class="bases-componente-limpar" onclick="limparBuscaComponenteBase()" aria-label="Limpar busca">×</button>
+                                    </div>
+                                    <div id="resultadosComponenteBase" class="bases-componente-resultados" role="listbox" hidden></div>
+                                    <select id="selectIngredienteBase" class="bases-select-compat" aria-label="Ingrediente ou base" tabindex="-1" aria-hidden="true"></select>
+                                </div>
                             </div>
                             <div class="campo-com-label bases-field bases-field--quantidade">
                                 <label class="campo-label">Quantidade</label>

@@ -3456,6 +3456,7 @@ function excluirIngrediente(id) {
 let bases = [];
 let tempBaseComponentes = [];
 let editingBaseId = null;
+let editingBaseComponenteIndex = null;
 
 // Troca de sub-aba dentro da mega-aba "Gestão" — mesma lógica das abas
 // principais, só que dentro de um container menor (não mexe na URL/localStorage)
@@ -3551,57 +3552,336 @@ function calcularBase(base, visitados) {
     return { custoTotal, custoPorUnidade };
 }
 
+function escaparHtmlBaseComponente(valor) {
+    return String(valor ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function listarComponentesDisponiveisBase() {
+    const outrasBases = bases.filter(b => b.id !== editingBaseId);
+    return [
+        ...ingredientes.map(item => ({
+            valor: `ingrediente_${item.id}`,
+            tipo: 'Ingrediente',
+            nome: item.nome || '',
+            detalhe: item.unidade || ''
+        })),
+        ...outrasBases.map(item => ({
+            valor: `base_${item.id}`,
+            tipo: 'Base',
+            nome: item.nome || '',
+            detalhe: item.unidadeRendimento || item.unidade || ''
+        }))
+    ];
+}
+
+function buscarComponentesBase(termo) {
+    const filtro = normalizarTexto(termo || '');
+    const itens = listarComponentesDisponiveisBase();
+
+    // Busca por trecho em qualquer posição do nome: início, meio ou fim.
+    // normalizarTexto mantém a busca indiferente a acentos e maiúsculas/minúsculas.
+    if (!filtro) return itens;
+    return itens.filter(item => normalizarTexto(item.nome).includes(filtro));
+}
+
 function popularSelectComponenteBase() {
     const sel = document.getElementById('selectIngredienteBase');
+    if (!sel) return;
+
     const valorAtual = sel.value;
-    const outrasBases = bases.filter(b => b.id !== editingBaseId);
-    sel.innerHTML = '<option value="">Selecione</option>'
-        + '<optgroup label="Ingredientes">' + ingredientes.map(i => `<option value="ingrediente_${i.id}">${i.nome}</option>`).join('') + '</optgroup>'
-        + '<optgroup label="Bases">' + outrasBases.map(b => `<option value="base_${b.id}">${b.nome}</option>`).join('') + '</optgroup>';
-    sel.value = valorAtual;
+    const itens = listarComponentesDisponiveisBase();
+
+    sel.innerHTML = '<option value=""></option>' + itens
+        .map(item => `<option value="${escaparHtmlBaseComponente(item.valor)}">${escaparHtmlBaseComponente(item.nome)}</option>`)
+        .join('');
+
+    if ([...sel.options].some(opt => opt.value === valorAtual)) {
+        sel.value = valorAtual;
+    } else {
+        sel.value = '';
+    }
+
+    const buscaEl = document.getElementById('buscaComponenteBase');
+    if (buscaEl && buscaEl.getAttribute('aria-expanded') === 'true') {
+        renderResultadosBuscaComponenteBase();
+    }
+}
+
+function renderResultadosBuscaComponenteBase() {
+    const buscaEl = document.getElementById('buscaComponenteBase');
+    const resultadosEl = document.getElementById('resultadosComponenteBase');
+    if (!buscaEl || !resultadosEl) return;
+
+    const itens = buscarComponentesBase(buscaEl.value);
+
+    if (!itens.length) {
+        resultadosEl.innerHTML = `
+            <div class="bases-componente-vazio">
+                Nenhum ingrediente ou base encontrado para
+                <strong>"${escaparHtmlBaseComponente(buscaEl.value)}"</strong>.
+            </div>
+        `;
+    } else {
+        const ingredientesEncontrados = itens.filter(item => item.tipo === 'Ingrediente');
+        const basesEncontradas = itens.filter(item => item.tipo === 'Base');
+
+        const renderGrupo = (titulo, grupo) => {
+            if (!grupo.length) return '';
+            return `
+                <div class="bases-componente-grupo">
+                    <div class="bases-componente-grupo-titulo">${titulo}</div>
+                    ${grupo.map(item => `
+                        <button
+                            type="button"
+                            class="bases-componente-resultado"
+                            role="option"
+                            onclick="selecionarComponenteBuscaBase('${escaparHtmlBaseComponente(item.valor)}')"
+                        >
+                            <span class="bases-componente-resultado-nome">${escaparHtmlBaseComponente(item.nome)}</span>
+                            ${item.detalhe ? `<small>${escaparHtmlBaseComponente(item.detalhe)}</small>` : ''}
+                        </button>
+                    `).join('')}
+                </div>
+            `;
+        };
+
+        resultadosEl.innerHTML =
+            renderGrupo('Ingredientes', ingredientesEncontrados) +
+            renderGrupo('Bases', basesEncontradas);
+    }
+
+    resultadosEl.hidden = false;
+    buscaEl.setAttribute('aria-expanded', 'true');
+}
+
+function abrirBuscaComponenteBase() {
+    renderResultadosBuscaComponenteBase();
+}
+
+function fecharBuscaComponenteBase() {
+    const buscaEl = document.getElementById('buscaComponenteBase');
+    const resultadosEl = document.getElementById('resultadosComponenteBase');
+    if (resultadosEl) resultadosEl.hidden = true;
+    if (buscaEl) buscaEl.setAttribute('aria-expanded', 'false');
+}
+
+function filtrarComponenteBase() {
+    const sel = document.getElementById('selectIngredienteBase');
+    if (sel) sel.value = '';
+    renderResultadosBuscaComponenteBase();
+}
+
+function selecionarComponenteBuscaBase(valor) {
+    const sel = document.getElementById('selectIngredienteBase');
+    const buscaEl = document.getElementById('buscaComponenteBase');
+    const item = listarComponentesDisponiveisBase().find(comp => comp.valor === valor);
+    if (!sel || !buscaEl || !item) return;
+
+    sel.value = valor;
+    buscaEl.value = item.nome;
+    fecharBuscaComponenteBase();
+
+    const qtdEl = document.getElementById('qtdComponenteBase');
+    if (qtdEl) qtdEl.focus();
+}
+
+function limparBuscaComponenteBase() {
+    const sel = document.getElementById('selectIngredienteBase');
+    const buscaEl = document.getElementById('buscaComponenteBase');
+    if (sel) sel.value = '';
+    if (buscaEl) {
+        buscaEl.value = '';
+        buscaEl.focus();
+    }
+    renderResultadosBuscaComponenteBase();
+}
+
+function tecladoBuscaComponenteBase(event) {
+    if (!event) return;
+
+    if (event.key === 'Escape') {
+        fecharBuscaComponenteBase();
+        event.currentTarget.blur();
+        return;
+    }
+
+    if (event.key !== 'Enter') return;
+
+    const sel = document.getElementById('selectIngredienteBase');
+    if (sel && sel.value) return;
+
+    const buscaEl = document.getElementById('buscaComponenteBase');
+    const primeiro = buscarComponentesBase(buscaEl ? buscaEl.value : '')[0];
+    if (!primeiro) return;
+
+    event.preventDefault();
+    selecionarComponenteBuscaBase(primeiro.valor);
+}
+
+if (!window.__baseBuscaComponenteClickFora) {
+    document.addEventListener('click', event => {
+        const picker = document.getElementById('baseComponenteCombobox');
+        if (picker && !picker.contains(event.target)) {
+            fecharBuscaComponenteBase();
+        }
+    });
+    window.__baseBuscaComponenteClickFora = true;
 }
 
 function adicionarComponenteBase() {
     const val = document.getElementById('selectIngredienteBase').value;
     const qtd = parseFloat(document.getElementById('qtdComponenteBase').value.replace(',', '.'));
     if (!val || !qtd) { alert('Seleciona um item e informa a quantidade.'); return; }
+
     const idx = val.indexOf('_');
     const tipoRaw = val.substring(0, idx);
     const compId = val.substring(idx + 1);
+
     if (tipoRaw === 'base' && baseUsaBase(compId, editingBaseId)) {
         alert('Não é possível usar essa base aqui: isso criaria uma referência circular.');
         return;
     }
-    tempBaseComponentes.push({ tipo: tipoRaw === 'base' ? 'base' : 'ingrediente', id: compId, quantidade: qtd });
+
+    tempBaseComponentes.push({
+        tipo: tipoRaw === 'base' ? 'base' : 'ingrediente',
+        id: compId,
+        quantidade: qtd
+    });
+
     document.getElementById('qtdComponenteBase').value = '';
+    document.getElementById('selectIngredienteBase').value = '';
+
+    const buscaEl = document.getElementById('buscaComponenteBase');
+    if (buscaEl) buscaEl.value = '';
+
+    popularSelectComponenteBase();
+    fecharBuscaComponenteBase();
     renderTempBaseComponentes();
 }
 
-function removerComponenteBase(i) { tempBaseComponentes.splice(i, 1); renderTempBaseComponentes(); }
+function editarComponenteBase(i) {
+    if (!tempBaseComponentes[i]) return;
+    editingBaseComponenteIndex = i;
+    renderTempBaseComponentes();
+
+    const input = document.querySelector(`[data-base-editar-qtd="${i}"]`);
+    if (input) {
+        input.focus();
+        input.select();
+    }
+}
+
+function cancelarEdicaoComponenteBase() {
+    editingBaseComponenteIndex = null;
+    renderTempBaseComponentes();
+}
+
+function salvarEdicaoComponenteBase(i) {
+    const componente = tempBaseComponentes[i];
+    const input = document.querySelector(`[data-base-editar-qtd="${i}"]`);
+    if (!componente || !input) return;
+
+    const qtd = parseFloat(String(input.value || '').replace(',', '.'));
+    if (!qtd || qtd <= 0) {
+        alert('Informa uma quantidade válida.');
+        input.focus();
+        return;
+    }
+
+    componente.quantidade = qtd;
+    editingBaseComponenteIndex = null;
+    renderTempBaseComponentes();
+}
+
+function removerComponenteBase(i) {
+    tempBaseComponentes.splice(i, 1);
+
+    if (editingBaseComponenteIndex === i) {
+        editingBaseComponenteIndex = null;
+    } else if (editingBaseComponenteIndex != null && editingBaseComponenteIndex > i) {
+        editingBaseComponenteIndex--;
+    }
+
+    renderTempBaseComponentes();
+}
 
 function renderTempBaseComponentes() {
     const div = document.getElementById('listaComponentesBase');
     div.innerHTML = '';
     let total = 0;
+
     tempBaseComponentes.forEach((c, i) => {
         let nome = '', custo = 0, unidade = '';
         const baseId = idBaseComponente(c);
+
         if (baseId) {
             const b = getBase(baseId);
-            if (b) { const { custoPorUnidade } = calcularBase(b); nome = b.nome + ' (base)'; custo = custoPorUnidade * c.quantidade; unidade = b.unidadeRendimento; }
-            else nome = '(base removida)';
+            if (b) {
+                const { custoPorUnidade } = calcularBase(b);
+                nome = b.nome + ' (base)';
+                custo = custoPorUnidade * c.quantidade;
+                unidade = b.unidadeRendimento;
+            } else {
+                nome = '(base removida)';
+            }
         } else {
             const ing = ingredientes.find(x => x.id === idIngredienteComponente(c));
-            if (ing) { nome = ing.nome; custo = custoUnitIngrediente(ing) * c.quantidade; unidade = ing.unidade; }
-            else nome = '(removido)';
+            if (ing) {
+                nome = ing.nome;
+                custo = custoUnitIngrediente(ing) * c.quantidade;
+                unidade = ing.unidade;
+            } else {
+                nome = '(removido)';
+            }
         }
+
         total += custo;
+
         const linha = document.createElement('div');
-        linha.style.cssText = 'display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border);';
-        linha.innerHTML = `<span>${nome} — ${c.quantidade}${unidade} = ${formatarPreco(custo)}</span>
-            <button class="btn-excluir-cupom" onclick="removerComponenteBase(${i})">🗑️</button>`;
+        linha.className = 'bases-componente-linha';
+
+        if (editingBaseComponenteIndex === i) {
+            linha.classList.add('is-editing');
+            linha.innerHTML = `
+                <div class="bases-componente-info">
+                    <strong>${escaparHtmlBaseComponente(nome)}</strong>
+                    <small>Custo atual: ${formatarPreco(custo)}</small>
+                </div>
+                <div class="bases-componente-edicao">
+                    <label>Quantidade (${escaparHtmlBaseComponente(unidade || 'un')})</label>
+                    <input
+                        type="text"
+                        inputmode="decimal"
+                        value="${c.quantidade}"
+                        data-base-editar-qtd="${i}"
+                        onkeydown="if(event.key === 'Enter'){ event.preventDefault(); salvarEdicaoComponenteBase(${i}); } else if(event.key === 'Escape'){ cancelarEdicaoComponenteBase(); }"
+                    >
+                </div>
+                <div class="bases-componente-acoes">
+                    <button type="button" class="btn-secondary bases-btn-salvar-componente" onclick="salvarEdicaoComponenteBase(${i})">✓ Aplicar</button>
+                    <button type="button" class="btn-secondary bases-btn-cancelar-componente" onclick="cancelarEdicaoComponenteBase()">Cancelar</button>
+                </div>
+            `;
+        } else {
+            linha.innerHTML = `
+                <span class="bases-componente-resumo">
+                    ${escaparHtmlBaseComponente(nome)} — <strong>${c.quantidade}${escaparHtmlBaseComponente(unidade)}</strong> = ${formatarPreco(custo)}
+                </span>
+                <div class="bases-componente-acoes">
+                    <button type="button" class="btn-secondary bases-btn-editar-componente" onclick="editarComponenteBase(${i})">✏️ Editar</button>
+                    <button type="button" class="btn-excluir-cupom" title="Excluir componente" onclick="removerComponenteBase(${i})">🗑️</button>
+                </div>
+            `;
+        }
+
         div.appendChild(linha);
     });
+
     document.getElementById('custoTotalBaseTemp').textContent = formatarPreco(total);
 }
 
@@ -3627,8 +3907,14 @@ function salvarBase() {
     promessa.then(() => {
         msgEl.textContent = 'Salvo!';
         tempBaseComponentes = [];
+        editingBaseComponenteIndex = null;
         document.getElementById('baseNome').value = '';
         document.getElementById('baseRendimento').value = '';
+        const buscaBaseEl = document.getElementById('buscaComponenteBase');
+        if (buscaBaseEl) buscaBaseEl.value = '';
+        const selectBaseEl = document.getElementById('selectIngredienteBase');
+        if (selectBaseEl) selectBaseEl.value = '';
+        fecharBuscaComponenteBase();
         renderTempBaseComponentes();
         if (editingBaseId) {
             editingBaseId = null;
@@ -3667,8 +3953,12 @@ function editarBase(id) {
     document.getElementById('baseUnidadeRendimento').value = b.unidadeRendimento;
     tempBaseComponentes = (b.componentes || []).map(c => ({ ...c }));
     editingBaseId = id;
+    editingBaseComponenteIndex = null;
     document.getElementById('btnSalvarBase').textContent = 'Atualizar Base';
+    const buscaBaseEl = document.getElementById('buscaComponenteBase');
+    if (buscaBaseEl) buscaBaseEl.value = '';
     popularSelectComponenteBase();
+    fecharBuscaComponenteBase();
     renderTempBaseComponentes();
     document.getElementById('tituloCadastroBase').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }

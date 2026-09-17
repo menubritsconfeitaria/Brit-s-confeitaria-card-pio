@@ -15823,3 +15823,259 @@ section[data-tab="agenda"] .agenda-bloqueio-box input[type="date"] {
         max-height: 260px;
     }
 }
+
+
+/* ============================================================
+   BASES — BUSCA INTEGRADA + EDIÇÃO DE COMPONENTES
+   Mesma experiência da Ficha Técnica: busca por qualquer trecho
+   do nome e edição de quantidade sem excluir o componente.
+   ============================================================ */
+.bases-premium .bases-componente-picker {
+    position: relative;
+    display: block;
+}
+
+.bases-premium .bases-componente-busca {
+    position: relative;
+}
+
+.bases-premium .bases-componente-busca > span {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    z-index: 2;
+    transform: translateY(-50%);
+    font-size: .82rem;
+    pointer-events: none;
+}
+
+.bases-premium #buscaComponenteBase {
+    width: 100%;
+    min-height: 40px;
+    box-sizing: border-box;
+    padding: 8px 42px 8px 38px;
+    border: 1px solid #e1d4c4;
+    border-radius: 10px;
+    background: #fff;
+    color: var(--text);
+    font-family: inherit;
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+
+.bases-premium #buscaComponenteBase:focus,
+.bases-premium #buscaComponenteBase[aria-expanded="true"] {
+    border-color: #c9976c;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(160, 82, 45, .08);
+}
+
+.bases-premium #buscaComponenteBase::-webkit-search-cancel-button {
+    display: none;
+}
+
+.bases-premium .bases-componente-limpar {
+    position: absolute;
+    right: 7px;
+    top: 50%;
+    z-index: 3;
+    width: 29px;
+    height: 29px;
+    transform: translateY(-50%);
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #a18b79;
+    font: 700 1.1rem/1 inherit;
+    cursor: pointer;
+}
+
+.bases-premium .bases-componente-limpar:hover {
+    background: #f6eee5;
+    color: #8c4b27;
+}
+
+.bases-premium .bases-select-compat {
+    display: none !important;
+}
+
+.bases-premium .bases-componente-resultados {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 6px);
+    z-index: 80;
+    max-height: 320px;
+    overflow-y: auto;
+    border: 1px solid #dfd1bf;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 16px 34px rgba(77, 52, 35, .14);
+    padding: 6px;
+}
+
+.bases-premium .bases-componente-resultados[hidden] {
+    display: none !important;
+}
+
+.bases-premium .bases-componente-grupo + .bases-componente-grupo {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid #f0e7de;
+}
+
+.bases-premium .bases-componente-grupo-titulo {
+    padding: 5px 9px 4px;
+    color: #a25b34;
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.bases-premium .bases-componente-resultado {
+    width: 100%;
+    min-height: 39px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: #4d382b;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.bases-premium .bases-componente-resultado:hover,
+.bases-premium .bases-componente-resultado:focus-visible {
+    background: #fbf3eb;
+    outline: none;
+}
+
+.bases-premium .bases-componente-resultado-nome {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 650;
+}
+
+.bases-premium .bases-componente-resultado small {
+    flex: 0 0 auto;
+    color: #9a8574;
+    font-size: .72rem;
+}
+
+.bases-premium .bases-componente-vazio {
+    padding: 16px 12px;
+    color: #8b7768;
+    font-size: .82rem;
+    line-height: 1.45;
+    text-align: center;
+}
+
+.bases-premium .bases-componentes > .bases-componente-linha {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 44px;
+    box-sizing: border-box;
+}
+
+.bases-premium .bases-componente-resumo {
+    min-width: 0;
+    color: #5f4939;
+    line-height: 1.35;
+}
+
+.bases-premium .bases-componente-acoes {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.bases-premium .bases-btn-editar-componente,
+.bases-premium .bases-btn-salvar-componente,
+.bases-premium .bases-btn-cancelar-componente {
+    min-height: 32px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    white-space: nowrap;
+    font-size: .72rem;
+}
+
+.bases-premium .bases-componente-linha.is-editing {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(145px, .36fr) auto;
+    align-items: end;
+    gap: 12px;
+    background: #fffcf8;
+}
+
+.bases-premium .bases-componente-info {
+    min-width: 0;
+}
+
+.bases-premium .bases-componente-info strong,
+.bases-premium .bases-componente-info small {
+    display: block;
+}
+
+.bases-premium .bases-componente-info strong {
+    color: #4f392b;
+}
+
+.bases-premium .bases-componente-info small {
+    margin-top: 3px;
+    color: #907b69;
+    font-size: .69rem;
+}
+
+.bases-premium .bases-componente-edicao label {
+    display: block;
+    margin-bottom: 4px;
+    color: #765b48;
+    font-size: .65rem;
+    font-weight: 700;
+}
+
+.bases-premium .bases-componente-edicao input {
+    width: 100%;
+    min-height: 34px;
+    box-sizing: border-box;
+    padding: 6px 9px;
+    border: 1px solid #ddcbb9;
+    border-radius: 8px;
+    background: #fff;
+    color: var(--text);
+    font: inherit;
+    outline: none;
+}
+
+.bases-premium .bases-componente-edicao input:focus {
+    border-color: #c9976c;
+    box-shadow: 0 0 0 3px rgba(160, 82, 45, .08);
+}
+
+@media (max-width: 720px) {
+    .bases-premium .bases-componente-resultados {
+        max-height: 260px;
+    }
+
+    .bases-premium .bases-componentes > .bases-componente-linha,
+    .bases-premium .bases-componente-linha.is-editing {
+        grid-template-columns: 1fr;
+        display: grid;
+        align-items: stretch;
+    }
+
+    .bases-premium .bases-componente-acoes {
+        justify-content: flex-end;
+    }
+}
