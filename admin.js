@@ -2837,7 +2837,11 @@ function irParaProdutosAdicionais() {
         const primeiroBloco = Array.from(document.querySelectorAll('[id^="blocoAdicionais_"]'))
             .find(bloco => bloco.style.display !== 'none');
         const destino = primeiroBloco || document.querySelector('section[data-tab="produtos"]');
-        if (destino) destino.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (destino) {
+            const editor = destino.querySelector && destino.querySelector('.adicionais-editor-premium');
+            if (editor) editor.open = true;
+            destino.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }, 220);
 }
 
@@ -6239,6 +6243,261 @@ function htmlAgendaDisponibilidadeProduto(id, produto) {
         </details>`;
 }
 
+
+// ---------- Editor visual de Adicionais por Produto ----------
+// Mantém exatamente a mesma estrutura `grupoAdicionais` usada pelo cardápio,
+// mas troca o cadastro técnico em texto por uma interface visual mais simples.
+function escaparHtmlAdicional(valor) {
+    return String(valor == null ? '' : valor).replace(/[&<>"']/g, caractere => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    })[caractere]);
+}
+
+function formatarPrecoAdicionalAdmin(valor) {
+    const numero = Number(valor) || 0;
+    return numero > 0 ? numero.toFixed(2).replace('.', ',') : '';
+}
+
+function htmlOpcaoAdicionalVisual(id, opcao = {}) {
+    return `
+        <div class="adicional-opcao-row" data-adicional-opcao>
+            <div class="adicional-opcao-campo adicional-opcao-campo--nome">
+                <label>Opção</label>
+                <input type="text" class="adicional-opcao-nome" value="${escaparHtmlAdicional(opcao.nome || '')}" placeholder="Ex.: Chocolate" oninput="sincronizarTextareaAdicionaisProduto('${id}')">
+            </div>
+            <div class="adicional-opcao-campo adicional-opcao-campo--preco">
+                <label>Acréscimo</label>
+                <div class="adicional-preco-input">
+                    <span>R$</span>
+                    <input type="text" inputmode="decimal" class="adicional-opcao-preco" value="${formatarPrecoAdicionalAdmin(opcao.preco)}" placeholder="0,00" oninput="sincronizarTextareaAdicionaisProduto('${id}')">
+                </div>
+            </div>
+            <button type="button" class="adicional-opcao-remover" title="Remover opção" aria-label="Remover opção" onclick="removerOpcaoAdicionalVisual('${id}', this)">×</button>
+        </div>`;
+}
+
+function htmlGrupoAdicionalVisual(id, grupo = {}) {
+    const obrigatorio = grupo.obrigatorio !== false;
+    const opcoes = Array.isArray(grupo.opcoes) && grupo.opcoes.length
+        ? grupo.opcoes
+        : [{ nome: '', preco: 0 }, { nome: '', preco: 0 }];
+    return `
+        <div class="adicional-grupo-card" data-adicional-grupo>
+            <div class="adicional-grupo-topo">
+                <div class="adicional-grupo-campo-nome">
+                    <label>Nome do grupo</label>
+                    <input type="text" class="adicional-grupo-nome" value="${escaparHtmlAdicional(grupo.nome || '')}" placeholder="Ex.: Escolha o recheio" oninput="sincronizarTextareaAdicionaisProduto('${id}')">
+                </div>
+                <div class="adicional-grupo-campo-tipo">
+                    <label>Como o cliente escolhe</label>
+                    <select class="adicional-grupo-tipo" onchange="atualizarAjudaGrupoAdicionalVisual(this); sincronizarTextareaAdicionaisProduto('${id}')">
+                        <option value="obrigatorio" ${obrigatorio ? 'selected' : ''}>1 escolha obrigatória</option>
+                        <option value="opcional" ${!obrigatorio ? 'selected' : ''}>Extras opcionais</option>
+                    </select>
+                </div>
+                <button type="button" class="adicional-grupo-remover" onclick="removerGrupoAdicionalVisual('${id}', this)">🗑 Remover grupo</button>
+            </div>
+            <div class="adicional-grupo-ajuda">
+                ${obrigatorio
+                    ? 'O cliente precisa escolher exatamente 1 opção deste grupo.'
+                    : 'O cliente pode escolher quantas opções quiser — ou nenhuma.'}
+            </div>
+            <div class="adicionais-opcoes-list">
+                ${opcoes.map(opcao => htmlOpcaoAdicionalVisual(id, opcao)).join('')}
+            </div>
+            <button type="button" class="adicional-add-opcao" onclick="adicionarOpcaoAdicionalVisual('${id}', this)">＋ Adicionar opção</button>
+        </div>`;
+}
+
+function htmlEditorAdicionaisProduto(id, grupos) {
+    const lista = Array.isArray(grupos) ? grupos : [];
+    const totalOpcoes = lista.reduce((soma, grupo) => soma + ((grupo && grupo.opcoes) ? grupo.opcoes.length : 0), 0);
+    const resumo = lista.length
+        ? `${lista.length} ${lista.length === 1 ? 'grupo' : 'grupos'} • ${totalOpcoes} ${totalOpcoes === 1 ? 'opção' : 'opções'}`
+        : 'Nenhum adicional configurado';
+    return `
+        <details class="adicionais-editor-premium" ${lista.length ? 'open' : ''}>
+            <summary>
+                <span class="adicionais-summary-icon">＋</span>
+                <span class="adicionais-summary-texto">
+                    <strong>Adicionais do produto</strong>
+                    <small>Recheios, complementos e extras</small>
+                </span>
+                <span class="adicionais-summary-contador" id="adicionaisResumo_${id}">${resumo}</span>
+                <span class="adicionais-summary-seta">⌄</span>
+            </summary>
+            <div class="adicionais-editor-corpo">
+                <div class="adicionais-editor-intro">
+                    <div>
+                        <span class="adicionais-editor-kicker">CONFIGURAÇÃO VISUAL</span>
+                        <h4>Monte as escolhas do cliente</h4>
+                        <p>Crie grupos e opções sem códigos. Você pode cobrar um valor extra em cada opção.</p>
+                    </div>
+                    <div class="adicionais-editor-legenda">
+                        <span><i class="obrigatorio"></i> 1 escolha obrigatória</span>
+                        <span><i class="opcional"></i> Várias escolhas opcionais</span>
+                    </div>
+                </div>
+
+                <div id="adicionaisEditor_${id}" class="adicionais-grupos-lista">
+                    ${lista.length
+                        ? lista.map(grupo => htmlGrupoAdicionalVisual(id, grupo)).join('')
+                        : `<div class="adicionais-vazio">
+                            <span class="adicionais-vazio-icon">✦</span>
+                            <strong>Este produto ainda não tem adicionais</strong>
+                            <p>Use um dos botões abaixo para criar o primeiro grupo.</p>
+                        </div>`}
+                </div>
+
+                <div class="adicionais-acoes-criar">
+                    <button type="button" class="adicional-criar-grupo adicional-criar-grupo--obrigatorio" onclick="adicionarGrupoAdicionalVisual('${id}', 'obrigatorio')">
+                        <span>＋</span><div><strong>Escolha obrigatória</strong><small>Ex.: tamanho, recheio ou sabor</small></div>
+                    </button>
+                    <button type="button" class="adicional-criar-grupo adicional-criar-grupo--opcional" onclick="adicionarGrupoAdicionalVisual('${id}', 'opcional')">
+                        <span>＋</span><div><strong>Extras opcionais</strong><small>Ex.: bacon, cobertura ou adicional</small></div>
+                    </button>
+                </div>
+
+                <input type="hidden" id="prodAdicionais_${id}" value="${escaparHtmlAdicional(montarTextoAdicionaisParaEdicao(lista))}">
+                <p id="avisoAdicionais_${id}" class="aviso-adicionais adicional-aviso-visual" style="display:none;"></p>
+            </div>
+        </details>`;
+}
+
+function atualizarAjudaGrupoAdicionalVisual(select) {
+    const grupo = select && select.closest('[data-adicional-grupo]');
+    const ajuda = grupo && grupo.querySelector('.adicional-grupo-ajuda');
+    if (!ajuda) return;
+    ajuda.textContent = select.value === 'obrigatorio'
+        ? 'O cliente precisa escolher exatamente 1 opção deste grupo.'
+        : 'O cliente pode escolher quantas opções quiser — ou nenhuma.';
+}
+
+function adicionarGrupoAdicionalVisual(id, tipo = 'obrigatorio') {
+    const container = document.getElementById('adicionaisEditor_' + id);
+    if (!container) return;
+    const vazio = container.querySelector('.adicionais-vazio');
+    if (vazio) vazio.remove();
+    container.insertAdjacentHTML('beforeend', htmlGrupoAdicionalVisual(id, {
+        nome: '',
+        obrigatorio: tipo !== 'opcional',
+        opcoes: [{ nome: '', preco: 0 }, { nome: '', preco: 0 }]
+    }));
+    const details = container.closest('details');
+    if (details) details.open = true;
+    const ultimoGrupo = container.lastElementChild;
+    const campoNome = ultimoGrupo && ultimoGrupo.querySelector('.adicional-grupo-nome');
+    if (campoNome) campoNome.focus();
+    sincronizarTextareaAdicionaisProduto(id);
+}
+
+function removerGrupoAdicionalVisual(id, botao) {
+    const grupo = botao && botao.closest('[data-adicional-grupo]');
+    const container = document.getElementById('adicionaisEditor_' + id);
+    if (!grupo || !container) return;
+    const temConteudo = Array.from(grupo.querySelectorAll('input[type="text"]')).some(input => input.value.trim());
+    if (temConteudo && !confirm('Remover este grupo de adicionais?')) return;
+    grupo.remove();
+    if (!container.querySelector('[data-adicional-grupo]')) {
+        container.innerHTML = `<div class="adicionais-vazio">
+            <span class="adicionais-vazio-icon">✦</span>
+            <strong>Este produto ainda não tem adicionais</strong>
+            <p>Use um dos botões abaixo para criar o primeiro grupo.</p>
+        </div>`;
+    }
+    sincronizarTextareaAdicionaisProduto(id);
+}
+
+function adicionarOpcaoAdicionalVisual(id, botao) {
+    const grupo = botao && botao.closest('[data-adicional-grupo]');
+    const lista = grupo && grupo.querySelector('.adicionais-opcoes-list');
+    if (!lista) return;
+    lista.insertAdjacentHTML('beforeend', htmlOpcaoAdicionalVisual(id, { nome: '', preco: 0 }));
+    const ultima = lista.lastElementChild;
+    const campo = ultima && ultima.querySelector('.adicional-opcao-nome');
+    if (campo) campo.focus();
+    sincronizarTextareaAdicionaisProduto(id);
+}
+
+function removerOpcaoAdicionalVisual(id, botao) {
+    const linha = botao && botao.closest('[data-adicional-opcao]');
+    const lista = linha && linha.parentElement;
+    if (!linha || !lista) return;
+    if (lista.querySelectorAll('[data-adicional-opcao]').length <= 1) {
+        linha.querySelectorAll('input').forEach(input => { input.value = ''; });
+    } else {
+        linha.remove();
+    }
+    sincronizarTextareaAdicionaisProduto(id);
+}
+
+function atualizarResumoAdicionaisVisual(id, grupos) {
+    const resumo = document.getElementById('adicionaisResumo_' + id);
+    if (!resumo) return;
+    const totalGrupos = grupos.length;
+    const totalOpcoes = grupos.reduce((soma, grupo) => soma + grupo.opcoes.length, 0);
+    resumo.textContent = totalGrupos
+        ? `${totalGrupos} ${totalGrupos === 1 ? 'grupo' : 'grupos'} • ${totalOpcoes} ${totalOpcoes === 1 ? 'opção' : 'opções'}`
+        : 'Nenhum adicional configurado';
+}
+
+function sincronizarTextareaAdicionaisProduto(id, validar = false) {
+    const container = document.getElementById('adicionaisEditor_' + id);
+    const campoLegado = document.getElementById('prodAdicionais_' + id);
+    const aviso = document.getElementById('avisoAdicionais_' + id);
+    if (!container || !campoLegado) return '';
+
+    const grupos = [];
+    const cards = Array.from(container.querySelectorAll('[data-adicional-grupo]'));
+
+    for (let gi = 0; gi < cards.length; gi++) {
+        const card = cards[gi];
+        const nome = (card.querySelector('.adicional-grupo-nome')?.value || '').trim();
+        const obrigatorio = (card.querySelector('.adicional-grupo-tipo')?.value || 'obrigatorio') === 'obrigatorio';
+        const linhas = Array.from(card.querySelectorAll('[data-adicional-opcao]'));
+        const opcoes = linhas.map(linha => {
+            const nomeOpcao = (linha.querySelector('.adicional-opcao-nome')?.value || '').trim();
+            const precoTexto = (linha.querySelector('.adicional-opcao-preco')?.value || '').trim();
+            const preco = paraNumeroFlexivel(precoTexto);
+            return { nome: nomeOpcao, preco };
+        }).filter(opcao => opcao.nome);
+
+        const grupoTemAlgumConteudo = nome || linhas.some(linha =>
+            (linha.querySelector('.adicional-opcao-nome')?.value || '').trim() ||
+            (linha.querySelector('.adicional-opcao-preco')?.value || '').trim()
+        );
+        if (!grupoTemAlgumConteudo) continue;
+
+        if (validar && !nome) {
+            if (aviso) {
+                aviso.style.display = 'block';
+                aviso.textContent = `⚠️ Dê um nome ao grupo ${gi + 1} antes de salvar.`;
+            }
+            card.querySelector('.adicional-grupo-nome')?.focus();
+            return null;
+        }
+        if (validar && opcoes.length === 0) {
+            if (aviso) {
+                aviso.style.display = 'block';
+                aviso.textContent = `⚠️ Adicione pelo menos uma opção no grupo “${nome || gi + 1}”.`;
+            }
+            card.querySelector('.adicional-opcao-nome')?.focus();
+            return null;
+        }
+
+        grupos.push({ nome, obrigatorio, opcoes });
+    }
+
+    const texto = montarTextoAdicionaisParaEdicao(grupos);
+    campoLegado.value = texto;
+    // Guarda a estrutura pronta no próprio campo oculto. Assim nomes de opções podem
+    // ter vírgulas normalmente; o salvamento visual não depende mais do formato técnico antigo.
+    campoLegado.__gruposAdicionais = grupos;
+    atualizarResumoAdicionaisVisual(id, grupos);
+    if (aviso && !validar) aviso.style.display = 'none';
+    return texto;
+}
+
 function montarLinhaProduto(id, produto) {
     const div = document.createElement('div');
     div.classList.add('produto-admin-item');
@@ -6361,14 +6620,7 @@ function montarLinhaProduto(id, produto) {
             </div>
         </div>
         <div id="blocoAdicionais_${id}" style="display:${adicionaisAtivo ? 'block' : 'none'};">
-            <label class="campo-label">
-                Grupos de adicionais (opcional) — um grupo por linha, formato:
-                <code>Nome do grupo (obrigatório ou opcional): opção1, opção2 +preço, opção3</code>
-            </label>
-            <textarea id="prodAdicionais_${id}" class="campo-adicionais" placeholder="Escolha o recheio (obrigatório): Chocolate, Ninho com Morango +2, Doce de Leite
-Adicione extras (opcional): Granola +2, Chantilly extra +3, Confete +1.5">${montarTextoAdicionaisParaEdicao(produto.grupoAdicionais)}</textarea>
-            <p class="dica-secao">Grupo "obrigatório" = o cliente tem que escolher 1. Grupo "opcional" = pode escolher quantos quiser (ou nenhum). Opção sem "+preço" fica de graça. ⚠️ Pros centavos, use PONTO, não vírgula (ex: "+1.50", não "+1,50" — a vírgula aqui é só pra separar as opções).</p>
-            <p id="avisoAdicionais_${id}" class="aviso-adicionais" style="display:none;"></p>
+            ${htmlEditorAdicionaisProduto(id, produto.grupoAdicionais)}
         </div>
 
         <div class="produto-admin-acoes">
@@ -7094,7 +7346,12 @@ function salvarProduto(id) {
     const agendaDisponibilidade = coletarAgendaDisponibilidadeProduto(id);
     if (agendaDisponibilidade === null) return;
     const variantesTexto = document.getElementById('prodVariantes_' + id).value.trim();
-    const adicionaisTexto = document.getElementById('prodAdicionais_' + id).value.trim();
+    const adicionaisTexto = sincronizarTextareaAdicionaisProduto(id, true);
+    if (adicionaisTexto === null) return;
+    const campoAdicionaisVisual = document.getElementById('prodAdicionais_' + id);
+    const gruposAdicionaisVisuais = campoAdicionaisVisual && Array.isArray(campoAdicionaisVisual.__gruposAdicionais)
+        ? campoAdicionaisVisual.__gruposAdicionais
+        : [];
 
     const imagens = imagensTexto ? imagensTexto.split(',').map(v => v.trim()).filter(v => v.length > 0) : [];
 
@@ -7119,16 +7376,9 @@ function salvarProduto(id) {
         dados.variantes = variantesTexto.split(',').map(v => v.trim()).filter(v => v.length > 0);
     }
 
-    dados.grupoAdicionais = parseTextoAdicionais(adicionaisTexto);
+    dados.grupoAdicionais = gruposAdicionaisVisuais.length ? gruposAdicionaisVisuais : null;
 
     const avisoEl = document.getElementById('avisoAdicionais_' + id);
-    if (detectarPossivelErroDeVirgula(dados.grupoAdicionais)) {
-        if (avisoEl) {
-            avisoEl.style.display = 'block';
-            avisoEl.textContent = '⚠️ Parece que você usou vírgula num preço (ex: "+1,50") — troca por ponto (ex: "+1.50") e salva de novo, senão o preço fica errado.';
-        }
-        return; // não salva até corrigir, pra não gravar um preço errado sem querer
-    }
     if (avisoEl) avisoEl.style.display = 'none';
 
     db.ref('produtos/' + id).update(dados)

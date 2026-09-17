@@ -13677,3 +13677,358 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
         padding: 9px;
     }
 }
+
+
+/* ============================================================
+   ADICIONAIS POR PRODUTO — EDITOR VISUAL PREMIUM
+   Cadastro guiado, sem sintaxe técnica, mantendo a mesma estrutura de dados.
+   ============================================================ */
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-editor-premium {
+    overflow: hidden;
+    border: 1px solid rgba(160, 102, 58, .18);
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(252,247,241,.94));
+    box-shadow: 0 9px 24px rgba(74, 48, 34, .06);
+}
+
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-editor-premium > summary {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) auto 20px;
+    align-items: center;
+    gap: 10px;
+    min-height: 56px;
+    padding: 9px 12px;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-editor-premium > summary::-webkit-details-marker { display:none; }
+
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-summary-icon {
+    display: inline-grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: linear-gradient(145deg, #fff7ef, #f1dfcd);
+    border: 1px solid rgba(176, 101, 51, .16);
+    color: #ad572e;
+    font-size: 1.2rem;
+    font-weight: 800;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-summary-texto {
+    display:flex;
+    flex-direction:column;
+    min-width:0;
+    gap:2px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-summary-texto strong {
+    color:#51392d;
+    font-size:.76rem;
+    line-height:1.15;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-summary-texto small {
+    color:#8e7b6e;
+    font-size:.60rem;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-summary-contador {
+    display:inline-flex;
+    align-items:center;
+    min-height:26px;
+    padding:4px 9px;
+    border-radius:999px;
+    background:#f9f3ec;
+    border:1px solid rgba(147, 102, 72, .13);
+    color:#775f50;
+    font-size:.58rem;
+    font-weight:700;
+    white-space:nowrap;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-summary-seta {
+    color:#9a7964;
+    font-size:.9rem;
+    transition: transform .2s ease;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-editor-premium[open] .adicionais-summary-seta { transform: rotate(180deg); }
+
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-editor-corpo {
+    padding: 0 12px 12px;
+    border-top: 1px solid rgba(155, 109, 78, .10);
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-editor-intro {
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    padding:12px 2px 10px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-editor-kicker {
+    display:block;
+    margin-bottom:3px;
+    color:#a65a33;
+    font-size:.51rem;
+    font-weight:800;
+    letter-spacing:.12em;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-editor-intro h4 {
+    margin:0 0 3px;
+    color:#473328;
+    font-size:.78rem;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-editor-intro p {
+    margin:0;
+    color:#8b776a;
+    font-size:.60rem;
+    line-height:1.4;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-editor-legenda {
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+    gap:5px;
+    max-width:310px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-editor-legenda span {
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    padding:4px 7px;
+    border-radius:999px;
+    background:#fff;
+    border:1px solid rgba(141, 101, 75, .13);
+    color:#766154;
+    font-size:.53rem;
+    font-weight:700;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-editor-legenda i {
+    width:7px;height:7px;border-radius:50%;display:inline-block;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-editor-legenda i.obrigatorio { background:#b35b31; }
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-editor-legenda i.opcional { background:#4a9d72; }
+
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-grupos-lista {
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-grupo-card {
+    padding:10px;
+    border:1px solid rgba(151, 105, 74, .16);
+    border-radius:12px;
+    background:rgba(255,255,255,.86);
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-grupo-topo {
+    display:grid;
+    grid-template-columns:minmax(190px, 1.15fr) minmax(180px, .85fr) auto;
+    gap:8px;
+    align-items:end;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-grupo-campo-nome,
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-grupo-campo-tipo,
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-opcao-campo {
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+    min-width:0;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-grupo-card label {
+    color:#70594c;
+    font-size:.55rem;
+    font-weight:800;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-grupo-card input,
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-grupo-card select {
+    width:100%;
+    height:32px !important;
+    min-height:32px !important;
+    padding:5px 8px !important;
+    border:1px solid rgba(150, 110, 84, .19) !important;
+    border-radius:8px !important;
+    background:#fff !important;
+    font-size:.62rem !important;
+    box-shadow:none !important;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-grupo-card input:focus,
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-grupo-card select:focus {
+    outline:none;
+    border-color:rgba(173,87,46,.55) !important;
+    box-shadow:0 0 0 3px rgba(173,87,46,.08) !important;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-grupo-remover {
+    height:32px;
+    padding:0 10px;
+    border:1px solid rgba(154, 91, 65, .15);
+    border-radius:8px;
+    background:#fffafa;
+    color:#9b5e4b;
+    font-size:.56rem;
+    font-weight:700;
+    cursor:pointer;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-grupo-ajuda {
+    margin:6px 0 8px;
+    padding:5px 7px;
+    border-radius:7px;
+    background:#faf6f1;
+    color:#8b776b;
+    font-size:.54rem;
+    line-height:1.35;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-opcoes-list {
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-opcao-row {
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) 145px 30px;
+    gap:6px;
+    align-items:end;
+    padding:6px;
+    border-radius:9px;
+    background:#fcfaf7;
+    border:1px solid rgba(151, 111, 85, .10);
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-preco-input {
+    display:grid;
+    grid-template-columns:32px 1fr;
+    align-items:center;
+    height:32px;
+    border:1px solid rgba(150, 110, 84, .19);
+    border-radius:8px;
+    overflow:hidden;
+    background:#fff;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-preco-input span {
+    display:grid;
+    place-items:center;
+    height:100%;
+    color:#8a705f;
+    background:#f7f0e8;
+    font-size:.56rem;
+    font-weight:800;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-preco-input input {
+    border:0 !important;
+    border-radius:0 !important;
+    height:30px !important;
+    min-height:30px !important;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-opcao-remover {
+    display:grid;
+    place-items:center;
+    width:30px;
+    height:32px;
+    padding:0;
+    border:1px solid rgba(154,91,65,.14);
+    border-radius:8px;
+    background:#fff;
+    color:#a16a58;
+    font-size:1rem;
+    cursor:pointer;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-add-opcao {
+    margin-top:7px;
+    min-height:30px;
+    padding:5px 9px;
+    border:1px dashed rgba(167, 96, 54, .28);
+    border-radius:8px;
+    background:#fffaf5;
+    color:#9f542e;
+    font-size:.57rem;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-acoes-criar {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:7px;
+    margin-top:9px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-criar-grupo {
+    display:flex;
+    align-items:center;
+    gap:9px;
+    min-height:48px;
+    padding:8px 10px;
+    border:1px solid rgba(152, 106, 75, .15);
+    border-radius:10px;
+    background:#fff;
+    text-align:left;
+    cursor:pointer;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-criar-grupo > span {
+    display:grid;
+    place-items:center;
+    flex:0 0 30px;
+    width:30px;
+    height:30px;
+    border-radius:9px;
+    font-size:.95rem;
+    font-weight:800;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-criar-grupo--obrigatorio > span {
+    color:#a8502b;
+    background:#fff0e6;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-criar-grupo--opcional > span {
+    color:#327a58;
+    background:#eaf7f0;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-criar-grupo div {
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-criar-grupo strong {
+    color:#553d30;
+    font-size:.61rem;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-criar-grupo small {
+    color:#927e70;
+    font-size:.52rem;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-vazio {
+    display:grid;
+    justify-items:center;
+    gap:3px;
+    padding:14px 12px;
+    border:1px dashed rgba(158,111,80,.20);
+    border-radius:10px;
+    background:#fdfaf7;
+    color:#7e6a5d;
+    text-align:center;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-vazio-icon {
+    color:#bb7048;
+    font-size:1rem;
+}
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-vazio strong { font-size:.62rem; color:#5e4638; }
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-vazio p { margin:0; font-size:.53rem; }
+.painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-aviso-visual { margin:8px 0 0 !important; }
+
+@media (max-width: 920px) {
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-grupo-topo {
+        grid-template-columns:1fr 1fr;
+    }
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-grupo-remover { grid-column:1 / -1; justify-self:start; }
+}
+@media (max-width: 680px) {
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-editor-premium > summary {
+        grid-template-columns:34px minmax(0,1fr) 18px;
+    }
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-summary-contador {
+        grid-column:2 / 3;
+        justify-self:start;
+    }
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-summary-seta { grid-column:3; grid-row:1 / span 2; }
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-editor-intro { flex-direction:column; }
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-editor-legenda { justify-content:flex-start; max-width:none; }
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-grupo-topo,
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-opcao-row,
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicionais-acoes-criar {
+        grid-template-columns:1fr;
+    }
+    .painel-main > section[data-tab="produtos"]:has(#produtosAdminList) .adicional-opcao-remover { justify-self:end; }
+}
