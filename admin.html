@@ -1054,35 +1054,83 @@
                 </div>
 
                 <div class="hub-subpanel" data-cm-subtab="mensagem-massa">
-                    <div class="hub-context-note"><strong>📣 Campanhas no WhatsApp</strong><span>Crie uma campanha e avance cliente por cliente, com o progresso salvo para continuar depois.</span></div>
+                    <div class="hub-context-note mm-context-note"><strong>📣 Campanhas no WhatsApp</strong><span>Prepare uma mensagem, gere sua fila de contatos e avance cliente por cliente com o progresso salvo.</span></div>
                     <div class="loja-status-card mensagem-massa-premium">
-                        <div class="mm-cabecalho">
-                            <div>
+                        <div class="mm-hero">
+                            <div class="mm-hero-copy">
+                                <span class="mm-eyebrow">RELACIONAMENTO ASSISTIDO</span>
                                 <h3>📣 Campanhas no WhatsApp</h3>
-                                <p class="dica-secao">Prepare a mensagem uma vez e avance cliente por cliente sem perder o ponto da campanha.</p>
+                                <p class="dica-secao">Organize sua comunicação em uma sequência simples: escreva uma vez, gere a lista e abra cada conversa com a mensagem pronta.</p>
+                                <div class="mm-hero-tags">
+                                    <span>📲 WhatsApp individual</span>
+                                    <span>✓ Progresso salvo</span>
+                                    <span>🔒 Sem disparo automático</span>
+                                </div>
                             </div>
-                            <span class="mm-selo">Campanha assistida</span>
-                        </div>
-
-                        <div class="mm-compositor">
-                            <label class="campo-label" for="mmTexto">Mensagem da campanha</label>
-                            <textarea id="mmTexto" class="campo-adicionais" rows="5" placeholder="Ex: Oi! Passando pra contar uma novidade maravilhosa: nosso cardápio digital já está no ar! 🙌 Agora você pode fazer seu pedido direto por ele..."></textarea>
-                            <p class="dica-secao mm-ajuda">Cada botão abre o WhatsApp com o texto pronto. O envio continua sendo confirmado por você.</p>
-                            <div class="mm-acoes">
-                                <button class="btn-salvar-ordem" onclick="montarListaMensagemMassa()">Gerar / continuar campanha</button>
-                                <button class="btn-secondary" onclick="novaCampanhaMensagemMassa()">➕ Nova campanha</button>
+                            <div class="mm-selo mm-selo-card">
+                                <small>CONTROLE</small>
+                                <strong>Você confirma cada envio</strong>
                             </div>
                         </div>
 
-                        <p class="dica-secao" id="mmContador"></p>
-                        <div id="mmLista"></div>
+                        <div class="mm-workspace">
+                            <section class="mm-compositor mm-painel">
+                                <div class="mm-painel-head">
+                                    <span class="mm-step">01</span>
+                                    <div>
+                                        <span class="mm-kicker">MENSAGEM</span>
+                                        <h4>Prepare o texto da campanha</h4>
+                                    </div>
+                                </div>
+                                <label class="campo-label" for="mmTexto">Mensagem da campanha</label>
+                                <textarea id="mmTexto" class="campo-adicionais" rows="5" placeholder="Ex: Oi! Passando pra contar uma novidade maravilhosa: nosso cardápio digital já está no ar! 🙌 Agora você pode fazer seu pedido direto por ele..."></textarea>
+                                <div class="mm-helper-row">
+                                    <span>💬 O texto abre pronto no WhatsApp</span>
+                                    <span>👤 Você escolhe quem recebe</span>
+                                </div>
+                            </section>
+
+                            <aside class="mm-fluxo mm-painel">
+                                <div class="mm-painel-head">
+                                    <span class="mm-step">02</span>
+                                    <div>
+                                        <span class="mm-kicker">FLUXO</span>
+                                        <h4>Gere e acompanhe a campanha</h4>
+                                    </div>
+                                </div>
+                                <div class="mm-fluxo-lista">
+                                    <div><span>1</span><p><strong>Gerar contatos</strong><small>Clientes com telefone entram na fila.</small></p></div>
+                                    <div><span>2</span><p><strong>Abrir conversa</strong><small>Cada botão leva ao WhatsApp com o texto pronto.</small></p></div>
+                                    <div><span>3</span><p><strong>Continuar depois</strong><small>O progresso permanece salvo para todos os aparelhos.</small></p></div>
+                                </div>
+                                <p class="dica-secao mm-ajuda">Nenhuma mensagem é enviada sozinha. Cada contato continua sendo confirmado por você.</p>
+                                <div class="mm-acoes">
+                                    <button class="btn-salvar-ordem" onclick="montarListaMensagemMassa()">📲 Gerar / continuar campanha</button>
+                                    <button class="btn-secondary" onclick="novaCampanhaMensagemMassa()">＋ Nova campanha</button>
+                                </div>
+                            </aside>
+                        </div>
+
+                        <section class="mm-fila-bloco">
+                            <div class="mm-section-head">
+                                <div>
+                                    <span class="mm-kicker">03 · CONTATOS</span>
+                                    <h4>Fila da campanha</h4>
+                                    <p class="dica-secao">Abra cada contato no WhatsApp e acompanhe visualmente quem já foi atendido.</p>
+                                </div>
+                                <p class="dica-secao" id="mmContador"></p>
+                            </div>
+                            <div id="mmLista"></div>
+                        </section>
 
                         <div class="mm-historico-bloco">
-                            <div class="mm-historico-topo">
+                            <div class="mm-historico-topo mm-section-head">
                                 <div>
-                                    <h4>🕘 Histórico de campanhas</h4>
-                                    <p class="dica-secao">O progresso fica salvo no Firebase e aparece igual em todos os aparelhos conectados ao painel.</p>
+                                    <span class="mm-kicker">HISTÓRICO</span>
+                                    <h4>🕘 Campanhas anteriores</h4>
+                                    <p class="dica-secao">Veja as campanhas salvas e quantos contatos já foram marcados como enviados.</p>
                                 </div>
+                                <span class="mm-history-badge">Firebase sincronizado</span>
                             </div>
                             <div id="mmHistorico"></div>
                         </div>

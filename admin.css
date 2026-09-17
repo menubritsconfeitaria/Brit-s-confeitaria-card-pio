@@ -12135,76 +12135,420 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
     }
 }
 
-
 /* ============================================================
-   PROMOÇÕES — RODAPÉ PREMIUM CORRIGIDO
-   Mantém a lógica intacta; corrige somente distribuição e alinhamento.
+   CAMPANHAS NO WHATSAPP — PREMIUM REFINADO
+   Escopo visual isolado. IDs, Firebase e funções permanecem intactos.
    ============================================================ */
-.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) auto !important;
-    align-items: center !important;
-    gap: 18px !important;
-    padding: 14px 16px !important;
+.clientes-marketing-premium [data-cm-subtab="mensagem-massa"] {
+    --mm-border: #eadfce;
+    --mm-border-soft: #f0e7dc;
+    --mm-soft: #fffaf4;
+    --mm-accent: #b35b2b;
+    --mm-accent-soft: #fff0e5;
+    --mm-text: #453126;
+    --mm-muted: #8c796b;
 }
 
-.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes > div {
-    min-width: 0 !important;
-    width: auto !important;
+.clientes-marketing-premium [data-cm-subtab="mensagem-massa"] .mm-context-note {
+    max-width: 1040px;
+    margin-inline: auto;
 }
 
-.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes strong {
-    margin: 0 0 4px !important;
-    font-size: .76rem !important;
-    line-height: 1.2 !important;
+.clientes-marketing-premium [data-cm-subtab="mensagem-massa"] > .mensagem-massa-premium {
+    width: min(100%, 1040px);
+    max-width: 1040px;
+    margin: 12px auto 0 !important;
+    padding: 0 !important;
+    overflow: hidden;
+    border: 1px solid var(--mm-border) !important;
+    border-radius: 20px !important;
+    background: #fff !important;
+    box-shadow: 0 14px 34px rgba(72,45,25,.075) !important;
 }
 
-.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes span {
-    max-width: 560px;
-    font-size: .64rem !important;
-    line-height: 1.35 !important;
-    white-space: normal !important;
-}
-
-.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-btn-salvar {
-    width: auto !important;
-    min-width: 190px !important;
-    max-width: 240px !important;
-    min-height: 40px !important;
-    justify-self: end !important;
-    margin: 0 !important;
-    padding: 9px 18px !important;
-    white-space: nowrap !important;
-}
-
-.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-msg:not(:empty) {
-    display: flex;
-    justify-content: flex-end;
+.mm-hero {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 220px;
+    gap: 24px;
     align-items: center;
-    min-height: 28px;
-    margin: 8px 2px 0 !important;
-    padding: 5px 9px;
+    padding: 24px 26px 22px;
+    border-bottom: 1px solid var(--mm-border-soft);
+    background: linear-gradient(115deg, #fff 0%, #fffaf5 72%, #fff3e8 100%);
+    overflow: hidden;
+}
+.mm-hero::after {
+    content: "";
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    right: -68px;
+    bottom: -92px;
+    border-radius: 50%;
+    background: rgba(212,137,86,.07);
+    pointer-events: none;
+}
+.mm-hero-copy { position: relative; z-index: 1; min-width: 0; }
+.mm-eyebrow,
+.mm-kicker {
+    display: block;
+    color: #a7643c;
+    font-size: .61rem;
+    font-weight: 900;
+    letter-spacing: .105em;
+    text-transform: uppercase;
+}
+.mm-hero h3 {
+    margin: 5px 0 7px;
+    color: var(--mm-text);
+    font-size: 1.23rem;
+    line-height: 1.2;
+}
+.mm-hero .dica-secao {
+    max-width: 690px;
+    margin: 0;
+    color: var(--mm-muted);
+    line-height: 1.48;
+}
+.mm-hero-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 13px;
+}
+.mm-hero-tags span,
+.mm-history-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 27px;
+    padding: 5px 10px;
+    border: 1px solid #eadfd2;
+    border-radius: 999px;
+    background: rgba(255,255,255,.78);
+    color: #785a48;
+    font-size: .63rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+.mm-selo-card {
+    position: relative;
+    z-index: 1;
+    display: flex !important;
+    flex-direction: column;
+    align-items: flex-start !important;
+    justify-content: center;
+    min-height: 76px;
+    padding: 13px 15px !important;
+    border: 1px solid #ead5c4 !important;
+    border-radius: 14px !important;
+    background: rgba(255,255,255,.82) !important;
+    box-shadow: 0 8px 22px rgba(83,48,28,.06);
+}
+.mm-selo-card small {
+    color: #aa795b;
+    font-size: .55rem;
+    font-weight: 900;
+    letter-spacing: .1em;
+}
+.mm-selo-card strong {
+    margin-top: 4px;
+    color: #7c4629;
+    font-size: .75rem;
+    line-height: 1.25;
+}
+
+.mm-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(310px, .7fr);
+    gap: 14px;
+    padding: 18px 20px 0;
+    align-items: stretch;
+}
+.mm-painel {
+    min-width: 0;
+    padding: 17px 18px;
+    border: 1px solid var(--mm-border-soft);
+    border-radius: 15px;
+    background: #fff;
+    box-shadow: 0 5px 15px rgba(72,45,25,.035);
+}
+.mm-compositor { background: #fffdfb !important; }
+.mm-painel-head {
+    display: grid;
+    grid-template-columns: 31px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 13px;
+}
+.mm-step {
+    display: grid;
+    place-items: center;
+    width: 31px;
+    height: 31px;
+    border: 1px solid #edd8c8;
+    border-radius: 10px;
+    background: #fff4eb;
+    color: #a75d34;
+    font-size: .61rem;
+    font-weight: 900;
+}
+.mm-painel-head h4,
+.mm-section-head h4 {
+    margin: 2px 0 0;
+    color: var(--mm-text);
+    font-size: .88rem;
+    line-height: 1.25;
+}
+.mm-compositor .campo-label {
+    margin: 0 0 6px;
+    color: #685244;
+    font-size: .66rem;
+    font-weight: 800;
+}
+#mmTexto {
+    width: 100%;
+    min-height: 150px !important;
+    margin: 0 !important;
+    padding: 13px 14px !important;
+    border: 1px solid #dfd2c4 !important;
+    border-radius: 12px !important;
+    background: #fff !important;
+    box-sizing: border-box;
+    resize: vertical;
+    line-height: 1.48 !important;
+    font-size: .77rem !important;
+}
+#mmTexto:focus {
+    outline: none;
+    border-color: #d39a75 !important;
+    box-shadow: 0 0 0 3px rgba(179,91,43,.08) !important;
+}
+.mm-helper-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 9px;
+}
+.mm-helper-row span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    padding: 5px 8px;
     border-radius: 8px;
-    background: rgba(31, 122, 68, .06);
-    color: #267442;
+    background: #faf6f2;
+    color: #806d60;
+    font-size: .61rem;
     font-weight: 700;
 }
 
+.mm-fluxo {
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, #fff 0%, #fffaf5 100%);
+}
+.mm-fluxo-lista {
+    display: grid;
+    gap: 8px;
+}
+.mm-fluxo-lista > div {
+    display: grid;
+    grid-template-columns: 26px minmax(0, 1fr);
+    gap: 9px;
+    align-items: start;
+    padding: 9px 10px;
+    border: 1px solid #eee5db;
+    border-radius: 10px;
+    background: rgba(255,255,255,.84);
+}
+.mm-fluxo-lista > div > span {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: #fff0e4;
+    color: #a65b32;
+    font-size: .59rem;
+    font-weight: 900;
+}
+.mm-fluxo-lista p { margin: 0; min-width: 0; }
+.mm-fluxo-lista strong {
+    display: block;
+    color: #5c4537;
+    font-size: .68rem;
+    line-height: 1.2;
+}
+.mm-fluxo-lista small {
+    display: block;
+    margin-top: 2px;
+    color: #958276;
+    font-size: .6rem;
+    line-height: 1.35;
+}
+.mm-ajuda {
+    margin: 10px 0 0 !important;
+    padding-top: 10px;
+    border-top: 1px solid #eee5db;
+    font-size: .62rem !important;
+    line-height: 1.42;
+}
+.mm-acoes {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 8px !important;
+    margin-top: auto !important;
+    padding-top: 12px;
+}
+.mm-acoes .btn-salvar-ordem,
+.mm-acoes .btn-secondary {
+    width: 100% !important;
+    min-height: 38px !important;
+    margin: 0 !important;
+    border-radius: 10px !important;
+    font-size: .68rem !important;
+}
+
+.mm-fila-bloco,
+.mm-historico-bloco {
+    margin: 14px 20px 0 !important;
+    padding: 16px 17px;
+    border: 1px solid var(--mm-border-soft);
+    border-radius: 15px;
+    background: #fff;
+}
+.mm-section-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 11px;
+    padding-bottom: 11px;
+    border-bottom: 1px solid #f0e8df;
+}
+.mm-section-head .dica-secao {
+    margin: 4px 0 0;
+    font-size: .63rem;
+    line-height: 1.4;
+}
+#mmContador:not(:empty) {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    margin: 0 !important;
+    padding: 5px 9px;
+    border: 1px solid #e1d7cc;
+    border-radius: 999px;
+    background: #faf7f4;
+    color: #6f5b4e;
+    font-size: .61rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+#mmLista {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    max-height: 390px;
+    margin: 0 !important;
+    padding-right: 3px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+#mmLista:empty::before {
+    content: "A fila aparecerá aqui depois que você gerar a campanha.";
+    grid-column: 1 / -1;
+    display: grid;
+    place-items: center;
+    min-height: 82px;
+    padding: 14px;
+    border: 1px dashed #e6dbcf;
+    border-radius: 11px;
+    background: #fffdfa;
+    color: #a18d7f;
+    font-size: .65rem;
+    text-align: center;
+}
+#mmLista > .pedido-card {
+    margin: 0 !important;
+    min-height: 52px !important;
+    padding: 9px 10px !important;
+    border: 1px solid #ece3d9 !important;
+    border-radius: 11px !important;
+    background: #fff !important;
+    box-shadow: 0 3px 10px rgba(72,45,25,.035) !important;
+}
+#mmLista > .pedido-card > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #5c4638;
+    font-size: .68rem;
+    font-weight: 800;
+}
+#mmLista .btn-secondary {
+    flex: 0 0 auto;
+    min-height: 32px;
+    padding: 6px 9px !important;
+    border-radius: 8px !important;
+    font-size: .63rem !important;
+}
+
+.mm-historico-bloco {
+    margin-bottom: 20px !important;
+}
+.mm-history-badge {
+    color: #357650;
+    border-color: #d8eadf;
+    background: #f6fbf8;
+}
+#mmHistorico {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0 !important;
+}
+#mmHistorico > .pedido-card {
+    margin: 0 !important;
+    min-height: 66px;
+    padding: 10px 11px !important;
+    border: 1px solid #ece3d9 !important;
+    border-radius: 11px !important;
+    background: #fcfaf7 !important;
+    box-shadow: none !important;
+}
+#mmHistorico > .pedido-card strong {
+    color: #5c4537;
+    font-size: .69rem;
+}
+#mmHistorico > .pedido-card p {
+    margin: 4px 0 0 !important;
+    color: #958276 !important;
+    font-size: .61rem !important;
+    line-height: 1.35;
+}
+
+@media (max-width: 900px) {
+    .mm-hero { grid-template-columns: 1fr; }
+    .mm-selo-card { min-height: 0; max-width: 260px; }
+    .mm-workspace { grid-template-columns: 1fr; }
+    #mmHistorico { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media (max-width: 680px) {
-    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes {
-        grid-template-columns: 1fr !important;
-        gap: 10px !important;
-        align-items: stretch !important;
+    .clientes-marketing-premium [data-cm-subtab="mensagem-massa"] > .mensagem-massa-premium {
+        border-radius: 16px !important;
     }
-
-    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-btn-salvar {
-        width: 100% !important;
-        max-width: none !important;
-        justify-self: stretch !important;
-    }
-
-    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-msg:not(:empty) {
-        justify-content: flex-start;
-        text-align: left;
-    }
+    .mm-hero { padding: 18px 16px; gap: 14px; }
+    .mm-workspace { padding: 14px 14px 0; }
+    .mm-painel { padding: 14px; }
+    .mm-fila-bloco,
+    .mm-historico-bloco { margin: 12px 14px 0 !important; padding: 14px; }
+    .mm-historico-bloco { margin-bottom: 14px !important; }
+    .mm-section-head { flex-direction: column; gap: 8px; }
+    #mmContador:not(:empty) { white-space: normal; }
+    #mmLista,
+    #mmHistorico { grid-template-columns: 1fr; }
+    #mmLista { max-height: 55vh; }
 }
