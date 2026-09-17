@@ -4971,3 +4971,130 @@ main > .container:first-of-type .destaque-item .txt {
         font-size: .61rem;
     }
 }
+
+/* ============================================================
+   PEDEAKI SITE — ACABAMENTO PREMIUM FINAL V8
+   Microrefino visual. Nenhuma estrutura ou lógica alterada.
+   ============================================================ */
+
+/* Assinatura da marca: um pouco mais de presença sem aumentar o topo. */
+header {
+    border-bottom: 1px solid rgba(187, 145, 108, .16);
+}
+
+header .container {
+    grid-template-columns: 78px minmax(0, 1fr);
+    column-gap: 19px;
+    width: min(calc(100% - (var(--site-gutter) * 2)), 1040px);
+}
+
+header .logo {
+    width: 74px;
+    max-width: 74px;
+    max-height: 74px;
+    filter: drop-shadow(0 7px 15px rgba(86, 48, 27, .12));
+}
+
+header h1 {
+    font-size: clamp(1.34rem, 1.85vw, 1.7rem);
+    color: #88401f;
+}
+
+header p:not(.header-cidade) {
+    max-width: 730px;
+    color: #6f594b;
+}
+
+/* Alertas ganham acabamento mais consistente, inclusive na pausa. */
+.status-loja-banner.loja-pausada {
+    border-color: rgba(211, 166, 67, .28);
+    background: linear-gradient(180deg, #fff5d9 0%, #ffefc6 100%);
+    color: #735414;
+    box-shadow: 0 5px 14px rgba(139, 101, 24, .06);
+}
+
+.status-loja-banner.loja-aberta {
+    box-shadow: 0 5px 14px rgba(31, 117, 63, .045);
+}
+
+.status-loja-banner.loja-fechada {
+    box-shadow: 0 5px 14px rgba(150, 55, 55, .045);
+}
+
+/* Microinterações consistentes sem alterar dimensões/layout. */
+button,
+.btn,
+a,
+input,
+select,
+textarea {
+    -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 3px solid rgba(181, 91, 45, .18);
+    outline-offset: 2px;
+}
+
+button:not(:disabled):active,
+.btn:not(:disabled):active {
+    transform: translateY(1px);
+}
+
+/* Campos ganham foco mais elegante sem mudar sua geometria. */
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: rgba(177, 91, 47, .5);
+    box-shadow: 0 0 0 3px rgba(177, 91, 47, .07);
+}
+
+/* Acessibilidade: respeita quem prefere menos animação. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+}
+
+@media (max-width: 760px) {
+    header .container {
+        grid-template-columns: 58px minmax(0, 1fr);
+        column-gap: 12px;
+    }
+
+    header .logo {
+        width: 56px;
+        max-width: 56px;
+        max-height: 56px;
+    }
+
+    header h1 {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    header .container {
+        grid-template-columns: 48px minmax(0, 1fr);
+        column-gap: 10px;
+    }
+
+    header .logo {
+        width: 46px;
+        max-width: 46px;
+        max-height: 46px;
+    }
+
+    header h1 {
+        font-size: 1rem;
+    }
+}
