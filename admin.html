@@ -987,36 +987,72 @@
                         </div>
                     </section>
                 </div>
-                <div class="hub-subpanel" data-cm-subtab="promocoes">
-                    <div class="hub-context-note"><strong>🔥 Promoções e vitrine</strong><span>Organize os produtos que ganham destaque no carrossel da loja.</span></div>
-<div class="loja-status-card" id="cardDestaquesCarrossel" style="margin-top:16px;">
-                    <h3>🎠 Destaques do Carrossel</h3>
-                    <p class="dica-secao">
-                        Escolha como a vitrine vai funcionar. O carrossel pode exibir até 5 produtos e nunca mostra
-                        item indisponível ou escondido no cardápio.
-                    </p>
-
-                    <div class="campo-com-label" style="margin-top:12px; max-width:420px;">
-                        <label class="campo-label" for="carrosselModoSelect">Modo do carrossel</label>
-                        <select id="carrosselModoSelect" onchange="atualizarAjudaModoCarrossel()">
-                            <option value="manual">Manual — eu escolho os produtos</option>
-                            <option value="automatico">Automático — mais vendidos da semana</option>
-                            <option value="misto">Misto — meus escolhidos + mais vendidos</option>
-                        </select>
-                    </div>
-                    <p class="dica-secao" id="ajudaModoCarrossel" style="margin-top:8px;"></p>
-                    <p class="dica-secao" id="statusCarrosselAtual"></p>
-
-                    <div id="blocoDestaquesManuais">
-                        <p class="campo-label" style="margin-top:12px;">Produtos escolhidos manualmente</p>
-                        <p class="dica-secao">Selecione até 5. No modo Misto, eles entram primeiro e o sistema completa as vagas restantes com os mais vendidos.</p>
-                        <div id="listaDestaquesManuais"></div>
+                <div class="hub-subpanel promocoes-premium" data-cm-subtab="promocoes">
+                    <div class="promocoes-hero">
+                        <div>
+                            <span class="promocoes-eyebrow">VITRINE INTELIGENTE</span>
+                            <h3>🔥 Promoções & Destaques</h3>
+                            <p class="dica-secao">Organize a vitrine do cardápio e escolha como os produtos ganham destaque sem perder o controle da operação.</p>
+                        </div>
+                        <div class="promocoes-hero-meta">
+                            <span>🎠 Carrossel da loja</span>
+                            <strong>Até 5 destaques</strong>
+                        </div>
                     </div>
 
-                    <button class="btn-secondary" style="margin-top:10px;" onclick="salvarConfiguracaoCarrossel()">Salvar configuração do carrossel</button>
-                    <p id="msgDestaquesManuais" class="ordem-categorias-msg"></p>
+                    <div class="loja-status-card promocoes-card" id="cardDestaquesCarrossel">
+                        <div class="promocoes-section-head">
+                            <div class="promocoes-step">01</div>
+                            <div class="promocoes-section-copy">
+                                <span class="promocoes-kicker">ESTRATÉGIA DA VITRINE</span>
+                                <h4>Defina como o carrossel será preenchido</h4>
+                                <p class="dica-secao">Manual, automático ou misto. Produtos indisponíveis ou ocultos continuam fora da vitrine.</p>
+                            </div>
+                            <div id="statusCarrosselAtual" class="promocoes-status-live" aria-live="polite"></div>
+                        </div>
+
+                        <div class="promocoes-config-grid">
+                            <div class="promocoes-config-card">
+                                <label class="campo-label" for="carrosselModoSelect">Modo do carrossel</label>
+                                <select id="carrosselModoSelect" onchange="atualizarAjudaModoCarrossel()">
+                                    <option value="manual">Manual — eu escolho os produtos</option>
+                                    <option value="automatico">Automático — mais vendidos da semana</option>
+                                    <option value="misto">Misto — meus escolhidos + mais vendidos</option>
+                                </select>
+                            </div>
+                            <div class="promocoes-ajuda-card">
+                                <span class="promocoes-ajuda-label">COMO FUNCIONA</span>
+                                <p class="dica-secao" id="ajudaModoCarrossel"></p>
+                            </div>
+                        </div>
+
+                        <div id="blocoDestaquesManuais" class="promocoes-escolha">
+                            <div class="promocoes-section-head promocoes-section-head--lista">
+                                <div class="promocoes-step">02</div>
+                                <div class="promocoes-section-copy">
+                                    <span class="promocoes-kicker">CURADORIA MANUAL</span>
+                                    <h4>Escolha os produtos em destaque</h4>
+                                    <p class="dica-secao">Selecione até 5 produtos. No modo Misto, os escolhidos entram primeiro e o sistema completa as vagas restantes.</p>
+                                </div>
+                                <span class="promocoes-limite">máx. 5</span>
+                            </div>
+
+                            <div class="promocoes-lista-wrap">
+                                <div id="listaDestaquesManuais"></div>
+                            </div>
+                        </div>
+
+                        <div class="promocoes-acoes">
+                            <div>
+                                <strong>Pronto para publicar?</strong>
+                                <span>Salve a configuração para atualizar a vitrine do cardápio.</span>
+                            </div>
+                            <button class="btn-salvar-ordem promocoes-btn-salvar" onclick="salvarConfiguracaoCarrossel()">💾 Salvar vitrine</button>
+                        </div>
+                        <p id="msgDestaquesManuais" class="ordem-categorias-msg promocoes-msg"></p>
+                    </div>
                 </div>
-                </div>
+
                 <div class="hub-subpanel" data-cm-subtab="mensagem-massa">
                     <div class="hub-context-note"><strong>📣 Campanhas no WhatsApp</strong><span>Crie uma campanha e avance cliente por cliente, com o progresso salvo para continuar depois.</span></div>
                     <div class="loja-status-card mensagem-massa-premium">

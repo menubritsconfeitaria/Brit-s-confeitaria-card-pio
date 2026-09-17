@@ -11777,3 +11777,360 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
         flex-direction: column;
     }
 }
+
+/* ============================================================
+   CLIENTES & MARKETING — PROMOÇÕES PREMIUM REFINADA
+   Escopo isolado à subaba Promoções. Mantém IDs e lógica atuais.
+   ============================================================ */
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-premium {
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 22px;
+    margin-bottom: 12px;
+    padding: 18px 20px;
+    border: 1px solid var(--cm-border);
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(255,255,255,.98), #fff9f3 72%, #fbefe3);
+    box-shadow: var(--cm-shadow);
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-eyebrow,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-kicker,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-ajuda-label {
+    display: block;
+    margin-bottom: 4px;
+    color: #b2673e;
+    font-size: .58rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-hero h3 {
+    margin: 0 0 5px;
+    color: var(--cm-ink);
+    font-size: 1.08rem;
+    letter-spacing: -.015em;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-hero .dica-secao {
+    max-width: 720px;
+    margin: 0;
+    color: var(--cm-muted);
+    line-height: 1.45;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-hero-meta {
+    flex: 0 0 auto;
+    min-width: 150px;
+    padding: 11px 13px;
+    border: 1px solid #efd9c5;
+    border-radius: 13px;
+    background: rgba(255,255,255,.82);
+    text-align: center;
+    box-shadow: 0 7px 18px rgba(78,48,27,.055);
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-hero-meta span,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-hero-meta strong {
+    display: block;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-hero-meta span {
+    margin-bottom: 3px;
+    color: #947563;
+    font-size: .62rem;
+    font-weight: 700;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-hero-meta strong {
+    color: #a8542d;
+    font-size: .76rem;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-card {
+    margin-top: 0 !important;
+    padding: 18px !important;
+    border-radius: 17px !important;
+    background: rgba(255,255,255,.94);
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-section-head {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) minmax(220px, .72fr);
+    gap: 10px 12px;
+    align-items: center;
+    padding-bottom: 13px;
+    border-bottom: 1px solid #eee4da;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-step {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid #efd7c2;
+    border-radius: 10px;
+    background: #fff7ef;
+    color: #ad6036;
+    font-size: .62rem;
+    font-weight: 900;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-section-copy h4 {
+    margin: 0 0 3px;
+    color: var(--cm-ink);
+    font-size: .86rem;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-section-copy .dica-secao {
+    margin: 0;
+    font-size: .67rem;
+    line-height: 1.4;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-status-live {
+    min-height: 38px;
+    padding: 9px 11px;
+    border: 1px solid #dceadf;
+    border-radius: 11px;
+    background: #f7fcf8;
+    color: #54705c;
+    font-size: .62rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-config-grid {
+    display: grid;
+    grid-template-columns: minmax(260px, .72fr) minmax(0, 1.28fr);
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-config-card,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-ajuda-card {
+    min-width: 0;
+    padding: 12px 13px;
+    border: 1px solid #ece1d5;
+    border-radius: 12px;
+    background: #fffdfa;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-config-card .campo-label {
+    margin: 0 0 6px;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium #carrosselModoSelect {
+    width: 100%;
+    min-height: 38px;
+    margin: 0;
+    padding: 0 10px;
+    border: 1px solid #dfd1c4;
+    border-radius: 9px;
+    background: #fff;
+    color: #584538;
+    font-family: inherit;
+    font-size: .7rem;
+    font-weight: 700;
+    outline: none;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium #carrosselModoSelect:focus {
+    border-color: #c98d65;
+    box-shadow: 0 0 0 3px rgba(177,96,52,.09);
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-ajuda-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: linear-gradient(180deg, #fffdfa, #fcf8f4);
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium #ajudaModoCarrossel {
+    margin: 0 !important;
+    color: #755f50;
+    font-size: .67rem;
+    font-weight: 600;
+    line-height: 1.45;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-escolha {
+    margin-top: 13px;
+    padding-top: 2px;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-section-head--lista {
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    padding: 12px 0 10px;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-limite {
+    align-self: center;
+    padding: 6px 9px;
+    border: 1px solid #ecd7c4;
+    border-radius: 999px;
+    background: #fff8f1;
+    color: #9d603e;
+    font-size: .6rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-lista-wrap {
+    margin-top: 10px;
+    padding: 8px;
+    border: 1px solid #ece2d8;
+    border-radius: 13px;
+    background: #fbf8f4;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium #listaDestaquesManuais {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    max-height: 390px;
+    padding-right: 3px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium #listaDestaquesManuais > .produto-disponivel-check {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    min-height: 38px;
+    margin: 0 !important;
+    padding: 8px 10px;
+    border: 1px solid #ebe2d9;
+    border-radius: 10px;
+    background: #fff;
+    color: #675246;
+    font-size: .65rem;
+    line-height: 1.28;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition: border-color .16s ease, background .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium #listaDestaquesManuais > .produto-disponivel-check:hover:not(:has(input:disabled)) {
+    transform: translateY(-1px);
+    border-color: #d9bda8;
+    box-shadow: 0 5px 12px rgba(78,48,27,.045);
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium #listaDestaquesManuais > .produto-disponivel-check:has(input:checked) {
+    border-color: #d49770;
+    background: #fff8f2;
+    box-shadow: inset 0 0 0 1px rgba(177,88,43,.05);
+    color: #7c4529;
+    font-weight: 700;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium #listaDestaquesManuais > .produto-disponivel-check:has(input:disabled) {
+    background: #f8f6f3;
+    color: #aa9c91;
+    cursor: not-allowed;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium #listaDestaquesManuais input[type="checkbox"] {
+    flex: 0 0 auto;
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    accent-color: #af5b31;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 12px;
+    padding: 11px 12px;
+    border: 1px solid #ece1d5;
+    border-radius: 12px;
+    background: linear-gradient(90deg, #fffdfa, #fff8f1);
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes > div {
+    min-width: 0;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes strong,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes span {
+    display: block;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes strong {
+    margin-bottom: 2px;
+    color: var(--cm-ink);
+    font-size: .7rem;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes span {
+    color: var(--cm-muted);
+    font-size: .61rem;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-btn-salvar {
+    flex: 0 0 auto;
+    min-width: 150px;
+    min-height: 36px;
+    margin: 0 !important;
+    padding: 8px 14px !important;
+    border-radius: 10px;
+    font-size: .66rem;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-msg {
+    min-height: 0;
+    margin: 7px 0 0 !important;
+    text-align: right;
+    font-size: .62rem;
+}
+
+@media (max-width: 920px) {
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-section-head {
+        grid-template-columns: 34px minmax(0, 1fr);
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-status-live,
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-limite {
+        grid-column: 2;
+        justify-self: start;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-config-grid,
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium #listaDestaquesManuais {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 680px) {
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-hero,
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-hero-meta,
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-btn-salvar {
+        width: 100%;
+        min-width: 0;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-card {
+        padding: 14px !important;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-section-head,
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-section-head--lista {
+        grid-template-columns: 30px minmax(0, 1fr);
+    }
+}
