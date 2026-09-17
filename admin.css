@@ -12134,3 +12134,77 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
         grid-template-columns: 30px minmax(0, 1fr);
     }
 }
+
+
+/* ============================================================
+   PROMOÇÕES — RODAPÉ PREMIUM CORRIGIDO
+   Mantém a lógica intacta; corrige somente distribuição e alinhamento.
+   ============================================================ */
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    gap: 18px !important;
+    padding: 14px 16px !important;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes > div {
+    min-width: 0 !important;
+    width: auto !important;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes strong {
+    margin: 0 0 4px !important;
+    font-size: .76rem !important;
+    line-height: 1.2 !important;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes span {
+    max-width: 560px;
+    font-size: .64rem !important;
+    line-height: 1.35 !important;
+    white-space: normal !important;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-btn-salvar {
+    width: auto !important;
+    min-width: 190px !important;
+    max-width: 240px !important;
+    min-height: 40px !important;
+    justify-self: end !important;
+    margin: 0 !important;
+    padding: 9px 18px !important;
+    white-space: nowrap !important;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-msg:not(:empty) {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    min-height: 28px;
+    margin: 8px 2px 0 !important;
+    padding: 5px 9px;
+    border-radius: 8px;
+    background: rgba(31, 122, 68, .06);
+    color: #267442;
+    font-weight: 700;
+}
+
+@media (max-width: 680px) {
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+        align-items: stretch !important;
+    }
+
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-btn-salvar {
+        width: 100% !important;
+        max-width: none !important;
+        justify-self: stretch !important;
+    }
+
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-msg:not(:empty) {
+        justify-content: flex-start;
+        text-align: left;
+    }
+}
