@@ -13341,3 +13341,45 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
     .loja-premium-v2 .loja-status-pill,
     .loja-premium-v2 .loja-card-badge { align-self:flex-start; }
 }
+
+
+/* ============================================================
+   CLIENTES & MARKETING — HISTÓRICO DE NOTIFICAÇÕES
+   Movido da aba Loja para Notificações & Campanhas.
+   Apenas apresentação; IDs e lógica existentes preservados.
+   ============================================================ */
+.clientes-marketing-premium .campanhas-premium .campanhas-historico-card {
+    margin-top: 14px !important;
+}
+.clientes-marketing-premium .campanhas-premium .campanhas-historico-head { margin-bottom: 12px; }
+.clientes-marketing-premium .campanhas-premium .campanhas-historico-badge {
+    background: #f7fbf7;
+    border-color: #dcebdc;
+    color: #2d7a4a;
+}
+.clientes-marketing-premium .campanhas-premium .campanhas-historico-scroll {
+    max-height: 460px;
+    padding: 2px 5px 2px 1px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: #c7b6a8 transparent;
+}
+.clientes-marketing-premium .campanhas-premium .campanhas-historico-scroll > .loja-status-card {
+    margin: 0 0 8px !important;
+    padding: 12px 14px !important;
+    border: 1px solid #eee3d9 !important;
+    border-radius: 12px !important;
+    background: linear-gradient(180deg, #fff 0%, #fffdfa 100%) !important;
+    box-shadow: 0 4px 12px rgba(72,45,25,.04) !important;
+}
+.clientes-marketing-premium .campanhas-premium .campanhas-historico-scroll > .loja-status-card:last-child { margin-bottom: 0 !important; }
+.clientes-marketing-premium .campanhas-premium .campanhas-historico-scroll > .loja-status-card > strong {
+    color: #4d382b;
+    font-size: .78rem;
+}
+.clientes-marketing-premium .campanhas-premium .campanhas-historico-scroll > .loja-status-card > p { line-height: 1.4; }
+@media (max-width: 680px) {
+    .clientes-marketing-premium .campanhas-premium .campanhas-historico-head { align-items:flex-start; flex-direction:column; }
+    .clientes-marketing-premium .campanhas-premium .campanhas-historico-scroll { max-height:58vh; }
+}
