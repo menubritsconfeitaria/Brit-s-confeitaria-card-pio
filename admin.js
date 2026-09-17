@@ -7073,38 +7073,176 @@ function adicionarNovoProduto() {
 
 // ---------- CUPONS ----------
 
-let cuponsCache = {}; // guarda os cupons carregados, pra "Editar" conseguir preencher o formulário
+let cuponsCache = {}; // guarda os cupons carregados, pra edição, filtros e resumo visual
+
+function escaparHtmlCupomAdmin(valor) {
+    return String(valor == null ? '' : valor)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
+function hojeIsoCupomAdmin() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function formatarDataCupomAdmin(dataIso) {
+    if (!dataIso || !/^\d{4}-\d{2}-\d{2}$/.test(dataIso)) return '—';
+    const [ano, mes, dia] = dataIso.split('-');
+    return `${dia}/${mes}/${ano}`;
+}
+
+function obterStatusCupomAdmin(cupom) {
+    cupom = cupom || {};
+    const hoje = hojeIsoCupomAdmin();
+    const usos = Math.max(0, Number(cupom.usosContados) || 0);
+    const limite = Math.max(0, Number(cupom.limiteUsos) || 0);
+
+    if (limite > 0 && usos >= limite) return 'esgotado';
+    if (cupom.validoAte && cupom.validoAte < hoje) return 'expirado';
+    if (cupom.validoDe && cupom.validoDe > hoje) return 'agendado';
+    return 'ativo';
+}
+
+function rotuloStatusCupomAdmin(status) {
+    return {
+        ativo: '● Ativo',
+        agendado: '◷ Agendado',
+        expirado: 'Expirado',
+        esgotado: 'Esgotado'
+    }[status] || 'Ativo';
+}
+
+function detalheCupomAdmin(cupom) {
+    if (!cupom) return 'Benefício não informado';
+    if (cupom.tipo === 'percentual') return `${Number(cupom.valor) || 0}% de desconto`;
+    if (cupom.tipo === 'fixo') return `R$ ${(Number(cupom.valor) || 0).toFixed(2).replace('.', ',')} de desconto`;
+    if (cupom.tipo === 'frete_gratis') return 'Frete grátis';
+    return 'Benefício configurado';
+}
+
+function tipoCupomAdmin(cupom) {
+    return {
+        percentual: 'Percentual',
+        fixo: 'Valor fixo',
+        frete_gratis: 'Frete grátis'
+    }[(cupom && cupom.tipo) || ''] || 'Cupom';
+}
 
 function montarCupomLinha(codigo, cupom) {
     const div = document.createElement('div');
-    div.classList.add('cupom-admin-item');
-    let detalhe = 'Frete grátis';
-    if (cupom.tipo === 'percentual') detalhe = `${cupom.valor}% de desconto`;
-    else if (cupom.tipo === 'fixo') detalhe = `R$ ${Number(cupom.valor).toFixed(2).replace('.', ',')} de desconto`;
+    const status = obterStatusCupomAdmin(cupom);
+    div.className = `cupom-admin-item cupom-admin-item--premium cupom-status-${status}`;
+    div.dataset.status = status;
+    div.dataset.codigo = String(codigo || '').toUpperCase();
 
-    const partesExtra = [];
-    if (cupom.limiteUsos) partesExtra.push(`${cupom.usosContados || 0}/${cupom.limiteUsos} usado(s)`);
-    if (cupom.validoDe || cupom.validoAte) {
-        const de = cupom.validoDe ? cupom.validoDe.split('-').reverse().join('/') : '—';
-        const ate = cupom.validoAte ? cupom.validoAte.split('-').reverse().join('/') : '—';
-        partesExtra.push(`válido ${de} a ${ate}`);
-    }
-    const extraHtml = partesExtra.length > 0 ? `<small>${partesExtra.join(' · ')}</small>` : '';
+    const usos = Math.max(0, Number(cupom && cupom.usosContados) || 0);
+    const limite = Math.max(0, Number(cupom && cupom.limiteUsos) || 0);
+    const progresso = limite > 0 ? Math.min(100, Math.round((usos / limite) * 100)) : 0;
+    const usoTexto = limite > 0 ? `${usos} de ${limite}` : `${usos} uso${usos === 1 ? '' : 's'} · sem limite`;
+    const periodo = (cupom && (cupom.validoDe || cupom.validoAte))
+        ? `${cupom.validoDe ? formatarDataCupomAdmin(cupom.validoDe) : 'Início livre'} → ${cupom.validoAte ? formatarDataCupomAdmin(cupom.validoAte) : 'Sem data final'}`
+        : 'Sem período definido';
 
     div.innerHTML = `
-        <div class="cupom-admin-info">
-            <strong>${codigo}</strong>
-            <span>${detalhe}</span>
-            ${extraHtml}
+        <div class="cupom-item-topo">
+            <div class="cupom-item-identidade">
+                <span class="cupom-item-codigo">${escaparHtmlCupomAdmin(codigo)}</span>
+                <span class="cupom-item-tipo">${tipoCupomAdmin(cupom)}</span>
+            </div>
+            <span class="cupom-status-badge cupom-status-badge--${status}">${rotuloStatusCupomAdmin(status)}</span>
         </div>
-        <button class="btn-secondary" onclick="editarCupom('${codigo}')" title="Editar">✏️</button>
-        <button class="btn-excluir-cupom" onclick="excluirCupom('${codigo}')">🗑️</button>
+        <div class="cupom-item-beneficio">${detalheCupomAdmin(cupom)}</div>
+        <div class="cupom-item-meta-grid">
+            <div class="cupom-item-meta">
+                <span>UTILIZAÇÃO</span>
+                <strong>${usoTexto}</strong>
+                ${limite > 0 ? `<div class="cupom-uso-barra"><i style="width:${progresso}%"></i></div>` : '<small>Sem limite de resgates</small>'}
+            </div>
+            <div class="cupom-item-meta">
+                <span>VALIDADE</span>
+                <strong>${periodo}</strong>
+                <small>${status === 'agendado' ? 'Ainda não iniciou' : (status === 'expirado' ? 'Período encerrado' : 'Período configurado')}</small>
+            </div>
+        </div>
+        <div class="cupom-item-acoes">
+            <button type="button" class="btn-secondary cupom-editar-btn" title="Editar ${escaparHtmlCupomAdmin(codigo)}">✏️ Editar</button>
+            <button type="button" class="btn-excluir-cupom cupom-excluir-btn" title="Excluir ${escaparHtmlCupomAdmin(codigo)}">🗑️</button>
+        </div>
     `;
+
+    const editarBtn = div.querySelector('.cupom-editar-btn');
+    const excluirBtn = div.querySelector('.cupom-excluir-btn');
+    if (editarBtn) editarBtn.addEventListener('click', () => editarCupom(codigo));
+    if (excluirBtn) excluirBtn.addEventListener('click', () => excluirCupom(codigo));
     return div;
 }
 
-// Preenche o formulário com os valores atuais do cupom, pra editar sem precisar
-// lembrar/adivinhar o que já estava configurado antes
+function atualizarResumoCuponsAdmin() {
+    const cupons = Object.values(cuponsCache || {});
+    const contagem = { ativo: 0, agendado: 0, encerrado: 0 };
+    cupons.forEach(c => {
+        const status = obterStatusCupomAdmin(c);
+        if (status === 'ativo') contagem.ativo += 1;
+        else if (status === 'agendado') contagem.agendado += 1;
+        else contagem.encerrado += 1;
+    });
+
+    const set = (id, valor) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = valor;
+    };
+    set('cupomKpiTotal', cupons.length);
+    set('cupomKpiAtivos', contagem.ativo);
+    set('cupomKpiAgendados', contagem.agendado);
+    set('cupomKpiEncerrados', contagem.encerrado);
+}
+
+function renderizarCuponsAdmin() {
+    const lista = document.getElementById('cuponsAdminList');
+    if (!lista) return;
+
+    atualizarResumoCuponsAdmin();
+
+    const buscaEl = document.getElementById('buscaCupomAdmin');
+    const filtroEl = document.getElementById('filtroStatusCupomAdmin');
+    const busca = (buscaEl ? buscaEl.value : '').trim().toUpperCase();
+    const filtro = filtroEl ? filtroEl.value : 'todos';
+
+    const prioridade = { ativo: 0, agendado: 1, esgotado: 2, expirado: 3 };
+    const todos = Object.keys(cuponsCache || {}).sort((a, b) => {
+        const sa = obterStatusCupomAdmin(cuponsCache[a]);
+        const sb = obterStatusCupomAdmin(cuponsCache[b]);
+        return (prioridade[sa] - prioridade[sb]) || a.localeCompare(b, 'pt-BR');
+    });
+
+    const codigos = todos.filter(codigo => {
+        const status = obterStatusCupomAdmin(cuponsCache[codigo]);
+        const bateBusca = !busca || codigo.toUpperCase().includes(busca);
+        const bateFiltro = filtro === 'todos' || status === filtro || (filtro === 'encerrado' && ['expirado', 'esgotado'].includes(status));
+        return bateBusca && bateFiltro;
+    });
+
+    lista.innerHTML = '';
+    const resumo = document.getElementById('cupomListaResumo');
+    if (resumo) resumo.textContent = `${codigos.length} de ${todos.length} cupom${todos.length === 1 ? '' : 's'} exibido${codigos.length === 1 ? '' : 's'} · benefício, uso, validade e situação em uma única visão.`;
+
+    if (todos.length === 0) {
+        lista.innerHTML = '<div class="cupons-vazio-premium"><span>🎟️</span><strong>Nenhum cupom cadastrado</strong><p>Crie o primeiro benefício no formulário ao lado.</p></div>';
+        return;
+    }
+    if (codigos.length === 0) {
+        lista.innerHTML = '<div class="cupons-vazio-premium"><span>🔎</span><strong>Nenhum cupom encontrado</strong><p>Ajuste a busca ou o filtro de status.</p></div>';
+        return;
+    }
+
+    codigos.forEach(codigo => lista.appendChild(montarCupomLinha(codigo, cuponsCache[codigo])));
+}
+
+// Preenche o formulário com os valores atuais do cupom, mantendo o mesmo formato de dados já usado.
 function editarCupom(codigo) {
     const cupom = cuponsCache[codigo];
     if (!cupom) return;
@@ -7115,27 +7253,87 @@ function editarCupom(codigo) {
     document.getElementById('novoCupomValidoDe').value = cupom.validoDe || '';
     document.getElementById('novoCupomValidoAte').value = cupom.validoAte || '';
     atualizarCampoValorCupom();
-    document.getElementById('novoCupomCodigo').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    atualizarPreviaCupomAdmin();
+
+    const titulo = document.getElementById('cupomFormTitulo');
+    const salvar = document.getElementById('btnCupomSalvar');
+    const cancelar = document.getElementById('btnCupomCancelarEdicao');
+    if (titulo) titulo.textContent = `Editar ${codigo}`;
+    if (salvar) salvar.textContent = '💾 Salvar alterações';
+    if (cancelar) cancelar.style.display = 'inline-flex';
+
+    const input = document.getElementById('novoCupomCodigo');
+    if (input) input.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function escutarCupons() {
     db.ref('cupons').on('value', snap => {
-        const val = snap.val() || {};
-        cuponsCache = val;
-        const codigos = Object.keys(val);
-        const lista = document.getElementById('cuponsAdminList');
-        lista.innerHTML = '';
-        if (codigos.length === 0) {
-            lista.innerHTML = '<p class="vazio">Nenhum cupom cadastrado.</p>';
-            return;
-        }
-        codigos.forEach(codigo => lista.appendChild(montarCupomLinha(codigo, val[codigo])));
+        cuponsCache = snap.val() || {};
+        renderizarCuponsAdmin();
+        atualizarPreviaCupomAdmin();
     });
 }
 
 function atualizarCampoValorCupom() {
-    const tipo = document.getElementById('novoCupomTipo').value;
-    document.getElementById('novoCupomValor').style.display = tipo === 'frete_gratis' ? 'none' : 'block';
+    const tipoEl = document.getElementById('novoCupomTipo');
+    const valorEl = document.getElementById('novoCupomValor');
+    if (!tipoEl || !valorEl) return;
+    const ocultarValor = tipoEl.value === 'frete_gratis';
+    const campo = valorEl.closest('.cupom-form-campo');
+    const grid = valorEl.closest('.cupom-form-grid');
+
+    valorEl.style.display = ocultarValor ? 'none' : 'block';
+    if (campo) campo.style.display = ocultarValor ? 'none' : 'flex';
+    if (grid) grid.classList.toggle('cupom-form-grid--sem-valor', ocultarValor);
+}
+
+function atualizarPreviaCupomAdmin() {
+    const codigoEl = document.getElementById('novoCupomCodigo');
+    const tipoEl = document.getElementById('novoCupomTipo');
+    const valorEl = document.getElementById('novoCupomValor');
+    const limiteEl = document.getElementById('novoCupomLimiteUsos');
+    const deEl = document.getElementById('novoCupomValidoDe');
+    const ateEl = document.getElementById('novoCupomValidoAte');
+    if (!codigoEl || !tipoEl) return;
+
+    const codigo = codigoEl.value.trim().toUpperCase() || 'SEUCUPOM';
+    const valor = paraNumero(valorEl ? valorEl.value : '');
+    let beneficio = 'Defina o tipo e o valor do benefício.';
+    if (tipoEl.value === 'percentual') beneficio = valor > 0 ? `${valor}% de desconto` : 'Percentual de desconto a definir';
+    if (tipoEl.value === 'fixo') beneficio = valor > 0 ? `R$ ${valor.toFixed(2).replace('.', ',')} de desconto` : 'Valor de desconto a definir';
+    if (tipoEl.value === 'frete_gratis') beneficio = 'Frete grátis no pedido';
+
+    const limite = limiteEl && limiteEl.value.trim() ? `${limiteEl.value.trim()} resgates no máximo` : 'Sem limite de resgates';
+    const de = deEl && deEl.value ? formatarDataCupomAdmin(deEl.value) : '';
+    const ate = ateEl && ateEl.value ? formatarDataCupomAdmin(ateEl.value) : '';
+    const periodo = de || ate ? `${de || 'início livre'} → ${ate || 'sem data final'}` : 'Sem período definido';
+
+    const cod = document.getElementById('cupomPreviewCodigo');
+    const ben = document.getElementById('cupomPreviewBeneficio');
+    const regras = document.getElementById('cupomPreviewRegras');
+    if (cod) cod.textContent = codigo;
+    if (ben) ben.textContent = beneficio;
+    if (regras) regras.textContent = `${limite} · ${periodo}`;
+}
+
+function limparFormularioCupomAdmin() {
+    const campos = ['novoCupomCodigo', 'novoCupomValor', 'novoCupomLimiteUsos', 'novoCupomValidoDe', 'novoCupomValidoAte'];
+    campos.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    const tipo = document.getElementById('novoCupomTipo');
+    if (tipo) tipo.value = 'percentual';
+
+    const titulo = document.getElementById('cupomFormTitulo');
+    const salvar = document.getElementById('btnCupomSalvar');
+    const cancelar = document.getElementById('btnCupomCancelarEdicao');
+    if (titulo) titulo.textContent = 'Novo cupom';
+    if (salvar) salvar.textContent = '💾 Salvar cupom';
+    if (cancelar) cancelar.style.display = 'none';
+
+    atualizarCampoValorCupom();
+    atualizarPreviaCupomAdmin();
 }
 
 function adicionarCupom() {
@@ -7161,19 +7359,19 @@ function adicionarCupom() {
     if (validoDe) dadosCupom.validoDe = validoDe;
     if (validoAte) dadosCupom.validoAte = validoAte;
 
-    // Se já existir um cupom com esse código (editando de novo), preserva o contador de
-    // usos que já tinha — só zera de verdade quando o código é genuinamente novo
+    // Se já existir um cupom com esse código (editando de novo), preserva o contador de usos.
     db.ref('cupons/' + codigo).once('value').then(snap => {
         const existente = snap.val();
         dadosCupom.usosContados = (existente && existente.usosContados) || 0;
         return db.ref('cupons/' + codigo).set(dadosCupom);
     })
         .then(() => {
-            document.getElementById('novoCupomCodigo').value = '';
-            document.getElementById('novoCupomValor').value = '';
-            document.getElementById('novoCupomLimiteUsos').value = '';
-            document.getElementById('novoCupomValidoDe').value = '';
-            document.getElementById('novoCupomValidoAte').value = '';
+            limparFormularioCupomAdmin();
+            const msg = document.getElementById('cupomFormMsg');
+            if (msg) {
+                msg.textContent = '✅ Cupom salvo com sucesso.';
+                setTimeout(() => { msg.textContent = ''; }, 3000);
+            }
         })
         .catch(err => alert('Erro ao salvar cupom: ' + err.message));
 }

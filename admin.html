@@ -721,26 +721,125 @@
                         </div>
                     </div>
                 </div>
-                <div class="hub-subpanel" data-cm-subtab="cupons">
-
-                <h2>🎟️ Cupons de desconto</h2>
-                <div id="cuponsAdminList" class="cupons-admin-list"></div>
-                <div class="cupom-novo-form">
-                    <input type="text" id="novoCupomCodigo" placeholder="Código (ex: BRITS10)">
-                    <select id="novoCupomTipo" onchange="atualizarCampoValorCupom()">
-                        <option value="percentual">Percentual (%)</option>
-                        <option value="fixo">Valor fixo (R$)</option>
-                        <option value="frete_gratis">Frete grátis</option>
-                    </select>
-                    <input type="text" inputmode="decimal" id="novoCupomValor" placeholder="Valor">
-                    <input type="number" id="novoCupomLimiteUsos" placeholder="Limite de resgates (vazio = sem limite)" min="0">
-                    <div class="produto-admin-linha">
-                        <div class="campo-com-label"><label class="campo-label">Válido de</label><input type="date" id="novoCupomValidoDe"></div>
-                        <div class="campo-com-label"><label class="campo-label">Válido até</label><input type="date" id="novoCupomValidoAte"></div>
+                <div class="hub-subpanel cupons-premium" data-cm-subtab="cupons">
+                    <div class="cupons-premium-head">
+                        <div>
+                            <span class="cupons-premium-kicker">INCENTIVOS & CONVERSÃO</span>
+                            <h2>🎟️ Cupons de desconto</h2>
+                            <p>Crie benefícios com regras claras, acompanhe validade e uso, e mantenha seus incentivos organizados sem perder controle.</p>
+                        </div>
+                        <span class="cupons-premium-badge">Gestão de benefícios</span>
                     </div>
-                    <button onclick="adicionarCupom()">+ Adicionar cupom</button>
-                </div>
-            
+
+                    <div class="cupons-kpis" aria-label="Resumo dos cupons">
+                        <div class="cupons-kpi">
+                            <span>Total</span>
+                            <strong id="cupomKpiTotal">0</strong>
+                            <small>cupons cadastrados</small>
+                        </div>
+                        <div class="cupons-kpi cupons-kpi--ativo">
+                            <span>Ativos</span>
+                            <strong id="cupomKpiAtivos">0</strong>
+                            <small>prontos para uso</small>
+                        </div>
+                        <div class="cupons-kpi cupons-kpi--agendado">
+                            <span>Agendados</span>
+                            <strong id="cupomKpiAgendados">0</strong>
+                            <small>ainda vão começar</small>
+                        </div>
+                        <div class="cupons-kpi cupons-kpi--encerrado">
+                            <span>Encerrados</span>
+                            <strong id="cupomKpiEncerrados">0</strong>
+                            <small>expirados ou esgotados</small>
+                        </div>
+                    </div>
+
+                    <div class="cupons-premium-toolbar">
+                        <div class="cupons-busca-wrap">
+                            <span aria-hidden="true">🔎</span>
+                            <input type="text" id="buscaCupomAdmin" placeholder="Buscar cupom pelo código..." oninput="renderizarCuponsAdmin()" aria-label="Buscar cupom pelo código">
+                        </div>
+                        <select id="filtroStatusCupomAdmin" onchange="renderizarCuponsAdmin()" aria-label="Filtrar cupons por status">
+                            <option value="todos">Todos os status</option>
+                            <option value="ativo">Ativos</option>
+                            <option value="agendado">Agendados</option>
+                            <option value="encerrado">Encerrados</option>
+                        </select>
+                    </div>
+
+                    <div class="cupons-premium-layout">
+                        <div class="cupons-lista-card">
+                            <div class="cupons-card-head">
+                                <div>
+                                    <span class="cupons-card-kicker">CATÁLOGO</span>
+                                    <h3>Cupons cadastrados</h3>
+                                    <p id="cupomListaResumo">Acompanhe benefício, uso, validade e situação em uma única visão.</p>
+                                </div>
+                            </div>
+                            <div id="cuponsAdminList" class="cupons-admin-list cupons-admin-list--premium"></div>
+                        </div>
+
+                        <aside class="cupons-form-card">
+                            <div class="cupons-card-head cupons-card-head--form">
+                                <div>
+                                    <span class="cupons-card-kicker">CRIAR OU EDITAR</span>
+                                    <h3 id="cupomFormTitulo">Novo cupom</h3>
+                                    <p>Defina o benefício, o limite de resgates e o período de validade.</p>
+                                </div>
+                            </div>
+
+                            <div class="cupom-novo-form cupom-novo-form--premium">
+                                <div class="campo-com-label cupom-form-campo cupom-form-campo--codigo">
+                                    <label class="campo-label" for="novoCupomCodigo">Código do cupom</label>
+                                    <input type="text" id="novoCupomCodigo" placeholder="Ex: DESCONTO10" oninput="atualizarPreviaCupomAdmin()">
+                                </div>
+
+                                <div class="cupom-form-grid cupom-form-grid--beneficio">
+                                    <div class="campo-com-label cupom-form-campo">
+                                        <label class="campo-label" for="novoCupomTipo">Tipo do benefício</label>
+                                        <select id="novoCupomTipo" onchange="atualizarCampoValorCupom(); atualizarPreviaCupomAdmin();">
+                                            <option value="percentual">Percentual (%)</option>
+                                            <option value="fixo">Valor fixo (R$)</option>
+                                            <option value="frete_gratis">Frete grátis</option>
+                                        </select>
+                                    </div>
+                                    <div class="campo-com-label cupom-form-campo">
+                                        <label class="campo-label" for="novoCupomValor">Valor</label>
+                                        <input type="text" inputmode="decimal" id="novoCupomValor" placeholder="Ex: 10" oninput="atualizarPreviaCupomAdmin()">
+                                    </div>
+                                </div>
+
+                                <div class="campo-com-label cupom-form-campo">
+                                    <label class="campo-label" for="novoCupomLimiteUsos">Limite de resgates</label>
+                                    <input type="number" id="novoCupomLimiteUsos" placeholder="Vazio = sem limite" min="0" oninput="atualizarPreviaCupomAdmin()">
+                                </div>
+
+                                <div class="cupom-form-grid cupom-form-grid--datas">
+                                    <div class="campo-com-label cupom-form-campo">
+                                        <label class="campo-label" for="novoCupomValidoDe">Válido de</label>
+                                        <input type="date" id="novoCupomValidoDe" onchange="atualizarPreviaCupomAdmin()">
+                                    </div>
+                                    <div class="campo-com-label cupom-form-campo">
+                                        <label class="campo-label" for="novoCupomValidoAte">Válido até</label>
+                                        <input type="date" id="novoCupomValidoAte" onchange="atualizarPreviaCupomAdmin()">
+                                    </div>
+                                </div>
+
+                                <div class="cupom-preview" aria-live="polite">
+                                    <span class="cupom-preview-label">PRÉVIA</span>
+                                    <strong id="cupomPreviewCodigo">SEUCUPOM</strong>
+                                    <p id="cupomPreviewBeneficio">Defina o tipo e o valor do benefício.</p>
+                                    <small id="cupomPreviewRegras">Sem limite de resgates · Sem período definido</small>
+                                </div>
+
+                                <div class="cupom-form-acoes">
+                                    <button type="button" id="btnCupomSalvar" class="btn-salvar-ordem cupom-btn-salvar" onclick="adicionarCupom()">💾 Salvar cupom</button>
+                                    <button type="button" id="btnCupomCancelarEdicao" class="btn-secondary cupom-btn-cancelar" onclick="limparFormularioCupomAdmin()" style="display:none;">Cancelar edição</button>
+                                </div>
+                                <p id="cupomFormMsg" class="cupom-form-msg" aria-live="polite"></p>
+                            </div>
+                        </aside>
+                    </div>
                 </div>
                 <div class="hub-subpanel" data-cm-subtab="fidelidade">
 

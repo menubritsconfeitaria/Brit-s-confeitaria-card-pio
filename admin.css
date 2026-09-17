@@ -10641,3 +10641,608 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
         transform: translateX(-50%) !important;
     }
 }
+
+/* ============================================================
+   CLIENTES & MARKETING — CUPONS PREMIUM REFINADO
+   Escopo isolado à subaba Cupons. Mantém IDs e dados existentes.
+   ============================================================ */
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium [data-cm-subtab="cupons"].cupons-premium {
+    --cp-ink: #4b372b;
+    --cp-muted: #8b7667;
+    --cp-border: #eadfd4;
+    --cp-soft: #fffaf5;
+    --cp-soft-2: #f8f2eb;
+    --cp-primary: #ae5a2d;
+    --cp-primary-dark: #8f4724;
+    --cp-green: #2f8a59;
+    --cp-green-bg: #eef9f2;
+    --cp-blue: #547d9d;
+    --cp-blue-bg: #eff6fb;
+    --cp-orange: #a66a21;
+    --cp-orange-bg: #fff6e8;
+    --cp-red: #a64b45;
+    --cp-red-bg: #fff0ee;
+    padding: 18px !important;
+    background: rgba(255,255,255,.84) !important;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-premium-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 4px 2px 16px;
+    border-bottom: 1px solid #efe6dd;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-premium-kicker,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-card-kicker {
+    display: block;
+    margin-bottom: 5px;
+    color: #b16b43;
+    font-size: .61rem;
+    font-weight: 800;
+    letter-spacing: .11em;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-premium-head h2 {
+    margin: 0 0 5px;
+    color: var(--cp-ink);
+    font-size: 1.22rem;
+    letter-spacing: -.025em;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-premium-head p {
+    max-width: 720px;
+    margin: 0;
+    color: var(--cp-muted);
+    font-size: .75rem;
+    line-height: 1.5;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-premium-badge {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 6px 11px;
+    border: 1px solid #eadbcf;
+    border-radius: 999px;
+    background: #fffaf5;
+    color: #8f5a3a;
+    font-size: .64rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 9px;
+    margin: 14px 0 10px;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-kpi {
+    min-width: 0;
+    padding: 11px 12px;
+    border: 1px solid var(--cp-border);
+    border-radius: 13px;
+    background: linear-gradient(180deg, #fff, #fffdfa);
+    box-shadow: 0 4px 13px rgba(72,45,25,.035);
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-kpi > span {
+    display: block;
+    margin-bottom: 3px;
+    color: var(--cp-muted);
+    font-size: .61rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-kpi strong {
+    display: block;
+    color: var(--cp-ink);
+    font-size: 1.26rem;
+    line-height: 1.1;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-kpi small {
+    display: block;
+    margin-top: 4px;
+    color: #a08d80;
+    font-size: .59rem;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-kpi--ativo {
+    border-color: #d7eadf;
+    background: linear-gradient(180deg, #fff, #f7fcf9);
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-kpi--ativo strong { color: var(--cp-green); }
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-kpi--agendado {
+    border-color: #dbe8f2;
+    background: linear-gradient(180deg, #fff, #f7fbfe);
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-kpi--agendado strong { color: var(--cp-blue); }
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-kpi--encerrado {
+    border-color: #edddd8;
+    background: linear-gradient(180deg, #fff, #fdf9f7);
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-kpi--encerrado strong { color: var(--cp-red); }
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-premium-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 205px;
+    gap: 9px;
+    align-items: center;
+    margin-bottom: 11px;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-busca-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 39px;
+    padding: 0 11px;
+    border: 1px solid #e4d8cc;
+    border-radius: 11px;
+    background: #fff;
+    box-sizing: border-box;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-busca-wrap span {
+    flex: 0 0 auto;
+    font-size: .75rem;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-busca-wrap input,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium #filtroStatusCupomAdmin {
+    width: 100%;
+    min-width: 0;
+    min-height: 37px;
+    margin: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--cp-ink);
+    font-family: inherit;
+    font-size: .72rem;
+    box-sizing: border-box;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium #filtroStatusCupomAdmin {
+    padding: 0 10px;
+    border: 1px solid #e4d8cc;
+    border-radius: 11px;
+    background: #fff;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-premium-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.36fr) minmax(315px, .84fr);
+    gap: 12px;
+    align-items: start;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-lista-card,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-form-card {
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid var(--cp-border);
+    border-radius: 15px;
+    background: #fff;
+    box-shadow: 0 6px 18px rgba(72,45,25,.045);
+    box-sizing: border-box;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-form-card {
+    position: sticky;
+    top: 14px;
+    background: linear-gradient(180deg, #fff, #fffaf5);
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding-bottom: 9px;
+    border-bottom: 1px solid #f1e8df;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-card-head h3 {
+    margin: 0 0 3px;
+    color: var(--cp-ink);
+    font-size: .9rem;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-card-head p {
+    margin: 0;
+    color: var(--cp-muted);
+    font-size: .62rem;
+    line-height: 1.45;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-admin-list--premium {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 8px !important;
+    max-height: 620px;
+    margin: 0 !important;
+    padding-right: 3px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-admin-item--premium {
+    display: block !important;
+    min-width: 0;
+    margin: 0 !important;
+    padding: 11px 12px !important;
+    border: 1px solid #ebe1d7 !important;
+    border-radius: 12px !important;
+    background: linear-gradient(180deg, #fff, #fffdfa) !important;
+    box-shadow: 0 3px 10px rgba(72,45,25,.035) !important;
+    transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-admin-item--premium:hover {
+    transform: translateY(-1px);
+    border-color: #ddcab8 !important;
+    box-shadow: 0 7px 16px rgba(72,45,25,.06) !important;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-item-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-item-identidade {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-item-codigo {
+    min-width: 0;
+    color: var(--cp-primary);
+    font-size: .84rem;
+    font-weight: 900;
+    letter-spacing: .01em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-item-tipo {
+    flex: 0 0 auto;
+    padding: 4px 7px;
+    border: 1px solid #eadfd4;
+    border-radius: 999px;
+    background: #fffaf5;
+    color: #8d6f5b;
+    font-size: .56rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-status-badge {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 4px 8px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: .57rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-status-badge--ativo {
+    color: var(--cp-green);
+    border-color: #d4e9dc;
+    background: var(--cp-green-bg);
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-status-badge--agendado {
+    color: var(--cp-blue);
+    border-color: #d6e5ef;
+    background: var(--cp-blue-bg);
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-status-badge--expirado {
+    color: #846e61;
+    border-color: #e5dcd5;
+    background: #f7f4f1;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-status-badge--esgotado {
+    color: var(--cp-red);
+    border-color: #efd8d4;
+    background: var(--cp-red-bg);
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-item-beneficio {
+    margin: 8px 0;
+    color: var(--cp-ink);
+    font-size: .76rem;
+    font-weight: 800;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-item-meta-grid {
+    display: grid;
+    grid-template-columns: minmax(0, .78fr) minmax(0, 1.22fr);
+    gap: 7px;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-item-meta {
+    min-width: 0;
+    padding: 8px 9px;
+    border: 1px solid #f0e7df;
+    border-radius: 9px;
+    background: #fcfaf7;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-item-meta > span {
+    display: block;
+    margin-bottom: 3px;
+    color: #a18776;
+    font-size: .51rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-item-meta strong {
+    display: block;
+    color: #5f4839;
+    font-size: .63rem;
+    line-height: 1.35;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-item-meta small {
+    display: block;
+    margin-top: 3px;
+    color: #a08c7e;
+    font-size: .53rem;
+    line-height: 1.3;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-uso-barra {
+    height: 4px;
+    margin-top: 6px;
+    border-radius: 999px;
+    background: #eadfd6;
+    overflow: hidden;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-uso-barra i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #c47a45, #a9552c);
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-item-acoes {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 7px;
+    border-top: 1px solid #f2e9e1;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-item-acoes .btn-secondary {
+    min-height: 29px;
+    margin: 0 !important;
+    padding: 5px 9px;
+    border-radius: 8px;
+    font-size: .59rem;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-item-acoes .cupom-excluir-btn {
+    display: inline-grid;
+    place-items: center;
+    width: 29px;
+    height: 29px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid #eedfdb;
+    border-radius: 8px;
+    background: #fff8f6;
+    opacity: .75;
+    font-size: .68rem;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-item-acoes .cupom-excluir-btn:hover {
+    opacity: 1;
+    background: #fff0ed;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-novo-form--premium {
+    display: flex !important;
+    flex-direction: column;
+    gap: 9px !important;
+    margin: 0;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-novo-form--premium .cupom-form-campo {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-novo-form--premium .campo-label {
+    margin: 0 0 4px !important;
+    color: #725c4d;
+    font-size: .62rem;
+    font-weight: 800;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-novo-form--premium input,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-novo-form--premium select {
+    width: 100%;
+    min-width: 0 !important;
+    min-height: 37px !important;
+    margin: 0 !important;
+    padding: 7px 9px !important;
+    border: 1px solid #e1d4c8 !important;
+    border-radius: 10px !important;
+    background: #fff !important;
+    color: var(--cp-ink) !important;
+    box-sizing: border-box;
+    font-size: .69rem !important;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-novo-form--premium input:focus,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-novo-form--premium select:focus {
+    outline: none;
+    border-color: #c99572 !important;
+    box-shadow: 0 0 0 3px rgba(174,90,45,.08);
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-form-grid--sem-valor {
+    grid-template-columns: 1fr;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-preview {
+    padding: 10px 11px;
+    border: 1px solid #eadfd3;
+    border-radius: 11px;
+    background: linear-gradient(145deg, #fffaf5, #fff);
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-preview-label {
+    display: block;
+    margin-bottom: 5px;
+    color: #b17550;
+    font-size: .51rem;
+    font-weight: 900;
+    letter-spacing: .08em;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-preview strong {
+    display: block;
+    color: var(--cp-primary);
+    font-size: .8rem;
+    letter-spacing: .02em;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-preview p {
+    margin: 3px 0;
+    color: var(--cp-ink);
+    font-size: .66rem;
+    font-weight: 700;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-preview small {
+    display: block;
+    color: var(--cp-muted);
+    font-size: .55rem;
+    line-height: 1.35;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-form-acoes {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-form-acoes .cupom-btn-salvar {
+    flex: 1 1 auto;
+    min-height: 38px;
+    margin: 0 !important;
+    padding: 8px 11px !important;
+    border-radius: 10px;
+    font-size: .67rem;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-form-acoes .cupom-btn-cancelar {
+    flex: 0 0 auto;
+    min-height: 38px;
+    margin: 0 !important;
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-size: .61rem;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-form-msg {
+    min-height: 16px;
+    margin: 0;
+    color: var(--cp-green);
+    font-size: .59rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-vazio-premium {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 190px;
+    padding: 18px;
+    border: 1px dashed #dfd3c8;
+    border-radius: 12px;
+    background: #fcfaf7;
+    text-align: center;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-vazio-premium > span {
+    margin-bottom: 7px;
+    font-size: 1.15rem;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-vazio-premium strong {
+    color: var(--cp-ink);
+    font-size: .72rem;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-vazio-premium p {
+    margin: 4px 0 0;
+    color: var(--cp-muted);
+    font-size: .59rem;
+}
+
+@media (max-width: 960px) {
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-premium-layout {
+        grid-template-columns: 1fr;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-form-card {
+        position: static;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-admin-list--premium {
+        max-height: none;
+    }
+}
+
+@media (max-width: 700px) {
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium [data-cm-subtab="cupons"].cupons-premium {
+        padding: 14px !important;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-premium-head {
+        flex-direction: column;
+        gap: 9px;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupons-premium-toolbar,
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-form-grid,
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-item-meta-grid {
+        grid-template-columns: 1fr;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .cupom-item-topo {
+        align-items: flex-start;
+    }
+}
