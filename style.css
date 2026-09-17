@@ -4200,3 +4200,460 @@ footer .footer-seguranca-titulo {
         gap: 8px;
     }
 }
+
+/* ============================================================
+   PEDEAKI SITE — TOPO / VITRINE / CATEGORIAS PREMIUM V6
+   Lapidação visual cuidadosa. Sem alterações de lógica, IDs ou JS.
+   ============================================================ */
+
+/* Cabeçalho do cardápio: mais compacto, elegante e focado no conteúdo. */
+header {
+    padding: 16px 0 14px;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+    border-bottom: 1px solid rgba(226, 209, 191, .82);
+    background:
+        radial-gradient(circle at 50% -40%, rgba(229, 190, 154, .18), transparent 52%),
+        linear-gradient(180deg, #ffffff 0%, #fffdf9 100%);
+    box-shadow: 0 7px 24px rgba(67, 40, 24, .065);
+}
+
+header .container {
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+header .logo {
+    max-width: 92px;
+    margin-bottom: 6px;
+    filter: drop-shadow(0 4px 8px rgba(85, 50, 31, .08));
+}
+
+header h1 {
+    font-size: clamp(1.35rem, 2vw, 1.75rem);
+    line-height: 1.18;
+    letter-spacing: -.02em;
+}
+
+header p:not(.header-cidade) {
+    width: min(100%, 760px);
+    margin: 7px auto 0;
+    font-size: .9rem;
+    line-height: 1.55;
+}
+
+.header-cidade:not(:empty) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 26px;
+    margin-top: 7px;
+    padding: 4px 10px;
+    border: 1px solid rgba(205, 172, 140, .5);
+    border-radius: 999px;
+    background: rgba(251, 244, 236, .82);
+    font-size: .72rem;
+}
+
+.sino-notificacoes {
+    top: 12px;
+    right: max(14px, var(--site-gutter));
+    width: 36px;
+    height: 36px;
+    border-color: #cfe8d7;
+    box-shadow: 0 6px 16px rgba(31, 117, 63, .1);
+}
+
+/* Avisos operacionais: mais finos e fáceis de identificar sem competir com a vitrine. */
+.status-loja-banner {
+    min-height: 34px;
+    padding: 7px var(--site-gutter);
+    border-bottom: 1px solid rgba(0, 0, 0, .04);
+    font-size: .78rem;
+    letter-spacing: .005em;
+}
+
+.oferta-banner,
+.status-pedido-banner {
+    min-height: 36px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+}
+
+/* Benefícios: pequenos sinais de confiança, não caixas pesadas. */
+main > .container:first-of-type {
+    padding-top: 13px;
+    padding-bottom: 8px;
+}
+
+main > .container:first-of-type .destaques {
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+main > .container:first-of-type .destaque-item {
+    min-height: 46px;
+    padding: 8px 12px;
+    border-color: rgba(225, 207, 189, .8);
+    background: linear-gradient(180deg, #fff 0%, #fffdf9 100%);
+    box-shadow: 0 7px 18px rgba(72, 43, 25, .055);
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+main > .container:first-of-type .destaque-item:hover {
+    transform: translateY(-1px);
+    border-color: rgba(195, 150, 111, .52);
+    box-shadow: 0 10px 22px rgba(72, 43, 25, .075);
+}
+
+main > .container:first-of-type .destaque-item .emoji {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+    background: #fbf2e8;
+    font-size: 14px;
+}
+
+main > .container:first-of-type .destaque-item .txt {
+    color: #6c5544;
+    font-size: .72rem;
+    line-height: 1.25;
+}
+
+.btn-notificacoes {
+    width: fit-content;
+    max-width: 100%;
+    min-height: 34px;
+    margin: 0 auto 3px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    border-color: rgba(205, 172, 140, .68);
+    background: rgba(255, 252, 247, .96);
+    box-shadow: 0 5px 14px rgba(72, 43, 25, .045);
+    font-size: .74rem;
+}
+
+/* Carrossel: preserva o comportamento atual; melhora somente acabamento e leitura. */
+.carrossel-destaques.container {
+    margin-top: 9px;
+    margin-bottom: 26px;
+    border-radius: 23px;
+    border-color: rgba(178, 129, 91, .26);
+    background: #fffaf6;
+    box-shadow:
+        0 18px 42px rgba(83, 46, 27, .12),
+        0 1px 0 rgba(255,255,255,.9) inset;
+}
+
+.carrossel-slide {
+    height: clamp(225px, 19vw, 270px);
+}
+
+.carrossel-foto {
+    width: 60%;
+}
+
+.carrossel-slide::after {
+    background: linear-gradient(90deg,
+        rgba(255,250,246,.995) 0%,
+        rgba(255,250,246,.975) 39%,
+        rgba(255,250,246,.78) 53%,
+        rgba(255,250,246,.12) 75%);
+}
+
+.carrossel-slide-info {
+    width: min(54%, 540px);
+    padding: 27px 28px 34px;
+    gap: 7px;
+}
+
+.carrossel-kicker {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: rgba(185, 108, 114, .09);
+    font-size: .65rem;
+    letter-spacing: .1em;
+}
+
+.carrossel-slide-info strong {
+    color: #4b2e24;
+    font-size: clamp(1.32rem, 2vw, 1.9rem);
+    line-height: 1.06;
+}
+
+.carrossel-preco {
+    color: #964a34;
+}
+
+.carrossel-cta {
+    min-height: 38px;
+    padding: 9px 17px;
+    background: linear-gradient(145deg, #b96443 0%, #994726 100%);
+    box-shadow: 0 9px 20px rgba(153, 71, 38, .2);
+}
+
+.carrossel-destaque-seta {
+    width: 38px;
+    height: 38px;
+    border: 1px solid rgba(210, 184, 161, .72);
+    background: rgba(255,255,255,.94);
+    box-shadow: 0 7px 18px rgba(65, 38, 24, .14);
+    transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+.carrossel-destaque-seta:hover {
+    background: #fff;
+    box-shadow: 0 9px 22px rgba(65, 38, 24, .18);
+}
+
+.carrossel-destaque-anterior:hover { transform: translateY(-50%) translateX(-1px); }
+.carrossel-destaque-proximo:hover { transform: translateY(-50%) translateX(1px); }
+
+.carrossel-bolinhas {
+    bottom: 11px;
+    gap: 7px;
+    padding: 5px 8px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.62);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+}
+
+.carrossel-bolinha {
+    width: 7px;
+    height: 7px;
+    background: rgba(92, 56, 41, .24);
+    transition: transform .18s ease, background .18s ease;
+}
+
+.carrossel-bolinha.ativa {
+    background: #9f4e34;
+    transform: scale(1.28);
+}
+
+/* Banner enviado pela loja continua inteiro, sem crop nem overlay. */
+.carrossel-slide-banner {
+    background: #fff;
+}
+
+.carrossel-banner-imagem {
+    object-fit: contain;
+}
+
+/* Entrada do catálogo: editorial e mais clara, sem aumentar demais a tela. */
+#produtos-destaque > h2 {
+    position: relative;
+    width: fit-content;
+    margin: 2px auto 17px;
+    padding: 0 42px;
+    color: #8e4728;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(1.45rem, 2.15vw, 2.05rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -.025em;
+}
+
+#produtos-destaque > h2::before,
+#produtos-destaque > h2::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 28px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(166, 96, 55, .55));
+}
+
+#produtos-destaque > h2::before {
+    left: 0;
+}
+
+#produtos-destaque > h2::after {
+    right: 0;
+    transform: scaleX(-1);
+}
+
+/* Navegação por categorias: barra premium, scroll suave e estado ativo mais forte. */
+#produtos-destaque .categorias {
+    top: 37px;
+    margin-bottom: 26px;
+    padding: 9px 10px;
+    border-radius: 17px;
+    border-color: rgba(220, 201, 183, .9);
+    background: rgba(255, 253, 249, .95);
+    box-shadow: 0 10px 27px rgba(67, 40, 24, .085);
+}
+
+#produtos-destaque .categorias ul {
+    gap: 7px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+}
+
+#produtos-destaque .categorias ul::-webkit-scrollbar {
+    display: none;
+}
+
+#produtos-destaque .categorias button {
+    scroll-snap-align: start;
+    min-height: 34px;
+    padding: 7px 13px;
+    border-color: rgba(218, 198, 179, .9);
+    background: #fbf6ef;
+    color: #755039;
+    font-size: .76rem;
+    box-shadow: none;
+}
+
+#produtos-destaque .categorias button:hover {
+    border-color: #cca884;
+    background: #f4e7d7;
+    color: #6c3b22;
+}
+
+#produtos-destaque .categorias button.active {
+    border-color: #9d4b28;
+    background: linear-gradient(145deg, #b55d32, #914320);
+    color: #fff;
+    box-shadow: 0 6px 15px rgba(145, 67, 32, .18);
+}
+
+/* Títulos das categorias com separação mais discreta. */
+#produtos-destaque .categoria-titulo {
+    margin-top: 28px;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(221, 202, 183, .82);
+    color: #583a29;
+    font-size: clamp(1rem, 1.2vw, 1.17rem);
+    font-weight: 700;
+}
+
+@media (max-width: 900px) {
+    main > .container:first-of-type .destaques {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .carrossel-slide-info {
+        width: 58%;
+        padding-left: 22px;
+        padding-right: 20px;
+    }
+}
+
+@media (max-width: 700px) {
+    header {
+        padding: 14px 0 12px;
+        border-bottom-left-radius: 17px;
+        border-bottom-right-radius: 17px;
+    }
+
+    header .logo {
+        max-width: 76px;
+        margin-bottom: 4px;
+    }
+
+    header h1 {
+        font-size: 1.24rem;
+    }
+
+    header p:not(.header-cidade) {
+        font-size: .78rem;
+        line-height: 1.45;
+    }
+
+    .carrossel-destaques.container {
+        border-radius: 18px;
+        margin-bottom: 21px;
+    }
+
+    .carrossel-slide {
+        height: 205px;
+    }
+
+    .carrossel-foto {
+        width: 57%;
+    }
+
+    .carrossel-slide-info {
+        width: 64%;
+        padding: 17px 14px 29px;
+    }
+
+    .carrossel-kicker {
+        min-height: 21px;
+        padding: 3px 7px;
+        font-size: .56rem;
+    }
+
+    .carrossel-slide-info strong {
+        font-size: 1.08rem;
+        line-height: 1.08;
+    }
+
+    .carrossel-preco {
+        font-size: 1rem;
+    }
+
+    .carrossel-destaque-seta {
+        width: 31px;
+        height: 31px;
+        font-size: 21px;
+    }
+
+    #produtos-destaque > h2 {
+        padding: 0 34px;
+        font-size: 1.42rem;
+    }
+
+    #produtos-destaque > h2::before,
+    #produtos-destaque > h2::after {
+        width: 23px;
+    }
+
+    #produtos-destaque .categorias {
+        top: 35px;
+        padding: 8px;
+        border-radius: 15px;
+    }
+
+    #produtos-destaque .categorias button {
+        min-height: 32px;
+        padding: 6px 11px;
+        font-size: .7rem;
+    }
+}
+
+@media (max-width: 520px) {
+    main > .container:first-of-type .destaques {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+    }
+
+    main > .container:first-of-type .destaque-item {
+        min-height: 42px;
+        padding: 7px 8px;
+    }
+
+    main > .container:first-of-type .destaque-item .emoji {
+        flex-basis: 24px;
+        width: 24px;
+        height: 24px;
+        font-size: 12px;
+    }
+
+    main > .container:first-of-type .destaque-item .txt {
+        font-size: .64rem;
+    }
+
+    .btn-notificacoes {
+        font-size: .68rem;
+    }
+}
