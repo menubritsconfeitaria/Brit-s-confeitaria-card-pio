@@ -354,6 +354,21 @@
                                         <div class="opcao-btn" id="btnModoFechado" onclick="definirModoLoja('fechado')">🔴 Forçar Fechado</div>
                                     </div>
                                     <div class="loja-operacao-note">No modo automático, os horários abaixo controlam a abertura e o fechamento sem intervenção manual.</div>
+                                    <div class="loja-abertura-notificacao">
+                                        <div class="loja-abertura-notificacao-head">
+                                            <span class="loja-abertura-notificacao-icon" aria-hidden="true">📢</span>
+                                            <div>
+                                                <span class="loja-abertura-notificacao-kicker">NOTIFICAÇÃO AUTOMÁTICA</span>
+                                                <strong>Aviso quando a loja abrir</strong>
+                                            </div>
+                                        </div>
+                                        <p>Use durante a operação normal e desative temporariamente quando precisar abrir a loja apenas para testes.</p>
+                                        <label class="switch-linha loja-abertura-notificacao-switch">
+                                            <input type="checkbox" id="chkNotificacaoAberturaAtiva" onchange="salvarNotificacaoAberturaAtiva(this.checked)">
+                                            <span>Enviar notificação automática quando a loja abrir</span>
+                                        </label>
+                                        <p id="msgNotificacaoAbertura" class="ordem-categorias-msg loja-abertura-notificacao-msg"></p>
+                                    </div>
                                 </div>
                                 <div class="loja-horarios-bloco">
                                     <div class="loja-bloco-label"><span>🕒 Horário de funcionamento</span><small>Semana</small></div>
@@ -1134,25 +1149,9 @@
 
                         <div class="campanhas-notif-layout">
                             <div class="campanhas-notif-col campanhas-notif-col--editor">
-                                <div class="campanhas-step-card campanhas-abertura-card">
-                                    <div class="campanhas-step-head">
-                                        <span class="campanhas-step">01</span>
-                                        <div>
-                                            <span class="campanhas-step-kicker">AUTOMAÇÃO</span>
-                                            <strong>Aviso automático de abertura</strong>
-                                        </div>
-                                    </div>
-                                    <p class="dica-secao">Use durante a operação normal e desative temporariamente quando precisar abrir a loja apenas para testes.</p>
-                                    <label class="switch-linha campanhas-switch-linha">
-                                        <input type="checkbox" id="chkNotificacaoAberturaAtiva" onchange="salvarNotificacaoAberturaAtiva(this.checked)">
-                                        <span>Enviar notificação automática quando a loja abrir</span>
-                                    </label>
-                                    <p id="msgNotificacaoAbertura" class="ordem-categorias-msg campanhas-inline-msg"></p>
-                                </div>
-
                                 <div class="campanhas-step-card campanhas-compositor-card">
                                     <div class="campanhas-step-head">
-                                        <span class="campanhas-step">02</span>
+                                        <span class="campanhas-step">01</span>
                                         <div>
                                             <span class="campanhas-step-kicker">MENSAGEM</span>
                                             <strong>Monte a comunicação</strong>
@@ -1184,7 +1183,7 @@
                             <div class="campanhas-notif-col campanhas-notif-col--acao">
                                 <div class="campanhas-step-card campanhas-preview-card">
                                     <div class="campanhas-step-head">
-                                        <span class="campanhas-step">03</span>
+                                        <span class="campanhas-step">02</span>
                                         <div>
                                             <span class="campanhas-step-kicker">CONFERÊNCIA</span>
                                             <strong>Prévia para o cliente</strong>
@@ -1209,7 +1208,7 @@
 
                                 <div class="campanhas-step-card campanhas-agendar-card">
                                     <div class="campanhas-step-head">
-                                        <span class="campanhas-step">04</span>
+                                        <span class="campanhas-step">03</span>
                                         <div>
                                             <span class="campanhas-step-kicker">AGENDAMENTO</span>
                                             <strong>Programar para depois</strong>

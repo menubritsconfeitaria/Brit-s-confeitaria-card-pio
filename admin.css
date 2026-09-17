@@ -13492,3 +13492,99 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
         text-align: left !important;
     }
 }
+
+
+/* ============================================================
+   LOJA — AVISO AUTOMÁTICO DE ABERTURA
+   O controle pertence à operação da loja e fica logo abaixo
+   dos modos Automático / Forçar Aberto / Forçar Fechado.
+   ============================================================ */
+.loja-premium-v2 .loja-abertura-notificacao {
+    margin-top: 10px;
+    padding: 11px;
+    border: 1px solid #dceade;
+    border-radius: 11px;
+    background: linear-gradient(180deg, #fbfefb 0%, #f5fbf6 100%);
+    box-shadow: 0 4px 12px rgba(54, 101, 68, .035);
+}
+
+.loja-premium-v2 .loja-abertura-notificacao-head {
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 9px;
+    align-items: center;
+    margin-bottom: 7px;
+}
+
+.loja-premium-v2 .loja-abertura-notificacao-icon {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid #d8eadc;
+    border-radius: 9px;
+    background: #fff;
+    box-shadow: 0 3px 9px rgba(54, 101, 68, .045);
+    font-size: .85rem;
+}
+
+.loja-premium-v2 .loja-abertura-notificacao-kicker {
+    display: block;
+    margin-bottom: 2px;
+    color: #5c8b67;
+    font-size: .54rem;
+    font-weight: 900;
+    letter-spacing: .09em;
+}
+
+.loja-premium-v2 .loja-abertura-notificacao-head strong {
+    display: block;
+    color: #4f3b2f;
+    font-size: .75rem;
+    line-height: 1.2;
+}
+
+.loja-premium-v2 .loja-abertura-notificacao > p:not(.loja-abertura-notificacao-msg) {
+    margin: 0 0 8px;
+    color: #847164;
+    font-size: .61rem;
+    line-height: 1.42;
+}
+
+.loja-premium-v2 .loja-abertura-notificacao-switch {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 38px;
+    margin: 0;
+    padding: 8px 10px;
+    border: 1px solid #d6e8da;
+    border-radius: 9px;
+    background: #fff;
+    color: #45634c;
+    font-size: .66rem;
+    font-weight: 800;
+    line-height: 1.25;
+    cursor: pointer;
+}
+
+.loja-premium-v2 .loja-abertura-notificacao-switch input {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: #2f9b5b;
+}
+
+.loja-premium-v2 .loja-abertura-notificacao-msg {
+    min-height: 0;
+    margin: 6px 0 0 !important;
+    color: #5e8066;
+    font-size: .58rem;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.loja-premium-v2 .loja-abertura-notificacao-msg:empty {
+    display: none;
+}
