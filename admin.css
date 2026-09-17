@@ -10597,3 +10597,47 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
         align-self: flex-start !important;
     }
 }
+
+/* ============================================================
+   CLIENTES & MARKETING — CENTRALIZAÇÃO REAL V3
+   O .painel-main tem largura máxima própria; por isso margin:auto
+   no filho largo fazia o hub crescer apenas para a direita.
+   Aqui o centro do hub é ancorado ao centro real do painel/viewport.
+   ============================================================ */
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium {
+    width: min(1080px, calc(100vw - 48px)) !important;
+    max-width: none !important;
+    margin-left: 50% !important;
+    margin-right: 0 !important;
+    transform: translateX(-50%) !important;
+    box-sizing: border-box !important;
+}
+
+/* Mantém todos os grandes blocos no mesmo eixo e ocupando exatamente
+   a largura útil do hub, sem puxar conteúdo para esquerda ou direita. */
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium > .clientes-marketing-hero,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium > .clientes-marketing-subtabs,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium > .hub-subpanel {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+}
+
+/* O conteúdo interno continua centralizado visualmente, mas sem criar
+   um eixo diferente do contêiner principal. */
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-marketing-hero-copy,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .clientes-reactivacao-head-copy {
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+@media (max-width: 760px) {
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium {
+        width: calc(100vw - 24px) !important;
+        margin-left: 50% !important;
+        margin-right: 0 !important;
+        transform: translateX(-50%) !important;
+    }
+}
