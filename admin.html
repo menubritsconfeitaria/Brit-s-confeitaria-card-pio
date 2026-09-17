@@ -841,46 +841,151 @@
                         </aside>
                     </div>
                 </div>
-                <div class="hub-subpanel" data-cm-subtab="fidelidade">
-
-                <h2 id="clubeTituloAdmin">⭐ Clube Brit's (Fidelidade)</h2>
-                <div class="loja-status-card">
-                    <label class="dia-checkbox" style="font-size:0.95em; margin-bottom:10px;">
-                        <input type="checkbox" id="fidelidadeAtiva" onchange="salvarConfigFidelidade()"> Clube de fidelidade ativado
-                    </label>
-
-                    <label class="campo-label">A cada quantos reais gastos, o cliente ganha 1 ponto?</label>
-                    <input type="text" inputmode="decimal" id="fidelidadeValorPorPonto" placeholder="Ex: 10 (a cada R$10,00 = 1 ponto)">
-
-                    <label class="dia-checkbox" style="font-size:0.9em; margin:10px 0;">
-                        <input type="checkbox" id="fidelidadePontosDobro" onchange="salvarConfigFidelidade()"> 🔥 Hoje é dia de pontos em dobro
-                    </label>
-
-                    <h3>Níveis do clube</h3>
-                    <p class="dica-secao">A partir de quantos pontos cada nível começa (Bronze sempre começa em 0).</p>
-                    <div class="produto-admin-linha">
-                        <div class="campo-com-label"><label class="campo-label">🥈 Prata a partir de</label><input type="text" inputmode="numeric" id="fidelidadeMinPrata" placeholder="50"></div>
-                        <div class="campo-com-label"><label class="campo-label">🥇 Ouro a partir de</label><input type="text" inputmode="numeric" id="fidelidadeMinOuro" placeholder="100"></div>
-                        <div class="campo-com-label"><label class="campo-label">💎 VIP a partir de</label><input type="text" inputmode="numeric" id="fidelidadeMinVip" placeholder="200"></div>
+                <div class="hub-subpanel fidelidade-premium" data-cm-subtab="fidelidade">
+                    <div class="fidelidade-premium-head">
+                        <div>
+                            <span class="fidelidade-kicker">RETENÇÃO E RECORRÊNCIA</span>
+                            <h2 id="clubeTituloAdmin">⭐ Clube Brit's (Fidelidade)</h2>
+                            <p>Defina como o cliente acumula pontos, evolui de nível e troca saldo por recompensas que incentivam novas compras.</p>
+                        </div>
+                        <div class="fidelidade-head-badge">
+                            <span>★</span>
+                            <div><small>ESTRATÉGIA</small><strong>Cliente recorrente</strong></div>
+                        </div>
                     </div>
-                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="salvarConfigFidelidade()">Salvar configuração do clube</button>
-                    <p id="fidelidadeMsg" class="ordem-categorias-msg"></p>
-                </div>
 
-                <h3 style="margin-top:22px;">Catálogo de recompensas</h3>
-                <div id="recompensasAdminList" class="produtos-admin-list"></div>
-                <div class="cupom-novo-form" style="flex-wrap:wrap;">
-                    <input type="text" inputmode="numeric" id="novaRecompensaPontos" placeholder="Pontos necessários" style="min-width:110px;">
-                    <input type="text" id="novaRecompensaDescricao" placeholder="Descrição (ex: 1 Refrigerante grátis)" style="flex:2; min-width:200px;">
-                    <select id="novaRecompensaTipo" onchange="atualizarCampoRecompensa()">
-                        <option value="desconto">Desconto em R$</option>
-                        <option value="produto">Produto grátis</option>
-                    </select>
-                    <input type="text" inputmode="decimal" id="novaRecompensaValor" placeholder="Valor do desconto (R$)">
-                    <select id="novaRecompensaProduto" style="display:none;"></select>
-                    <button onclick="adicionarRecompensa()">+ Adicionar recompensa</button>
-                </div>
-            
+                    <div class="fidelidade-config-layout">
+                        <section class="fidelidade-card fidelidade-card--pontos">
+                            <div class="fidelidade-card-head">
+                                <div class="fidelidade-step">01</div>
+                                <div>
+                                    <span class="fidelidade-card-kicker">PONTUAÇÃO</span>
+                                    <h3>Como o cliente ganha pontos</h3>
+                                    <p>Controle a regra principal do clube e ative campanhas de pontos em dobro quando quiser acelerar a recorrência.</p>
+                                </div>
+                            </div>
+
+                            <label class="fidelidade-switch-row fidelidade-switch-row--principal">
+                                <span class="fidelidade-switch-copy">
+                                    <strong>Clube de fidelidade</strong>
+                                    <small>Quando ativo, os pedidos entregues acumulam pontos automaticamente.</small>
+                                </span>
+                                <span class="fidelidade-switch-control">
+                                    <input type="checkbox" id="fidelidadeAtiva" onchange="salvarConfigFidelidade()">
+                                    <i aria-hidden="true"></i>
+                                </span>
+                            </label>
+
+                            <div class="fidelidade-regra-pontos">
+                                <div class="fidelidade-regra-icone">R$</div>
+                                <div class="fidelidade-regra-campo">
+                                    <label class="campo-label" for="fidelidadeValorPorPonto">Valor necessário para ganhar 1 ponto</label>
+                                    <div class="fidelidade-input-prefix">
+                                        <span>R$</span>
+                                        <input type="text" inputmode="decimal" id="fidelidadeValorPorPonto" placeholder="10,00">
+                                    </div>
+                                    <small>Exemplo: com R$ 10,00, cada R$ 10 gastos valem 1 ponto.</small>
+                                </div>
+                            </div>
+
+                            <label class="fidelidade-switch-row fidelidade-switch-row--dobro">
+                                <span class="fidelidade-switch-copy">
+                                    <strong>🔥 Pontos em dobro hoje</strong>
+                                    <small>Use em dias estratégicos para estimular novos pedidos.</small>
+                                </span>
+                                <span class="fidelidade-switch-control">
+                                    <input type="checkbox" id="fidelidadePontosDobro" onchange="salvarConfigFidelidade()">
+                                    <i aria-hidden="true"></i>
+                                </span>
+                            </label>
+                        </section>
+
+                        <section class="fidelidade-card fidelidade-card--niveis">
+                            <div class="fidelidade-card-head">
+                                <div class="fidelidade-step">02</div>
+                                <div>
+                                    <span class="fidelidade-card-kicker">PROGRESSÃO</span>
+                                    <h3>Níveis do clube</h3>
+                                    <p>Defina os patamares de relacionamento. O nível Bronze começa automaticamente em 0 ponto.</p>
+                                </div>
+                            </div>
+
+                            <div class="fidelidade-niveis-grid">
+                                <div class="fidelidade-nivel fidelidade-nivel--bronze">
+                                    <span class="fidelidade-nivel-icone">🥉</span>
+                                    <div><small>BRONZE</small><strong>0 pontos</strong><span>Entrada no clube</span></div>
+                                </div>
+                                <label class="fidelidade-nivel fidelidade-nivel--prata">
+                                    <span class="fidelidade-nivel-icone">🥈</span>
+                                    <div><small>PRATA</small><strong><input type="text" inputmode="numeric" id="fidelidadeMinPrata" placeholder="50"> pts</strong><span>A partir de</span></div>
+                                </label>
+                                <label class="fidelidade-nivel fidelidade-nivel--ouro">
+                                    <span class="fidelidade-nivel-icone">🥇</span>
+                                    <div><small>OURO</small><strong><input type="text" inputmode="numeric" id="fidelidadeMinOuro" placeholder="100"> pts</strong><span>A partir de</span></div>
+                                </label>
+                                <label class="fidelidade-nivel fidelidade-nivel--vip">
+                                    <span class="fidelidade-nivel-icone">💎</span>
+                                    <div><small>VIP</small><strong><input type="text" inputmode="numeric" id="fidelidadeMinVip" placeholder="200"> pts</strong><span>A partir de</span></div>
+                                </label>
+                            </div>
+
+                            <div class="fidelidade-salvar-wrap">
+                                <button class="btn-salvar-ordem fidelidade-btn-salvar" onclick="salvarConfigFidelidade()">💾 Salvar configuração do clube</button>
+                                <p id="fidelidadeMsg" class="ordem-categorias-msg fidelidade-msg"></p>
+                            </div>
+                        </section>
+                    </div>
+
+                    <section class="fidelidade-card fidelidade-card--recompensas">
+                        <div class="fidelidade-recompensas-head">
+                            <div>
+                                <span class="fidelidade-card-kicker">CATÁLOGO DO CLUBE</span>
+                                <h3>🎁 Recompensas</h3>
+                                <p>Cadastre benefícios que o cliente pode resgatar usando os pontos acumulados.</p>
+                            </div>
+                            <span class="fidelidade-recompensas-badge">Pontos → benefícios</span>
+                        </div>
+
+                        <div id="recompensasAdminList" class="produtos-admin-list fidelidade-recompensas-lista"></div>
+
+                        <div class="fidelidade-nova-recompensa">
+                            <div class="fidelidade-nova-head">
+                                <div class="fidelidade-step">03</div>
+                                <div>
+                                    <span class="fidelidade-card-kicker">NOVA RECOMPENSA</span>
+                                    <h4>Adicione um novo benefício</h4>
+                                    <p>Escolha quantos pontos serão necessários e o que o cliente receberá.</p>
+                                </div>
+                            </div>
+
+                            <div class="fidelidade-recompensa-form-grid">
+                                <div class="campo-com-label fidelidade-campo-pontos">
+                                    <label class="campo-label" for="novaRecompensaPontos">Pontos necessários</label>
+                                    <input type="text" inputmode="numeric" id="novaRecompensaPontos" placeholder="Ex: 50">
+                                </div>
+                                <div class="campo-com-label fidelidade-campo-descricao">
+                                    <label class="campo-label" for="novaRecompensaDescricao">Descrição da recompensa</label>
+                                    <input type="text" id="novaRecompensaDescricao" placeholder="Ex: 1 Refrigerante grátis">
+                                </div>
+                                <div class="campo-com-label fidelidade-campo-tipo">
+                                    <label class="campo-label" for="novaRecompensaTipo">Tipo de benefício</label>
+                                    <select id="novaRecompensaTipo" onchange="atualizarCampoRecompensa()">
+                                        <option value="desconto">Desconto em R$</option>
+                                        <option value="produto">Produto grátis</option>
+                                    </select>
+                                </div>
+                                <div class="campo-com-label fidelidade-campo-valor">
+                                    <label class="campo-label" for="novaRecompensaValor">Valor do desconto</label>
+                                    <input type="text" inputmode="decimal" id="novaRecompensaValor" placeholder="Ex: 5,00">
+                                </div>
+                                <div class="campo-com-label fidelidade-campo-produto">
+                                    <label class="campo-label" for="novaRecompensaProduto">Produto da recompensa</label>
+                                    <select id="novaRecompensaProduto" style="display:none;"></select>
+                                </div>
+                                <button type="button" class="btn-salvar-ordem fidelidade-btn-adicionar" onclick="adicionarRecompensa()">＋ Adicionar recompensa</button>
+                            </div>
+                        </div>
+                    </section>
                 </div>
                 <div class="hub-subpanel" data-cm-subtab="promocoes">
                     <div class="hub-context-note"><strong>🔥 Promoções e vitrine</strong><span>Organize os produtos que ganham destaque no carrossel da loja.</span></div>

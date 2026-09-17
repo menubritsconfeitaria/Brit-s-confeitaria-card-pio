@@ -11246,3 +11246,534 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
         align-items: flex-start;
     }
 }
+
+/* ============================================================
+   FIDELIDADE PREMIUM — layout refinado e isolado
+   Mantém IDs, eventos e lógica existentes; altera apresentação.
+   ============================================================ */
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium [data-cm-subtab="fidelidade"].fidelidade-premium {
+    --fd-ink: #4d392d;
+    --fd-muted: #8d7868;
+    --fd-border: #eadfd4;
+    --fd-soft: #fcf8f3;
+    --fd-primary: #ae5a2d;
+    --fd-green: #2f8b62;
+    padding: 18px !important;
+    border-radius: 18px !important;
+    background: rgba(255,255,255,.82) !important;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-premium-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 14px;
+    padding: 2px 2px 14px;
+    border-bottom: 1px solid #efe5dc;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-premium-head > div:first-child {
+    min-width: 0;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-kicker,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-card-kicker {
+    display: block;
+    margin-bottom: 4px;
+    color: #b17651;
+    font-size: .54rem;
+    font-weight: 900;
+    letter-spacing: .12em;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-premium-head h2 {
+    margin: 0;
+    color: var(--fd-ink);
+    font-size: 1.08rem;
+    letter-spacing: -.02em;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-premium-head p {
+    max-width: 720px;
+    margin: 5px 0 0;
+    color: var(--fd-muted);
+    font-size: .68rem;
+    line-height: 1.5;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-head-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    flex: 0 0 auto;
+    min-width: 145px;
+    padding: 9px 11px;
+    border: 1px solid #e8dbcf;
+    border-radius: 12px;
+    background: linear-gradient(145deg,#fffaf5,#fff);
+    box-shadow: 0 5px 15px rgba(84,48,25,.05);
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-head-badge > span {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: #fff0df;
+    color: #c97a3d;
+    font-size: .85rem;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-head-badge div {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-head-badge small {
+    color: #a28d7d;
+    font-size: .48rem;
+    font-weight: 900;
+    letter-spacing: .1em;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-head-badge strong {
+    color: #6b4936;
+    font-size: .67rem;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-config-layout {
+    display: grid;
+    grid-template-columns: minmax(0, .94fr) minmax(0, 1.06fr);
+    gap: 12px;
+    align-items: stretch;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-card {
+    min-width: 0;
+    padding: 15px;
+    border: 1px solid var(--fd-border);
+    border-radius: 15px;
+    background: rgba(255,255,255,.96);
+    box-shadow: 0 7px 20px rgba(71,43,25,.045);
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-card-head,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-nova-head {
+    display: grid;
+    grid-template-columns: 32px minmax(0,1fr);
+    gap: 9px;
+    align-items: start;
+    margin-bottom: 12px;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-step {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid #edd9c9;
+    border-radius: 9px;
+    background: linear-gradient(145deg,#fff8f1,#f8eee5);
+    color: #b0643c;
+    font-size: .58rem;
+    font-weight: 900;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-card-head h3,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-nova-head h4,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-recompensas-head h3 {
+    margin: 0;
+    color: var(--fd-ink);
+    font-size: .78rem;
+    letter-spacing: -.01em;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-card-head p,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-nova-head p,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-recompensas-head p {
+    margin: 3px 0 0;
+    color: var(--fd-muted);
+    font-size: .58rem;
+    line-height: 1.42;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-switch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 0 8px;
+    padding: 10px 11px;
+    border: 1px solid #eee3d9;
+    border-radius: 11px;
+    background: #fdfbf8;
+    cursor: pointer;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-switch-row--principal {
+    background: linear-gradient(145deg,#fffaf4,#fff);
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-switch-row--dobro {
+    margin-bottom: 0;
+    background: linear-gradient(145deg,#fff8f1,#fffdfb);
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-switch-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-switch-copy strong {
+    color: var(--fd-ink);
+    font-size: .68rem;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-switch-copy small {
+    color: var(--fd-muted);
+    font-size: .54rem;
+    line-height: 1.32;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-switch-control {
+    position: relative;
+    flex: 0 0 39px;
+    width: 39px;
+    height: 22px;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-switch-control input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-switch-control i {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: #ddd5cf;
+    transition: .18s ease;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-switch-control i::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,.14);
+    transition: .18s ease;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-switch-control:has(input:checked) i {
+    background: #4cb782;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-switch-control:has(input:checked) i::after {
+    transform: translateX(17px);
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-regra-pontos {
+    display: grid;
+    grid-template-columns: 44px minmax(0,1fr);
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 10px 11px;
+    border: 1px solid #eee4da;
+    border-radius: 11px;
+    background: #fff;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-regra-icone {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    background: #f8eee5;
+    color: #aa6239;
+    font-size: .76rem;
+    font-weight: 900;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-regra-campo .campo-label {
+    margin: 0 0 4px !important;
+    font-size: .59rem;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-input-prefix {
+    display: grid;
+    grid-template-columns: 30px minmax(0,1fr);
+    align-items: center;
+    overflow: hidden;
+    border: 1px solid #dfd3c8;
+    border-radius: 9px;
+    background: #fff;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-input-prefix > span {
+    display: grid;
+    place-items: center;
+    align-self: stretch;
+    background: #faf6f1;
+    color: #9a765e;
+    font-size: .62rem;
+    font-weight: 800;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-input-prefix input {
+    width: 100%;
+    height: 34px;
+    margin: 0 !important;
+    padding: 6px 8px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    box-sizing: border-box;
+    font-size: .68rem;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-regra-campo > small {
+    display: block;
+    margin-top: 4px;
+    color: #9a8779;
+    font-size: .5rem;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-niveis-grid {
+    display: grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 8px;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-nivel {
+    display: grid;
+    grid-template-columns: 34px minmax(0,1fr);
+    gap: 8px;
+    align-items: center;
+    min-height: 65px;
+    padding: 9px 10px;
+    border: 1px solid #eee3da;
+    border-radius: 11px;
+    background: #fcfaf7;
+    box-sizing: border-box;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-nivel-icone {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: #fff;
+    box-shadow: 0 3px 9px rgba(72,44,26,.07);
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-nivel > div {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-nivel small {
+    color: #9a8577;
+    font-size: .47rem;
+    font-weight: 900;
+    letter-spacing: .1em;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-nivel strong {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 2px 0;
+    color: var(--fd-ink);
+    font-size: .68rem;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-nivel span:last-child {
+    color: var(--fd-muted);
+    font-size: .5rem;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-nivel input {
+    width: 58px;
+    height: 26px;
+    margin: 0 !important;
+    padding: 3px 6px !important;
+    border: 1px solid #ddd0c5 !important;
+    border-radius: 7px !important;
+    background: #fff !important;
+    box-sizing: border-box;
+    font-size: .65rem !important;
+    font-weight: 800;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-nivel--prata { background: linear-gradient(145deg,#fbfbfb,#f5f5f4); }
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-nivel--ouro { background: linear-gradient(145deg,#fffaf0,#fffdf8); }
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-nivel--vip { background: linear-gradient(145deg,#f8f5ff,#fff); }
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-salvar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-top: 10px;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-btn-salvar {
+    flex: 1 1 auto;
+    min-height: 38px;
+    margin: 0 !important;
+    border-radius: 10px;
+    font-size: .65rem;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-msg {
+    flex: 0 0 auto;
+    min-height: 0;
+    margin: 0 !important;
+    font-size: .56rem;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-card--recompensas {
+    margin-top: 12px;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-recompensas-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 10px;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-recompensas-badge {
+    flex: 0 0 auto;
+    padding: 6px 9px;
+    border: 1px solid #e9ded3;
+    border-radius: 999px;
+    background: #fffaf5;
+    color: #9b6848;
+    font-size: .52rem;
+    font-weight: 800;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-recompensas-lista {
+    display: grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 8px;
+    margin: 0 0 10px !important;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 3px;
+    scrollbar-width: thin;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-recompensas-lista > .cupom-admin-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+    min-height: 58px;
+    margin: 0 !important;
+    padding: 10px 11px;
+    border: 1px solid #e9dfd5;
+    border-radius: 11px;
+    background: linear-gradient(145deg,#fff,#fffdf9);
+    box-shadow: 0 4px 12px rgba(70,43,25,.035);
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-recompensas-lista .cupom-admin-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-recompensas-lista .cupom-admin-info strong {
+    color: #a65a32;
+    font-size: .68rem;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-recompensas-lista .cupom-admin-info span {
+    overflow: hidden;
+    color: #746154;
+    font-size: .56rem;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-recompensas-lista .btn-excluir-cupom {
+    flex: 0 0 30px;
+    width: 30px;
+    height: 30px;
+    margin: 0;
+    padding: 0 !important;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    opacity: .58;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-nova-recompensa {
+    padding: 12px;
+    border: 1px solid #eee3d9;
+    border-radius: 12px;
+    background: #fcfaf7;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-nova-head {
+    margin-bottom: 9px;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-recompensa-form-grid {
+    display: grid;
+    grid-template-columns: 130px minmax(220px,1.55fr) minmax(145px,.85fr) minmax(135px,.75fr) auto;
+    gap: 8px;
+    align-items: end;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-recompensa-form-grid .campo-com-label {
+    min-width: 0;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-recompensa-form-grid .campo-label {
+    margin: 0 0 4px !important;
+    color: #765e4d;
+    font-size: .56rem;
+    font-weight: 800;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-recompensa-form-grid input,
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-recompensa-form-grid select {
+    width: 100%;
+    height: 36px;
+    min-height: 36px;
+    margin: 0 !important;
+    padding: 6px 8px !important;
+    border: 1px solid #dfd3c8 !important;
+    border-radius: 9px !important;
+    background: #fff !important;
+    box-sizing: border-box;
+    font-size: .64rem !important;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-campo-produto:has(#novaRecompensaProduto[style*="display: none"]),
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-campo-valor:has(#novaRecompensaValor[style*="display: none"]) {
+    display: none;
+}
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-btn-adicionar {
+    min-height: 36px;
+    margin: 0 !important;
+    padding: 7px 12px !important;
+    border-radius: 9px;
+    white-space: nowrap;
+    font-size: .62rem;
+}
+
+@media (max-width: 1000px) {
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-config-layout {
+        grid-template-columns: 1fr;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-recompensa-form-grid {
+        grid-template-columns: repeat(2,minmax(0,1fr));
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-btn-adicionar {
+        width: 100%;
+    }
+}
+
+@media (max-width: 700px) {
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium [data-cm-subtab="fidelidade"].fidelidade-premium {
+        padding: 14px !important;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-premium-head,
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-recompensas-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-head-badge {
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-niveis-grid,
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-recompensas-lista,
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-recompensa-form-grid {
+        grid-template-columns: 1fr;
+    }
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .fidelidade-salvar-wrap {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}
