@@ -3538,7 +3538,7 @@ function ativarModoDemoCompleto() {
         return;
     }
 
-    const configDemo = { ...LOJA_CONFIG, nome, nomeCurto: nome, corPrimaria: cor };
+    const configDemo = { ...LOJA_CONFIG, nome, nomeCurto: nome, corPrimaria: cor, subtitulo: 'Seu próximo cliente já está no celular. Agora falta dar a ele um jeito fácil de comprar de você.' };
 
     const arquivo = logoInput ? logoInput.files[0] : null;
     if (arquivo) {
