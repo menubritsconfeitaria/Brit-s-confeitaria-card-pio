@@ -5118,6 +5118,16 @@ function normalizarTelefone(tel) {
     return (tel || '').replace(/\D/g, '');
 }
 
+// Chave canônica para comparar clientes brasileiros pelo telefone.
+// Une formatos como (27) 99999-9999, 27999999999, +55 27 99999-9999
+// e números com prefixos extras, preservando os 10/11 dígitos úteis (DDD + número).
+function normalizarTelefoneClienteBrasil(tel) {
+    let digitos = normalizarTelefone(tel);
+    if (!digitos) return '';
+    if (digitos.length > 11) digitos = digitos.slice(-11);
+    return digitos;
+}
+
 // Remove acentos e deixa em minúsculo — assim "Lívia" e "Livia" são reconhecidos
 // como a mesma coisa em qualquer busca ou comparação de nome do sistema
 function normalizarTexto(texto) {
@@ -5751,48 +5761,98 @@ function carregarClientesInativos() {
         const pedidos = snapPedidos.val() || {};
         const cfgNiveis = snapConfigFidelidade.val() || {};
 
-        // Monta um resumo por telefone, olhando TODOS os pedidos — assim aparece qualquer
-        // cliente que já comprou, esteja ele cadastrado no Clube ou não (o Clube é opcional,
-        // pedido não é). Também junta as recompensas resgatadas E entregues.
+        // Monta o histórico por uma CHAVE CANÔNICA de telefone. Antes, o código usava
+        // pedido.telefone como chave literal; então "(27) 99999-9999", "27999999999" e
+        // "+55 27 99999-9999" podiam virar três clientes diferentes e deixar uma compra recente
+        // presa em outro registro. Isso fazia clientes recorrentes aparecerem como inativos.
         const resumoPorTelefone = {};
         Object.values(pedidos).forEach(pedido => {
-            if (!pedido.telefone) return;
-            if (!resumoPorTelefone[pedido.telefone]) {
-                resumoPorTelefone[pedido.telefone] = { nome: pedido.nome, ultimaCompra: 0, totalGasto: 0, recompensas: [] };
+            const telefoneChave = normalizarTelefoneClienteBrasil(pedido.telefone);
+            if (!telefoneChave || telefoneChave.length < 10) return;
+
+            if (!resumoPorTelefone[telefoneChave]) {
+                resumoPorTelefone[telefoneChave] = {
+                    nome: pedido.nome,
+                    telefoneExibicao: pedido.telefone || telefoneChave,
+                    ultimaCompra: 0,
+                    totalGasto: 0,
+                    recompensas: []
+                };
             }
-            const resumo = resumoPorTelefone[pedido.telefone];
-            if (pedido.timestamp && pedido.timestamp > resumo.ultimaCompra) {
-                resumo.ultimaCompra = pedido.timestamp;
-                resumo.nome = pedido.nome || resumo.nome; // usa o nome do pedido mais recente
-            }
+
+            const resumo = resumoPorTelefone[telefoneChave];
+
+            // Para "última compra", considera compra concluída de verdade. Pedido pendente,
+            // recusado ou ainda em preparo não deve reiniciar o relógio de inatividade.
             if (pedido.status === 'entregue') {
+                if (pedido.timestamp && pedido.timestamp > resumo.ultimaCompra) {
+                    resumo.ultimaCompra = pedido.timestamp;
+                    resumo.nome = pedido.nome || resumo.nome;
+                    resumo.telefoneExibicao = pedido.telefone || resumo.telefoneExibicao;
+                }
                 resumo.totalGasto += totalDoPedido(pedido) || 0;
-            }
-            if (pedido.recompensaResgatada && pedido.status === 'entregue') {
-                resumo.recompensas.push({ descricao: pedido.recompensaResgatada.descricao, data: pedido.timestamp });
+
+                if (pedido.recompensaResgatada) {
+                    resumo.recompensas.push({ descricao: pedido.recompensaResgatada.descricao, data: pedido.timestamp });
+                }
             }
         });
 
-        // Garante que quem está no Clube mas ainda não tem nenhum pedido também apareça
-        Object.entries(clubeFidelidade).forEach(([telefone, dados]) => {
-            if (!resumoPorTelefone[telefone]) {
-                resumoPorTelefone[telefone] = { nome: dados.nome, ultimaCompra: 0, totalGasto: 0, recompensas: [] };
+        // O Clube de Fidelidade também pode ter a chave salva com formatação diferente.
+        // Normaliza as chaves antes de cruzar com os pedidos para não separar o mesmo cliente.
+        const clubePorTelefone = {};
+        Object.entries(clubeFidelidade).forEach(([telefoneOriginal, dados]) => {
+            const telefoneChave = normalizarTelefoneClienteBrasil(telefoneOriginal);
+            if (!telefoneChave || telefoneChave.length < 10) return;
+
+            // Se houver mais de um registro histórico para o mesmo número, preserva aquele
+            // com mais informação/pontos e nunca apaga dados válidos do outro.
+            const atual = clubePorTelefone[telefoneChave];
+            if (!atual) {
+                clubePorTelefone[telefoneChave] = dados || {};
+            } else {
+                clubePorTelefone[telefoneChave] = {
+                    ...atual,
+                    ...(dados || {}),
+                    pontos: Math.max(Number(atual.pontos || 0), Number((dados || {}).pontos || 0)),
+                    totalGasto: Math.max(Number(atual.totalGasto || 0), Number((dados || {}).totalGasto || 0)),
+                    criadoEm: Math.min(
+                        Number(atual.criadoEm || Number.MAX_SAFE_INTEGER),
+                        Number((dados || {}).criadoEm || Number.MAX_SAFE_INTEGER)
+                    )
+                };
+                if (clubePorTelefone[telefoneChave].criadoEm === Number.MAX_SAFE_INTEGER) {
+                    delete clubePorTelefone[telefoneChave].criadoEm;
+                }
+            }
+
+            if (!resumoPorTelefone[telefoneChave]) {
+                resumoPorTelefone[telefoneChave] = {
+                    nome: dados && dados.nome,
+                    telefoneExibicao: telefoneOriginal,
+                    ultimaCompra: 0,
+                    totalGasto: 0,
+                    recompensas: []
+                };
             }
         });
 
         const agora = Date.now();
-        const listaClientes = Object.entries(resumoPorTelefone).map(([telefone, resumo]) => {
-            const dadosClube = clubeFidelidade[telefone] || null; // null = não é do Clube
+        const listaClientes = Object.entries(resumoPorTelefone).map(([telefoneChave, resumo]) => {
+            const dadosClube = clubePorTelefone[telefoneChave] || null;
             const referencia = resumo.ultimaCompra || (dadosClube && dadosClube.criadoEm) || agora;
-            const diasSemComprar = Math.floor((agora - referencia) / (1000 * 60 * 60 * 24));
+            const diasSemComprar = Math.max(0, Math.floor((agora - referencia) / (1000 * 60 * 60 * 24)));
             return {
-                telefone,
+                // Usa a chave canônica para WhatsApp/comparações e mantém o formato mais recente
+                // apenas como apresentação no detalhe do cliente.
+                telefone: telefoneChave,
+                telefoneExibicao: resumo.telefoneExibicao || telefoneChave,
                 nome: resumo.nome || (dadosClube && dadosClube.nome) || 'Sem nome',
                 diasSemComprar,
                 nuncaComprou: !resumo.ultimaCompra,
                 ehDoClube: !!dadosClube,
                 pontos: dadosClube ? (dadosClube.pontos || 0) : 0,
-                totalGasto: dadosClube ? (dadosClube.totalGasto || resumo.totalGasto) : resumo.totalGasto,
+                totalGasto: dadosClube ? Math.max(Number(dadosClube.totalGasto || 0), Number(resumo.totalGasto || 0)) : resumo.totalGasto,
                 recompensas: resumo.recompensas.sort((a, b) => b.data - a.data)
             };
         })
@@ -5814,7 +5874,7 @@ function carregarClientesInativos() {
                     .replace(/\{loja\}/gi, LOJA_CONFIG.nome)
                     .replace(/\{link\}/gi, LOJA_CONFIG.urlCardapio)
             );
-            const linkWhats = `https://api.whatsapp.com/send?phone=55${c.telefone.replace(/\D/g, '')}&text=${mensagem}`;
+            const linkWhats = `https://api.whatsapp.com/send?phone=55${c.telefone}&text=${mensagem}`;
             const textoTempo = c.nuncaComprou ? 'nunca fez um pedido registrado' : `última compra há ${c.diasSemComprar} dias`;
             const textoNivel = c.ehDoClube ? ` · ${c.pontos} pontos (${nivel.nome})` : ' · não é do Clube';
 
@@ -5832,7 +5892,7 @@ function carregarClientesInativos() {
                         <a href="${linkWhats}" target="_blank" rel="noopener noreferrer" class="btn-salvar-ordem" style="text-decoration:none;" onclick="event.stopPropagation();">💬 Mandar mensagem</a>
                     </div>
                     <div id="detalheCliente_${i}" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--border);">
-                        <p style="margin:0 0 6px;"><strong>Telefone:</strong> ${c.telefone}</p>
+                        <p style="margin:0 0 6px;"><strong>Telefone:</strong> ${c.telefoneExibicao || c.telefone}</p>
                         <p style="margin:0 0 6px;"><strong>Total já gasto:</strong> ${formatarPreco(c.totalGasto)}</p>
                         <p style="margin:0 0 4px;"><strong>Recompensas resgatadas:</strong></p>
                         <ul style="margin:0; padding-left:20px;">${recompensasHtml}</ul>
