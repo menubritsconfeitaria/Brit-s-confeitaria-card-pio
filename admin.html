@@ -500,72 +500,162 @@
                     </div>
                 </div>
             </section>
-
-            <section data-tab="agenda">
-                <h2>📅 Agenda de Encomendas</h2>
-                <p class="dica-secao">Controla quais dias você aceita encomendas com data agendada (tipo bolo de festa). Deixa em branco pra não ter nenhum limite/bloqueio.</p>
-
-                <div class="loja-status-card">
-                    <h3>🔘 Ativar Agendamento de Encomendas</h3>
-                    <p class="dica-secao">
-                        Enquanto desativado, a opção de "encomenda com data" some do cardápio —
-                        cliente só vê o fluxo normal de pedido pro mesmo dia.
-                    </p>
-                    <label class="switch-linha">
-                        <input type="checkbox" id="chkAgendamentoAtivo" onchange="salvarAgendamentoAtivo(this.checked)">
-                        Agendamento de Encomendas ativado
-                    </label>
+            <section data-tab="agenda" class="agenda-premium">
+                <div class="agenda-premium-hero">
+                    <div class="agenda-premium-hero-copy">
+                        <span class="agenda-premium-eyebrow">PLANEJAMENTO & ENCOMENDAS</span>
+                        <h2>📅 Agenda de Encomendas</h2>
+                        <p>Organize reservas com data agendada, limite a capacidade por dia, defina sinal de confirmação e bloqueie datas especiais em uma única central.</p>
+                        <div class="agenda-premium-tags" aria-label="Recursos da agenda">
+                            <span>📦 Capacidade</span>
+                            <span>💰 Sinal</span>
+                            <span>🚫 Bloqueios</span>
+                        </div>
+                    </div>
+                    <div class="agenda-premium-hero-badge">
+                        <span>CONTROLE</span>
+                        <strong>Agenda da loja</strong>
+                    </div>
                 </div>
 
-                <div class="loja-status-card" style="margin-top:16px;">
-                    <h3>🔢 Limite de encomendas por dia</h3>
-                    <p class="dica-secao">Quando o número de encomendas de um dia bate nesse limite, o cardápio já avisa o cliente que a data está lotada, sem precisar você recusar depois. Deixa vazio ou 0 pra não ter limite.</p>
-                    <input type="text" inputmode="numeric" id="capacidadeMaximaDia" placeholder="Ex: 3">
-                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="salvarCapacidadeAgenda()">💾 Salvar</button>
-                    <p id="capacidadeAgendaMsg" class="ordem-categorias-msg"></p>
+                <div class="agenda-premium-grid agenda-premium-grid--top">
+                    <section class="loja-status-card agenda-premium-card agenda-premium-card--ativacao">
+                        <div class="agenda-premium-card-head">
+                            <span class="agenda-premium-step">01</span>
+                            <div>
+                                <span class="agenda-premium-kicker">ATIVAÇÃO</span>
+                                <h3>Agendamento de encomendas</h3>
+                                <p class="dica-secao">Controle se o cliente pode escolher uma data futura no cardápio.</p>
+                            </div>
+                        </div>
+                        <label class="switch-linha agenda-premium-switch">
+                            <input type="checkbox" id="chkAgendamentoAtivo" onchange="salvarAgendamentoAtivo(this.checked)">
+                            <span>
+                                <strong>Agendamento ativado</strong>
+                                <small>Quando desligado, o cliente vê somente o fluxo normal para o mesmo dia.</small>
+                            </span>
+                        </label>
+                    </section>
+
+                    <section class="loja-status-card agenda-premium-card agenda-premium-card--capacidade">
+                        <div class="agenda-premium-card-head">
+                            <span class="agenda-premium-step">02</span>
+                            <div>
+                                <span class="agenda-premium-kicker">CAPACIDADE</span>
+                                <h3>Limite de encomendas por dia</h3>
+                                <p class="dica-secao">Ao atingir o limite, a data aparece como lotada automaticamente.</p>
+                            </div>
+                        </div>
+                        <div class="agenda-capacidade-linha">
+                            <div class="agenda-input-com-sufixo">
+                                <input type="text" inputmode="numeric" id="capacidadeMaximaDia" placeholder="Ex: 3" aria-label="Limite de encomendas por dia">
+                                <span>por dia</span>
+                            </div>
+                            <button class="btn-salvar-ordem agenda-btn-principal" onclick="salvarCapacidadeAgenda()">💾 Salvar limite</button>
+                        </div>
+                        <p class="agenda-premium-ajuda">Use <strong>0</strong> ou deixe vazio para trabalhar sem limite diário.</p>
+                        <p id="capacidadeAgendaMsg" class="ordem-categorias-msg"></p>
+                    </section>
                 </div>
 
-                <div class="loja-status-card" style="margin-top:16px;">
-                    <h3>💰 Sinal de confirmação (opcional)</h3>
-                    <p class="dica-secao">
-                        Se configurado, toda encomenda com data agendada passa a exigir o
-                        pagamento de um sinal (uma % do valor) via Pix/Cartão pra confirmar de
-                        verdade a reserva — sem pagar dentro do prazo, o pedido é cancelado
-                        sozinho. Deixa em 0 pra não exigir sinal nenhum (só WhatsApp, como já era).
-                        <strong>Precisa ter a InfiniteTag configurada</strong> (mesma do pagamento online).
-                    </p>
-                    <label class="campo-label">Percentual do sinal (%)</label>
-                    <input type="text" inputmode="numeric" id="percentualSinal" placeholder="Ex: 50 (deixa 0 ou vazio pra não exigir sinal)">
-                    <label class="campo-label" style="margin-top:10px;">Prazo pra pagar o sinal (horas)</label>
-                    <input type="text" inputmode="numeric" id="prazoPagamentoHoras" placeholder="Ex: 24">
-                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="salvarConfigSinal()">💾 Salvar</button>
-                    <p id="configSinalMsg" class="ordem-categorias-msg"></p>
-                </div>
-
-                <div class="loja-status-card" style="margin-top:16px;">
-                    <h3>🚫 Bloquear dias</h3>
-                    <p class="dica-secao">Pra férias, feriado, ou qualquer combinação de dias (mesmo alternados, sem precisar ser sequência). Monta a lista abaixo (dia a dia, ou por período), e bloqueia tudo junto no final.</p>
-
-                    <label class="campo-label">Adicionar um dia à lista</label>
-                    <div class="produto-admin-linha">
-                        <input type="date" id="dataUnicaParaAdicionar">
-                        <button class="btn-secondary" onclick="adicionarDataNaListaPendente()">+ Adicionar</button>
+                <section class="loja-status-card agenda-premium-card agenda-premium-card--sinal">
+                    <div class="agenda-premium-card-head agenda-premium-card-head--with-badge">
+                        <div class="agenda-premium-card-head-left">
+                            <span class="agenda-premium-step">03</span>
+                            <div>
+                                <span class="agenda-premium-kicker">CONFIRMAÇÃO</span>
+                                <h3>💰 Sinal da encomenda <small>opcional</small></h3>
+                                <p class="dica-secao">Defina uma porcentagem do pedido e o prazo para pagamento quando quiser confirmar a reserva com antecedência.</p>
+                            </div>
+                        </div>
+                        <span class="agenda-premium-badge-soft">InfinitePay</span>
                     </div>
 
-                    <label class="campo-label" style="margin-top:10px;">Ou adicionar um período inteiro de uma vez</label>
-                    <div class="produto-admin-linha">
-                        <div class="campo-com-label"><label class="campo-label">De</label><input type="date" id="dataInicioBloqueio"></div>
-                        <div class="campo-com-label"><label class="campo-label">Até</label><input type="date" id="dataFimBloqueio"></div>
+                    <div class="agenda-sinal-grid">
+                        <div class="campo-com-label agenda-premium-field">
+                            <label class="campo-label" for="percentualSinal">Percentual do sinal</label>
+                            <div class="agenda-input-com-sufixo">
+                                <input type="text" inputmode="numeric" id="percentualSinal" placeholder="Ex: 40">
+                                <span>%</span>
+                            </div>
+                            <small>Deixe 0 para não exigir sinal.</small>
+                        </div>
+                        <div class="campo-com-label agenda-premium-field">
+                            <label class="campo-label" for="prazoPagamentoHoras">Prazo para pagar</label>
+                            <div class="agenda-input-com-sufixo">
+                                <input type="text" inputmode="numeric" id="prazoPagamentoHoras" placeholder="Ex: 24">
+                                <span>horas</span>
+                            </div>
+                            <small>Sem pagamento no prazo, a reserva é cancelada automaticamente.</small>
+                        </div>
                     </div>
-                    <button class="btn-secondary" style="margin-top:6px;" onclick="adicionarPeriodoNaListaPendente()">+ Adicionar período</button>
+                    <div class="agenda-sinal-info">🔐 Para cobrar o sinal por Pix/Cartão, a InfiniteTag precisa estar configurada no pagamento online.</div>
+                    <div class="agenda-premium-actions">
+                        <button class="btn-salvar-ordem agenda-btn-principal" onclick="salvarConfigSinal()">💾 Salvar configuração do sinal</button>
+                        <p id="configSinalMsg" class="ordem-categorias-msg"></p>
+                    </div>
+                </section>
 
-                    <div id="listaPendenteBloqueio" style="margin-top:14px;"></div>
+                <section class="loja-status-card agenda-premium-card agenda-premium-card--bloqueios">
+                    <div class="agenda-premium-card-head agenda-premium-card-head--with-badge">
+                        <div class="agenda-premium-card-head-left">
+                            <span class="agenda-premium-step">04</span>
+                            <div>
+                                <span class="agenda-premium-kicker">DISPONIBILIDADE</span>
+                                <h3>🚫 Bloquear datas</h3>
+                                <p class="dica-secao">Use para férias, feriados, folgas ou qualquer período em que você não queira receber novas encomendas.</p>
+                            </div>
+                        </div>
+                        <span class="agenda-premium-badge-soft">Datas especiais</span>
+                    </div>
 
-                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="confirmarBloqueioPendente()">🚫 Bloquear tudo da lista</button>
-                    <p id="bloquearDataMsg" class="ordem-categorias-msg"></p>
-                    <h3 style="margin-top:18px;">Dias bloqueados atualmente</h3>
-                    <div id="listaDatasBloqueadas"><p class="dica-secao">Nenhum dia bloqueado.</p></div>
-                </div>
+                    <div class="agenda-bloqueios-grid">
+                        <div class="agenda-bloqueio-box">
+                            <div class="agenda-bloqueio-box-head">
+                                <span>📆</span>
+                                <div><strong>Bloquear um dia</strong><small>Adicione datas avulsas à lista.</small></div>
+                            </div>
+                            <label class="campo-label" for="dataUnicaParaAdicionar">Data</label>
+                            <div class="agenda-bloqueio-linha">
+                                <input type="date" id="dataUnicaParaAdicionar">
+                                <button class="btn-secondary agenda-btn-secundario" onclick="adicionarDataNaListaPendente()">＋ Adicionar</button>
+                            </div>
+                        </div>
+
+                        <div class="agenda-bloqueio-box">
+                            <div class="agenda-bloqueio-box-head">
+                                <span>🗓️</span>
+                                <div><strong>Bloquear um período</strong><small>Inclua vários dias consecutivos de uma vez.</small></div>
+                            </div>
+                            <div class="agenda-periodo-grid">
+                                <div class="campo-com-label"><label class="campo-label" for="dataInicioBloqueio">De</label><input type="date" id="dataInicioBloqueio"></div>
+                                <div class="campo-com-label"><label class="campo-label" for="dataFimBloqueio">Até</label><input type="date" id="dataFimBloqueio"></div>
+                            </div>
+                            <button class="btn-secondary agenda-btn-secundario agenda-btn-secundario--full" onclick="adicionarPeriodoNaListaPendente()">＋ Adicionar período</button>
+                        </div>
+                    </div>
+
+                    <div class="agenda-lista-pendente-wrap">
+                        <div class="agenda-lista-head">
+                            <div><span class="agenda-premium-kicker">LISTA A BLOQUEAR</span><strong>Datas preparadas</strong></div>
+                            <small>Revise antes de confirmar.</small>
+                        </div>
+                        <div id="listaPendenteBloqueio" class="agenda-lista-pendente"></div>
+                    </div>
+
+                    <div class="agenda-premium-actions agenda-premium-actions--bloqueio">
+                        <button class="btn-salvar-ordem agenda-btn-principal agenda-btn-bloquear" onclick="confirmarBloqueioPendente()">🚫 Bloquear tudo da lista</button>
+                        <p id="bloquearDataMsg" class="ordem-categorias-msg"></p>
+                    </div>
+
+                    <div class="agenda-bloqueados-atuais">
+                        <div class="agenda-lista-head">
+                            <div><span class="agenda-premium-kicker">AGENDA ATUAL</span><strong>Dias bloqueados atualmente</strong></div>
+                            <small>Datas indisponíveis para novas encomendas.</small>
+                        </div>
+                        <div id="listaDatasBloqueadas" class="agenda-lista-bloqueados"><p class="dica-secao">Nenhum dia bloqueado.</p></div>
+                    </div>
+                </section>
             </section>
 
             <section data-tab="produtos" class="produtos-premium-v4 produtos-catalogo-premium">
