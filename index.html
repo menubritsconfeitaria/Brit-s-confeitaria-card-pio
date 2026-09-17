@@ -199,89 +199,148 @@
             </div>
         </div>
 
-        <section id="carrinho" class="container">
-            <h2>Seu Carrinho</h2>
-            <div class="carrinho-itens">
-                <p>Seu carrinho está vazio.</p>
+        <section id="carrinho" class="container checkout-premium">
+            <div class="checkout-premium-cabecalho">
+                <span class="checkout-premium-eyebrow">Finalização do pedido</span>
+                <h2>Seu Carrinho</h2>
+                <p>Preencha seus dados com tranquilidade, escolha como deseja receber e revise o pedido antes de finalizar.</p>
             </div>
 
-            <div class="cupom-area">
-                <input type="text" id="cupomInput" placeholder="Cupom de desconto">
-                <button onclick="aplicarCupom()">Aplicar</button>
-            </div>
-            <p id="cupomMensagem" class="cupom-mensagem"></p>
-            <p id="incentivoCarrinhoMsg" class="cupom-mensagem" style="display:none;"></p>
-            <div id="sugestaoProdutoCarrinho" class="sugestao-produto-carrinho" style="display:none;"></div>
+            <div class="checkout-premium-grid">
+                <div class="checkout-premium-formulario">
+                    <div class="endereco-form card-secao checkout-card-principal">
+                        <div class="checkout-bloco checkout-bloco-dados">
+                            <div class="checkout-bloco-titulo">
+                                <span class="checkout-passo">01</span>
+                                <div>
+                                    <strong>Seus dados</strong>
+                                    <small>Informe quem receberá o pedido.</small>
+                                </div>
+                            </div>
+                            <div class="checkout-campos-duplos">
+                                <input type="text" id="nomeCliente" placeholder="Seu Nome Completo" required>
+                                <input type="tel" id="telefoneCliente" placeholder="Telefone (WhatsApp)" required>
+                            </div>
+                        </div>
 
-            <div class="carrinho-total">
-                <p>Subtotal: <span id="subtotal-carrinho">R$ 0,00</span></p>
-                <p id="linhaDesconto" style="display:none;">Desconto: <span id="desconto-carrinho">- R$ 0,00</span></p>
-                <p>Entrega: <span id="frete-carrinho">R$ 0,00</span></p>
-                <p class="total-final">Total: <span id="total-carrinho">R$ 0,00</span></p>
-            </div>
+                        <div class="checkout-bloco checkout-bloco-entrega">
+                            <div class="checkout-bloco-titulo">
+                                <span class="checkout-passo">02</span>
+                                <div>
+                                    <strong>Entrega ou retirada</strong>
+                                    <small>Escolha a opção mais conveniente para você.</small>
+                                </div>
+                            </div>
+                            <div class="opcoes-radio checkout-opcoes-entrega">
+                                <div class="opcao-btn selecionado" id="btnRetirada" onclick="selecionarTipoEntrega('retirada')">🏠 Retirar no local</div>
+                                <div class="opcao-btn" id="btnEntrega" onclick="selecionarTipoEntrega('entrega')">🛵 Entrega</div>
+                            </div>
 
-            <div class="endereco-form card-secao">
-                <h3>Seus dados</h3>
-                <input type="text" id="nomeCliente" placeholder="Seu Nome Completo" required>
-                <input type="tel" id="telefoneCliente" placeholder="Telefone (WhatsApp)" required>
+                            <div id="areaEntrega" style="display:none;">
+                                <div class="checkout-endereco-grid">
+                                    <label class="label-cep checkout-endereco-label">Endereço para entrega</label>
+                                    <input type="text" id="cepCliente" placeholder="CEP (Ex: 00000-000)" maxlength="9" onblur="calcularFrete()">
+                                    <div id="infoFrete" class="info-frete" style="display:none;"></div>
+                                    <input type="text" id="ruaCliente" placeholder="Rua">
+                                    <input type="text" id="numeroCliente" placeholder="Número">
+                                    <input type="text" id="complementoCliente" placeholder="Complemento (apto, bloco, etc.)">
+                                    <input type="text" id="bairroCliente" placeholder="Bairro">
+                                    <input type="text" id="cidadeCliente" placeholder="Cidade">
+                                    <input type="text" id="estadoCliente" placeholder="UF" maxlength="2">
+                                </div>
+                            </div>
+                        </div>
 
-                <label>Como você quer receber?</label>
-                <div class="opcoes-radio">
-                    <div class="opcao-btn selecionado" id="btnRetirada" onclick="selecionarTipoEntrega('retirada')">🏠 Retirar no local</div>
-                    <div class="opcao-btn" id="btnEntrega" onclick="selecionarTipoEntrega('entrega')">🛵 Entrega</div>
-                </div>
+                        <div class="checkout-bloco checkout-bloco-pagamento">
+                            <div class="checkout-bloco-titulo">
+                                <span class="checkout-passo">03</span>
+                                <div>
+                                    <strong>Forma de pagamento</strong>
+                                    <small>Escolha como prefere pagar.</small>
+                                </div>
+                            </div>
+                            <div class="opcoes-radio checkout-opcoes-pagamento">
+                                <div class="opcao-btn selecionado" id="btnPix" onclick="selecionarPagamento('Pix')">💠 Pix <span>pagar agora</span></div>
+                                <div class="opcao-btn" id="btnCartao" onclick="selecionarPagamento('Cartão')">💳 Cartão <span>pagar agora</span></div>
+                                <div class="opcao-btn" id="btnDinheiro" onclick="selecionarPagamento('Dinheiro')">💵 Dinheiro <span>na entrega</span></div>
+                            </div>
 
-                <div id="areaEntrega" style="display:none;">
-                    <label class="label-cep">CEP</label>
-                    <input type="text" id="cepCliente" placeholder="Digite seu CEP (Ex: 00000-000)" maxlength="9" onblur="calcularFrete()">
-                    <div id="infoFrete" class="info-frete" style="display:none;"></div>
-                    <input type="text" id="ruaCliente" placeholder="Rua">
-                    <input type="text" id="numeroCliente" placeholder="Número">
-                    <input type="text" id="complementoCliente" placeholder="Complemento (apto, bloco, etc.)">
-                    <input type="text" id="bairroCliente" placeholder="Bairro">
-                    <input type="text" id="cidadeCliente" placeholder="Cidade">
-                    <input type="text" id="estadoCliente" placeholder="Estado (Ex: ES)" maxlength="2">
-                </div>
+                            <div id="areaTroco" style="display:none;">
+                                <label>Precisa de troco?</label>
+                                <div class="toggle-sim-nao">
+                                    <button type="button" id="btnTrocoSim" class="toggle-opcao" onclick="definirPrecisaTroco(true)">Sim</button>
+                                    <button type="button" id="btnTrocoNao" class="toggle-opcao selecionado" onclick="definirPrecisaTroco(false)">Não</button>
+                                </div>
+                                <div id="campoValorTroco" style="display:none; margin-top:8px;">
+                                    <label>Troco para quanto?</label>
+                                    <input type="text" id="clienteTroco" placeholder="Ex: R$ 50,00">
+                                </div>
+                            </div>
 
-                <label>Forma de pagamento</label>
-                <div class="opcoes-radio">
-                    <div class="opcao-btn selecionado" id="btnPix" onclick="selecionarPagamento('Pix')">💠 Pix (pagar agora)</div>
-                    <div class="opcao-btn" id="btnCartao" onclick="selecionarPagamento('Cartão')">💳 Cartão (pagar agora)</div>
-                    <div class="opcao-btn" id="btnDinheiro" onclick="selecionarPagamento('Dinheiro')">💵 Dinheiro (na entrega)</div>
-                </div>
+                            <div id="resumoEncomendaCheckout" style="display:none;">
+                                <p class="dica-encomenda" id="resumoTextoEncomenda"></p>
+                            </div>
+                        </div>
 
-                <div id="areaTroco" style="display:none;">
-                    <label>Precisa de troco?</label>
-                    <div class="toggle-sim-nao">
-                        <button type="button" id="btnTrocoSim" class="toggle-opcao" onclick="definirPrecisaTroco(true)">Sim</button>
-                        <button type="button" id="btnTrocoNao" class="toggle-opcao selecionado" onclick="definirPrecisaTroco(false)">Não</button>
+                        <div class="checkout-bloco checkout-bloco-observacoes">
+                            <div class="checkout-bloco-titulo checkout-bloco-titulo-menor">
+                                <span class="checkout-passo">04</span>
+                                <div>
+                                    <strong>Observações</strong>
+                                    <small>Opcional — informe algum detalhe importante do pedido.</small>
+                                </div>
+                            </div>
+                            <textarea id="clienteObs" rows="2" placeholder="Ex: sem lactose, para uma festa, etc."></textarea>
+                        </div>
                     </div>
-                    <div id="campoValorTroco" style="display:none; margin-top:8px;">
-                        <label>Troco para quanto?</label>
-                        <input type="text" id="clienteTroco" placeholder="Ex: R$ 50,00">
+                </div>
+
+                <aside class="checkout-premium-resumo" aria-label="Resumo do pedido">
+                    <div class="checkout-resumo-cabecalho">
+                        <div>
+                            <span class="checkout-resumo-eyebrow">Resumo do pedido</span>
+                            <h3>Revise antes de finalizar</h3>
+                        </div>
+                        <span class="checkout-resumo-icone">🛍️</span>
                     </div>
-                </div>
 
-                <div id="resumoEncomendaCheckout" style="display:none;">
-                    <p class="dica-encomenda" id="resumoTextoEncomenda"></p>
-                </div>
+                    <div class="carrinho-itens">
+                        <p>Seu carrinho está vazio.</p>
+                    </div>
 
-                <label>Observações (opcional)</label>
-                <textarea id="clienteObs" rows="2" placeholder="Ex: sem lactose, para uma festa, etc."></textarea>
+                    <div class="checkout-cupom-card">
+                        <label for="cupomInput">Tem um cupom?</label>
+                        <div class="cupom-area">
+                            <input type="text" id="cupomInput" placeholder="Digite seu cupom">
+                            <button onclick="aplicarCupom()">Aplicar</button>
+                        </div>
+                        <p id="cupomMensagem" class="cupom-mensagem"></p>
+                        <p id="incentivoCarrinhoMsg" class="cupom-mensagem" style="display:none;"></p>
+                        <div id="sugestaoProdutoCarrinho" class="sugestao-produto-carrinho" style="display:none;"></div>
+                    </div>
+
+                    <div class="carrinho-total">
+                        <p><span>Subtotal</span><strong id="subtotal-carrinho">R$ 0,00</strong></p>
+                        <p id="linhaDesconto" style="display:none;"><span>Desconto</span><strong id="desconto-carrinho">- R$ 0,00</strong></p>
+                        <p><span>Entrega</span><strong id="frete-carrinho">R$ 0,00</strong></p>
+                        <p class="total-final"><span>Total</span><strong id="total-carrinho">R$ 0,00</strong></p>
+                    </div>
+
+                    <button class="finalizar-compra">Finalizar Compra</button>
+                    <p class="checkout-final-ajuda">Confira seus dados e o resumo do pedido antes de finalizar.</p>
+
+                    <div class="compra-segura-box">
+                        <p class="compra-segura-titulo">🔒 Compra segura e protegida</p>
+                        <p class="compra-segura-texto">Seus dados são protegidos e os pagamentos online são processados em ambiente seguro.</p>
+                        <div class="compra-segura-grade">
+                            <div class="compra-segura-item"><span class="compra-segura-icone">🔒</span>Conexão protegida</div>
+                            <div class="compra-segura-item"><span class="compra-segura-icone">💳</span>Pagamento seguro</div>
+                            <div class="compra-segura-item"><span class="compra-segura-icone">🛡️</span>Dados protegidos</div>
+                            <div class="compra-segura-item"><span class="compra-segura-icone">💬</span>Suporte no WhatsApp</div>
+                        </div>
+                    </div>
+                </aside>
             </div>
-
-            <div class="compra-segura-box">
-                <p class="compra-segura-titulo">🔒 Compra segura e protegida</p>
-                <p class="compra-segura-texto">Faça seu pedido com tranquilidade. Seus dados são protegidos e os pagamentos online são processados em ambiente seguro.</p>
-                <div class="compra-segura-grade">
-                    <div class="compra-segura-item"><span class="compra-segura-icone">🔒</span>Conexão protegida por HTTPS</div>
-                    <div class="compra-segura-item"><span class="compra-segura-icone">💳</span>Pix e cartão em ambiente seguro</div>
-                    <div class="compra-segura-item"><span class="compra-segura-icone">🛡️</span>Seus dados ficam protegidos</div>
-                    <div class="compra-segura-item"><span class="compra-segura-icone">💬</span>Atendimento pelo WhatsApp oficial</div>
-                </div>
-            </div>
-
-            <button class="finalizar-compra">Finalizar Compra</button>
         </section>
 
         <div class="container">
