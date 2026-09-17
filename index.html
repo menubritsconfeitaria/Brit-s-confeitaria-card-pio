@@ -391,69 +391,158 @@
                 </div>
             </div>
 
-            <section class="personalizar-secao">
-                <button type="button" class="personalizar-chamada" onclick="alternarPersonalizarConteudo()">
-                    ➡️ Tenha o seu cardápio digital personalizado com a sua marca
+            <section class="personalizar-secao personalizar-conversao">
+                <button type="button" class="personalizar-chamada" onclick="alternarPersonalizarConteudo()" aria-controls="personalizarConteudo">
+                    <span class="personalizar-chamada-eyebrow">✨ Seu negócio, sua marca</span>
+                    <span class="personalizar-chamada-titulo">Tenha seu cardápio digital personalizado</span>
+                    <span class="personalizar-chamada-texto">Monte uma prévia com o nome, a logo e a cor da sua empresa e veja o resultado na hora.</span>
+                    <span class="personalizar-chamada-cta">Criar minha prévia <span aria-hidden="true">→</span></span>
                 </button>
 
                 <div id="personalizarConteudo" class="personalizar-conteudo" style="display:none;">
-                    <p class="personalizar-subtitulo">Veja como ficaria o SEU cardápio, com a SUA marca — é só preencher aqui embaixo:</p>
+                    <div class="personalizar-intro">
+                        <div>
+                            <span class="personalizar-intro-kicker">PRÉVIA PERSONALIZADA</span>
+                            <h3>Veja sua marca dentro de uma experiência profissional de pedidos</h3>
+                            <p>Preencha os dados principais. A prévia ao lado acompanha sua personalização em tempo real.</p>
+                        </div>
+                        <div class="personalizar-intro-selos" aria-label="Destaques da prévia">
+                            <span>⚡ Atualização em tempo real</span>
+                            <span>🎨 Sua identidade visual</span>
+                            <span>📱 Pronto para celular</span>
+                        </div>
+                    </div>
 
                     <div class="personalizar-grid">
-                        <div class="personalizar-form">
-                            <label for="pcNome">Seu nome</label>
-                            <input type="text" id="pcNome" placeholder="Ex: Maria" maxlength="40">
+                        <div class="personalizar-form personalizar-form-card">
+                            <div class="personalizar-bloco-topo">
+                                <div class="personalizar-passo">01</div>
+                                <div>
+                                    <span class="personalizar-bloco-kicker">SUA EMPRESA</span>
+                                    <h4>Conte um pouco sobre o seu negócio</h4>
+                                    <p>Os campos marcados como essenciais são os únicos necessários para solicitar contato.</p>
+                                </div>
+                            </div>
 
-                            <label for="pcNomeLoja">Nome da sua loja</label>
-                            <input type="text" id="pcNomeLoja" placeholder="Ex: Doces da Maria" maxlength="40">
+                            <div class="personalizar-campos-grid">
+                                <div class="personalizar-campo">
+                                    <label for="pcNome">Seu nome <span class="campo-essencial">Essencial</span></label>
+                                    <input type="text" id="pcNome" placeholder="Ex: Maria" maxlength="40" autocomplete="name">
+                                </div>
 
-                            <label for="pcEmail">Seu e-mail</label>
-                            <input type="email" id="pcEmail" placeholder="Ex: maria@email.com">
+                                <div class="personalizar-campo">
+                                    <label for="pcNomeLoja">Nome da sua loja <span class="campo-essencial">Essencial</span></label>
+                                    <input type="text" id="pcNomeLoja" placeholder="Ex: Doces da Maria" maxlength="40" autocomplete="organization">
+                                </div>
 
-                            <label for="pcWhatsapp">Seu WhatsApp</label>
-                            <input type="text" id="pcWhatsapp" placeholder="Ex: 27 99999-8888">
+                                <div class="personalizar-campo">
+                                    <label for="pcWhatsapp">Seu WhatsApp <span class="campo-essencial">Essencial</span></label>
+                                    <input type="text" id="pcWhatsapp" placeholder="Ex: 27 99999-8888" inputmode="tel" autocomplete="tel">
+                                </div>
 
-                            <label for="pcTipoNegocio">Tipo de negócio</label>
-                            <input type="text" id="pcTipoNegocio" placeholder="Ex: Confeitaria, hamburgueria, açaiteria...">
+                                <div class="personalizar-campo">
+                                    <label for="pcEmail">Seu e-mail <span class="campo-opcional">Opcional</span></label>
+                                    <input type="email" id="pcEmail" placeholder="Ex: maria@email.com" autocomplete="email">
+                                </div>
 
-                            <label for="pcCidade">Sua cidade (opcional)</label>
-                            <input type="text" id="pcCidade" placeholder="Ex: Colatina/ES">
+                                <div class="personalizar-campo">
+                                    <label for="pcTipoNegocio">Tipo de negócio <span class="campo-opcional">Opcional</span></label>
+                                    <input type="text" id="pcTipoNegocio" placeholder="Ex: Confeitaria, hamburgueria, açaiteria...">
+                                </div>
 
-                            <label for="pcLogoInput">Sua logo (opcional, imagem quadrada fica melhor)</label>
-                            <input type="file" id="pcLogoInput" accept="image/*">
+                                <div class="personalizar-campo">
+                                    <label for="pcCidade">Sua cidade <span class="campo-opcional">Opcional</span></label>
+                                    <input type="text" id="pcCidade" placeholder="Ex: Colatina/ES" autocomplete="address-level2">
+                                </div>
+                            </div>
 
-                            <label for="pcInstagram">Seu Instagram (opcional)</label>
-                            <input type="text" id="pcInstagram" placeholder="Ex: @doces.damaria">
+                            <div class="personalizar-divisor"><span>Personalize a aparência</span></div>
 
-                            <label for="pcCorPrincipal">Cor principal da sua marca</label>
-                            <input type="color" id="pcCorPrincipal" value="#a0522d">
+                            <div class="personalizar-identidade-grid">
+                                <div class="personalizar-campo personalizar-campo-logo">
+                                    <label for="pcLogoInput">Sua logo <span class="campo-opcional">Opcional</span></label>
+                                    <div class="personalizar-upload">
+                                        <span class="personalizar-upload-icone">🖼️</span>
+                                        <div>
+                                            <strong>Escolher imagem</strong>
+                                            <small>Imagens quadradas ficam melhores na prévia.</small>
+                                        </div>
+                                        <input type="file" id="pcLogoInput" accept="image/*">
+                                    </div>
+                                </div>
 
-                            <button type="button" class="btn-ver-previa" onclick="ativarModoDemoCompleto()">👀 Ver meu cardápio assim, no site inteiro!</button>
-                            <button type="button" onclick="enviarInteressePersonalizado()">📲 Quero o meu cardápio assim!</button>
-                            <p id="pcMsgEnvio" class="dica-encomenda" style="margin-top:8px;"></p>
+                                <div class="personalizar-campo">
+                                    <label for="pcInstagram">Seu Instagram <span class="campo-opcional">Opcional</span></label>
+                                    <input type="text" id="pcInstagram" placeholder="Ex: @doces.damaria">
+                                </div>
+
+                                <div class="personalizar-campo personalizar-cor-campo">
+                                    <label for="pcCorPrincipal">Cor principal da sua marca</label>
+                                    <div class="personalizar-cor-linha">
+                                        <input type="color" id="pcCorPrincipal" value="#a0522d" aria-label="Escolher cor principal da marca">
+                                        <span>Escolha a cor que mais representa sua empresa.</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="personalizar-acoes">
+                                <button type="button" class="btn-ver-previa" onclick="ativarModoDemoCompleto()">👀 Ver meu cardápio no site inteiro</button>
+                                <button type="button" class="btn-interesse-personalizado" onclick="enviarInteressePersonalizado()">📲 Quero meu cardápio assim <span aria-hidden="true">→</span></button>
+                            </div>
+                            <p class="personalizar-acao-nota">Ao continuar, abriremos o WhatsApp com os dados preenchidos para você falar com a equipe.</p>
+                            <p id="pcMsgEnvio" class="dica-encomenda personalizar-msg-envio"></p>
                         </div>
 
-                        <div class="personalizar-preview">
-                            <p class="preview-legenda">👆 Prévia em tempo real</p>
-                            <div class="preview-mini-cardapio" id="pcPreviewCaixa">
-                                <img id="pcPreviewLogo" src="logopng.png" alt="Prévia da sua logo">
-                                <h3 id="pcPreviewNome">Bem-vindo à Sua Loja!</h3>
-                                <p>Seu cardápio diário de delícias frescas.</p>
-                            <div class="preview-botao-exemplo" id="pcPreviewBotao">Fazer pedido</div>
-                        </div>
-                    </div>
+                        <aside class="personalizar-preview">
+                            <div class="personalizar-preview-topo">
+                                <div>
+                                    <span class="personalizar-bloco-kicker">02 · SUA PRÉVIA</span>
+                                    <h4>Veja sua identidade aplicada</h4>
+                                </div>
+                                <span class="preview-ao-vivo"><i></i> Ao vivo</span>
+                            </div>
+
+                            <div class="preview-browser">
+                                <div class="preview-browser-barra" aria-hidden="true">
+                                    <span></span><span></span><span></span>
+                                    <div>seucardapio.com.br</div>
+                                </div>
+                                <div class="preview-mini-cardapio" id="pcPreviewCaixa">
+                                    <span class="preview-mini-etiqueta">Seu cardápio digital</span>
+                                    <img id="pcPreviewLogo" src="logopng.png" alt="Prévia da sua logo">
+                                    <h3 id="pcPreviewNome">Bem-vindo à Sua Loja!</h3>
+                                    <p>Seu cardápio diário de delícias frescas.</p>
+                                    <div class="preview-mini-produtos" aria-hidden="true">
+                                        <span></span><span></span><span></span>
+                                    </div>
+                                    <div class="preview-botao-exemplo" id="pcPreviewBotao">Fazer pedido</div>
+                                </div>
+                            </div>
+
+                            <div class="preview-legenda">
+                                <span>✓ Nome da loja</span>
+                                <span>✓ Logo</span>
+                                <span>✓ Cor da marca</span>
+                            </div>
+                            <p class="personalizar-preview-nota">Altere os campos ao lado e acompanhe a prévia. Depois, use “Ver meu cardápio no site inteiro” para experimentar a identidade na página.</p>
+                        </aside>
                     </div>
 
+                    <div class="personalizar-beneficios-topo">
+                        <span class="personalizar-intro-kicker">MAIS QUE UM CARDÁPIO</span>
+                        <h3>Uma estrutura pensada para organizar pedidos e ajudar seu negócio a vender melhor</h3>
+                    </div>
                     <ul class="personalizar-beneficios">
-                        <li>✅ Painel de controle completo: aceite pedidos, cadastre produtos e acompanhe tudo em tempo real</li>
-                        <li>✅ Cardápio sempre atualizado, sem precisar reimprimir nada</li>
-                        <li>✅ Pedidos organizados automaticamente, sem bagunça no WhatsApp</li>
-                        <li>✅ Cupons, clube de fidelidade e notificações de oferta pra fidelizar seus clientes</li>
-                        <li>✅ Relatório pronto do dia, fácil de conferir e fechar o caixa</li>
-                        <li>✅ Fácil de usar, sem precisar saber nada de tecnologia</li>
+                        <li><span class="beneficio-icone">📦</span><div><strong>Pedidos organizados</strong><span>Acompanhe os pedidos em tempo real sem depender de conversa perdida no WhatsApp.</span></div></li>
+                        <li><span class="beneficio-icone">🔄</span><div><strong>Cardápio sempre atualizado</strong><span>Altere produtos, preços e disponibilidade sem precisar reimprimir nada.</span></div></li>
+                        <li><span class="beneficio-icone">🎟️</span><div><strong>Recorrência e fidelização</strong><span>Use cupons, clube de fidelidade e notificações para manter o relacionamento com clientes.</span></div></li>
+                        <li><span class="beneficio-icone">📊</span><div><strong>Gestão em um só lugar</strong><span>Tenha uma visão mais organizada da operação e informações importantes do dia.</span></div></li>
+                        <li><span class="beneficio-icone">📱</span><div><strong>Experiência profissional</strong><span>Seu cliente acessa um cardápio moderno pelo celular, com a identidade da sua empresa.</span></div></li>
+                        <li><span class="beneficio-icone">✨</span><div><strong>Feito para ser simples</strong><span>Uma experiência visual e direta para usar no dia a dia sem complicação.</span></div></li>
                     </ul>
                 </div>
             </section>
+
         </div>
     </main>
 
