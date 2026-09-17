@@ -346,6 +346,7 @@ function aplicarConfigDaLoja(config) {
 aplicarConfigDaLoja(LOJA_CONFIG); // aplica a configuração real assim que a página carrega
 
 let lojaAbertaAtual = true;
+let lojaPausadaAtual = false; // pausa operacional bloqueia novos pedidos sem fechar o cardápio
 let pagamentoOnlineAtivo = false; // só vira true se a loja ativou isso no painel
 let adicionaisAtivo = false; // idem, pro recurso de adicionais por produto
 let agendamentoAtivo = false; // idem, pro recurso de encomenda com data agendada
@@ -434,7 +435,8 @@ function atualizarStatusLoja(config) {
     // real da loja, a pessoa vendo a prévia precisa ver o site "no seu melhor momento"
     if (modoDemoAtivo) {
         lojaAbertaAtual = true;
-        banner.classList.remove('loja-fechada');
+        lojaPausadaAtual = false;
+        banner.classList.remove('loja-fechada', 'loja-pausada');
         banner.classList.add('loja-aberta');
         texto.textContent = '🟢 Estamos abertos! Pode fazer seu pedido.';
         if (botaoFinalizarCompra) {
@@ -446,6 +448,21 @@ function atualizarStatusLoja(config) {
 
     const horarios = config && config.horarios;
     const modoManual = config && config.modoManual;
+    const pausada = !!(config && config.pausada);
+
+    lojaPausadaAtual = pausada;
+    if (pausada) {
+        lojaAbertaAtual = false;
+        banner.classList.remove('loja-aberta', 'loja-fechada', 'loja-pausada');
+        banner.classList.add('loja-pausada');
+        texto.textContent = '🟡 Pedidos temporariamente pausados. Voltaremos a atender em breve — o cardápio continua disponível para consulta.';
+        if (botaoFinalizarCompra) {
+            botaoFinalizarCompra.disabled = true;
+            botaoFinalizarCompra.textContent = 'Pedidos temporariamente pausados';
+        }
+        ajustarPosicaoCategorias();
+        return;
+    }
 
     let aberta;
     if (modoManual === 'aberto') aberta = true;
@@ -454,7 +471,7 @@ function atualizarStatusLoja(config) {
 
     lojaAbertaAtual = aberta;
 
-    banner.classList.remove('loja-aberta', 'loja-fechada');
+    banner.classList.remove('loja-aberta', 'loja-fechada', 'loja-pausada');
     if (aberta) {
         banner.classList.add('loja-aberta');
         texto.textContent = '🟢 Estamos abertos! Pode fazer seu pedido.';
@@ -479,6 +496,38 @@ function atualizarStatusLoja(config) {
     }
 
     ajustarPosicaoCategorias();
+}
+
+// Confirma a pausa diretamente no Firebase no momento de finalizar.
+// O listener em tempo real já atualiza a tela normalmente; esta leitura extra existe apenas
+// como proteção contra uma aba antiga/stale que ainda não recebeu a mudança de estado.
+async function confirmarPausaOperacionalAgora() {
+    if (lojaPausadaAtual) return true;
+    try {
+        if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return lojaPausadaAtual;
+        const snap = await firebase.database().ref('configuracao/loja/pausada').once('value');
+        const pausada = snap.val() === true;
+        if (pausada) {
+            lojaPausadaAtual = true;
+            lojaAbertaAtual = false;
+            const banner = document.getElementById('statusLojaBanner');
+            const texto = document.getElementById('statusLojaTexto');
+            if (banner) {
+                banner.classList.remove('loja-aberta', 'loja-fechada', 'loja-pausada');
+                banner.classList.add('loja-pausada');
+            }
+            if (texto) texto.textContent = '🟡 Pedidos temporariamente pausados. Voltaremos a atender em breve — o cardápio continua disponível para consulta.';
+            if (botaoFinalizarCompra) {
+                botaoFinalizarCompra.disabled = true;
+                botaoFinalizarCompra.textContent = 'Pedidos temporariamente pausados';
+            }
+            ajustarPosicaoCategorias();
+        }
+        return pausada;
+    } catch (err) {
+        console.log('Não foi possível confirmar a pausa operacional agora:', err.message || err);
+        return lojaPausadaAtual;
+    }
 }
 
 // Empurra a barra de categorias pra baixo da faixa "Aberto/Fechado", já que as duas ficam grudadas no topo.
@@ -830,7 +879,9 @@ async function salvarPedidoNoPainel(dadosPedido, statusInicial) {
         return { id: pedidoId, promessaSalvo: Promise.resolve() };
     } catch (err) {
         console.log('Não foi possível salvar o pedido no painel:', err);
-        return { id: null, promessaSalvo: Promise.resolve() };
+        const mensagemErro = String((err && err.message) || '');
+        const bloqueadoPorPausa = /pausad/i.test(mensagemErro);
+        return { id: null, promessaSalvo: Promise.resolve(), bloqueadoPorPausa };
     }
 }
 
@@ -1490,13 +1541,18 @@ function atualizarResumoEncomendaCheckout() {
     // Reage na hora se a loja estiver fechada: escolher (ou desmarcar) uma encomenda
     // libera ou trava o botão de finalizar na hora, sem esperar a próxima atualização
     // de status da loja (que só roda a cada 1 minuto)
-    if (!lojaAbertaAtual && botaoFinalizarCompra && !modoDemoAtivo) {
-        if (dataEncomendaEscolhida) {
-            botaoFinalizarCompra.disabled = false;
-            botaoFinalizarCompra.textContent = 'Finalizar Compra';
-        } else {
+    if (botaoFinalizarCompra && !modoDemoAtivo) {
+        if (lojaPausadaAtual) {
             botaoFinalizarCompra.disabled = true;
-            botaoFinalizarCompra.textContent = 'No momento, estamos fechados';
+            botaoFinalizarCompra.textContent = 'Pedidos temporariamente pausados';
+        } else if (!lojaAbertaAtual) {
+            if (dataEncomendaEscolhida) {
+                botaoFinalizarCompra.disabled = false;
+                botaoFinalizarCompra.textContent = 'Finalizar Compra';
+            } else {
+                botaoFinalizarCompra.disabled = true;
+                botaoFinalizarCompra.textContent = 'No momento, estamos fechados';
+            }
         }
     }
 
@@ -2766,6 +2822,13 @@ botaoFinalizarCompra.addEventListener('click', async () => {
     // cria 2 pedidos duplicados de verdade, com cobrança/contagem em dobro
     if (botaoFinalizarCompra.disabled) return;
 
+    // Pausa operacional bloqueia QUALQUER novo pedido. Além do estado recebido em tempo
+    // real, confirma no Firebase no clique para não depender de uma aba antiga em cache.
+    if (lojaPausadaAtual || await confirmarPausaOperacionalAgora()) {
+        alert('Os pedidos estão temporariamente pausados. Voltaremos a atender em breve!');
+        return;
+    }
+
     // Encomenda agendada é pra uma data futura — não faz sentido bloquear só porque a
     // loja está fechada agora, nesse exato momento (diferente de um pedido pro dia)
     if (!lojaAbertaAtual && !dataEncomendaEscolhida) {
@@ -2893,7 +2956,7 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         || (pagamentoOnlineAtivo && !querAgendar && (formaPagamentoAtual === 'Pix' || formaPagamentoAtual === 'Cartão'));
     const statusInicialPedido = exigePagamentoAntes ? 'aguardando_pagamento' : 'pendente';
 
-    const { id: pedidoId, promessaSalvo } = await salvarPedidoNoPainel({
+    const { id: pedidoId, promessaSalvo, bloqueadoPorPausa } = await salvarPedidoNoPainel({
         nome, telefone,
         tipoEntrega: tipoEntregaAtual,
         endereco: tipoEntregaAtual === 'entrega' ? { rua, numero, complemento, bairro, cidade, estado, cep } : null,
@@ -2939,6 +3002,16 @@ botaoFinalizarCompra.addEventListener('click', async () => {
             ? localStorage.getItem('notificacaoToken')
             : null
     }, statusInicialPedido);
+
+    // Defesa final: se a pausa começou entre o clique e a gravação do pedido, o servidor
+    // recusa a criação. Nesse caso não abre WhatsApp nem checkout e mantém o carrinho intacto.
+    if (bloqueadoPorPausa) {
+        lojaPausadaAtual = true;
+        lojaAbertaAtual = false;
+        atualizarStatusLoja({ ...(ultimaConfigLojaReal || {}), pausada: true });
+        alert('Os pedidos foram pausados antes da finalização. Seu carrinho foi mantido para você continuar quando o atendimento for retomado.');
+        return;
+    }
 
     // Guarda esse pedido pra mostrar o status (pendente/aceito/em rota/entregue/recusado) pro cliente
     if (pedidoId) {
@@ -3155,11 +3228,9 @@ escutarStatusLoja(); // Mostra se a loja está aberta ou fechada agora
 // Registra o Service Worker (pra permitir instalar como app / carregar mais rápido)
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js')
-            .then(() => sincronizarTokenNotificacaoAtivo())
-            .catch(err => {
-                console.log('Não foi possível registrar o service worker:', err);
-            });
+        navigator.serviceWorker.register('service-worker.js').catch(err => {
+            console.log('Não foi possível registrar o service worker:', err);
+        });
     });
 }
 
@@ -3317,51 +3388,6 @@ function agendarConviteNotificacoes() {
     }, 9000);
 }
 
-let listenerNotificacaoForegroundAtivo = false;
-
-function configurarListenerNotificacaoForeground(messaging) {
-    if (!messaging || listenerNotificacaoForegroundAtivo) return;
-    listenerNotificacaoForegroundAtivo = true;
-
-    messaging.onMessage((payload) => {
-        const titulo = (payload.notification && payload.notification.title) || LOJA_CONFIG.nome;
-        const corpo = (payload.notification && payload.notification.body) || '';
-        mostrarToastNotificacao(titulo, corpo);
-    });
-}
-
-// Se o cliente já autorizou notificações em uma visita anterior, confere o token FCM
-// atual toda vez que o cardápio carregar. O Firebase pode renovar esse token com o tempo;
-// manter o servidor e o localStorage sincronizados evita que avisos e mudanças de status
-// sejam enviados para um token antigo do aparelho.
-async function sincronizarTokenNotificacaoAtivo() {
-    try {
-        if (localStorage.getItem('notificacoesAtivas') !== '1') return;
-        if (!podeReceberNotificacoes()) return;
-        if (ehIOS() && !ehPWAInstalada()) return;
-        if (Notification.permission !== 'granted') return;
-        if (VAPID_KEY === 'COLE_AQUI_A_SUA_CHAVE_VAPID') return;
-
-        const registration = await navigator.serviceWorker.ready;
-        const messaging = firebase.messaging();
-        configurarListenerNotificacaoForeground(messaging);
-        const tokenAtual = await messaging.getToken({
-            vapidKey: VAPID_KEY,
-            serviceWorkerRegistration: registration
-        });
-        if (!tokenAtual) return;
-
-        const registrarToken = firebase.functions().httpsCallable('registrarTokenNotificacao');
-        await registrarToken({ token: tokenAtual });
-
-        // O pedido usa esse valor para receber as notificações das mudanças de status.
-        localStorage.setItem('notificacaoToken', tokenAtual);
-    } catch (err) {
-        // A sincronização é preventiva e nunca pode impedir o cardápio de funcionar.
-        console.log('Não foi possível sincronizar o token de notificação:', err);
-    }
-}
-
 async function ativarNotificacoes() {
     if (ehIOS() && !ehPWAInstalada()) {
         alert('No iPhone, para receber notificações, primeiro adicione o cardápio à Tela de Início (toque em Compartilhar 📤 → "Adicionar à Tela de Início"). Você pode continuar fazendo seu pedido normalmente enquanto isso.');
@@ -3385,9 +3411,15 @@ async function ativarNotificacoes() {
         const messaging = firebase.messaging();
         const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
         if (token) {
-            // Mantém a escuta em primeiro plano sem criar listeners duplicados.
+            // Escuta mensagens em primeiro plano (aba aberta) usando esse MESMO
+            // messaging já configurado com o nosso Service Worker — reaproveitar
+            // evita o Firebase tentar registrar um arquivo próprio dele mesmo.
             try {
-                configurarListenerNotificacaoForeground(messaging);
+                messaging.onMessage((payload) => {
+                    const titulo = (payload.notification && payload.notification.title) || LOJA_CONFIG.nome;
+                    const corpo = (payload.notification && payload.notification.body) || '';
+                    mostrarToastNotificacao(titulo, corpo);
+                });
             } catch (e) {
                 console.log('Não foi possível escutar notificações em primeiro plano:', e);
             }
