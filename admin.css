@@ -15466,3 +15466,31 @@ section[data-tab="agenda"] .agenda-bloqueio-box input[type="date"] {
     .produto-resumo-sinais { grid-column:2 / 4; justify-content:flex-start; }
     .produto-resumo-toggle { grid-column:3; grid-row:1; min-width:74px; }
 }
+
+
+/* ============================================================
+   PRODUTOS — CENTRALIZAÇÃO FINAL PREMIUM V11
+   Corrige o deslocamento causado pela combinação entre a largura
+   ampliada da aba Produtos e o container compacto do painel.
+   Mantém Produtos e Organização do Cardápio no mesmo eixo e largura.
+   ============================================================ */
+@media (min-width: 1181px) {
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList),
+    .painel-main > section[data-tab="produtos"].produtos-categorias-premium {
+        width: min(calc(100vw - 40px), 1240px) !important;
+        max-width: 1240px !important;
+        margin-left: 50% !important;
+        margin-right: 0 !important;
+        transform: translateX(-50%) !important;
+        box-sizing: border-box !important;
+    }
+
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produtos-premium-lista-shell,
+    .painel-main > section[data-tab="produtos"].produtos-categorias-premium .produtos-categorias-card {
+        width: 100% !important;
+        max-width: none !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        box-sizing: border-box !important;
+    }
+}
