@@ -15043,3 +15043,114 @@ section[data-tab="agenda"] .agenda-bloqueio-box input[type="date"] {
     .administracao-mestre-premium #listaHorariosMestre .dia-checkbox { grid-column:1 / -1; }
     .administracao-mestre-premium .adm-entrega-bairros .produto-admin-linha { grid-template-columns:1fr; }
 }
+
+/* ============================================================
+   PRODUTOS — CARTEIRA PREMIUM COMPACTA V8
+   Reduz a sensação de página infinita sem tocar em IDs, HTML ou JS.
+   No desktop a lista vira uma carteira rolável; em telas menores volta
+   ao fluxo natural para evitar rolagem aninhada desconfortável.
+   ============================================================ */
+@media (min-width: 1181px) {
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produtos-admin-list {
+        max-height: clamp(620px, 72vh, 860px);
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+        align-content: start;
+        gap: 10px !important;
+        padding: 8px 8px 10px 6px;
+        border: 1px solid #eadfd4;
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(255,255,255,.62), rgba(248,243,237,.78));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.78);
+    }
+
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produtos-admin-list::-webkit-scrollbar {
+        width: 9px;
+    }
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produtos-admin-list::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produtos-admin-list::-webkit-scrollbar-thumb {
+        background: #d6c2b0;
+        border: 2px solid transparent;
+        background-clip: padding-box;
+        border-radius: 999px;
+    }
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produtos-admin-list::-webkit-scrollbar-thumb:hover {
+        background: #b98b70;
+        border: 2px solid transparent;
+        background-clip: padding-box;
+    }
+
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-item {
+        gap: 5px !important;
+        padding: 9px 10px 8px !important;
+        border-radius: 13px !important;
+    }
+
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-topo-premium {
+        padding-bottom: 4px !important;
+    }
+
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-grid {
+        gap: 6px 8px !important;
+    }
+
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col {
+        gap: 5px !important;
+    }
+
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--principal > textarea[id^="prodDesc_"] {
+        height: 42px !important;
+        min-height: 42px !important;
+        padding: 6px 8px !important;
+    }
+
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-precos-grid,
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--principal .produto-meta-grid,
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .produto-oferta-grid {
+        padding: 5px 7px !important;
+        gap: 6px !important;
+    }
+
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .campo-vincular-ficha-tecnica,
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .produto-agenda-card {
+        min-height: 44px !important;
+        padding-top: 4px !important;
+        padding-bottom: 4px !important;
+    }
+
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .produto-agenda-card > summary {
+        min-height: 32px !important;
+        padding-top: 4px !important;
+        padding-bottom: 4px !important;
+    }
+
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col--operacional .produto-upload-bloco {
+        min-height: 56px !important;
+        padding: 5px 6px !important;
+    }
+
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-acoes {
+        padding-top: 4px !important;
+        gap: 5px !important;
+    }
+
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-acoes button {
+        min-height: 28px !important;
+        padding: 5px 8px !important;
+    }
+}
+
+@media (max-width: 1180px) {
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produtos-admin-list {
+        max-height: none;
+        overflow: visible;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+    }
+}
