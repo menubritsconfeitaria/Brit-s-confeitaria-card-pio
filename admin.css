@@ -13383,3 +13383,112 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
     .clientes-marketing-premium .campanhas-premium .campanhas-historico-head { align-items:flex-start; flex-direction:column; }
     .clientes-marketing-premium .campanhas-premium .campanhas-historico-scroll { max-height:58vh; }
 }
+
+/* ============================================================
+   PROMOÇÕES — RODAPÉ PREMIUM RESTAURADO
+   Correção isolada: texto legível à esquerda + ação proporcional à direita.
+   ============================================================ */
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes {
+    display: grid !important;
+    grid-template-columns: minmax(240px, 1fr) 210px !important;
+    align-items: center !important;
+    justify-content: stretch !important;
+    gap: 18px !important;
+    margin-top: 12px !important;
+    padding: 14px 16px !important;
+    min-height: 72px !important;
+    box-sizing: border-box !important;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes > div {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    min-width: 240px !important;
+    width: auto !important;
+    max-width: 620px !important;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes strong {
+    display: block !important;
+    width: auto !important;
+    margin: 0 0 4px !important;
+    color: var(--cm-ink) !important;
+    font-size: .76rem !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes span {
+    display: block !important;
+    width: auto !important;
+    max-width: 620px !important;
+    margin: 0 !important;
+    color: var(--cm-muted) !important;
+    font-size: .64rem !important;
+    line-height: 1.4 !important;
+    white-space: normal !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-btn-salvar {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 210px !important;
+    min-width: 210px !important;
+    max-width: 210px !important;
+    min-height: 40px !important;
+    justify-self: end !important;
+    margin: 0 !important;
+    padding: 9px 16px !important;
+    border-radius: 10px !important;
+    white-space: nowrap !important;
+    box-sizing: border-box !important;
+}
+
+.painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-msg:not(:empty) {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    min-height: 28px !important;
+    margin: 8px 2px 0 !important;
+    padding: 5px 9px !important;
+    border-radius: 8px !important;
+    background: rgba(31, 122, 68, .06) !important;
+    color: #267442 !important;
+    font-weight: 700 !important;
+    text-align: right !important;
+}
+
+@media (max-width: 680px) {
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+        align-items: stretch !important;
+        min-height: 0 !important;
+    }
+
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes > div {
+        min-width: 0 !important;
+        max-width: none !important;
+    }
+
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-acoes strong {
+        white-space: normal !important;
+    }
+
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-btn-salvar {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        justify-self: stretch !important;
+    }
+
+    .painel-main > section[data-tab="clientes-marketing"].clientes-marketing-premium .promocoes-msg:not(:empty) {
+        justify-content: flex-start !important;
+        text-align: left !important;
+    }
+}
