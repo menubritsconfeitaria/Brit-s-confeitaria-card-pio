@@ -2065,12 +2065,26 @@
                         <div class="ficha-tecnica-add-row">
                             <div class="campo-com-label ficha-tecnica-field ficha-tecnica-field--componente">
                                 <label class="campo-label">Base ou ingrediente</label>
-                                <div class="ficha-tecnica-componente-picker">
+                                <div class="ficha-tecnica-componente-picker" id="ftComponenteCombobox">
                                     <div class="ficha-tecnica-componente-busca">
                                         <span aria-hidden="true">🔎</span>
-                                        <input type="search" id="ftBuscaComponente" placeholder="Buscar componente pelo nome..." autocomplete="off" oninput="filtrarSelectComponenteFichaTecnica()">
+                                        <input
+                                            type="search"
+                                            id="ftBuscaComponente"
+                                            placeholder="Buscar base ou ingrediente..."
+                                            autocomplete="off"
+                                            role="combobox"
+                                            aria-autocomplete="list"
+                                            aria-expanded="false"
+                                            aria-controls="ftResultadosComponente"
+                                            oninput="filtrarSelectComponenteFichaTecnica()"
+                                            onfocus="abrirBuscaComponenteFichaTecnica()"
+                                            onkeydown="tecladoBuscaComponenteFichaTecnica(event)"
+                                        >
+                                        <button type="button" class="ficha-tecnica-componente-limpar" onclick="limparBuscaComponenteFichaTecnica()" aria-label="Limpar busca">×</button>
                                     </div>
-                                    <select id="ftSelectComponente" aria-label="Base ou ingrediente"></select>
+                                    <div id="ftResultadosComponente" class="ficha-tecnica-componente-resultados" role="listbox" hidden></div>
+                                    <select id="ftSelectComponente" class="ficha-tecnica-select-compat" aria-label="Base ou ingrediente" tabindex="-1" aria-hidden="true"></select>
                                 </div>
                             </div>
                             <div class="campo-com-label ficha-tecnica-field ficha-tecnica-field--qtd">

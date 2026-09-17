@@ -15663,3 +15663,163 @@ section[data-tab="agenda"] .agenda-bloqueio-box input[type="date"] {
         justify-content: flex-start;
     }
 }
+
+
+/* ============================================================
+   FICHA TÉCNICA — BUSCA INTEGRADA NO SELETOR DE COMPONENTES
+   Um único campo procura por qualquer trecho do nome e exibe os
+   resultados dentro do próprio bloco "Base ou ingrediente".
+   ============================================================ */
+.ficha-tecnica-premium .ficha-tecnica-componente-picker {
+    position: relative;
+    display: block;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-componente-busca {
+    position: relative;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-componente-busca > span {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    z-index: 2;
+    transform: translateY(-50%);
+    font-size: .82rem;
+    pointer-events: none;
+}
+
+.ficha-tecnica-premium #ftBuscaComponente {
+    width: 100%;
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 10px 42px 10px 38px;
+    border: 1px solid #dfd1bf;
+    border-radius: 11px;
+    background: #fffdfb;
+    color: var(--text);
+    font-family: inherit;
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+
+.ficha-tecnica-premium #ftBuscaComponente:focus,
+.ficha-tecnica-premium #ftBuscaComponente[aria-expanded="true"] {
+    border-color: #c9976c;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(160,82,45,.08);
+}
+
+.ficha-tecnica-premium #ftBuscaComponente::-webkit-search-cancel-button {
+    display: none;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-componente-limpar {
+    position: absolute;
+    right: 7px;
+    top: 50%;
+    z-index: 3;
+    width: 30px;
+    height: 30px;
+    transform: translateY(-50%);
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #a18b79;
+    font: 700 1.15rem/1 inherit;
+    cursor: pointer;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-componente-limpar:hover {
+    background: #f6eee5;
+    color: #8c4b27;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-select-compat {
+    display: none !important;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-componente-resultados {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 6px);
+    z-index: 80;
+    max-height: 320px;
+    overflow-y: auto;
+    border: 1px solid #dfd1bf;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 16px 34px rgba(77, 52, 35, .14);
+    padding: 6px;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-componente-resultados[hidden] {
+    display: none !important;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-componente-grupo + .ficha-tecnica-componente-grupo {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid #f0e7de;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-componente-grupo-titulo {
+    padding: 5px 9px 4px;
+    color: #a25b34;
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-componente-resultado {
+    width: 100%;
+    min-height: 39px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: #4d382b;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-componente-resultado:hover,
+.ficha-tecnica-premium .ficha-tecnica-componente-resultado:focus-visible {
+    background: #fbf3eb;
+    outline: none;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-componente-resultado-nome {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 650;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-componente-resultado small {
+    flex: 0 0 auto;
+    color: #9a8574;
+    font-size: .72rem;
+}
+
+.ficha-tecnica-premium .ficha-tecnica-componente-vazio {
+    padding: 16px 12px;
+    color: #8b7768;
+    font-size: .82rem;
+    line-height: 1.45;
+    text-align: center;
+}
+
+@media (max-width: 720px) {
+    .ficha-tecnica-premium .ficha-tecnica-componente-resultados {
+        max-height: 260px;
+    }
+}

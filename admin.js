@@ -3789,33 +3789,183 @@ function calcularCustoFichaTecnica(produto) {
     };
 }
 
+function escaparHtmlFichaTecnica(valor) {
+    return String(valor ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function listarComponentesDisponiveisFichaTecnica() {
+    return [
+        ...ingredientes.map(item => ({
+            valor: `ingrediente_${item.id}`,
+            tipo: 'Ingrediente',
+            nome: item.nome || '',
+            detalhe: item.unidade || ''
+        })),
+        ...bases.map(item => ({
+            valor: `base_${item.id}`,
+            tipo: 'Base',
+            nome: item.nome || '',
+            detalhe: item.unidadeRendimento || item.unidade || ''
+        }))
+    ];
+}
+
+function buscarComponentesFichaTecnica(termo) {
+    const filtro = normalizarTexto(termo || '');
+    const itens = listarComponentesDisponiveisFichaTecnica();
+
+    // "includes" procura o trecho em qualquer posição do nome:
+    // início, meio ou fim. normalizarTexto também ignora maiúsculas/minúsculas e acentos.
+    if (!filtro) return itens;
+    return itens.filter(item => normalizarTexto(item.nome).includes(filtro));
+}
+
 function popularSelectComponenteFichaTecnica() {
     const sel = document.getElementById('ftSelectComponente');
     if (!sel) return;
 
-    const buscaEl = document.getElementById('ftBuscaComponente');
-    const filtro = normalizarTexto(buscaEl ? buscaEl.value : '');
     const valorAtual = sel.value;
-    const ingredientesFiltrados = ingredientes.filter(i => !filtro || normalizarTexto(i.nome).includes(filtro));
-    const basesFiltradas = bases.filter(b => !filtro || normalizarTexto(b.nome).includes(filtro));
+    const itens = listarComponentesDisponiveisFichaTecnica();
 
-    let html = '<option value="">Selecione</option>';
-    if (ingredientesFiltrados.length) {
-        html += '<optgroup label="Ingredientes">' + ingredientesFiltrados.map(i => `<option value="ingrediente_${i.id}">${i.nome}</option>`).join('') + '</optgroup>';
-    }
-    if (basesFiltradas.length) {
-        html += '<optgroup label="Bases">' + basesFiltradas.map(b => `<option value="base_${b.id}">${b.nome}</option>`).join('') + '</optgroup>';
-    }
-    if (!ingredientesFiltrados.length && !basesFiltradas.length) {
-        html += '<option value="" disabled>Nenhum componente encontrado</option>';
+    sel.innerHTML = '<option value=""></option>' + itens
+        .map(item => `<option value="${escaparHtmlFichaTecnica(item.valor)}">${escaparHtmlFichaTecnica(item.nome)}</option>`)
+        .join('');
+
+    if ([...sel.options].some(opt => opt.value === valorAtual)) {
+        sel.value = valorAtual;
+    } else {
+        sel.value = '';
     }
 
-    sel.innerHTML = html;
-    if ([...sel.options].some(opt => opt.value === valorAtual)) sel.value = valorAtual;
+    const buscaEl = document.getElementById('ftBuscaComponente');
+    if (buscaEl && buscaEl.getAttribute('aria-expanded') === 'true') {
+        renderResultadosBuscaComponenteFichaTecnica();
+    }
+}
+
+function renderResultadosBuscaComponenteFichaTecnica() {
+    const buscaEl = document.getElementById('ftBuscaComponente');
+    const resultadosEl = document.getElementById('ftResultadosComponente');
+    if (!buscaEl || !resultadosEl) return;
+
+    const itens = buscarComponentesFichaTecnica(buscaEl.value);
+    if (!itens.length) {
+        resultadosEl.innerHTML = `
+            <div class="ficha-tecnica-componente-vazio">
+                Nenhuma base ou ingrediente encontrado para
+                <strong>"${escaparHtmlFichaTecnica(buscaEl.value)}"</strong>.
+            </div>
+        `;
+    } else {
+        const ingredientesEncontrados = itens.filter(item => item.tipo === 'Ingrediente');
+        const basesEncontradas = itens.filter(item => item.tipo === 'Base');
+
+        const renderGrupo = (titulo, grupo) => {
+            if (!grupo.length) return '';
+            return `
+                <div class="ficha-tecnica-componente-grupo">
+                    <div class="ficha-tecnica-componente-grupo-titulo">${titulo}</div>
+                    ${grupo.map(item => `
+                        <button
+                            type="button"
+                            class="ficha-tecnica-componente-resultado"
+                            role="option"
+                            onclick="selecionarComponenteBuscaFichaTecnica('${escaparHtmlFichaTecnica(item.valor)}')"
+                        >
+                            <span class="ficha-tecnica-componente-resultado-nome">${escaparHtmlFichaTecnica(item.nome)}</span>
+                            ${item.detalhe ? `<small>${escaparHtmlFichaTecnica(item.detalhe)}</small>` : ''}
+                        </button>
+                    `).join('')}
+                </div>
+            `;
+        };
+
+        resultadosEl.innerHTML =
+            renderGrupo('Ingredientes', ingredientesEncontrados) +
+            renderGrupo('Bases', basesEncontradas);
+    }
+
+    resultadosEl.hidden = false;
+    buscaEl.setAttribute('aria-expanded', 'true');
+}
+
+function abrirBuscaComponenteFichaTecnica() {
+    renderResultadosBuscaComponenteFichaTecnica();
+}
+
+function fecharBuscaComponenteFichaTecnica() {
+    const buscaEl = document.getElementById('ftBuscaComponente');
+    const resultadosEl = document.getElementById('ftResultadosComponente');
+    if (resultadosEl) resultadosEl.hidden = true;
+    if (buscaEl) buscaEl.setAttribute('aria-expanded', 'false');
 }
 
 function filtrarSelectComponenteFichaTecnica() {
-    popularSelectComponenteFichaTecnica();
+    const sel = document.getElementById('ftSelectComponente');
+    if (sel) sel.value = '';
+    renderResultadosBuscaComponenteFichaTecnica();
+}
+
+function selecionarComponenteBuscaFichaTecnica(valor) {
+    const sel = document.getElementById('ftSelectComponente');
+    const buscaEl = document.getElementById('ftBuscaComponente');
+    const item = listarComponentesDisponiveisFichaTecnica().find(comp => comp.valor === valor);
+    if (!sel || !buscaEl || !item) return;
+
+    sel.value = valor;
+    buscaEl.value = item.nome;
+    fecharBuscaComponenteFichaTecnica();
+
+    const qtdEl = document.getElementById('ftQtdComponente');
+    if (qtdEl) qtdEl.focus();
+}
+
+function limparBuscaComponenteFichaTecnica() {
+    const sel = document.getElementById('ftSelectComponente');
+    const buscaEl = document.getElementById('ftBuscaComponente');
+    if (sel) sel.value = '';
+    if (buscaEl) {
+        buscaEl.value = '';
+        buscaEl.focus();
+    }
+    renderResultadosBuscaComponenteFichaTecnica();
+}
+
+function tecladoBuscaComponenteFichaTecnica(event) {
+    if (!event) return;
+
+    if (event.key === 'Escape') {
+        fecharBuscaComponenteFichaTecnica();
+        event.currentTarget.blur();
+        return;
+    }
+
+    if (event.key !== 'Enter') return;
+
+    const sel = document.getElementById('ftSelectComponente');
+    if (sel && sel.value) return;
+
+    const buscaEl = document.getElementById('ftBuscaComponente');
+    const primeiro = buscarComponentesFichaTecnica(buscaEl ? buscaEl.value : '')[0];
+    if (!primeiro) return;
+
+    event.preventDefault();
+    selecionarComponenteBuscaFichaTecnica(primeiro.valor);
+}
+
+if (!window.__fichaTecnicaBuscaComponenteClickFora) {
+    document.addEventListener('click', event => {
+        const picker = document.getElementById('ftComponenteCombobox');
+        if (picker && !picker.contains(event.target)) {
+            fecharBuscaComponenteFichaTecnica();
+        }
+    });
+    window.__fichaTecnicaBuscaComponenteClickFora = true;
 }
 
 function adicionarComponenteFichaTecnica() {
@@ -3831,6 +3981,7 @@ function adicionarComponenteFichaTecnica() {
     const buscaEl = document.getElementById('ftBuscaComponente');
     if (buscaEl) buscaEl.value = '';
     popularSelectComponenteFichaTecnica();
+    fecharBuscaComponenteFichaTecnica();
     renderTempComponentesFichaTecnica();
 }
 
