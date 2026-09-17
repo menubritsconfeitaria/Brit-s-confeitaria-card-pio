@@ -477,10 +477,16 @@
                                 </div>
 
                                 <div class="personalizar-campo personalizar-cor-campo">
-                                    <label for="pcCorPrincipal">Cor principal da sua marca</label>
-                                    <div class="personalizar-cor-linha">
-                                        <input type="color" id="pcCorPrincipal" value="#a0522d" aria-label="Escolher cor principal da marca">
-                                        <span>Escolha a cor que mais representa sua empresa.</span>
+                                    <label>Cores principais da sua marca</label>
+                                    <div class="personalizar-cores-linha" aria-label="Escolha as duas cores principais da marca">
+                                        <label class="personalizar-cor-opcao" for="pcCorPrincipal">
+                                            <input type="color" id="pcCorPrincipal" value="#a0522d" aria-label="Escolher cor principal da marca">
+                                            <span><strong>Principal</strong><small>Botões e títulos</small></span>
+                                        </label>
+                                        <label class="personalizar-cor-opcao" for="pcCorDestaque">
+                                            <input type="color" id="pcCorDestaque" value="#c9974c" aria-label="Escolher cor de destaque da marca">
+                                            <span><strong>Destaque</strong><small>Detalhes e realces</small></span>
+                                        </label>
                                     </div>
                                 </div>
                             </div>
@@ -522,7 +528,7 @@
                             <div class="preview-legenda">
                                 <span>✓ Nome da loja</span>
                                 <span>✓ Logo</span>
-                                <span>✓ Cor da marca</span>
+                                <span>✓ 2 cores da marca</span>
                             </div>
                             <p class="personalizar-preview-nota">Altere os campos ao lado e acompanhe a prévia. Depois, use “Ver meu cardápio no site inteiro” para experimentar a identidade na página.</p>
                         </aside>

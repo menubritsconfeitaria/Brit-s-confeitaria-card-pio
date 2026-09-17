@@ -288,6 +288,8 @@ const horariosPadrao = [
 function aplicarConfigDaLoja(config) {
     document.documentElement.style.setProperty('--primary', config.corPrimaria);
     document.documentElement.style.setProperty('--accent', config.corAccent);
+    if (config.corPrimariaEscura) document.documentElement.style.setProperty('--primary-dark', config.corPrimariaEscura);
+    else document.documentElement.style.removeProperty('--primary-dark');
 
     document.title = `${config.nome} - Cardápio Online`;
     // Atualiza também a prévia de compartilhamento (WhatsApp/redes sociais) — sem isso,
@@ -3466,6 +3468,7 @@ function inicializarPersonalizacaoPreview() {
     const nomeInput = document.getElementById('pcNomeLoja');
     const logoInput = document.getElementById('pcLogoInput');
     const corInput = document.getElementById('pcCorPrincipal');
+    const corDestaqueInput = document.getElementById('pcCorDestaque');
     const previewNome = document.getElementById('pcPreviewNome');
     const previewLogo = document.getElementById('pcPreviewLogo');
     const previewCaixa = document.getElementById('pcPreviewCaixa');
@@ -3486,10 +3489,14 @@ function inicializarPersonalizacaoPreview() {
         });
     }
 
-    if (corInput && previewCaixa) {
-        corInput.addEventListener('input', () => {
-            previewCaixa.style.setProperty('--cor-preview', corInput.value);
-        });
+    if (previewCaixa) {
+        const atualizarCoresPreview = () => {
+            if (corInput) previewCaixa.style.setProperty('--cor-preview', corInput.value);
+            if (corDestaqueInput) previewCaixa.style.setProperty('--cor-preview-accent', corDestaqueInput.value);
+        };
+        if (corInput) corInput.addEventListener('input', atualizarCoresPreview);
+        if (corDestaqueInput) corDestaqueInput.addEventListener('input', atualizarCoresPreview);
+        atualizarCoresPreview();
     }
 }
 inicializarPersonalizacaoPreview();
@@ -3528,9 +3535,18 @@ function alternarPersonalizarConteudo() {
     }
 }
 
+function escurecerCorHex(hex, percentual = 0.22) {
+    const valor = String(hex || '').replace('#', '').trim();
+    if (!/^[0-9a-fA-F]{6}$/.test(valor)) return '#333333';
+    const canais = [0, 2, 4].map(i => parseInt(valor.slice(i, i + 2), 16));
+    const fator = Math.max(0, Math.min(1, 1 - percentual));
+    return '#' + canais.map(c => Math.round(c * fator).toString(16).padStart(2, '0')).join('');
+}
+
 function ativarModoDemoCompleto() {
     const nome = document.getElementById('pcNomeLoja').value.trim();
     const cor = document.getElementById('pcCorPrincipal').value;
+    const corDestaque = document.getElementById('pcCorDestaque').value;
     const logoInput = document.getElementById('pcLogoInput');
 
     if (!nome) {
@@ -3538,7 +3554,9 @@ function ativarModoDemoCompleto() {
         return;
     }
 
-    const configDemo = { ...LOJA_CONFIG, nome, nomeCurto: nome, corPrimaria: cor, subtitulo: 'Seu próximo cliente já está no celular. Agora falta dar a ele um jeito fácil de comprar de você.' };
+    const configDemo = { ...LOJA_CONFIG, nome, nomeCurto: nome, corPrimaria: cor, corAccent: corDestaque, corPrimariaEscura: escurecerCorHex(cor), subtitulo: 'Seu próximo cliente já está no celular. Agora falta dar a ele um jeito fácil de comprar de você.' };
+
+    document.body.classList.add('modo-demo-personalizado');
 
     const arquivo = logoInput ? logoInput.files[0] : null;
     if (arquivo) {
@@ -3563,6 +3581,7 @@ function ativarModoDemoCompleto() {
 }
 
 function restaurarCardapioOriginal() {
+    document.body.classList.remove('modo-demo-personalizado');
     aplicarConfigDaLoja(LOJA_CONFIG);
 
     // Volta a mostrar o status real da loja (aberta/fechada de verdade)
@@ -3584,6 +3603,7 @@ async function enviarInteressePersonalizado() {
     const cidade = document.getElementById('pcCidade').value.trim();
     const instagram = document.getElementById('pcInstagram').value.trim();
     const cor = document.getElementById('pcCorPrincipal').value;
+    const corDestaque = document.getElementById('pcCorDestaque').value;
     const temLogoPropria = document.getElementById('pcLogoInput').files.length > 0;
     const msgEl = document.getElementById('pcMsgEnvio');
 
@@ -3598,7 +3618,7 @@ async function enviarInteressePersonalizado() {
         const app = obterAppMestreLeads();
         await app.database().ref('leadsCardapio').push({
             nome, nomeLoja, email: email || null, whatsapp, tipoNegocio: tipoNegocio || null,
-            cidade: cidade || null, instagram: instagram || null, corPrincipal: cor,
+            cidade: cidade || null, instagram: instagram || null, corPrincipal: cor, corDestaque,
             temLogoPropria, origemUrl: window.location.href, criadoEm: firebase.database.ServerValue.TIMESTAMP
         });
     } catch (err) {
@@ -3617,6 +3637,7 @@ async function enviarInteressePersonalizado() {
     if (cidade) mensagem += `Cidade: ${cidade}\n`;
     if (instagram) mensagem += `Instagram: ${instagram}\n`;
     mensagem += `Cor principal escolhida: ${cor}\n`;
+    mensagem += `Cor de destaque escolhida: ${corDestaque}\n`;
     if (temLogoPropria) mensagem += `(já tenho uma logo pronta pra usar)\n`;
 
     const link = `https://api.whatsapp.com/send?phone=${numeroWhatsAppServicoCardapio}&text=${encodeURIComponent(mensagem)}`;

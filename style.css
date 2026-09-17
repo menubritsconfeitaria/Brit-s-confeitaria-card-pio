@@ -5914,3 +5914,148 @@ textarea:focus {
         min-height: 0;
     }
 }
+
+
+/* ============================================================
+   PEDEAKI — PRÉVIA COM DUAS CORES DE MARCA V11
+   Mantém o espaço do formulário e evita misturar a identidade
+   demonstrada com as cores reais da loja que está servindo de exemplo.
+   ============================================================ */
+.personalizar-cores-linha {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    min-height: 44px;
+}
+
+.personalizar-cor-opcao {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    min-width: 0;
+    min-height: 44px;
+    margin: 0 !important;
+    padding: 6px 8px;
+    border: 1px solid #e3d4c4;
+    border-radius: 11px;
+    background: #fffdfa;
+    cursor: pointer;
+    transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+.personalizar-cor-opcao:hover,
+.personalizar-cor-opcao:focus-within {
+    border-color: #bd805e;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(176, 91, 48, .08);
+}
+
+.personalizar-conversao .personalizar-form .personalizar-cor-opcao input[type="color"] {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 30px;
+    padding: 2px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer;
+}
+
+.personalizar-cor-opcao > span {
+    display: block;
+    min-width: 0;
+    line-height: 1.15;
+}
+
+.personalizar-cor-opcao strong,
+.personalizar-cor-opcao small {
+    display: block;
+}
+
+.personalizar-cor-opcao strong {
+    color: #543b2d;
+    font-size: .65rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.personalizar-cor-opcao small {
+    margin-top: 2px;
+    color: #9a887d;
+    font-size: .53rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* A mini prévia passa a mostrar as duas cores escolhidas. */
+.personalizar-conversao .preview-mini-cardapio {
+    --cor-preview-accent: #c9974c;
+}
+
+.personalizar-conversao .preview-mini-etiqueta {
+    border: 1px solid color-mix(in srgb, var(--cor-preview-accent) 34%, #eee3d9);
+    color: color-mix(in srgb, var(--cor-preview) 72%, #57483f);
+}
+
+.personalizar-conversao .preview-mini-produtos span:nth-child(1) {
+    background: linear-gradient(145deg, color-mix(in srgb, var(--cor-preview) 10%, #fff), #fff);
+}
+.personalizar-conversao .preview-mini-produtos span:nth-child(2) {
+    background: linear-gradient(145deg, color-mix(in srgb, var(--cor-preview-accent) 16%, #fff), #fff);
+}
+.personalizar-conversao .preview-mini-produtos span:nth-child(3) {
+    background: linear-gradient(145deg, color-mix(in srgb, var(--cor-preview) 8%, #fff), color-mix(in srgb, var(--cor-preview-accent) 10%, #fff));
+}
+
+.personalizar-conversao .preview-botao-exemplo {
+    background: linear-gradient(135deg, var(--cor-preview), color-mix(in srgb, var(--cor-preview) 68%, var(--cor-preview-accent)));
+}
+
+/* Durante a demonstração completa, as áreas Premium que tinham tons fixos da
+   loja de exemplo passam a obedecer a identidade escolhida pelo futuro cliente. */
+body.modo-demo-personalizado #produtos-destaque .produto-item .adicionar-carrinho,
+body.modo-demo-personalizado .carrossel-cta,
+body.modo-demo-personalizado #carrinho.checkout-premium .opcao-btn.selecionado {
+    border-color: var(--primary) !important;
+    background: linear-gradient(145deg, var(--primary) 0%, var(--primary-dark) 100%) !important;
+    box-shadow: 0 8px 18px color-mix(in srgb, var(--primary) 22%, transparent) !important;
+}
+
+body.modo-demo-personalizado #produtos-destaque .produto-item .adicionar-carrinho:hover,
+body.modo-demo-personalizado .carrossel-cta:hover {
+    background: linear-gradient(145deg, color-mix(in srgb, var(--primary) 90%, #fff) 0%, var(--primary-dark) 100%) !important;
+}
+
+body.modo-demo-personalizado #carrinho.checkout-premium .opcao-btn.selecionado::after {
+    color: var(--primary) !important;
+}
+
+body.modo-demo-personalizado .checkout-premium-resumo::before {
+    background: linear-gradient(90deg, var(--primary-dark), var(--accent), var(--primary-dark)) !important;
+}
+
+body.modo-demo-personalizado #carrinho.checkout-premium .carrinho-total p.total-final {
+    border-color: color-mix(in srgb, var(--accent) 44%, #dfc3a8) !important;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, #fff), #fffdf9) !important;
+}
+
+body.modo-demo-personalizado #carrinho.checkout-premium .carrinho-total p.total-final strong,
+body.modo-demo-personalizado .carrossel-preco {
+    color: var(--primary) !important;
+}
+
+body.modo-demo-personalizado .checkout-premium-cabecalho::before,
+body.modo-demo-personalizado .checkout-resumo-icone {
+    border-color: color-mix(in srgb, var(--accent) 42%, #ead4bb) !important;
+    background: color-mix(in srgb, var(--accent) 9%, #fff) !important;
+}
+
+@media (max-width: 430px) {
+    .personalizar-cor-opcao {
+        gap: 6px !important;
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+    .personalizar-cor-opcao strong { font-size: .61rem; }
+    .personalizar-cor-opcao small { font-size: .49rem; }
+}
