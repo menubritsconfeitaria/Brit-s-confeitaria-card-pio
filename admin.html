@@ -1441,21 +1441,40 @@
 
             
 
-            <section data-tab="administracao-mestre">
-                <h2>🎛️ Administração de Clientes</h2>
-                <p class="dica-secao">Essa aba só aparece pra você — controla os recursos liberados de qualquer cliente sem sair do painel.</p>
+            <section data-tab="administracao-mestre" class="administracao-mestre-premium">
+                <div class="adm-mestre-hero">
+                    <div class="adm-mestre-hero-copy">
+                        <span class="adm-mestre-kicker">CENTRAL SAAS</span>
+                        <h2>🎛️ Administração de Clientes</h2>
+                        <p>Cadastre, ative, personalize e acompanhe cada operação PedeAki em uma única central.</p>
+                        <div class="adm-mestre-chips">
+                            <span>👤 Onboarding</span>
+                            <span>✍️ Contratos</span>
+                            <span>🧩 Recursos</span>
+                            <span>🏷️ Identidade</span>
+                            <span>🚚 Operação</span>
+                        </div>
+                    </div>
+                    <div class="adm-mestre-hero-badge"><small>GESTÃO</small><strong>Central Mestre</strong></div>
+                </div>
 
-                <div class="loja-status-card" id="cardLoginMestre">
-                    <label class="campo-label">Entrar no Firebase Mestre</label>
+                <div class="loja-status-card adm-mestre-card adm-mestre-login-card" id="cardLoginMestre">
+                    <div class="adm-mestre-card-head">
+                        <span class="adm-mestre-card-icon">🔐</span>
+                        <div><span class="adm-mestre-kicker">ACESSO PROTEGIDO</span><h3>Entrar na Central Mestre</h3><p>Autentique-se para administrar clientes, contratos e recursos.</p></div>
+                    </div>
+                    <label class="campo-label">Senha do Firebase Mestre</label>
                     <input type="password" id="senhaLoginMestre" placeholder="Sua senha do Firebase Mestre">
-                    <button class="btn-salvar-ordem" style="margin-top:8px;" onclick="fazerLoginNoMestre()">Entrar</button>
+                    <button class="btn-salvar-ordem" style="margin-top:8px;" onclick="fazerLoginNoMestre()">🔐 Entrar na central</button>
                     <p id="msgLoginMestre" class="ordem-categorias-msg"></p>
                 </div>
 
-                <div class="loja-status-card" id="cardAdicionarClienteMestre" style="margin-top:16px; display:none;">
-                    <h3>Passo 1 de 7 — ➕ Dados da empresa e Firebase (cliente novo)</h3>
-                    <p class="dica-secao">Copia o firebaseConfig do cliente (arquivo firebase-config.js dele) e cola aqui.</p>
-                    <input type="text" id="novoClienteNomeMestre" placeholder="Nome do cliente (ex: Doces da Ana)">
+                <div class="loja-status-card adm-mestre-card adm-step-card adm-step-onboarding" id="cardAdicionarClienteMestre" style="margin-top:16px; display:none;">
+                    <div class="adm-step-head">
+                        <span class="adm-step-index">01</span>
+                        <div><span class="adm-mestre-kicker">NOVO CLIENTE</span><h3>Dados da empresa e Firebase</h3><p>Cadastre a empresa e conecte o projeto Firebase que será usado por este cliente.</p></div>
+                    </div>
+                    <input type="text" id="novoClienteNomeMestre" placeholder="Nome da empresa (ex: Doces da Ana)">
                     <div class="produto-admin-linha" style="margin-top:8px;">
                         <div class="campo-com-label">
                             <label class="campo-label">Plano contratado</label>
@@ -1471,17 +1490,20 @@
                         </div>
                     </div>
                     <textarea id="novoClienteConfigMestre" rows="6" placeholder='Cole aqui o conteúdo do firebaseConfig, ex: {"apiKey":"...", "authDomain":"...", ...}' style="width:100%; margin-top:8px; font-family:monospace; font-size:0.85em;"></textarea>
-                    <button class="btn-salvar-ordem" style="margin-top:8px;" onclick="adicionarClienteMestre()">💾 Adicionar cliente</button>
+                    <button class="btn-salvar-ordem" style="margin-top:8px;" onclick="adicionarClienteMestre()">➕ Cadastrar cliente</button>
                     <p id="msgAdicionarClienteMestre" class="ordem-categorias-msg"></p>
                 </div>
 
-                <div class="loja-status-card" id="cardConteudoMestre" style="display:none;">
-                    <label class="campo-label">Escolher cliente</label>
+                <div class="loja-status-card adm-mestre-card adm-client-central" id="cardConteudoMestre" style="display:none;">
+                    <div class="adm-client-toolbar">
+                        <div><span class="adm-mestre-kicker">CLIENTE ATUAL</span><h3>Selecione quem deseja administrar</h3><p>Assinatura, identidade, recursos e operação aparecem logo abaixo.</p></div>
+                        <div class="campo-com-label adm-client-select"><label class="campo-label">Cliente</label>
                     <select id="seletorClienteMestre" onchange="selecionarClienteMestre()">
                         <option value="">— Selecione —</option>
-                    </select>
+                    </select></div>
+                    </div>
                     <div id="visaoAssinaturasMestre" class="visao-assinaturas-mestre" style="margin-top:12px;"></div>
-                    <div id="areaLoginClienteMestre" style="display:none; margin-top:12px;">
+                    <div id="areaLoginClienteMestre" class="adm-client-login" style="display:none; margin-top:12px;">
                         <label class="campo-label" id="labelLoginClienteMestre">Login desse cliente</label>
                         <input type="email" id="emailLoginClienteMestre" placeholder="E-mail de admin desse cliente">
                         <input type="password" id="senhaLoginClienteMestre" placeholder="Senha" style="margin-top:8px;">
@@ -1489,10 +1511,10 @@
                         <p id="msgLoginClienteMestre" class="ordem-categorias-msg"></p>
                     </div>
                     <div id="areaRecursosClienteMestre" style="display:none; margin-top:14px;">
-                        <div class="contrato-mestre-card">
+                        <div class="contrato-mestre-card adm-step-card adm-step-contrato">
                             <div class="assinatura-mestre-topo">
                                 <div>
-                                    <h3>Passo 2 de 7 — ✍️ Contrato e Liberação de Acesso</h3>
+                                    <span class="adm-mestre-kicker">02 · ACESSO E CONTRATO</span><h3>✍️ Contrato e Liberação de Acesso</h3>
                                     <p class="dica-secao">O cliente entra com o login dele, lê e aceita o contrato. O painel operacional só é liberado depois da assinatura <strong>e</strong> da data de ativação.</p>
                                 </div>
                                 <div id="resumoStatusContratoMestre" class="contrato-status-chip contrato-status-sem-config">Sem contrato</div>
@@ -1536,10 +1558,10 @@
 
                         <hr style="margin:18px 0; border:none; border-top:1px solid var(--border);">
 
-                        <div class="assinatura-mestre-card">
+                        <div class="assinatura-mestre-card adm-step-card adm-step-assinatura">
                             <div class="assinatura-mestre-topo">
                                 <div>
-                                    <h3>Passo 3 de 7 — 💼 Assinatura e Renovação</h3>
+                                    <span class="adm-mestre-kicker">03 · CICLO COMERCIAL</span><h3>💼 Assinatura e Renovação</h3>
                                     <p class="dica-secao">A contratação registra o fechamento comercial. O período começa na ativação, quando a plataforma é liberada funcionando.</p>
                                 </div>
                                 <div id="resumoStatusAssinaturaMestre" class="assinatura-status-chip assinatura-status-sem-config">Sem configuração</div>
@@ -1624,9 +1646,10 @@
 
                         <hr style="margin:18px 0; border:none; border-top:1px solid var(--border);">
 
-                        <h3>Passo 4 de 7 — 🧩 Recursos liberados pra esse cliente</h3>
+                        <div class="adm-step-card adm-step-recursos">
+                            <div class="adm-step-head"><span class="adm-step-index">04</span><div><span class="adm-mestre-kicker">PLANO E PERMISSÕES</span><h3>🧩 Recursos liberados para este cliente</h3><p>Comece por um plano-base e ajuste somente o que for necessário para a operação.</p></div></div>
                         <p id="avisoNuncaConfiguradoMestre" class="dica-secao" style="display:none;">ℹ️ Esse cliente nunca teve nada configurado aqui — hoje ele tem tudo liberado (padrão). Os interruptores já refletem isso.</p>
-                        <label class="campo-label">Aplicar um plano pronto (marca os interruptores certos — ainda dá pra ajustar manualmente depois)</label>
+                        <label class="campo-label">Aplicar configuração-base do plano</label>
                         <div class="opcoes-radio">
                             <div class="opcao-btn" onclick="aplicarPlanoPadraoMestre('start')">🚀 Start</div>
                             <div class="opcao-btn" onclick="aplicarPlanoPadraoMestre('pro')">⭐ Pro</div>
@@ -1635,10 +1658,13 @@
                         <div id="listaRecursosClienteMestre" style="margin-top:14px;"></div>
                         <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="aplicarRecursosClienteMestre()">💾 Aplicar nesse cliente</button>
                         <p id="msgAplicarRecursosMestre" class="ordem-categorias-msg"></p>
+                        </div>
 
-                        <hr style="margin:18px 0; border:none; border-top:1px solid var(--border);">
+                        <hr class="adm-step-divider">
 
-                        <h3>Passo 5 de 7 — 🏷️ Identidade e Marca desse cliente</h3>
+                        <div class="adm-step-card adm-step-identidade">
+                            <div class="adm-step-head"><span class="adm-step-index">05</span><div><span class="adm-mestre-kicker">MARCA E CANAIS</span><h3>🏷️ Identidade e Marca do cliente</h3><p>Centralize nome, contatos, cores, logo e conexão do pagamento online.</p></div></div>
+                            <div class="adm-identidade-form">
                         <label class="campo-label">Nome completo</label>
                         <input type="text" id="nomeLojaConfigMestre" placeholder="Ex: Doces da Ana">
                         <label class="campo-label" style="margin-top:10px;">Nome curto</label>
@@ -1647,7 +1673,7 @@
                         <input type="text" id="subtituloLojaConfigMestre">
                         <label class="campo-label" style="margin-top:10px;">Cidade atendida</label>
                         <input type="text" id="cidadeLojaConfigMestre">
-                        <label class="campo-label" style="margin-top:10px;">WhatsApp pra pedidos</label>
+                        <label class="campo-label" style="margin-top:10px;">WhatsApp para pedidos</label>
                         <input type="text" inputmode="numeric" id="whatsappLojaConfigMestre">
                         <label class="campo-label" style="margin-top:10px;">Link do Instagram</label>
                         <input type="text" id="instagramLojaConfigMestre">
@@ -1674,29 +1700,35 @@
 
                         <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="salvarIdentidadeClienteMestre()">💾 Salvar identidade</button>
                         <p id="msgIdentidadeMestre" class="ordem-categorias-msg"></p>
+                            </div>
+                        </div>
 
-                        <hr style="margin:18px 0; border:none; border-top:1px solid var(--border);">
+                        <hr class="adm-step-divider">
 
-                        <h3>Passo 6 de 7 — 🕐 Horário de funcionamento desse cliente</h3>
+                        <div class="adm-step-card adm-step-horarios">
+                            <div class="adm-step-head"><span class="adm-step-index">06</span><div><span class="adm-mestre-kicker">FUNCIONAMENTO</span><h3>🕐 Horário de funcionamento</h3><p>Defina a rotina semanal usada para abrir e fechar a loja automaticamente.</p></div></div>
                         <div id="listaHorariosMestre"></div>
                         <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="salvarHorariosMestre()">💾 Salvar horários</button>
                         <p id="msgHorariosMestre" class="ordem-categorias-msg"></p>
+                        </div>
 
-                        <hr style="margin:18px 0; border:none; border-top:1px solid var(--border);">
+                        <hr class="adm-step-divider">
 
-                        <h3>Passo 7 de 7 — 🚚 Áreas de Entrega desse cliente</h3>
-                        <p class="dica-secao">Edita a mesma configuração de frete usada no painel do cliente: valores por km e bairros atendidos.</p>
+                        <div class="adm-step-card adm-step-entrega">
+                            <div class="adm-step-head"><span class="adm-step-index">07</span><div><span class="adm-mestre-kicker">LOGÍSTICA</span><h3>🚚 Áreas de Entrega do cliente</h3><p>Configure valores por quilômetro e mantenha a carteira de bairros atendidos.</p></div></div>
+                            <div class="adm-entrega-grid"><div class="adm-entrega-valores">
 
                         <label class="campo-label">Valor por km (R$)</label>
                         <input type="text" inputmode="decimal" id="valorPorKmMestre" placeholder="Ex: 0.70">
 
-                        <label class="campo-label" style="margin-top:10px;">Valor por km pra ENCOMENDA (R$)</label>
+                        <label class="campo-label" style="margin-top:10px;">Valor por km para encomendas (R$)</label>
                         <input type="text" inputmode="decimal" id="valorPorKmEncomendaMestre" placeholder="Ex: 2.30">
 
                         <button class="btn-salvar-ordem" style="margin-top:8px;" onclick="salvarValoresFreteMestre()">💾 Salvar valores por km</button>
                         <p id="msgValoresFreteMestre" class="ordem-categorias-msg"></p>
 
-                        <label class="campo-label" style="margin-top:14px;">Adicionar/editar um bairro</label>
+                            </div><div class="adm-entrega-bairros">
+                        <label class="campo-label">Adicionar ou editar um bairro</label>
                         <div class="produto-admin-linha">
                             <input type="text" id="novoBairroNomeMestre" placeholder="Nome do bairro">
                             <input type="text" inputmode="decimal" id="novoBairroKmMestre" placeholder="Distância (km)" style="max-width:140px;">
@@ -1707,12 +1739,13 @@
                         <label class="campo-label" style="margin-top:14px;">Bairros cadastrados</label>
                         <input type="text" id="buscaBairroMestre" placeholder="🔍 Pesquisar bairro..." oninput="renderizarListaBairrosMestre()">
                         <div id="listaBairrosMestre" style="margin-top:8px; max-height:320px; overflow-y:auto;"></div>
+                            </div></div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="loja-status-card" id="cardLeadsMestre" style="display:none; margin-top:16px;">
-                    <h3>📋 Leads do Cardápio</h3>
-                    <p class="dica-secao">Todo mundo que preencheu "Quero meu cardápio assim" em qualquer cardápio seu.</p>
+                <div class="loja-status-card adm-mestre-card adm-leads-card" id="cardLeadsMestre" style="display:none; margin-top:16px;">
+                    <div class="adm-mestre-card-head"><span class="adm-mestre-card-icon">📋</span><div><span class="adm-mestre-kicker">OPORTUNIDADES</span><h3>Leads do Cardápio</h3><p>Contatos que solicitaram uma prévia personalizada em seus cardápios.</p></div></div>
                     <div id="listaLeadsMestre"></div>
                 </div>
             </section>
