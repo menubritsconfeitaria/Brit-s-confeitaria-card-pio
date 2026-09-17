@@ -4050,3 +4050,153 @@ footer .footer-seguranca-titulo {
         justify-content: center;
     }
 }
+
+/* ============================================================
+   PEDEAKI SITE — CHECKOUT PREMIUM V5 FINAL
+   Lapidação fina do carrinho/checkout. Somente visual.
+   ============================================================ */
+
+/* Aproxima o início do carrinho do checkout para formar uma única seção. */
+#carrinho.checkout-premium {
+    margin-top: 30px;
+}
+
+.checkout-premium-cabecalho {
+    margin-bottom: 12px;
+    padding-top: 16px;
+    padding-bottom: 15px;
+}
+
+.checkout-premium-grid {
+    gap: 14px;
+}
+
+/* Resumo decisivo: mais contraste sem ficar pesado. */
+.checkout-premium-resumo {
+    border-color: rgba(190, 137, 96, .72);
+    background: linear-gradient(180deg, #fff 0%, #fffaf4 100%);
+    box-shadow:
+        0 18px 42px rgba(68, 39, 22, .14),
+        0 0 0 1px rgba(255,255,255,.9) inset;
+}
+
+.checkout-resumo-cabecalho {
+    padding-bottom: 12px;
+}
+
+.checkout-resumo-cabecalho h3 {
+    color: #3f291d;
+}
+
+/* Entrega e pagamento: seleção mais evidente e elegante. */
+#carrinho.checkout-premium .opcao-btn {
+    border-width: 1px;
+}
+
+#carrinho.checkout-premium .opcao-btn.selecionado {
+    border-color: #8e421f;
+    background: linear-gradient(145deg, #b55e32 0%, #8e421f 100%);
+    box-shadow:
+        0 8px 18px rgba(139, 68, 34, .22),
+        0 0 0 2px rgba(181, 94, 50, .10);
+}
+
+#carrinho.checkout-premium .opcao-btn.selecionado::after {
+    width: 19px;
+    height: 19px;
+    background: #fff;
+    color: #9d4b27;
+    box-shadow: 0 2px 7px rgba(83, 43, 24, .16);
+    font-size: .68rem;
+}
+
+#carrinho.checkout-premium .opcao-btn.selecionado span {
+    color: rgba(255,255,255,.88);
+}
+
+/* Total como ponto focal, sem competir com o botão final. */
+#carrinho.checkout-premium .carrinho-total p.total-final {
+    margin-top: 11px;
+    padding: 14px 13px;
+    border-color: #dfc3a8;
+    background: linear-gradient(135deg, #fff5e9, #fffdf9);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
+}
+
+#carrinho.checkout-premium .carrinho-total p.total-final strong {
+    color: #9d4925;
+    font-size: 1.34rem;
+}
+
+#carrinho.checkout-premium .finalizar-compra {
+    min-height: 54px;
+    margin-top: 13px;
+    border-radius: 15px;
+    box-shadow: 0 12px 26px rgba(24, 151, 75, .25);
+}
+
+/* Segurança e relacionamento ficam mais próximos do checkout. */
+#carrinho.checkout-premium .compra-segura-box {
+    margin-top: 11px;
+}
+
+#carrinho.checkout-premium + .container {
+    margin-top: 6px;
+    gap: 10px;
+    align-items: stretch;
+}
+
+#carrinho.checkout-premium + .container > .clube-fidelidade-card,
+#carrinho.checkout-premium + .container > .contato-redes-sociais {
+    min-height: 128px;
+    border-color: rgba(220, 201, 181, .95);
+    box-shadow: 0 8px 20px rgba(70, 42, 26, .055);
+}
+
+#carrinho.checkout-premium + .container > .clube-fidelidade-card {
+    justify-content: center;
+}
+
+#carrinho.checkout-premium + .container > .contato-redes-sociais {
+    align-content: center;
+}
+
+/* O bloco de personalização não fica visualmente colado ao rodapé de confiança. */
+#carrinho.checkout-premium + .container > .personalizar-secao {
+    margin-top: 2px;
+}
+
+@media (max-width: 820px) {
+    #carrinho.checkout-premium {
+        margin-top: 24px;
+    }
+
+    .checkout-premium-grid {
+        gap: 12px;
+    }
+
+    #carrinho.checkout-premium + .container > .clube-fidelidade-card,
+    #carrinho.checkout-premium + .container > .contato-redes-sociais {
+        min-height: auto;
+    }
+}
+
+@media (max-width: 600px) {
+    #carrinho.checkout-premium {
+        margin-top: 22px;
+    }
+
+    .checkout-premium-cabecalho {
+        margin-bottom: 10px;
+        padding-top: 14px;
+        padding-bottom: 14px;
+    }
+
+    #carrinho.checkout-premium .opcao-btn.selecionado::after {
+        right: 11px;
+    }
+
+    #carrinho.checkout-premium + .container {
+        gap: 8px;
+    }
+}
