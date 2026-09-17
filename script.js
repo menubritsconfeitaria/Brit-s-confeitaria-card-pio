@@ -2958,6 +2958,75 @@ async function finalizarCompra() {
         || (pagamentoOnlineAtivo && !querAgendar && (formaPagamentoAtual === 'Pix' || formaPagamentoAtual === 'Cartão'));
     const statusInicialPedido = exigePagamentoAntes ? 'aguardando_pagamento' : 'pendente';
 
+    // ETAPA 2 — contexto único do checkout.
+    // Nesta fase ele é apenas um retrato organizado dos dados que já existem neste ponto
+    // do fluxo. A lógica abaixo ainda usa as variáveis originais de propósito, para que
+    // possamos validar esta etapa sem alterar nenhum comportamento do checkout.
+    const contextoCheckout = {
+        cliente: {
+            nome,
+            telefone,
+            observacoes: obs || null
+        },
+        entrega: {
+            tipo: tipoEntregaAtual,
+            endereco: tipoEntregaAtual === 'entrega'
+                ? { rua, numero, complemento, bairro, cidade, estado, cep }
+                : null,
+            frete,
+            freteConfirmado,
+            freteGratis,
+            freteTexto
+        },
+        carrinho: {
+            itens: carrinho,
+            itensTexto: itensPedido
+        },
+        cupom: {
+            aplicado: cupomAplicado,
+            desconto
+        },
+        pagamento: {
+            forma: formaPagamentoAtual,
+            onlineAtivo: pagamentoOnlineAtivo,
+            precisaTroco: precisaTrocoAtual,
+            troco
+        },
+        encomenda: {
+            agendamentoAtivo,
+            querAgendar,
+            data: dataEncomenda,
+            dataVerificada: dataEncomendaVerificada,
+            percentualSinal: percentualSinalEncomenda
+        },
+        fidelidade: {
+            recompensaSelecionada
+        },
+        totais: {
+            subtotal: subtotalPedido,
+            subtotalTexto,
+            desconto,
+            frete,
+            freteTexto,
+            total: (tipoEntregaAtual === 'retirada' || freteConfirmado)
+                ? (subtotalPedido - desconto + frete)
+                : null,
+            totalTexto: totalPedido
+        },
+        loja: {
+            nome: LOJA_CONFIG.nome,
+            aberta: lojaAbertaAtual,
+            pausada: lojaPausadaAtual,
+            whatsappEfetivo: whatsappPedidosEfetivo || null,
+            whatsappConfigurado: LOJA_CONFIG.whatsappPedidos
+        },
+        pedido: {
+            exigePagamentoAntes,
+            statusInicial: statusInicialPedido,
+            mensagem: mensagemPedido
+        }
+    };
+
     const { id: pedidoId, promessaSalvo, bloqueadoPorPausa } = await salvarPedidoNoPainel({
         nome, telefone,
         tipoEntrega: tipoEntregaAtual,
