@@ -2695,3 +2695,349 @@ main > .container:not(:first-of-type) {
         padding: 11px 14px;
     }
 }
+
+/* ============================================================
+   PEDEAKI SITE — CARDS DE PRODUTO PREMIUM V2
+   Somente apresentação. Não altera carrinho, produtos, Firebase ou JS.
+   ============================================================ */
+
+/* Cada categoria centraliza a quantidade REAL de produtos disponível.
+   Assim 1, 2 ou 3 produtos não ficam "grudados" no lado esquerdo. */
+#produtos-destaque .categoria-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 310px));
+    justify-content: center;
+    align-items: stretch;
+    gap: 22px;
+    margin-bottom: 38px;
+}
+
+/* Card mais editorial: borda leve, sombra limpa e proporção consistente. */
+#produtos-destaque .produto-item {
+    width: 100% !important;
+    max-width: 310px;
+    min-width: 0;
+    padding: 0 0 14px;
+    border: 1px solid rgba(224, 208, 188, .9);
+    border-radius: 20px;
+    background: linear-gradient(180deg, #fff 0%, #fff 76%, #fffdf9 100%);
+    box-shadow: 0 10px 26px rgba(66, 39, 24, .09);
+    overflow: hidden;
+    text-align: left;
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+
+@media (hover:hover) and (pointer:fine) {
+    #produtos-destaque .produto-item:hover {
+        transform: translateY(-5px);
+        border-color: rgba(171, 91, 46, .28);
+        box-shadow: 0 16px 34px rgba(66, 39, 24, .14);
+    }
+}
+
+/* Foto ganha protagonismo e todos os cards mantêm a mesma proporção. */
+#produtos-destaque .produto-imagem-wrap {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: #f7f0e6;
+    border-bottom: 1px solid rgba(226, 212, 194, .8);
+}
+
+#produtos-destaque .produto-item img,
+#produtos-destaque .produto-imagem-atual {
+    display: block;
+    width: 100%;
+    height: 100% !important;
+    max-width: none;
+    margin: 0;
+    object-fit: cover;
+    transition: transform .28s ease;
+}
+
+@media (hover:hover) and (pointer:fine) {
+    #produtos-destaque .produto-item:hover .produto-imagem-atual {
+        transform: scale(1.025);
+    }
+}
+
+/* Oferta vira selo premium, sem animação chamativa. */
+#produtos-destaque .produto-tag {
+    top: 12px;
+    left: 12px;
+    padding: 6px 11px;
+    border-radius: 999px;
+    background: rgba(204, 64, 48, .94);
+    box-shadow: 0 5px 14px rgba(174, 52, 38, .24);
+    font-size: .68rem;
+    letter-spacing: .045em;
+    animation: none;
+}
+
+/* Setas e indicadores ficam mais discretos sobre a foto. */
+#produtos-destaque .carrossel-seta {
+    width: 32px;
+    height: 32px;
+    background: rgba(35, 24, 18, .5);
+    border: 1px solid rgba(255,255,255,.42);
+    box-shadow: 0 4px 12px rgba(0,0,0,.12);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+#produtos-destaque .carrossel-anterior { left: 10px; }
+#produtos-destaque .carrossel-proximo { right: 10px; }
+#produtos-destaque .carrossel-dots { bottom: 10px; }
+#produtos-destaque .carrossel-dot {
+    width: 7px;
+    height: 7px;
+    box-shadow: 0 1px 5px rgba(0,0,0,.18);
+}
+
+/* Hierarquia de leitura: nome > descrição curta > preço > escolha > ação. */
+#produtos-destaque .produto-item h3 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    min-height: 2.7em;
+    margin: 14px 15px 6px;
+    color: #4b2f20;
+    font-size: 1.02rem;
+    line-height: 1.34;
+    letter-spacing: -.012em;
+    text-align: left;
+}
+
+#produtos-destaque .produto-item .descricao {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    min-height: 4.2em;
+    margin: 0 15px 10px;
+    color: #75675e;
+    font-size: .82rem;
+    line-height: 1.45;
+    text-align: left;
+    flex-grow: 1;
+}
+
+#produtos-destaque .produto-item .preco {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 7px;
+    min-height: 32px;
+    margin: 0 15px 8px;
+    color: var(--primary);
+    font-size: 1.18rem;
+    font-weight: 800;
+    line-height: 1.25;
+    text-align: left;
+}
+
+#produtos-destaque .produto-item .preco-original {
+    color: #a2978f;
+    font-size: .68rem;
+    font-weight: 600;
+}
+
+/* Sabores/opções: chips compactos, sem estourar visualmente o card. */
+#produtos-destaque .variantes-lista {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-height: 74px;
+    overflow: auto;
+    margin: 1px 15px 9px;
+    padding: 1px 2px 2px 0;
+    scrollbar-width: thin;
+}
+
+#produtos-destaque .variante-pill {
+    min-height: 29px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: #fbf6ef;
+    border-color: #eadac7;
+    color: #69422a;
+    font-size: .7rem;
+    line-height: 1.15;
+}
+#produtos-destaque .variante-pill.selecionada {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(150, 75, 38, .17);
+}
+
+/* Quantidade em cápsula compacta, com controles maiores para toque. */
+#produtos-destaque .produto-quantidade-stepper {
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 36px;
+    margin: 2px auto 9px;
+    padding: 3px 6px;
+    border: 1px solid #eadac7;
+    border-radius: 999px;
+    background: #fbf7f1;
+}
+
+#produtos-destaque .qtd-btn {
+    width: 29px;
+    height: 29px;
+    border: 0;
+    background: #fff;
+    box-shadow: 0 2px 7px rgba(73, 44, 28, .08);
+    font-size: 1rem;
+}
+#produtos-destaque .qtd-valor {
+    min-width: 20px;
+    color: #503421;
+    font-size: .9rem;
+}
+
+/* CTA é o foco da parte inferior, sem ficar pesado demais. */
+#produtos-destaque .produto-item .adicionar-carrinho {
+    width: calc(100% - 30px);
+    min-height: 42px;
+    margin: 0 15px;
+    padding: 9px 14px;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #b45d31 0%, #9f4e29 100%);
+    color: #fff;
+    box-shadow: 0 6px 15px rgba(153, 75, 38, .18);
+    font-size: .84rem;
+    font-weight: 750;
+    line-height: 1.2;
+}
+#produtos-destaque .produto-item .adicionar-carrinho:hover {
+    background: linear-gradient(180deg, #a9532c 0%, #8e4323 100%);
+}
+
+/* Link secundário não compete com o botão de compra. */
+#produtos-destaque .btn-copiar-link-produto {
+    width: auto;
+    align-self: center;
+    margin: 7px 15px 0;
+    padding: 3px 7px;
+    border: 0;
+    background: transparent;
+    color: #a3958b;
+    font-size: .64rem;
+    line-height: 1.2;
+    text-decoration: none;
+}
+#produtos-destaque .btn-copiar-link-produto:hover {
+    color: var(--primary);
+    background: transparent;
+    text-decoration: underline;
+}
+
+/* Indisponível continua informativo, mas sem "apagar" o produto inteiro. */
+#produtos-destaque .produto-item.indisponivel {
+    opacity: .76;
+}
+#produtos-destaque .produto-item.indisponivel::after {
+    top: 105px;
+    padding: 7px 13px;
+    border-radius: 999px;
+    background: rgba(87, 68, 56, .88);
+    font-size: .78rem;
+    letter-spacing: .02em;
+}
+
+/* Categoria ganha acabamento mais editorial e melhor separação visual. */
+#produtos-destaque .categoria-titulo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #eadfce;
+    color: #5a3b28;
+    font-weight: 800;
+    letter-spacing: -.01em;
+}
+
+/* Notebooks e tablets: cartões continuam centrados e confortáveis. */
+@media (max-width: 1180px) {
+    #produtos-destaque .categoria-grid {
+        grid-template-columns: repeat(auto-fit, minmax(245px, 295px));
+        gap: 18px;
+    }
+    #produtos-destaque .produto-item { max-width: 295px; }
+}
+
+@media (max-width: 760px) {
+    #produtos-destaque .categoria-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 13px;
+    }
+    #produtos-destaque .produto-item {
+        max-width: none;
+        border-radius: 17px;
+    }
+    #produtos-destaque .produto-item h3 {
+        margin: 11px 11px 5px;
+        min-height: 2.55em;
+        font-size: .93rem;
+    }
+    #produtos-destaque .produto-item .descricao {
+        min-height: 3.9em;
+        margin: 0 11px 8px;
+        font-size: .76rem;
+        line-height: 1.38;
+    }
+    #produtos-destaque .produto-item .preco {
+        margin: 0 11px 7px;
+        font-size: 1.05rem;
+    }
+    #produtos-destaque .variantes-lista { margin-left: 11px; margin-right: 11px; }
+    #produtos-destaque .produto-item .adicionar-carrinho {
+        width: calc(100% - 22px);
+        margin-left: 11px;
+        margin-right: 11px;
+        font-size: .78rem;
+    }
+}
+
+/* Celular: um card por linha. A leitura do produto fica confortável e a foto vende melhor. */
+@media (max-width: 560px) {
+    #produtos-destaque .categoria-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+        width: 100%;
+        max-width: 420px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    #produtos-destaque .produto-item {
+        width: 100% !important;
+        max-width: 420px;
+        padding-bottom: 13px;
+    }
+    #produtos-destaque .produto-imagem-wrap { aspect-ratio: 16 / 10; }
+    #produtos-destaque .produto-item h3 {
+        min-height: 0;
+        margin: 13px 14px 5px;
+        font-size: 1rem;
+    }
+    #produtos-destaque .produto-item .descricao {
+        min-height: 0;
+        margin-left: 14px;
+        margin-right: 14px;
+        font-size: .8rem;
+        -webkit-line-clamp: 4;
+    }
+    #produtos-destaque .produto-item .preco { margin-left: 14px; margin-right: 14px; }
+    #produtos-destaque .variantes-lista { margin-left: 14px; margin-right: 14px; }
+    #produtos-destaque .produto-item .adicionar-carrinho {
+        width: calc(100% - 28px);
+        margin-left: 14px;
+        margin-right: 14px;
+        min-height: 44px;
+        font-size: .84rem;
+    }
+}
