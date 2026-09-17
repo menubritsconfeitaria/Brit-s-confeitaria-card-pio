@@ -1136,132 +1136,217 @@
                         </div>
                     </div>
                 </div>
-                <div class="hub-subpanel" data-cm-subtab="campanhas">
-                    <div class="hub-context-note"><strong>📣 Campanhas</strong><span>Crie comunicação com clientes e campanhas visuais sem misturar com as configurações da loja.</span></div>
-<div class="loja-status-card" id="cardNotificacoes" style="margin-top:16px;">
-                    <h3>📢 Notificações</h3>
-                    <p class="dica-secao">Envie novidades, promoções e avisos direto pra quem já ativou notificação no cardápio.</p>
-
-                    <div style="margin:14px 0 18px; padding:12px; border:1px solid var(--border); border-radius:12px;">
-                        <strong>🟢 Aviso automático quando a loja abrir</strong>
-                        <p class="dica-secao" style="margin:6px 0 10px;">
-                            Desative temporariamente para abrir a loja durante testes sem avisar os clientes.
-                            As outras notificações continuam funcionando normalmente.
-                        </p>
-                        <label class="switch-linha">
-                            <input type="checkbox" id="chkNotificacaoAberturaAtiva" onchange="salvarNotificacaoAberturaAtiva(this.checked)">
-                            Enviar notificação automática de abertura
-                        </label>
-                        <p id="msgNotificacaoAbertura" class="ordem-categorias-msg" style="margin-top:6px;"></p>
+                <div class="hub-subpanel campanhas-premium" data-cm-subtab="campanhas">
+                    <div class="hub-context-note campanhas-context-note">
+                        <strong>📢 Notificações &amp; Campanhas</strong>
+                        <span>Comunique novidades no momento certo e mantenha as campanhas visuais da loja organizadas em uma única central.</span>
                     </div>
 
-                    <label class="campo-label">Título <span id="contadorTitulo" class="dica-secao">0/100</span></label>
-                    <input type="text" id="notifPersonalizadaTitulo" maxlength="100" placeholder="Ex: 📢 Horário especial hoje!" oninput="atualizarPreviaNotificacao()">
-
-                    <label class="campo-label">Mensagem <span id="contadorMensagem" class="dica-secao">0/300</span></label>
-                    <textarea id="notifPersonalizadaCorpo" maxlength="300" class="campo-adicionais" style="min-height:60px;" placeholder="Ex: Hoje funcionamos até às 23h!" oninput="atualizarPreviaNotificacao()"></textarea>
-
-                    <p class="campo-label" style="margin-top:14px;">⚡ Modelos prontos</p>
-                    <div class="opcoes-radio" id="listaModelosNotificacao"></div>
-                    <button class="btn-secondary" style="margin-top:8px;" onclick="salvarModeloAtualComoNovo()">💾 Salvar texto atual como modelo novo</button>
-                    <p id="msgModelosNotificacao" class="ordem-categorias-msg"></p>
-
-                    <p class="campo-label" style="margin-top:14px;">Prévia</p>
-                    <div class="notif-previa">
-                        <div class="notif-previa-topo">📢 <span id="previaLojaNome">Sua Loja</span></div>
-                        <div class="notif-previa-titulo" id="previaTitulo">Título aparece aqui</div>
-                        <div class="notif-previa-corpo" id="previaCorpo">A mensagem aparece aqui, do jeito que o cliente vai ver.</div>
-                    </div>
-
-                    <p class="dica-secao" style="margin-top:12px;">👥 Destinatários disponíveis: <strong id="contadorDestinatarios">carregando...</strong> — só quem ativou notificação recebe.</p>
-
-                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="enviarNotificacaoPersonalizadaDoPainel()">📢 Enviar agora</button>
-                    <p id="notifPersonalizadaMsg" class="ordem-categorias-msg"></p>
-
-                    <p class="campo-label" style="margin-top:14px;">📅 Ou agendar pra mais tarde</p>
-                    <div class="produto-admin-linha">
-                        <div class="campo-com-label"><label class="campo-label">Data</label><input type="date" id="notifAgendarData"></div>
-                        <div class="campo-com-label"><label class="campo-label">Horário</label><input type="time" id="notifAgendarHora"></div>
-                    </div>
-                    <p class="dica-secao">O envio pode atrasar até 5 minutos da hora escolhida (o sistema confere periodicamente, não na hora exata).</p>
-                    <button class="btn-secondary" onclick="agendarNotificacaoDoPainel()">📅 Agendar</button>
-                </div>
-<div class="loja-status-card" id="cardBannersCarrossel" style="margin-top:16px;">
-                    <div class="banner-campanha-topo">
-                        <div>
-                            <h3>🖼️ Banners de Campanha</h3>
-                            <p class="dica-secao">Gerencie campanhas visuais no mesmo carrossel dos produtos em destaque.</p>
-                        </div>
-                        <div class="banner-vagas-resumo" id="resumoVagasBanners">0 de 5 posições ocupadas agora</div>
-                    </div>
-
-                    <button class="btn-secondary banner-btn-adicionar" type="button" onclick="abrirFormularioBannerCarrossel()">➕ Adicionar nova campanha</button>
-
-                    <div id="painelFormularioBannerCarrossel" class="banner-form-painel" style="display:none;">
-                        <div class="banner-form-titulo">
-                            <strong id="tituloFormularioBannerCarrossel">Nova campanha</strong>
-                            <button type="button" class="banner-btn-fechar" onclick="fecharFormularioBannerCarrossel()" aria-label="Fechar">×</button>
-                        </div>
-                        <input type="hidden" id="bannerCarrosselEditandoId">
-                        <div class="banner-carrossel-form">
-                            <div class="campo-com-label banner-carrossel-campo-largo">
-                                <label class="campo-label" for="bannerCarrosselArquivo">Imagem do banner</label>
-                                <input type="file" id="bannerCarrosselArquivo" accept="image/*">
-                                <p class="dica-secao" id="ajudaImagemBannerCarrossel">Use uma arte horizontal. A imagem é exibida inteira.</p>
+                    <div class="loja-status-card campanhas-card campanhas-notificacoes-card" id="cardNotificacoes">
+                        <div class="campanhas-card-head">
+                            <div>
+                                <span class="campanhas-kicker">COMUNICAÇÃO DIRETA</span>
+                                <h3>📢 Central de Notificações</h3>
+                                <p class="dica-secao">Prepare a mensagem, confira a prévia e escolha entre enviar agora ou programar para depois.</p>
                             </div>
-                            <div class="campo-com-label">
-                                <label class="campo-label" for="bannerCarrosselTitulo">Nome da campanha</label>
-                                <input type="text" id="bannerCarrosselTitulo" maxlength="80" placeholder="Ex.: Semana do Brownie">
-                            </div>
-                            <div class="campo-com-label banner-carrossel-campo-largo">
-                                <label class="campo-label" for="bannerCarrosselLink">Link ao clicar (opcional)</label>
-                                <input type="text" id="bannerCarrosselLink" placeholder="Ex.: #produto-... ou https://...">
-                            </div>
-                            <div class="campo-com-label">
-                                <label class="campo-label" for="bannerCarrosselInicio">Início (opcional)</label>
-                                <input type="date" id="bannerCarrosselInicio">
-                            </div>
-                            <div class="campo-com-label">
-                                <label class="campo-label" for="bannerCarrosselFim">Fim (opcional)</label>
-                                <input type="date" id="bannerCarrosselFim">
-                            </div>
-                            <div class="campo-com-label">
-                                <label class="campo-label" for="bannerCarrosselOrdem">Ordem</label>
-                                <input type="number" id="bannerCarrosselOrdem" min="1" max="99" value="1">
-                            </div>
-                            <label class="switch-linha banner-carrossel-ativo">
-                                <input type="checkbox" id="bannerCarrosselAtivo" checked>
-                                Campanha ativa
-                            </label>
+                            <div class="campanhas-head-badge">Push para clientes</div>
                         </div>
-                        <div class="banner-form-acoes">
-                            <button class="btn-secondary" type="button" onclick="salvarBannerCarrossel()" id="btnSalvarBannerCarrossel">📤 Adicionar ao carrossel</button>
-                            <button class="btn-secondary" type="button" onclick="fecharFormularioBannerCarrossel()">Cancelar</button>
+
+                        <div class="campanhas-notif-layout">
+                            <div class="campanhas-notif-col campanhas-notif-col--editor">
+                                <div class="campanhas-step-card campanhas-abertura-card">
+                                    <div class="campanhas-step-head">
+                                        <span class="campanhas-step">01</span>
+                                        <div>
+                                            <span class="campanhas-step-kicker">AUTOMAÇÃO</span>
+                                            <strong>Aviso automático de abertura</strong>
+                                        </div>
+                                    </div>
+                                    <p class="dica-secao">Use durante a operação normal e desative temporariamente quando precisar abrir a loja apenas para testes.</p>
+                                    <label class="switch-linha campanhas-switch-linha">
+                                        <input type="checkbox" id="chkNotificacaoAberturaAtiva" onchange="salvarNotificacaoAberturaAtiva(this.checked)">
+                                        <span>Enviar notificação automática quando a loja abrir</span>
+                                    </label>
+                                    <p id="msgNotificacaoAbertura" class="ordem-categorias-msg campanhas-inline-msg"></p>
+                                </div>
+
+                                <div class="campanhas-step-card campanhas-compositor-card">
+                                    <div class="campanhas-step-head">
+                                        <span class="campanhas-step">02</span>
+                                        <div>
+                                            <span class="campanhas-step-kicker">MENSAGEM</span>
+                                            <strong>Monte a comunicação</strong>
+                                        </div>
+                                    </div>
+
+                                    <div class="campanhas-field">
+                                        <label class="campo-label" for="notifPersonalizadaTitulo">Título <span id="contadorTitulo" class="campanhas-contador">0/100</span></label>
+                                        <input type="text" id="notifPersonalizadaTitulo" maxlength="100" placeholder="Ex: 📢 Horário especial hoje!" oninput="atualizarPreviaNotificacao()">
+                                    </div>
+
+                                    <div class="campanhas-field">
+                                        <label class="campo-label" for="notifPersonalizadaCorpo">Mensagem <span id="contadorMensagem" class="campanhas-contador">0/300</span></label>
+                                        <textarea id="notifPersonalizadaCorpo" maxlength="300" class="campo-adicionais campanhas-mensagem-textarea" placeholder="Ex: Hoje funcionamos até às 23h!" oninput="atualizarPreviaNotificacao()"></textarea>
+                                    </div>
+
+                                    <div class="campanhas-modelos-head">
+                                        <div>
+                                            <span class="campanhas-step-kicker">ATALHOS</span>
+                                            <strong>⚡ Modelos prontos</strong>
+                                        </div>
+                                        <button class="btn-secondary campanhas-btn-modelo" type="button" onclick="salvarModeloAtualComoNovo()">💾 Salvar como modelo</button>
+                                    </div>
+                                    <div class="opcoes-radio campanhas-modelos-grid" id="listaModelosNotificacao"></div>
+                                    <p id="msgModelosNotificacao" class="ordem-categorias-msg campanhas-inline-msg"></p>
+                                </div>
+                            </div>
+
+                            <div class="campanhas-notif-col campanhas-notif-col--acao">
+                                <div class="campanhas-step-card campanhas-preview-card">
+                                    <div class="campanhas-step-head">
+                                        <span class="campanhas-step">03</span>
+                                        <div>
+                                            <span class="campanhas-step-kicker">CONFERÊNCIA</span>
+                                            <strong>Prévia para o cliente</strong>
+                                        </div>
+                                    </div>
+
+                                    <div class="notif-previa campanhas-notif-previa">
+                                        <div class="notif-previa-topo">📢 <span id="previaLojaNome">Sua Loja</span></div>
+                                        <div class="notif-previa-titulo" id="previaTitulo">Título aparece aqui</div>
+                                        <div class="notif-previa-corpo" id="previaCorpo">A mensagem aparece aqui, do jeito que o cliente vai ver.</div>
+                                    </div>
+
+                                    <div class="campanhas-destinatarios">
+                                        <span>👥 Público disponível</span>
+                                        <strong id="contadorDestinatarios">carregando...</strong>
+                                        <small>Somente clientes que ativaram notificações recebem.</small>
+                                    </div>
+
+                                    <button class="btn-salvar-ordem campanhas-btn-enviar" type="button" onclick="enviarNotificacaoPersonalizadaDoPainel()">📢 Enviar agora</button>
+                                    <p id="notifPersonalizadaMsg" class="ordem-categorias-msg campanhas-inline-msg"></p>
+                                </div>
+
+                                <div class="campanhas-step-card campanhas-agendar-card">
+                                    <div class="campanhas-step-head">
+                                        <span class="campanhas-step">04</span>
+                                        <div>
+                                            <span class="campanhas-step-kicker">AGENDAMENTO</span>
+                                            <strong>Programar para depois</strong>
+                                        </div>
+                                    </div>
+                                    <div class="campanhas-agenda-grid">
+                                        <div class="campo-com-label">
+                                            <label class="campo-label" for="notifAgendarData">Data</label>
+                                            <input type="date" id="notifAgendarData">
+                                        </div>
+                                        <div class="campo-com-label">
+                                            <label class="campo-label" for="notifAgendarHora">Horário</label>
+                                            <input type="time" id="notifAgendarHora">
+                                        </div>
+                                    </div>
+                                    <p class="dica-secao campanhas-agenda-nota">O sistema confere periodicamente; o disparo pode acontecer até alguns minutos depois do horário escolhido.</p>
+                                    <button class="btn-secondary campanhas-btn-agendar" type="button" onclick="agendarNotificacaoDoPainel()">📅 Agendar notificação</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <p id="msgBannerCarrossel" class="ordem-categorias-msg"></p>
-
-                    <div class="banner-secao-lista">
-                        <div class="banner-secao-cabecalho">
-                            <h4>✅ Campanhas ativas no carrossel</h4>
-                            <span id="contadorBannersAtivos" class="banner-contador-pill">0</span>
+                    <div class="loja-status-card campanhas-card campanhas-banners-card" id="cardBannersCarrossel">
+                        <div class="campanhas-card-head banner-campanha-topo">
+                            <div>
+                                <span class="campanhas-kicker">VITRINE VISUAL</span>
+                                <h3>🖼️ Banners de Campanha</h3>
+                                <p class="dica-secao">Gerencie campanhas visuais exibidas junto aos produtos em destaque no carrossel da loja.</p>
+                            </div>
+                            <div class="banner-vagas-resumo" id="resumoVagasBanners">0 de 5 posições ocupadas agora</div>
                         </div>
-                        <div id="listaBannersCarrosselAtivos" class="lista-banners-carrossel">
-                            <p class="dica-secao">Nenhuma campanha ativa.</p>
+
+                        <div class="campanhas-banner-toolbar">
+                            <div class="campanhas-banner-info">
+                                <span class="campanhas-step-kicker">CAPACIDADE</span>
+                                <strong>Até 5 campanhas na vitrine</strong>
+                                <small>Organize período, ordem, link e situação de cada banner.</small>
+                            </div>
+                            <button class="btn-secondary banner-btn-adicionar campanhas-btn-nova-banner" type="button" onclick="abrirFormularioBannerCarrossel()">➕ Nova campanha visual</button>
+                        </div>
+
+                        <div id="painelFormularioBannerCarrossel" class="banner-form-painel campanhas-banner-form" style="display:none;">
+                            <div class="banner-form-titulo">
+                                <div>
+                                    <span class="campanhas-step-kicker">CONFIGURAÇÃO</span>
+                                    <strong id="tituloFormularioBannerCarrossel">Nova campanha</strong>
+                                </div>
+                                <button type="button" class="banner-btn-fechar" onclick="fecharFormularioBannerCarrossel()" aria-label="Fechar">×</button>
+                            </div>
+                            <input type="hidden" id="bannerCarrosselEditandoId">
+                            <div class="banner-carrossel-form campanhas-banner-form-grid">
+                                <div class="campo-com-label banner-carrossel-campo-largo campanhas-banner-upload">
+                                    <label class="campo-label" for="bannerCarrosselArquivo">Imagem do banner</label>
+                                    <input type="file" id="bannerCarrosselArquivo" accept="image/*">
+                                    <p class="dica-secao" id="ajudaImagemBannerCarrossel">Use uma arte horizontal. A imagem é exibida inteira.</p>
+                                </div>
+                                <div class="campo-com-label">
+                                    <label class="campo-label" for="bannerCarrosselTitulo">Nome da campanha</label>
+                                    <input type="text" id="bannerCarrosselTitulo" maxlength="80" placeholder="Ex.: Semana do Brownie">
+                                </div>
+                                <div class="campo-com-label banner-carrossel-campo-largo">
+                                    <label class="campo-label" for="bannerCarrosselLink">Link ao clicar (opcional)</label>
+                                    <input type="text" id="bannerCarrosselLink" placeholder="Ex.: #produto-... ou https://...">
+                                </div>
+                                <div class="campo-com-label">
+                                    <label class="campo-label" for="bannerCarrosselInicio">Início (opcional)</label>
+                                    <input type="date" id="bannerCarrosselInicio">
+                                </div>
+                                <div class="campo-com-label">
+                                    <label class="campo-label" for="bannerCarrosselFim">Fim (opcional)</label>
+                                    <input type="date" id="bannerCarrosselFim">
+                                </div>
+                                <div class="campo-com-label">
+                                    <label class="campo-label" for="bannerCarrosselOrdem">Ordem</label>
+                                    <input type="number" id="bannerCarrosselOrdem" min="1" max="99" value="1">
+                                </div>
+                                <label class="switch-linha banner-carrossel-ativo campanhas-banner-ativo">
+                                    <input type="checkbox" id="bannerCarrosselAtivo" checked>
+                                    <span>Campanha ativa</span>
+                                </label>
+                            </div>
+                            <div class="banner-form-acoes campanhas-banner-form-acoes">
+                                <button class="btn-salvar-ordem" type="button" onclick="salvarBannerCarrossel()" id="btnSalvarBannerCarrossel">📤 Salvar campanha</button>
+                                <button class="btn-secondary" type="button" onclick="fecharFormularioBannerCarrossel()">Cancelar</button>
+                            </div>
+                        </div>
+
+                        <p id="msgBannerCarrossel" class="ordem-categorias-msg campanhas-inline-msg"></p>
+
+                        <div class="campanhas-banner-listas">
+                            <div class="banner-secao-lista campanhas-banner-lista-card campanhas-banner-lista-card--ativa">
+                                <div class="banner-secao-cabecalho">
+                                    <div>
+                                        <span class="campanhas-step-kicker">EM EXIBIÇÃO</span>
+                                        <h4>✅ Campanhas ativas no carrossel</h4>
+                                    </div>
+                                    <span id="contadorBannersAtivos" class="banner-contador-pill">0</span>
+                                </div>
+                                <div id="listaBannersCarrosselAtivos" class="lista-banners-carrossel">
+                                    <p class="dica-secao">Nenhuma campanha ativa.</p>
+                                </div>
+                            </div>
+
+                            <div class="banner-secao-lista banner-secao-secundaria campanhas-banner-lista-card">
+                                <div class="banner-secao-cabecalho">
+                                    <div>
+                                        <span class="campanhas-step-kicker">ARQUIVO</span>
+                                        <h4>⏸️ Pausadas, agendadas ou encerradas</h4>
+                                    </div>
+                                    <span id="contadorBannersInativos" class="banner-contador-pill">0</span>
+                                </div>
+                                <div id="listaBannersCarrosselInativos" class="lista-banners-carrossel">
+                                    <p class="dica-secao">Nenhuma outra campanha cadastrada.</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
-
-                    <div class="banner-secao-lista banner-secao-secundaria">
-                        <div class="banner-secao-cabecalho">
-                            <h4>⏸️ Pausadas, agendadas ou encerradas</h4>
-                            <span id="contadorBannersInativos" class="banner-contador-pill">0</span>
-                        </div>
-                        <div id="listaBannersCarrosselInativos" class="lista-banners-carrossel">
-                            <p class="dica-secao">Nenhuma outra campanha cadastrada.</p>
-                        </div>
-                    </div>
-                </div>
                 </div>
             </section>
 
