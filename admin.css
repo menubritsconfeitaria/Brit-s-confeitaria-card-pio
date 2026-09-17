@@ -16079,3 +16079,171 @@ section[data-tab="agenda"] .agenda-bloqueio-box input[type="date"] {
         justify-content: flex-end;
     }
 }
+
+
+/* ============================================================
+   ESTOQUE — BUSCA INTEGRADA DE INGREDIENTE
+   Mantém o select original oculto como compatibilidade com a
+   lógica de entrada; o operador pesquisa pelo próprio campo.
+   ============================================================ */
+.estoque-premium .estoque-ingrediente-picker {
+    position: relative;
+    display: block;
+}
+
+.estoque-premium .estoque-ingrediente-busca {
+    position: relative;
+}
+
+.estoque-premium .estoque-ingrediente-busca > span {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    z-index: 2;
+    transform: translateY(-50%);
+    font-size: .82rem;
+    pointer-events: none;
+}
+
+.estoque-premium #estBuscaIngrediente {
+    width: 100%;
+    min-height: 42px;
+    box-sizing: border-box;
+    padding: 9px 42px 9px 38px;
+    border: 1px solid #dfd1bf;
+    border-radius: 10px;
+    background: #fff;
+    color: var(--text);
+    font-family: inherit;
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+
+.estoque-premium #estBuscaIngrediente:focus,
+.estoque-premium #estBuscaIngrediente[aria-expanded="true"] {
+    border-color: #c9976c;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(160, 82, 45, .08);
+}
+
+.estoque-premium #estBuscaIngrediente::-webkit-search-cancel-button {
+    display: none;
+}
+
+.estoque-premium .estoque-ingrediente-limpar {
+    position: absolute;
+    right: 7px;
+    top: 50%;
+    z-index: 3;
+    width: 29px;
+    height: 29px;
+    transform: translateY(-50%);
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #a18b79;
+    font: 700 1.1rem/1 inherit;
+    cursor: pointer;
+}
+
+.estoque-premium .estoque-ingrediente-limpar:hover {
+    background: #f6eee5;
+    color: #8c4b27;
+}
+
+.estoque-premium .estoque-select-compat {
+    display: none !important;
+}
+
+.estoque-premium .estoque-ingrediente-resultados {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 6px);
+    z-index: 90;
+    max-height: 320px;
+    overflow-y: auto;
+    border: 1px solid #dfd1bf;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 16px 34px rgba(77, 52, 35, .14);
+    padding: 6px;
+}
+
+.estoque-premium .estoque-ingrediente-resultados[hidden] {
+    display: none !important;
+}
+
+.estoque-premium .estoque-ingrediente-resultado {
+    width: 100%;
+    min-height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: #4d382b;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.estoque-premium .estoque-ingrediente-resultado:hover,
+.estoque-premium .estoque-ingrediente-resultado:focus-visible {
+    background: #fbf3eb;
+    outline: none;
+}
+
+.estoque-premium .estoque-ingrediente-resultado-info {
+    min-width: 0;
+    display: block;
+}
+
+.estoque-premium .estoque-ingrediente-resultado-info strong,
+.estoque-premium .estoque-ingrediente-resultado-info small {
+    display: block;
+}
+
+.estoque-premium .estoque-ingrediente-resultado-info strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 700;
+}
+
+.estoque-premium .estoque-ingrediente-resultado-info small {
+    margin-top: 3px;
+    color: #907b69;
+    font-size: .68rem;
+    line-height: 1.3;
+}
+
+.estoque-premium .estoque-ingrediente-resultado-unidade {
+    flex: 0 0 auto;
+    min-width: 34px;
+    padding: 4px 7px;
+    border: 1px solid #eadfd4;
+    border-radius: 999px;
+    background: #fffaf5;
+    color: #8a6249;
+    font-size: .66rem;
+    font-weight: 750;
+    text-align: center;
+}
+
+.estoque-premium .estoque-ingrediente-vazio {
+    padding: 16px 12px;
+    color: #8b7768;
+    font-size: .82rem;
+    line-height: 1.45;
+    text-align: center;
+}
+
+@media (max-width: 720px) {
+    .estoque-premium .estoque-ingrediente-resultados {
+        max-height: 260px;
+    }
+}

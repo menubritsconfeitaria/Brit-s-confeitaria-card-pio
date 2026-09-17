@@ -4527,12 +4527,157 @@ function excluirFichaTecnica(id) {
 // ---------- Sistema de Gestão — Estoque ----------
 // Não tem "gaveta" própria — só lê/escreve os mesmos campos (estoqueAtual,
 // precoComprado) que já existem em cada ingrediente
+function escaparHtmlEstoqueIngrediente(valor) {
+    return String(valor ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function buscarIngredientesEstoque(termo) {
+    const filtro = normalizarTexto(termo || '');
+    if (!filtro) return [...ingredientes];
+
+    // Procura o texto em qualquer posição do nome: início, meio ou fim.
+    // normalizarTexto deixa a busca indiferente a acentos e maiúsculas/minúsculas.
+    return ingredientes.filter(item => normalizarTexto(item.nome || '').includes(filtro));
+}
+
 function popularSelectEstoqueIngrediente() {
     const sel = document.getElementById('estSelectIngrediente');
     if (!sel) return;
+
     const valorAtual = sel.value;
-    sel.innerHTML = '<option value="">Selecione</option>' + ingredientes.map(i => `<option value="${i.id}">${i.nome}</option>`).join('');
-    sel.value = valorAtual;
+    sel.innerHTML = '<option value=""></option>' + ingredientes
+        .map(item => `<option value="${escaparHtmlEstoqueIngrediente(item.id)}">${escaparHtmlEstoqueIngrediente(item.nome || '')}</option>`)
+        .join('');
+
+    if ([...sel.options].some(opt => opt.value === valorAtual)) {
+        sel.value = valorAtual;
+    } else {
+        sel.value = '';
+    }
+
+    const buscaEl = document.getElementById('estBuscaIngrediente');
+    if (buscaEl && buscaEl.getAttribute('aria-expanded') === 'true') {
+        renderResultadosBuscaIngredienteEstoque();
+    }
+}
+
+function renderResultadosBuscaIngredienteEstoque() {
+    const buscaEl = document.getElementById('estBuscaIngrediente');
+    const resultadosEl = document.getElementById('estResultadosIngrediente');
+    if (!buscaEl || !resultadosEl) return;
+
+    const itens = buscarIngredientesEstoque(buscaEl.value);
+
+    if (!itens.length) {
+        resultadosEl.innerHTML = `
+            <div class="estoque-ingrediente-vazio">
+                Nenhum ingrediente encontrado para
+                <strong>"${escaparHtmlEstoqueIngrediente(buscaEl.value)}"</strong>.
+            </div>
+        `;
+    } else {
+        resultadosEl.innerHTML = itens.map(item => `
+            <button
+                type="button"
+                class="estoque-ingrediente-resultado"
+                role="option"
+                onclick="selecionarIngredienteBuscaEstoque('${escaparHtmlEstoqueIngrediente(item.id)}')"
+            >
+                <span class="estoque-ingrediente-resultado-info">
+                    <strong>${escaparHtmlEstoqueIngrediente(item.nome || '')}</strong>
+                    <small>
+                        Estoque: ${Number(item.estoqueAtual || 0).toFixed(2)} ${escaparHtmlEstoqueIngrediente(item.unidade || '')}
+                        · mínimo: ${Number(item.estoqueMinimo || 0).toFixed(2)} ${escaparHtmlEstoqueIngrediente(item.unidade || '')}
+                    </small>
+                </span>
+                <span class="estoque-ingrediente-resultado-unidade">${escaparHtmlEstoqueIngrediente(item.unidade || '')}</span>
+            </button>
+        `).join('');
+    }
+
+    resultadosEl.hidden = false;
+    buscaEl.setAttribute('aria-expanded', 'true');
+}
+
+function abrirBuscaIngredienteEstoque() {
+    renderResultadosBuscaIngredienteEstoque();
+}
+
+function fecharBuscaIngredienteEstoque() {
+    const buscaEl = document.getElementById('estBuscaIngrediente');
+    const resultadosEl = document.getElementById('estResultadosIngrediente');
+    if (resultadosEl) resultadosEl.hidden = true;
+    if (buscaEl) buscaEl.setAttribute('aria-expanded', 'false');
+}
+
+function filtrarIngredienteEstoque() {
+    const sel = document.getElementById('estSelectIngrediente');
+    if (sel) sel.value = '';
+    renderResultadosBuscaIngredienteEstoque();
+}
+
+function selecionarIngredienteBuscaEstoque(id) {
+    const sel = document.getElementById('estSelectIngrediente');
+    const buscaEl = document.getElementById('estBuscaIngrediente');
+    const item = ingredientes.find(ing => String(ing.id) === String(id));
+    if (!sel || !buscaEl || !item) return;
+
+    sel.value = String(item.id);
+    buscaEl.value = item.nome || '';
+    fecharBuscaIngredienteEstoque();
+
+    const qtdEl = document.getElementById('estQtdEntrada');
+    if (qtdEl) qtdEl.focus();
+}
+
+function limparBuscaIngredienteEstoque() {
+    const sel = document.getElementById('estSelectIngrediente');
+    const buscaEl = document.getElementById('estBuscaIngrediente');
+
+    if (sel) sel.value = '';
+    if (buscaEl) {
+        buscaEl.value = '';
+        buscaEl.focus();
+    }
+
+    renderResultadosBuscaIngredienteEstoque();
+}
+
+function tecladoBuscaIngredienteEstoque(event) {
+    if (!event) return;
+
+    if (event.key === 'Escape') {
+        fecharBuscaIngredienteEstoque();
+        event.currentTarget.blur();
+        return;
+    }
+
+    if (event.key !== 'Enter') return;
+
+    const sel = document.getElementById('estSelectIngrediente');
+    if (sel && sel.value) return;
+
+    const buscaEl = document.getElementById('estBuscaIngrediente');
+    const primeiro = buscarIngredientesEstoque(buscaEl ? buscaEl.value : '')[0];
+    if (!primeiro) return;
+
+    event.preventDefault();
+    selecionarIngredienteBuscaEstoque(primeiro.id);
+}
+
+if (!window.__estoqueBuscaIngredienteClickFora) {
+    document.addEventListener('click', event => {
+        const picker = document.getElementById('estoqueIngredienteCombobox');
+        if (picker && !picker.contains(event.target)) {
+            fecharBuscaIngredienteEstoque();
+        }
+    });
+    window.__estoqueBuscaIngredienteClickFora = true;
 }
 
 function registrarEntradaEstoque() {
@@ -4553,6 +4698,11 @@ function registrarEntradaEstoque() {
         msgEl.textContent = 'Entrada registrada!';
         document.getElementById('estQtdEntrada').value = '';
         document.getElementById('estNovoPreco').value = '';
+        const buscaEstoqueEl = document.getElementById('estBuscaIngrediente');
+        if (buscaEstoqueEl) buscaEstoqueEl.value = '';
+        const selectEstoqueEl = document.getElementById('estSelectIngrediente');
+        if (selectEstoqueEl) selectEstoqueEl.value = '';
+        fecharBuscaIngredienteEstoque();
     }).catch(err => { msgEl.textContent = 'Erro: ' + err.message; });
 }
 
