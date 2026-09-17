@@ -395,10 +395,18 @@
                                 <label class="switch-linha loja-switch-premium"><input type="checkbox" id="chkPagamentoOnlineAtivo" onchange="salvarPagamentoOnlineAtivo(this.checked)"><span>Pagamento online ativado</span></label>
                             </section>
 
-                            <section class="loja-status-card loja-premium-card loja-recurso-card" id="cardAdicionaisPorProduto">
+                            <section class="loja-status-card loja-premium-card loja-recurso-card loja-adicionais-card" id="cardAdicionaisPorProduto">
                                 <div class="loja-recurso-icon">➕</div>
-                                <div><span class="loja-premium-kicker">PERSONALIZAÇÃO</span><h3>Adicionais por Produto</h3><p class="dica-secao">Ative extras, recheios e complementos somente para negócios que precisam dessa escolha.</p></div>
+                                <div><span class="loja-premium-kicker">PERSONALIZAÇÃO</span><h3>Adicionais por Produto</h3><p class="dica-secao">Ative recheios, complementos e extras para configurar escolhas diferentes em cada produto.</p></div>
                                 <label class="switch-linha loja-switch-premium"><input type="checkbox" id="chkAdicionaisAtivo" onchange="salvarAdicionaisAtivo(this.checked)"><span>Adicionais ativados</span></label>
+                                <div id="statusAdicionaisLoja" class="loja-adicionais-feedback" aria-live="polite">
+                                    <span class="loja-adicionais-feedback-icon" aria-hidden="true">○</span>
+                                    <div>
+                                        <strong id="statusAdicionaisTitulo">Recurso desativado</strong>
+                                        <p id="statusAdicionaisTexto">Ative para liberar a configuração de adicionais individualmente nos produtos.</p>
+                                    </div>
+                                </div>
+                                <button type="button" id="btnIrProdutosAdicionais" class="btn-secondary loja-adicionais-ir-produtos" onclick="irParaProdutosAdicionais()" hidden>📦 Configurar adicionais nos produtos</button>
                             </section>
                         </div>
 

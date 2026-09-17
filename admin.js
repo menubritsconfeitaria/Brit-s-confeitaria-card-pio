@@ -2792,9 +2792,73 @@ function salvarPedidoMinimoEFreteGratis() {
         .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
 }
 
+function atualizarVisibilidadeAdicionaisProdutos(ativo) {
+    // Os cards de produto já podem estar montados quando o lojista muda o interruptor.
+    // Atualizamos somente a visibilidade dos blocos; nenhum dado do produto é alterado aqui.
+    document.querySelectorAll('[id^="blocoAdicionais_"]').forEach(bloco => {
+        bloco.style.display = ativo ? 'block' : 'none';
+    });
+}
+
+function atualizarPainelAdicionaisLoja(ativo, salvando = false) {
+    const painel = document.getElementById('statusAdicionaisLoja');
+    const icone = painel && painel.querySelector('.loja-adicionais-feedback-icon');
+    const titulo = document.getElementById('statusAdicionaisTitulo');
+    const texto = document.getElementById('statusAdicionaisTexto');
+    const btnProdutos = document.getElementById('btnIrProdutosAdicionais');
+
+    if (painel) {
+        painel.classList.toggle('ativo', !!ativo && !salvando);
+        painel.classList.toggle('salvando', !!salvando);
+    }
+
+    if (salvando) {
+        if (icone) icone.textContent = '…';
+        if (titulo) titulo.textContent = 'Salvando configuração';
+        if (texto) texto.textContent = 'Aguarde um instante enquanto a preferência é atualizada.';
+    } else if (ativo) {
+        if (icone) icone.textContent = '✓';
+        if (titulo) titulo.textContent = 'Recurso ativado';
+        if (texto) texto.textContent = 'Agora configure os recheios, complementos e extras individualmente na aba Produtos.';
+    } else {
+        if (icone) icone.textContent = '○';
+        if (titulo) titulo.textContent = 'Recurso desativado';
+        if (texto) texto.textContent = 'Os adicionais já cadastrados ficam preservados, mas não são oferecidos ao cliente enquanto o recurso estiver desligado.';
+    }
+
+    if (btnProdutos) btnProdutos.hidden = !ativo || salvando;
+}
+
+function irParaProdutosAdicionais() {
+    const botaoProdutos = document.querySelector('.painel-tab-btn[data-tab="produtos"]');
+    if (botaoProdutos) botaoProdutos.click();
+
+    setTimeout(() => {
+        const primeiroBloco = Array.from(document.querySelectorAll('[id^="blocoAdicionais_"]'))
+            .find(bloco => bloco.style.display !== 'none');
+        const destino = primeiroBloco || document.querySelector('section[data-tab="produtos"]');
+        if (destino) destino.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 220);
+}
+
 function salvarAdicionaisAtivo(ativo) {
-    db.ref('configuracao/loja/adicionaisAtivo').set(!!ativo)
-        .catch(err => alert('Erro ao atualizar os adicionais: ' + err.message));
+    const novoEstado = !!ativo;
+    const checkbox = document.getElementById('chkAdicionaisAtivo');
+    atualizarPainelAdicionaisLoja(novoEstado, true);
+
+    db.ref('configuracao/loja/adicionaisAtivo').set(novoEstado)
+        .then(() => {
+            adicionaisAtivo = novoEstado;
+            atualizarVisibilidadeAdicionaisProdutos(novoEstado);
+            atualizarPainelAdicionaisLoja(novoEstado, false);
+        })
+        .catch(err => {
+            if (checkbox) checkbox.checked = !novoEstado;
+            adicionaisAtivo = !novoEstado;
+            atualizarVisibilidadeAdicionaisProdutos(adicionaisAtivo);
+            atualizarPainelAdicionaisLoja(adicionaisAtivo, false);
+            alert('Erro ao atualizar os adicionais: ' + err.message);
+        });
 }
 
 function salvarPagamentoOnlineAtivo(ativo) {
@@ -5964,6 +6028,8 @@ function escutarConfigLoja() {
         adicionaisAtivo = !!config.adicionaisAtivo;
         const chkAdicionais = document.getElementById('chkAdicionaisAtivo');
         if (chkAdicionais) chkAdicionais.checked = adicionaisAtivo;
+        atualizarVisibilidadeAdicionaisProdutos(adicionaisAtivo);
+        atualizarPainelAdicionaisLoja(adicionaisAtivo);
 
         const chkAgendamento = document.getElementById('chkAgendamentoAtivo');
         if (chkAgendamento) chkAgendamento.checked = !!config.agendamentoAtivo;

@@ -13588,3 +13588,92 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
 .loja-premium-v2 .loja-abertura-notificacao-msg:empty {
     display: none;
 }
+
+
+/* ============================================================
+   LOJA — ADICIONAIS POR PRODUTO / FEEDBACK DE ATIVAÇÃO
+   O interruptor é geral. Ao ativar, orienta o lojista e permite
+   ir direto aos Produtos; os campos já abertos na tela mudam na hora.
+   ============================================================ */
+.loja-premium-v2 .loja-adicionais-card {
+    position: relative;
+}
+.loja-premium-v2 .loja-adicionais-feedback {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    margin-top: 1px;
+    padding: 9px 10px;
+    border: 1px solid #eee4da;
+    border-radius: 10px;
+    background: #fcfaf7;
+    color: #7a6658;
+    transition: border-color .18s ease, background .18s ease, color .18s ease;
+}
+.loja-premium-v2 .loja-adicionais-feedback-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 22px;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: #eee7df;
+    color: #907968;
+    font-size: .72rem;
+    font-weight: 900;
+}
+.loja-premium-v2 .loja-adicionais-feedback strong {
+    display: block;
+    margin: 0 0 2px;
+    color: #5f493d;
+    font-size: .69rem;
+    line-height: 1.2;
+}
+.loja-premium-v2 .loja-adicionais-feedback p {
+    margin: 0;
+    color: inherit;
+    font-size: .62rem;
+    line-height: 1.35;
+}
+.loja-premium-v2 .loja-adicionais-feedback.ativo {
+    border-color: #cfe6d6;
+    background: #f4fbf6;
+    color: #4f715b;
+}
+.loja-premium-v2 .loja-adicionais-feedback.ativo .loja-adicionais-feedback-icon {
+    background: #dff3e5;
+    color: #23844a;
+}
+.loja-premium-v2 .loja-adicionais-feedback.ativo strong {
+    color: #356447;
+}
+.loja-premium-v2 .loja-adicionais-feedback.salvando {
+    border-color: #ead9c9;
+    background: #fff9f3;
+    color: #806a5b;
+}
+.loja-premium-v2 .loja-adicionais-ir-produtos {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-height: 35px;
+    margin: 0 !important;
+    border-color: #e2cdb9;
+    background: #fff;
+    color: #a6532c;
+    font-size: .66rem;
+    font-weight: 800;
+}
+.loja-premium-v2 .loja-adicionais-ir-produtos:hover {
+    background: #fff7ef;
+    border-color: #d4b394;
+}
+.loja-premium-v2 .loja-adicionais-ir-produtos[hidden] {
+    display: none !important;
+}
+
+@media (max-width: 760px) {
+    .loja-premium-v2 .loja-adicionais-feedback {
+        padding: 9px;
+    }
+}
