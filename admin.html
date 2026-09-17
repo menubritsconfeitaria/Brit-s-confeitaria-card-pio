@@ -315,186 +315,170 @@
                     <p class="vazio">Ainda não há pedidos no histórico.</p>
                 </div>
             </section>
-
-            <section data-tab="loja" class="loja-hub-premium">
-                <div class="hub-premium-head">
-                    <div>
+            <section data-tab="loja" class="loja-hub-premium loja-premium-v2">
+                <div class="hub-premium-head loja-premium-hero">
+                    <div class="loja-premium-hero-copy">
+                        <span class="loja-premium-eyebrow">CENTRAL OPERACIONAL</span>
                         <h2>🏪 Loja</h2>
-                        <p>Configurações da operação e visão de acesso ao cardápio em um só lugar.</p>
+                        <p>Configure atendimento, horários, entrega, pagamento e recursos do cardápio em uma visão única e organizada.</p>
+                        <div class="loja-premium-hero-tags" aria-label="Áreas da central da loja">
+                            <span>⚡ Operação</span><span>🚚 Entrega</span><span>💳 Pagamento</span><span>🧩 Recursos</span>
+                        </div>
                     </div>
-                    <span class="hub-premium-badge">Central da loja</span>
+                    <div class="loja-premium-focus"><small>GESTÃO</small><strong>Central da loja</strong></div>
                 </div>
-                <div class="hub-subtabs" role="tablist" aria-label="Seções da Loja">
+
+                <div class="hub-subtabs loja-premium-subtabs" role="tablist" aria-label="Seções da Loja">
                     <button type="button" class="hub-subtab-btn active" data-loja-subtab-btn="configuracoes" onclick="mostrarSubabaLoja('configuracoes')">⚙️ Configurações</button>
                     <button type="button" class="hub-subtab-btn" data-loja-subtab-btn="visitantes" onclick="mostrarSubabaLoja('visitantes')">👀 Visitantes</button>
                 </div>
+
                 <div class="hub-subpanel active" data-loja-subtab="configuracoes">
+                    <div class="loja-config-premium">
+                        <section class="loja-status-card loja-premium-card loja-operacao-card">
+                            <div class="loja-premium-card-head">
+                                <div>
+                                    <span class="loja-premium-kicker">01 · OPERAÇÃO</span>
+                                    <h3>🏪 Status e horário da loja</h3>
+                                    <p class="dica-secao">Defina como a loja abre e fecha e mantenha a rotina semanal organizada.</p>
+                                </div>
+                                <div class="loja-status-pill">Agora: <strong id="lojaStatusAtual">Carregando...</strong></div>
+                            </div>
 
-                <h2>🏪 Status da loja</h2>
+                            <div class="loja-operacao-grid">
+                                <div class="loja-operacao-controle">
+                                    <label class="campo-label">Como controlar</label>
+                                    <div class="opcoes-radio loja-modos-grid">
+                                        <div class="opcao-btn" id="btnModoAuto" onclick="definirModoLoja('auto')">⏰ Automático</div>
+                                        <div class="opcao-btn" id="btnModoAberto" onclick="definirModoLoja('aberto')">🟢 Forçar Aberto</div>
+                                        <div class="opcao-btn" id="btnModoFechado" onclick="definirModoLoja('fechado')">🔴 Forçar Fechado</div>
+                                    </div>
+                                    <div class="loja-operacao-note">No modo automático, os horários abaixo controlam a abertura e o fechamento sem intervenção manual.</div>
+                                </div>
+                                <div class="loja-horarios-bloco">
+                                    <div class="loja-bloco-label"><span>🕒 Horário de funcionamento</span><small>Semana</small></div>
+                                    <div id="listaHorarios" class="lista-horarios loja-horarios-lista"></div>
+                                    <div class="loja-card-actions">
+                                        <button class="btn-salvar-horarios" onclick="salvarHorarios()">💾 Salvar horários</button>
+                                        <p id="horariosSalvosMsg" class="horarios-salvos-msg"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
 
-                <div class="loja-status-card">
-                    <p class="loja-status-atual">Status agora: <strong id="lojaStatusAtual">Carregando...</strong></p>
+                        <div class="loja-recursos-grid">
+                            <section class="loja-status-card loja-premium-card loja-recurso-card" id="cardDiagnosticoSistema">
+                                <div class="loja-recurso-icon">🩺</div>
+                                <div><span class="loja-premium-kicker">SAÚDE DO SISTEMA</span><h3>Diagnóstico rápido</h3><p class="dica-secao">Verifique Functions, pagamento, notificações e carrossel automático.</p></div>
+                                <button class="btn-secondary loja-recurso-btn" onclick="executarDiagnosticoSistema()">🔎 Verificar agora</button>
+                                <div id="resultadoDiagnosticoSistema" class="dica-secao loja-recurso-resultado"></div>
+                            </section>
 
-                    <label>Como controlar</label>
-                    <div class="opcoes-radio">
-                        <div class="opcao-btn" id="btnModoAuto" onclick="definirModoLoja('auto')">⏰ Automático</div>
-                        <div class="opcao-btn" id="btnModoAberto" onclick="definirModoLoja('aberto')">🟢 Forçar Aberto</div>
-                        <div class="opcao-btn" id="btnModoFechado" onclick="definirModoLoja('fechado')">🔴 Forçar Fechado</div>
-                    </div>
+                            <section class="loja-status-card loja-premium-card loja-recurso-card" id="cardAtivarPagamentoOnline">
+                                <div class="loja-recurso-icon">💳</div>
+                                <div><span class="loja-premium-kicker">CHECKOUT</span><h3>Pagamento Online</h3><p class="dica-secao">Exibe o botão da InfinitePay somente quando a integração estiver pronta e testada.</p></div>
+                                <label class="switch-linha loja-switch-premium"><input type="checkbox" id="chkPagamentoOnlineAtivo" onchange="salvarPagamentoOnlineAtivo(this.checked)"><span>Pagamento online ativado</span></label>
+                            </section>
 
-                    <h3>Horário de funcionamento</h3>
-                    <div id="listaHorarios" class="lista-horarios"></div>
-                    <button class="btn-salvar-horarios" onclick="salvarHorarios()">Salvar horários</button>
-                    <p id="horariosSalvosMsg" class="horarios-salvos-msg"></p>
-                </div>
-
-                
-
-                
-
-                
-
-                <div class="loja-status-card" id="cardDiagnosticoSistema" style="margin-top:16px;">
-                    <h3>🩺 Diagnóstico rápido do sistema</h3>
-                    <p class="dica-secao">Confere em poucos segundos se Functions, pagamento, notificações e carrossel automático estão respondendo.</p>
-                    <button class="btn-secondary" onclick="executarDiagnosticoSistema()">🔎 Verificar agora</button>
-                    <div id="resultadoDiagnosticoSistema" class="dica-secao" style="margin-top:10px;"></div>
-                </div>
-
-                <div class="loja-status-card" id="cardAtivarPagamentoOnline" style="margin-top:16px;">
-                    <h3>💳 Pagamento Online (InfinitePay)</h3>
-                    <p class="dica-secao">
-                        Só ativa isso depois de configurar a InfiniteTag (pelo painel, ou
-                        direto no <code>functions/loja-config.js</code> como reserva) e
-                        testar. Enquanto estiver desativado, o botão "Pagar Online Agora"
-                        fica escondido no cardápio — os clientes continuam pedindo
-                        normalmente (Pix/Cartão/Dinheiro combinado na entrega).
-                    </p>
-                    <label class="switch-linha">
-                        <input type="checkbox" id="chkPagamentoOnlineAtivo" onchange="salvarPagamentoOnlineAtivo(this.checked)">
-                        Pagamento Online ativado (mostrar o botão pro cliente)
-                    </label>
-                </div>
-
-                <div class="loja-status-card" id="cardAdicionaisPorProduto" style="margin-top:16px;">
-                    <h3>➕ Adicionais por Produto</h3>
-                    <p class="dica-secao">
-                        Útil pra negócios como açaiteria, sorveteria, hamburgueria — onde o
-                        cliente escolhe recheio/extras. Se seu negócio não usa isso, deixa
-                        desativado que o campo some do cadastro de produto, deixando ele
-                        mais simples.
-                    </p>
-                    <label class="switch-linha">
-                        <input type="checkbox" id="chkAdicionaisAtivo" onchange="salvarAdicionaisAtivo(this.checked)">
-                        Adicionais por Produto ativado
-                    </label>
-                </div>
-
-                <div class="loja-status-card" id="cardPedidoMinimoFreteGratis" style="margin-top:16px;">
-                    <h3>🛒 Pedido Mínimo e Frete Grátis</h3>
-                    <p class="dica-secao">Deixa em branco ou zero pra desativar qualquer um dos dois.</p>
-                    <label class="campo-label">Valor mínimo do pedido (R$)</label>
-                    <input type="text" inputmode="decimal" id="valorPedidoMinimo" placeholder="Ex: 20 (deixa vazio pra não ter mínimo)">
-                    <label class="campo-label" style="margin-top:10px;">Frete grátis a partir de (R$)</label>
-                    <input type="text" inputmode="decimal" id="valorFreteGratisAcima" placeholder="Ex: 80 (deixa vazio pra não ter frete grátis)">
-                    <label class="campo-label" style="margin-top:10px;">Produto sugerido pra completar o frete grátis (opcional)</label>
-                    <select id="produtoSugeridoFreteGratis">
-                        <option value="">— Nenhum (só mostra a mensagem, sem sugestão) —</option>
-                    </select>
-                    <p class="dica-secao">Quando o cliente estiver perto do valor do frete grátis, o sistema sugere esse produto pra completar — só aparece se ele ainda não estiver no carrinho e estiver disponível.</p>
-                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="salvarPedidoMinimoEFreteGratis()">💾 Salvar</button>
-                    <p id="pedidoMinimoMsg" class="ordem-categorias-msg"></p>
-                </div>
-
-
-                <div class="loja-status-card" id="cardAreasDeEntrega" style="margin-top:16px;">
-                    <h3>🚚 Áreas de Entrega</h3>
-                    <p class="dica-secao">Bairros atendidos, a distância de cada um (em km), e o valor cobrado por km. Se um bairro não estiver na lista, o cliente vê um aviso de que a região não é atendida no momento.</p>
-
-                    <label class="campo-label">Valor por km (R$)</label>
-                    <input type="text" inputmode="decimal" id="valorPorKmConfig" placeholder="Ex: 0.70">
-                    <label class="campo-label" style="margin-top:10px;">Valor por km pra ENCOMENDA (R$) — geralmente maior, se for de carro</label>
-                    <input type="text" inputmode="decimal" id="valorPorKmEncomendaConfig" placeholder="Ex: 2.30">
-                    <button class="btn-salvar-ordem" style="margin-top:8px;" onclick="salvarValorPorKm()">💾 Salvar valores por km</button>
-                    <p id="valorPorKmMsg" class="ordem-categorias-msg"></p>
-
-                    <label class="produto-disponivel-check" style="margin-top:14px; display:block;">
-                        <input type="checkbox" id="chkModoRestritoBairro" onchange="alternarModoRestritoBairro(this.checked)"> Atender só 1 bairro por enquanto (sem apagar os outros)
-                    </label>
-                    <div id="areaBairroUnicoAtivo" style="display:none; margin-top:8px;">
-                        <label class="campo-label">Quais bairros atender hoje</label>
-                        <div style="display:flex; gap:8px; margin-bottom:6px;">
-                            <button class="btn-secondary" onclick="marcarTodosBairrosRestrito(true)">☑️ Marcar todos</button>
-                            <button class="btn-secondary" onclick="marcarTodosBairrosRestrito(false)">☐ Desmarcar todos</button>
+                            <section class="loja-status-card loja-premium-card loja-recurso-card" id="cardAdicionaisPorProduto">
+                                <div class="loja-recurso-icon">➕</div>
+                                <div><span class="loja-premium-kicker">PERSONALIZAÇÃO</span><h3>Adicionais por Produto</h3><p class="dica-secao">Ative extras, recheios e complementos somente para negócios que precisam dessa escolha.</p></div>
+                                <label class="switch-linha loja-switch-premium"><input type="checkbox" id="chkAdicionaisAtivo" onchange="salvarAdicionaisAtivo(this.checked)"><span>Adicionais ativados</span></label>
+                            </section>
                         </div>
-                        <input type="text" id="buscaBairroRestrito" placeholder="🔍 Pesquisar bairro..." oninput="renderizarListaBairrosRestritos(configFreteAtual.bairros || {}, configFreteAtual.bairrosAtivos || {})" style="margin-bottom:8px;">
-                        <div id="listaBairrosRestritos" style="max-height:240px; overflow-y:auto;"></div>
-                        <p class="dica-secao">Os outros bairros continuam salvos, só não vão ser atendidos até você desmarcar essa opção.</p>
-                    </div>
-                    <p id="modoRestritoBairroMsg" class="ordem-categorias-msg"></p>
 
-                    <div id="avisoImportarBairros" style="display:none; margin-top:14px;">
-                        <p class="dica-secao">⚠️ Você ainda não tem nenhum bairro cadastrado no painel — o site está usando a lista antiga (fixa no código). Clica abaixo pra trazer essa lista pro painel, sem perder nada, e poder editar daqui pra frente.</p>
-                        <button class="btn-secondary" onclick="importarBairrosAntigos()">📥 Importar bairros que já existiam</button>
-                    </div>
+                        <section class="loja-status-card loja-premium-card" id="cardPedidoMinimoFreteGratis">
+                            <div class="loja-premium-card-head">
+                                <div><span class="loja-premium-kicker">02 · REGRAS COMERCIAIS</span><h3>🛒 Pedido mínimo e frete grátis</h3><p class="dica-secao">Defina limites comerciais sem complicar o checkout. Zero ou vazio desativa a regra.</p></div>
+                            </div>
+                            <div class="loja-regras-grid">
+                                <div class="campo-com-label"><label class="campo-label">Valor mínimo do pedido</label><div class="loja-input-prefix"><span>R$</span><input type="text" inputmode="decimal" id="valorPedidoMinimo" placeholder="Ex: 20,00"></div></div>
+                                <div class="campo-com-label"><label class="campo-label">Frete grátis a partir de</label><div class="loja-input-prefix"><span>R$</span><input type="text" inputmode="decimal" id="valorFreteGratisAcima" placeholder="Ex: 80,00"></div></div>
+                                <div class="campo-com-label loja-regra-produto"><label class="campo-label">Produto sugerido para completar o frete grátis</label><select id="produtoSugeridoFreteGratis"><option value="">— Nenhum (só mostra a mensagem, sem sugestão) —</option></select></div>
+                            </div>
+                            <div class="loja-inline-help">💡 A sugestão só aparece quando o cliente estiver perto do frete grátis, o produto ainda não estiver no carrinho e estiver disponível.</div>
+                            <div class="loja-card-actions"><button class="btn-salvar-ordem" onclick="salvarPedidoMinimoEFreteGratis()">💾 Salvar regras comerciais</button><p id="pedidoMinimoMsg" class="ordem-categorias-msg"></p></div>
+                        </section>
 
-                    <label class="campo-label" style="margin-top:14px;">Adicionar/editar um bairro</label>
-                    <div class="produto-admin-linha">
-                        <input type="text" id="novoBairroNome" placeholder="Nome do bairro">
-                        <input type="text" inputmode="decimal" id="novoBairroKm" placeholder="Distância (km)" style="max-width:140px;">
-                    </div>
-                    <button class="btn-secondary" style="margin-top:6px;" onclick="salvarBairro()">💾 Salvar bairro</button>
-                    <p id="bairroMsg" class="ordem-categorias-msg"></p>
+                        <section class="loja-status-card loja-premium-card loja-entrega-card" id="cardAreasDeEntrega">
+                            <div class="loja-premium-card-head">
+                                <div><span class="loja-premium-kicker">03 · LOGÍSTICA</span><h3>🚚 Áreas de Entrega</h3><p class="dica-secao">Organize valores por km, bairros atendidos e exceções temporárias em uma única central.</p></div>
+                                <span class="loja-card-badge">Frete por bairro/km</span>
+                            </div>
 
-                    <label class="campo-label" style="margin-top:14px;">Bairros cadastrados</label>
-                    <input type="text" id="buscaBairro" placeholder="🔍 Pesquisar bairro..." oninput="renderizarListaBairros()">
-                    <div id="listaBairrosCadastrados" style="margin-top:8px; max-height:320px; overflow-y:auto;"></div>
+                            <div class="loja-entrega-layout">
+                                <div class="loja-entrega-col loja-entrega-config">
+                                    <div class="loja-entrega-subcard">
+                                        <h4>Valores por quilômetro</h4>
+                                        <div class="loja-dois-campos">
+                                            <div class="campo-com-label"><label class="campo-label">Pedido normal</label><div class="loja-input-prefix"><span>R$</span><input type="text" inputmode="decimal" id="valorPorKmConfig" placeholder="Ex: 0,70"></div></div>
+                                            <div class="campo-com-label"><label class="campo-label">Encomenda</label><div class="loja-input-prefix"><span>R$</span><input type="text" inputmode="decimal" id="valorPorKmEncomendaConfig" placeholder="Ex: 2,30"></div></div>
+                                        </div>
+                                        <button class="btn-salvar-ordem" onclick="salvarValorPorKm()">💾 Salvar valores por km</button>
+                                        <p id="valorPorKmMsg" class="ordem-categorias-msg"></p>
+                                    </div>
+
+                                    <div class="loja-entrega-subcard loja-modo-restrito-card">
+                                        <label class="switch-linha loja-switch-premium"><input type="checkbox" id="chkModoRestritoBairro" onchange="alternarModoRestritoBairro(this.checked)"><span>Atender apenas bairros selecionados por enquanto</span></label>
+                                        <div id="areaBairroUnicoAtivo" class="loja-bairros-restritos" style="display:none;">
+                                            <div class="loja-bloco-label"><span>Bairros ativos hoje</span><small>Seleção temporária</small></div>
+                                            <div class="loja-mini-actions"><button class="btn-secondary" onclick="marcarTodosBairrosRestrito(true)">☑️ Todos</button><button class="btn-secondary" onclick="marcarTodosBairrosRestrito(false)">☐ Nenhum</button></div>
+                                            <input type="text" id="buscaBairroRestrito" placeholder="🔍 Pesquisar bairro..." oninput="renderizarListaBairrosRestritos(configFreteAtual.bairros || {}, configFreteAtual.bairrosAtivos || {})">
+                                            <div id="listaBairrosRestritos" class="loja-scroll-list loja-scroll-list--restrito"></div>
+                                            <p class="dica-secao">Os demais bairros continuam salvos e podem ser reativados depois.</p>
+                                        </div>
+                                        <p id="modoRestritoBairroMsg" class="ordem-categorias-msg"></p>
+                                    </div>
+
+                                    <div id="avisoImportarBairros" class="loja-importar-card" style="display:none;">
+                                        <p class="dica-secao">⚠️ O site ainda está usando a lista antiga fixa no código. Importe-a para gerenciar os bairros pelo painel sem perder nada.</p>
+                                        <button class="btn-secondary" onclick="importarBairrosAntigos()">📥 Importar bairros existentes</button>
+                                    </div>
+                                </div>
+
+                                <div class="loja-entrega-col loja-bairros-col">
+                                    <div class="loja-entrega-subcard loja-bairro-editor">
+                                        <div class="loja-bloco-label"><span>Adicionar ou editar bairro</span><small>Cadastro rápido</small></div>
+                                        <div class="loja-bairro-editor-grid"><input type="text" id="novoBairroNome" placeholder="Nome do bairro"><input type="text" inputmode="decimal" id="novoBairroKm" placeholder="Distância (km)"><button class="btn-secondary" onclick="salvarBairro()">💾 Salvar</button></div>
+                                        <p id="bairroMsg" class="ordem-categorias-msg"></p>
+                                    </div>
+                                    <div class="loja-entrega-subcard loja-bairros-lista-card">
+                                        <div class="loja-bloco-label"><span>Bairros cadastrados</span><small>Carteira de entrega</small></div>
+                                        <input type="text" id="buscaBairro" placeholder="🔍 Pesquisar bairro..." oninput="renderizarListaBairros()">
+                                        <div id="listaBairrosCadastrados" class="loja-scroll-list"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <div class="loja-utilidades-grid">
+                            <section class="loja-status-card loja-premium-card loja-qr-card">
+                                <div><span class="loja-premium-kicker">04 · DIVULGAÇÃO</span><h3>📱 QR Code do Cardápio</h3><p class="dica-secao">Use na loja, embalagens e materiais impressos para levar o cliente direto ao cardápio.</p></div>
+                                <div class="loja-qr-preview"><img id="imagemQrCode" src="" alt="Cartaz do cardápio com QR Code"></div>
+                                <button class="btn-salvar-ordem" onclick="baixarQrCode()">📥 Baixar QR Code</button>
+                            </section>
+
+                            <section class="loja-status-card loja-premium-card loja-impressao-card">
+                                <div><span class="loja-premium-kicker">05 · IMPRESSÃO</span><h3>🖨️ Formato de Impressão</h3><p class="dica-secao">Escolha o tamanho da bobina usado nas comandas e pedidos impressos.</p></div>
+                                <div class="opcoes-radio loja-formato-grid"><div class="opcao-btn selecionado" id="btnFormato80mm" onclick="salvarFormatoImpressao('80mm')"><strong>80mm</strong><small>Mesa / PDV</small></div><div class="opcao-btn" id="btnFormato58mm" onclick="salvarFormatoImpressao('58mm')"><strong>58mm</strong><small>Portátil</small></div></div>
+                            </section>
+                        </div>
+
+                        <section class="loja-status-card loja-premium-card loja-historico-card">
+                            <div class="loja-premium-card-head"><div><span class="loja-premium-kicker">06 · ACOMPANHAMENTO</span><h3>📋 Histórico de notificações</h3><p class="dica-secao">Consulte rapidamente os últimos avisos enviados pela loja.</p></div></div>
+                            <div id="listaHistoricoNotificacoes" class="loja-historico-scroll"><p class="dica-secao">Carregando...</p></div>
+                        </section>
+                    </div>
                 </div>
 
-                <div class="loja-status-card" style="margin-top:16px;">
-                    <h3>📱 QR Code do Cardápio</h3>
-                    <p class="dica-secao">
-                        Baixa a imagem e imprime — cola na loja, manda junto nas entregas,
-                        ou distribui pros clientes. Aponta sempre pro seu cardápio online.
-                    </p>
-                    <div style="text-align:center;">
-                        <img id="imagemQrCode" src="" alt="Cartaz do cardápio com QR Code" style="width:100%; max-width:320px; border-radius:8px; border:1px solid var(--border); background:#fff;">
-                    </div>
-                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="baixarQrCode()">📥 Baixar QR Code</button>
-                </div>
-
-                <div class="loja-status-card" style="margin-top:16px;">
-                    <h3>🖨️ Formato de Impressão</h3>
-                    <p class="dica-secao">Escolhe o tamanho da bobina da sua impressora (PDV/térmica).</p>
-                    <div class="opcoes-radio">
-                        <div class="opcao-btn selecionado" id="btnFormato80mm" onclick="salvarFormatoImpressao('80mm')">80mm (mesa)</div>
-                        <div class="opcao-btn" id="btnFormato58mm" onclick="salvarFormatoImpressao('58mm')">58mm (portátil)</div>
-                    </div>
-                </div>
-
-
-                <div class="loja-status-card" style="margin-top:16px;">
-                    <h3>📋 Histórico de notificações</h3>
-                    <div id="listaHistoricoNotificacoes"><p class="dica-secao">Carregando...</p></div>
-                </div>
-            
-                </div>
                 <div class="hub-subpanel" data-loja-subtab="visitantes">
-
-                <h2>👀 Visitantes</h2>
-                <div class="loja-status-card">
-                    <p class="dica-secao">Pessoas com o cardápio aberto agora mesmo:</p>
-                    <p class="visitantes-online-numero"><span id="visitantesOnlineCount">0</span> online</p>
-
-                    <p class="dica-secao" style="margin-top:16px;">Ver quantas visitas o cardápio teve num período:</p>
-                    <div class="produto-admin-linha">
-                        <div class="campo-com-label"><label class="campo-label">De</label><input type="date" id="visitasDataInicio"></div>
-                        <div class="campo-com-label"><label class="campo-label">Até</label><input type="date" id="visitasDataFim"></div>
+                    <div class="loja-visitantes-premium">
+                        <section class="loja-status-card loja-premium-card loja-visitantes-card">
+                            <div class="loja-premium-card-head"><div><span class="loja-premium-kicker">ACESSO EM TEMPO REAL</span><h3>👀 Visitantes do cardápio</h3><p class="dica-secao">Acompanhe quem está com o cardápio aberto agora e consulte visitas por período.</p></div><div class="loja-visitantes-kpi"><span id="visitantesOnlineCount">0</span><small>online agora</small></div></div>
+                            <div class="loja-visitas-filtro"><div class="campo-com-label"><label class="campo-label">De</label><input type="date" id="visitasDataInicio"></div><div class="campo-com-label"><label class="campo-label">Até</label><input type="date" id="visitasDataFim"></div><button class="btn-salvar-ordem" onclick="carregarVisitasPeriodo()">🔎 Ver visitas do período</button></div>
+                            <p id="visitasPeriodoResultado" class="ordem-categorias-msg"></p>
+                        </section>
                     </div>
-                    <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="carregarVisitasPeriodo()">Ver visitas do período</button>
-                    <p id="visitasPeriodoResultado" class="ordem-categorias-msg"></p>
-                </div>
-            
                 </div>
             </section>
 
