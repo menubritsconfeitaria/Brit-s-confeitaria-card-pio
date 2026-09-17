@@ -3027,6 +3027,18 @@ async function finalizarCompra() {
         }
     };
 
+    // ETAPA 4 — decisão de pagamento online passa a ler do contexto único.
+    // Só esta decisão usa o contexto nesta fase; o corpo do InfinitePay, sinal, falhas,
+    // limpeza e redirecionamentos continuam exatamente como estavam.
+    const pagamentoOnlineSelecionado = contextoCheckout.pagamento.onlineAtivo
+        && !contextoCheckout.encomenda.querAgendar
+        && (contextoCheckout.pagamento.forma === 'Pix' || contextoCheckout.pagamento.forma === 'Cartão');
+
+    // ETAPA 5 — a decisão do sinal da encomenda também passa a usar o contexto único.
+    // O corpo do checkout do sinal continua intocado; só a condição de entrada foi centralizada.
+    const sinalEncomendaSelecionado = contextoCheckout.encomenda.querAgendar
+        && contextoCheckout.encomenda.percentualSinal > 0;
+
     // ETAPA 3 — primeiras leituras reais do contexto único.
     // Apenas dados de cadastro/entrega/carrinho/cupom/totais/fidelidade passam a sair do
     // contextoCheckout. As decisões de pagamento, InfinitePay, sinal e tratamento de falha
@@ -3111,7 +3123,7 @@ async function finalizarCompra() {
     // Se é uma encomenda agendada E a loja exige sinal de confirmação, o fluxo cobra só
     // uma % do valor (nunca o pedido inteiro) — funciona independente da forma de
     // pagamento escolhida, já que o sinal é sempre via Pix/Cartão pra confirmar de verdade
-    if (querAgendar && percentualSinalEncomenda > 0) {
+    if (sinalEncomendaSelecionado) {
         if (!pedidoId) {
             alert('Não foi possível criar o pedido agora. Tente novamente em instantes.');
             return;
@@ -3144,7 +3156,7 @@ async function finalizarCompra() {
     // Se o cliente escolheu pagar online, o fluxo é diferente: em vez de ir pro WhatsApp,
     // manda pro checkout da InfinitePay (Pix ou Cartão), e só confirma o pedido de verdade
     // quando o pagamento realmente cair (isso quem confirma é o Webhook, não essa tela)
-    if (pagamentoOnlineAtivo && !querAgendar && (formaPagamentoAtual === 'Pix' || formaPagamentoAtual === 'Cartão')) {
+    if (pagamentoOnlineSelecionado) {
         if (!pedidoId) {
             alert('Não foi possível criar o pedido agora. Tente novamente em instantes.');
             return;
