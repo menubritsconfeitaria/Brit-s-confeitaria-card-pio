@@ -6153,6 +6153,178 @@ function atualizarAjudaTopoProduto(id, origem) {
 }
 
 
+
+// ---------- PRODUTOS: VISÃO COMPACTA / RECOLHÍVEL ----------
+// Mantém o formulário completo intacto, mas deixa os produtos recolhidos por padrão
+// para reduzir drasticamente o comprimento da página. O estado é apenas visual/local.
+const produtosAdminExpandidos = new Set();
+let produtoAdminAbrirAposRender = null;
+
+function rotuloStatusProdutoResumo(status) {
+    if (status === 'ativo') return 'Ativo';
+    if (status === 'em_falta') return 'Em falta';
+    return 'Inativo';
+}
+
+function formatarPrecoResumoProduto(valor) {
+    const numero = paraNumeroFlexivel(valor);
+    if (!Number.isFinite(numero)) return 'R$ 0,00';
+    return numero.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function atualizarResumoProdutoAdmin(id) {
+    const card = document.getElementById('produtoCard_' + id);
+    if (!card) return;
+
+    const nome = (card.querySelector('#prodNome_' + id)?.value || 'Produto sem nome').trim() || 'Produto sem nome';
+    const categoria = (card.querySelector('#prodCategoria_' + id)?.value || 'Sem categoria').trim() || 'Sem categoria';
+    const preco = card.querySelector('#prodPreco_' + id)?.value || '0';
+    const status = card.querySelector(`input[name="prodStatus_${id}"]:checked`)?.value || 'em_falta';
+    const estoqueLigado = !!card.querySelector('#prodControlarEstoque_' + id)?.checked;
+    const qtdEstoque = Number(card.querySelector('#prodEstoqueQtd_' + id)?.value || 0);
+    const encomenda = !!card.querySelector('#prodEncomenda_' + id)?.checked;
+
+    const nomeEl = card.querySelector('[data-prod-resumo="nome"]');
+    const categoriaEl = card.querySelector('[data-prod-resumo="categoria"]');
+    const precoEl = card.querySelector('[data-prod-resumo="preco"]');
+    const statusEl = card.querySelector('[data-prod-resumo="status"]');
+    const estoqueEl = card.querySelector('[data-prod-resumo="estoque"]');
+    const encomendaEl = card.querySelector('[data-prod-resumo="encomenda"]');
+
+    if (nomeEl) nomeEl.textContent = nome;
+    if (categoriaEl) categoriaEl.textContent = categoria;
+    if (precoEl) precoEl.textContent = formatarPrecoResumoProduto(preco);
+    if (statusEl) {
+        statusEl.textContent = rotuloStatusProdutoResumo(status);
+        statusEl.className = `produto-resumo-status produto-resumo-status--${status}`;
+    }
+    if (estoqueEl) {
+        estoqueEl.hidden = !estoqueLigado;
+        estoqueEl.textContent = estoqueLigado ? `📦 ${Math.max(0, qtdEstoque)} un.` : '';
+    }
+    if (encomendaEl) encomendaEl.hidden = !encomenda;
+}
+
+function definirProdutoAdminRecolhido(id, recolher) {
+    const card = document.getElementById('produtoCard_' + id);
+    if (!card) return;
+
+    card.classList.toggle('produto-card-recolhido', !!recolher);
+    if (recolher) produtosAdminExpandidos.delete(id);
+    else produtosAdminExpandidos.add(id);
+
+    const botao = card.querySelector('.produto-resumo-toggle');
+    if (botao) {
+        botao.textContent = recolher ? '✏️ Editar' : '▲ Recolher';
+        botao.setAttribute('aria-expanded', String(!recolher));
+    }
+    atualizarResumoProdutoAdmin(id);
+}
+
+function alternarProdutoAdmin(id) {
+    const card = document.getElementById('produtoCard_' + id);
+    if (!card) return;
+    definirProdutoAdminRecolhido(id, !card.classList.contains('produto-card-recolhido'));
+}
+
+function expandirTodosProdutosAdmin() {
+    document.querySelectorAll('#produtosAdminList .produto-admin-item').forEach(card => {
+        if (card.style.display === 'none') return;
+        const id = card.id.replace('produtoCard_', '');
+        definirProdutoAdminRecolhido(id, false);
+    });
+}
+
+function recolherTodosProdutosAdmin() {
+    document.querySelectorAll('#produtosAdminList .produto-admin-item').forEach(card => {
+        if (card.style.display === 'none') return;
+        const id = card.id.replace('produtoCard_', '');
+        definirProdutoAdminRecolhido(id, true);
+    });
+}
+
+function garantirControlesCompactacaoProdutos() {
+    const cabecalho = document.querySelector('.produtos-premium-lista-shell .produtos-premium-lista-head');
+    if (!cabecalho || cabecalho.querySelector('.produtos-lista-acoes-compactacao')) return;
+
+    const acoes = document.createElement('div');
+    acoes.className = 'produtos-lista-acoes-compactacao';
+    acoes.innerHTML = `
+        <button type="button" class="btn-produtos-compactacao" onclick="expandirTodosProdutosAdmin()">▾ Expandir todos</button>
+        <button type="button" class="btn-produtos-compactacao btn-produtos-compactacao--recolher" onclick="recolherTodosProdutosAdmin()">▴ Recolher todos</button>
+    `;
+    cabecalho.appendChild(acoes);
+}
+
+function criarResumoProdutoAdmin(id, produto) {
+    const resumo = document.createElement('div');
+    resumo.className = 'produto-resumo-premium';
+    resumo.setAttribute('role', 'button');
+    resumo.setAttribute('tabindex', '0');
+    resumo.setAttribute('aria-label', 'Abrir ou recolher edição deste produto');
+
+    const foto = (Array.isArray(produto.imagens) && produto.imagens[0]) || produto.imagem || '';
+    const status = obterStatusProdutoAdmin(produto);
+    const estoqueLigado = produto.controlarEstoque === true;
+    const qtdEstoque = Math.max(0, Number(produto.estoqueProduto) || 0);
+
+    resumo.innerHTML = `
+        <div class="produto-resumo-thumb" aria-hidden="true"></div>
+        <div class="produto-resumo-identidade">
+            <strong data-prod-resumo="nome"></strong>
+            <div class="produto-resumo-sublinha">
+                <span data-prod-resumo="categoria"></span>
+                <span class="produto-resumo-separador">•</span>
+                <b data-prod-resumo="preco"></b>
+            </div>
+        </div>
+        <div class="produto-resumo-sinais">
+            <span data-prod-resumo="status" class="produto-resumo-status produto-resumo-status--${status}">${rotuloStatusProdutoResumo(status)}</span>
+            <span data-prod-resumo="estoque" class="produto-resumo-chip" ${estoqueLigado ? '' : 'hidden'}>${estoqueLigado ? `📦 ${qtdEstoque} un.` : ''}</span>
+            <span data-prod-resumo="encomenda" class="produto-resumo-chip" ${produto.disponivelParaEncomenda ? '' : 'hidden'}>🎂 Encomenda</span>
+        </div>
+        <button type="button" class="produto-resumo-toggle" aria-expanded="false">✏️ Editar</button>
+    `;
+
+    const thumb = resumo.querySelector('.produto-resumo-thumb');
+    if (thumb) {
+        if (foto) {
+            const img = document.createElement('img');
+            img.src = foto;
+            img.alt = '';
+            img.loading = 'lazy';
+            img.onerror = () => { thumb.textContent = '📦'; thumb.classList.add('sem-foto'); };
+            thumb.appendChild(img);
+        } else {
+            thumb.textContent = '📦';
+            thumb.classList.add('sem-foto');
+        }
+    }
+
+    const nomeEl = resumo.querySelector('[data-prod-resumo="nome"]');
+    const categoriaEl = resumo.querySelector('[data-prod-resumo="categoria"]');
+    const precoEl = resumo.querySelector('[data-prod-resumo="preco"]');
+    if (nomeEl) nomeEl.textContent = produto.nome || 'Produto sem nome';
+    if (categoriaEl) categoriaEl.textContent = produto.categoria || 'Sem categoria';
+    if (precoEl) precoEl.textContent = formatarPrecoResumoProduto(produto.preco);
+
+    resumo.querySelector('.produto-resumo-toggle')?.addEventListener('click', event => {
+        event.stopPropagation();
+        alternarProdutoAdmin(id);
+    });
+    resumo.addEventListener('click', event => {
+        if (event.target.closest('button')) return;
+        alternarProdutoAdmin(id);
+    });
+    resumo.addEventListener('keydown', event => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        alternarProdutoAdmin(id);
+    });
+
+    return resumo;
+}
+
 // ---------- DISPONIBILIDADE PROGRAMADA DO PRODUTO ----------
 // Campo opcional e retrocompatível: produtos antigos, sem agenda, continuam sempre disponíveis.
 function normalizarAgendaDisponibilidadeProduto(produto) {
@@ -6628,6 +6800,10 @@ function montarLinhaProduto(id, produto) {
             <button class="btn-excluir-produto" onclick="excluirProduto('${id}')">🗑️ Excluir</button>
         </div>
     `;
+
+    const resumoCompacto = criarResumoProdutoAdmin(id, produto);
+    div.prepend(resumoCompacto);
+    if (!produtosAdminExpandidos.has(id)) div.classList.add('produto-card-recolhido');
     return div;
 }
 
@@ -7235,6 +7411,7 @@ function renderizarListaProdutosAdmin() {
     const lista = document.getElementById('produtosAdminList');
     const btnImportar = document.getElementById('btnImportarDados');
     if (!lista) return;
+    garantirControlesCompactacaoProdutos();
 
     const val = ultimoValProdutosAdmin || {};
     const itens = Object.entries(val).map(([id, produto]) => ({ id, produto }));
@@ -7259,7 +7436,21 @@ function renderizarListaProdutosAdmin() {
     itens.forEach(({ id, produto }) => {
         lista.appendChild(montarLinhaProduto(id, produto));
         atualizarPreviaImagens(id);
+        atualizarResumoProdutoAdmin(id);
     });
+
+    if (produtoAdminAbrirAposRender) {
+        const idAbrir = produtoAdminAbrirAposRender;
+        produtoAdminAbrirAposRender = null;
+        setTimeout(() => {
+            const card = document.getElementById('produtoCard_' + idAbrir);
+            if (!card) return;
+            definirProdutoAdminRecolhido(idAbrir, false);
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            card.querySelector('#prodNome_' + idAbrir)?.focus();
+        }, 80);
+    }
+
     filtrarProdutosAdmin();
     if (typeof renderFichaTecnica === 'function' && fichaTecnica.length > 0) renderFichaTecnica();
     if (typeof renderizarListaDestaquesManuais === 'function') renderizarListaDestaquesManuais();
@@ -7435,6 +7626,8 @@ async function migrarFichaTecnicaParaProduto(id) {
 
 function adicionarNovoProduto() {
     const novoRef = db.ref('produtos').push();
+    produtoAdminAbrirAposRender = novoRef.key;
+    produtosAdminExpandidos.add(novoRef.key);
     novoRef.set({
         nome: 'Novo produto',
         descricao: '',
@@ -7444,7 +7637,11 @@ function adicionarNovoProduto() {
         categoria: 'Outros',
         disponivel: false,
         criadoEm: firebase.database.ServerValue.TIMESTAMP
-    }).catch(err => alert('Erro ao criar produto: ' + err.message));
+    }).catch(err => {
+        produtosAdminExpandidos.delete(novoRef.key);
+        if (produtoAdminAbrirAposRender === novoRef.key) produtoAdminAbrirAposRender = null;
+        alert('Erro ao criar produto: ' + err.message);
+    });
 }
 
 // ---------- CUPONS ----------

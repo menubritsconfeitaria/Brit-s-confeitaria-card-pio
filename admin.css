@@ -15208,3 +15208,261 @@ section[data-tab="agenda"] .agenda-bloqueio-box input[type="date"] {
         padding-top: 3px !important;
     }
 }
+
+
+/* ============================================================
+   PRODUTOS — VISÃO RECOLHÍVEL PREMIUM V10
+   Fluxo natural da página + cards compactos em 2 colunas quando fechados.
+   Ao editar, o produto abre em largura total. A Organização do Cardápio
+   usa exatamente a mesma largura da coluna principal.
+   ============================================================ */
+@media (min-width: 1181px) {
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList),
+    .painel-main > section[data-tab="produtos"].produtos-categorias-premium {
+        width: min(calc(100% - 36px), 1240px) !important;
+        max-width: 1240px !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        box-sizing: border-box;
+    }
+
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produtos-premium-lista-shell,
+    .painel-main > section[data-tab="produtos"].produtos-categorias-premium .produtos-categorias-card {
+        width: 100% !important;
+        max-width: none !important;
+        box-sizing: border-box;
+    }
+
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produtos-admin-list {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px !important;
+        max-width: none !important;
+        max-height: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        scrollbar-gutter: auto !important;
+        overscroll-behavior: auto !important;
+    }
+}
+
+.produtos-premium-v4 .produtos-premium-lista-head {
+    align-items: center !important;
+    flex-wrap: wrap;
+}
+.produtos-premium-v4 .produtos-premium-lista-head > small {
+    margin-left: auto;
+}
+.produtos-lista-acoes-compactacao {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+}
+.btn-produtos-compactacao {
+    appearance: none;
+    min-height: 32px;
+    padding: 6px 10px;
+    border: 1px solid #e2d3c4;
+    border-radius: 9px;
+    background: #fffaf5;
+    color: #76533f;
+    font: inherit;
+    font-size: .67rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: .18s ease;
+}
+.btn-produtos-compactacao:hover {
+    border-color: #cfa98e;
+    background: #fff4ea;
+    color: #a5522c;
+}
+.btn-produtos-compactacao--recolher { background: #f8f3ed; }
+
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-item:not(.produto-card-recolhido) {
+    grid-column: 1 / -1 !important;
+    grid-template-areas:
+        "resumo"
+        "topo"
+        "editor"
+        "adicionais"
+        "acoes" !important;
+}
+
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-resumo-premium {
+    grid-area: resumo;
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 9px 10px;
+    border: 1px solid #eadfd4;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #fff 0%, #fffaf5 100%);
+    box-shadow: 0 4px 14px rgba(72,45,25,.045);
+    cursor: pointer;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-resumo-premium:focus-visible {
+    outline: 3px solid rgba(177,88,45,.18);
+    outline-offset: 2px;
+}
+.produto-resumo-thumb {
+    width: 48px;
+    height: 48px;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    border: 1px solid #eadfd4;
+    border-radius: 10px;
+    background: #f8f1e8;
+    color: #a76543;
+    font-size: 1.05rem;
+}
+.produto-resumo-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.produto-resumo-thumb.sem-foto { background: #fbf6f0; }
+.produto-resumo-identidade { min-width: 0; }
+.produto-resumo-identidade strong {
+    display: block;
+    overflow: hidden;
+    color: #4d3528;
+    font-size: .82rem;
+    font-weight: 850;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.produto-resumo-sublinha {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    margin-top: 4px;
+    color: #8c7768;
+    font-size: .64rem;
+}
+.produto-resumo-sublinha > span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.produto-resumo-sublinha b { color: #a6532e; white-space: nowrap; }
+.produto-resumo-separador { color: #cdb9a8; }
+.produto-resumo-sinais {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+.produto-resumo-status,
+.produto-resumo-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 25px;
+    padding: 4px 7px;
+    border-radius: 999px;
+    border: 1px solid #e7ddd2;
+    background: #faf7f3;
+    color: #765f50;
+    font-size: .61rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+.produto-resumo-status--ativo { color:#34745b; border-color:#cbe5d9; background:#f2faf6; }
+.produto-resumo-status--em_falta { color:#a46a20; border-color:#efddbd; background:#fff9ef; }
+.produto-resumo-status--inativo { color:#7f7771; border-color:#ded9d4; background:#f6f4f2; }
+.produto-resumo-toggle {
+    min-width: 82px;
+    min-height: 32px;
+    padding: 6px 10px;
+    border: 1px solid #d8b49b;
+    border-radius: 9px;
+    background: #fff;
+    color: #a5532e;
+    font: inherit;
+    font-size: .67rem;
+    font-weight: 850;
+    cursor: pointer;
+    transition: .18s ease;
+}
+.produto-resumo-toggle:hover {
+    background: #ad572f;
+    border-color: #ad572f;
+    color: #fff;
+}
+
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-item.produto-card-recolhido {
+    display: block !important;
+    grid-column: auto !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 12px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-item.produto-card-recolhido > :not(.produto-resumo-premium) {
+    display: none !important;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-item.produto-card-recolhido .produto-resumo-premium {
+    min-height: 68px;
+    height: 100%;
+    box-sizing: border-box;
+}
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-item:not(.produto-card-recolhido) .produto-resumo-premium {
+    margin-bottom: 2px;
+    background: linear-gradient(135deg, #fff8f1, #fff);
+}
+
+/* Organização do cardápio com a mesma largura visual da coluna dos produtos. */
+.painel-main > section[data-tab="produtos"].produtos-categorias-premium {
+    box-sizing: border-box;
+}
+.painel-main > section[data-tab="produtos"].produtos-categorias-premium .produtos-categorias-card {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+@media (max-width: 1180px) {
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produtos-admin-list {
+        grid-template-columns: 1fr !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-item:not(.produto-card-recolhido) {
+        grid-column: auto !important;
+    }
+}
+
+@media (max-width: 760px) {
+    .produtos-premium-v4 .produtos-premium-lista-head > small {
+        width: 100%;
+        margin-left: 0;
+        text-align: left;
+    }
+    .produtos-lista-acoes-compactacao {
+        width: 100%;
+    }
+    .btn-produtos-compactacao { flex: 1; }
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-resumo-premium {
+        grid-template-columns: 42px minmax(0, 1fr) auto;
+        gap: 8px;
+        padding: 8px;
+    }
+    .produto-resumo-thumb { width:42px; height:42px; }
+    .produto-resumo-sinais { grid-column:2 / 4; justify-content:flex-start; }
+    .produto-resumo-toggle { grid-column:3; grid-row:1; min-width:74px; }
+}
