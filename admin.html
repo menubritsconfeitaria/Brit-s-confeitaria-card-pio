@@ -2065,7 +2065,13 @@
                         <div class="ficha-tecnica-add-row">
                             <div class="campo-com-label ficha-tecnica-field ficha-tecnica-field--componente">
                                 <label class="campo-label">Base ou ingrediente</label>
-                                <select id="ftSelectComponente"></select>
+                                <div class="ficha-tecnica-componente-picker">
+                                    <div class="ficha-tecnica-componente-busca">
+                                        <span aria-hidden="true">🔎</span>
+                                        <input type="search" id="ftBuscaComponente" placeholder="Buscar componente pelo nome..." autocomplete="off" oninput="filtrarSelectComponenteFichaTecnica()">
+                                    </div>
+                                    <select id="ftSelectComponente" aria-label="Base ou ingrediente"></select>
+                                </div>
                             </div>
                             <div class="campo-com-label ficha-tecnica-field ficha-tecnica-field--qtd">
                                 <label class="campo-label">Quantidade</label>

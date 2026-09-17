@@ -3694,6 +3694,7 @@ function arred(v) { if (isNaN(v)) return 0; return Math.round((v + Number.EPSILO
 let fichaTecnica = [];
 let tempFichaTecnicaComponentes = [];
 let editingFichaTecnicaId = null;
+let editingFichaTecnicaComponenteIndex = null;
 
 function escutarFichaTecnica() {
     db.ref('fichaTecnica').on('value', snap => {
@@ -3790,11 +3791,31 @@ function calcularCustoFichaTecnica(produto) {
 
 function popularSelectComponenteFichaTecnica() {
     const sel = document.getElementById('ftSelectComponente');
+    if (!sel) return;
+
+    const buscaEl = document.getElementById('ftBuscaComponente');
+    const filtro = normalizarTexto(buscaEl ? buscaEl.value : '');
     const valorAtual = sel.value;
-    sel.innerHTML = '<option value="">Selecione</option>'
-        + '<optgroup label="Ingredientes">' + ingredientes.map(i => `<option value="ingrediente_${i.id}">${i.nome}</option>`).join('') + '</optgroup>'
-        + '<optgroup label="Bases">' + bases.map(b => `<option value="base_${b.id}">${b.nome}</option>`).join('') + '</optgroup>';
-    sel.value = valorAtual;
+    const ingredientesFiltrados = ingredientes.filter(i => !filtro || normalizarTexto(i.nome).includes(filtro));
+    const basesFiltradas = bases.filter(b => !filtro || normalizarTexto(b.nome).includes(filtro));
+
+    let html = '<option value="">Selecione</option>';
+    if (ingredientesFiltrados.length) {
+        html += '<optgroup label="Ingredientes">' + ingredientesFiltrados.map(i => `<option value="ingrediente_${i.id}">${i.nome}</option>`).join('') + '</optgroup>';
+    }
+    if (basesFiltradas.length) {
+        html += '<optgroup label="Bases">' + basesFiltradas.map(b => `<option value="base_${b.id}">${b.nome}</option>`).join('') + '</optgroup>';
+    }
+    if (!ingredientesFiltrados.length && !basesFiltradas.length) {
+        html += '<option value="" disabled>Nenhum componente encontrado</option>';
+    }
+
+    sel.innerHTML = html;
+    if ([...sel.options].some(opt => opt.value === valorAtual)) sel.value = valorAtual;
+}
+
+function filtrarSelectComponenteFichaTecnica() {
+    popularSelectComponenteFichaTecnica();
 }
 
 function adicionarComponenteFichaTecnica() {
@@ -3806,10 +3827,52 @@ function adicionarComponenteFichaTecnica() {
     const compId = val.substring(idx + 1);
     tempFichaTecnicaComponentes.push({ tipo: tipoRaw === 'base' ? 'base' : 'ingrediente', id: compId, quantidade: qtd });
     document.getElementById('ftQtdComponente').value = '';
+    document.getElementById('ftSelectComponente').value = '';
+    const buscaEl = document.getElementById('ftBuscaComponente');
+    if (buscaEl) buscaEl.value = '';
+    popularSelectComponenteFichaTecnica();
     renderTempComponentesFichaTecnica();
 }
 
-function removerComponenteFichaTecnica(i) { tempFichaTecnicaComponentes.splice(i, 1); renderTempComponentesFichaTecnica(); }
+function editarComponenteFichaTecnica(i) {
+    if (!tempFichaTecnicaComponentes[i]) return;
+    editingFichaTecnicaComponenteIndex = i;
+    renderTempComponentesFichaTecnica();
+    const input = document.querySelector(`[data-ft-editar-qtd="${i}"]`);
+    if (input) {
+        input.focus();
+        input.select();
+    }
+}
+
+function cancelarEdicaoComponenteFichaTecnica() {
+    editingFichaTecnicaComponenteIndex = null;
+    renderTempComponentesFichaTecnica();
+}
+
+function salvarEdicaoComponenteFichaTecnica(i) {
+    const componente = tempFichaTecnicaComponentes[i];
+    const input = document.querySelector(`[data-ft-editar-qtd="${i}"]`);
+    if (!componente || !input) return;
+
+    const qtd = parseFloat(String(input.value || '').replace(',', '.'));
+    if (!qtd || qtd <= 0) {
+        alert('Informa uma quantidade válida.');
+        input.focus();
+        return;
+    }
+
+    componente.quantidade = qtd;
+    editingFichaTecnicaComponenteIndex = null;
+    renderTempComponentesFichaTecnica();
+}
+
+function removerComponenteFichaTecnica(i) {
+    tempFichaTecnicaComponentes.splice(i, 1);
+    if (editingFichaTecnicaComponenteIndex === i) editingFichaTecnicaComponenteIndex = null;
+    else if (editingFichaTecnicaComponenteIndex != null && editingFichaTecnicaComponenteIndex > i) editingFichaTecnicaComponenteIndex--;
+    renderTempComponentesFichaTecnica();
+}
 
 function renderTempComponentesFichaTecnica() {
     const div = document.getElementById('ftListaComponentes');
@@ -3832,9 +3895,32 @@ function renderTempComponentesFichaTecnica() {
         // embalagem (forminha, potinho, adesivo), que não pesa a receita
         if (unidade === 'g' || unidade === 'ml') pesoTotal += c.quantidade;
         const linha = document.createElement('div');
-        linha.style.cssText = 'display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border);';
-        linha.innerHTML = `<span>${nome} — ${c.quantidade}${unidade} = ${formatarPreco(custo)}</span>
-            <button class="btn-excluir-cupom" onclick="removerComponenteFichaTecnica(${i})">🗑️</button>`;
+        linha.className = 'ficha-tecnica-componente-linha';
+
+        if (editingFichaTecnicaComponenteIndex === i) {
+            linha.classList.add('is-editing');
+            linha.innerHTML = `
+                <div class="ficha-tecnica-componente-info">
+                    <strong>${nome}</strong>
+                    <small>Custo atual: ${formatarPreco(custo)}</small>
+                </div>
+                <div class="ficha-tecnica-componente-edicao">
+                    <label>Quantidade (${unidade || 'un'})</label>
+                    <input type="text" inputmode="decimal" value="${c.quantidade}" data-ft-editar-qtd="${i}"
+                        onkeydown="if(event.key === 'Enter'){ event.preventDefault(); salvarEdicaoComponenteFichaTecnica(${i}); } else if(event.key === 'Escape'){ cancelarEdicaoComponenteFichaTecnica(); }">
+                </div>
+                <div class="ficha-tecnica-componente-acoes">
+                    <button type="button" class="btn-secondary ficha-tecnica-btn-salvar-componente" onclick="salvarEdicaoComponenteFichaTecnica(${i})">✓ Aplicar</button>
+                    <button type="button" class="btn-secondary ficha-tecnica-btn-cancelar-componente" onclick="cancelarEdicaoComponenteFichaTecnica()">Cancelar</button>
+                </div>`;
+        } else {
+            linha.innerHTML = `
+                <span class="ficha-tecnica-componente-resumo">${nome} — <strong>${c.quantidade}${unidade}</strong> = ${formatarPreco(custo)}</span>
+                <div class="ficha-tecnica-componente-acoes">
+                    <button type="button" class="btn-secondary ficha-tecnica-btn-editar-componente" onclick="editarComponenteFichaTecnica(${i})">✏️ Editar</button>
+                    <button type="button" class="btn-excluir-cupom" title="Excluir componente" onclick="removerComponenteFichaTecnica(${i})">🗑️</button>
+                </div>`;
+        }
         div.appendChild(linha);
     });
     document.getElementById('ftCustoComponentesTemp').textContent = formatarPreco(total);
@@ -3877,6 +3963,7 @@ function salvarFichaTecnica() {
         msgEl.textContent = 'Salvo!';
         document.getElementById('ftResultado').innerHTML = montarResultadoFichaTecnica({ id: idParaSalvar, ...obj });
         tempFichaTecnicaComponentes = [];
+        editingFichaTecnicaComponenteIndex = null;
         ['ftNome', 'ftRendimento', 'ftEmbalagem', 'ftCustoFixo', 'ftHoras', 'ftValorHora', 'ftMargemEmpresa', 'ftMargemCasal', 'ftTaxaVenda', 'ftPrecoManual'].forEach(id => document.getElementById(id).value = '');
         renderTempComponentesFichaTecnica();
         if (editingFichaTecnicaId) {
@@ -3984,6 +4071,7 @@ function editarFichaTecnica(id) {
     document.getElementById('ftTaxaVenda').value = p.taxaVenda || '';
     document.getElementById('ftPrecoManual').value = p.precoVendaManual || '';
     tempFichaTecnicaComponentes = (p.componentes || []).map(c => ({ ...c }));
+    editingFichaTecnicaComponenteIndex = null;
     editingFichaTecnicaId = id;
     document.getElementById('btnSalvarFichaTecnica').textContent = 'Atualizar';
     renderTempComponentesFichaTecnica();
