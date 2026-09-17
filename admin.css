@@ -15154,3 +15154,57 @@ section[data-tab="agenda"] .agenda-bloqueio-box input[type="date"] {
         box-shadow: none;
     }
 }
+
+
+/* ============================================================
+   PRODUTOS — FLUXO NATURAL COMPACTO V9
+   Remove a rolagem interna da lista para preservar arrastar/reordenar
+   com a rolagem normal da página. Mantém a compactação visual da V8.
+   ============================================================ */
+@media (min-width: 1181px) {
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produtos-premium-lista-shell {
+        max-width: 1240px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produtos-admin-list {
+        max-width: 1160px;
+        max-height: none !important;
+        margin-left: auto;
+        margin-right: auto;
+        overflow: visible !important;
+        overscroll-behavior: auto !important;
+        scrollbar-gutter: auto !important;
+        padding: 0 !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        gap: 9px !important;
+    }
+
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-item {
+        width: 100%;
+        max-width: 1160px;
+        margin: 0 auto;
+        padding: 9px 11px 8px !important;
+        gap: 5px !important;
+    }
+
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-topo-premium {
+        padding-bottom: 4px !important;
+    }
+
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-grid {
+        gap: 6px 8px !important;
+    }
+
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-editor-col {
+        gap: 5px !important;
+    }
+
+    .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-acoes {
+        padding-top: 3px !important;
+    }
+}
