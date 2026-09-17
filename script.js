@@ -2819,7 +2819,7 @@ function repetirUltimoPedido() {
     }
 }
 
-botaoFinalizarCompra.addEventListener('click', async () => {
+async function finalizarCompra() {
     // Proteção contra clique duplo — sem isso, clicar 2x rápido (comum no celular)
     // cria 2 pedidos duplicados de verdade, com cobrança/contagem em dobro
     if (botaoFinalizarCompra.disabled) return;
@@ -3125,7 +3125,9 @@ botaoFinalizarCompra.addEventListener('click', async () => {
         botaoFinalizarCompra.disabled = false;
         botaoFinalizarCompra.textContent = textoOriginalBotao;
     }
-});
+}
+
+botaoFinalizarCompra.addEventListener('click', finalizarCompra);
 
 // Atualiza os preços de itens que já estavam salvos no carrinho do navegador,
 // caso o preço do produto tenha mudado (ex: entrou ou saiu de oferta) desde a última visita
