@@ -2476,3 +2476,222 @@ footer {
     color: var(--muted);
     margin: -2px 0 6px;
 }
+
+/* ============================================================
+   PEDEAKI SITE — ESTRUTURA GLOBAL PREMIUM V1
+   Somente layout/responsividade. Não altera lógica, IDs ou JS.
+   ============================================================ */
+:root {
+    --site-max-width: 1380px;
+    --site-gutter: clamp(16px, 3vw, 34px);
+    --site-section-gap: clamp(20px, 3vw, 34px);
+    --site-radius-lg: 22px;
+    --site-shadow-soft: 0 12px 34px rgba(74, 44, 27, 0.09);
+}
+
+/* O conteúdo passa a usar melhor monitores grandes sem ficar colado nas bordas. */
+.container {
+    width: min(calc(100% - (var(--site-gutter) * 2)), var(--site-max-width));
+    max-width: var(--site-max-width);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+main {
+    padding-top: 14px;
+}
+
+/* Benefícios: grade estável no desktop e leitura mais confortável. */
+main > .container:first-of-type .destaques {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin: 2px 0 14px;
+}
+
+main > .container:first-of-type .destaque-item {
+    min-width: 0;
+    min-height: 48px;
+    padding: 9px 12px;
+    border-radius: 13px;
+    box-shadow: 0 7px 20px rgba(74, 44, 27, 0.07);
+}
+
+/* Vitrine: mesma linha visual do restante do cardápio. */
+.carrossel-destaques.container {
+    width: min(calc(100% - (var(--site-gutter) * 2)), var(--site-max-width));
+    max-width: var(--site-max-width);
+    padding: 0;
+    margin: 10px auto var(--site-section-gap);
+}
+
+/* Área principal do catálogo. */
+#produtos-destaque {
+    width: min(calc(100% - (var(--site-gutter) * 2)), var(--site-max-width));
+    max-width: var(--site-max-width);
+    padding: 0;
+}
+
+#produtos-destaque > h2 {
+    margin: 4px 0 18px;
+    font-size: clamp(1.45rem, 2vw, 2rem);
+    letter-spacing: -0.02em;
+}
+
+/* Categorias permanecem acessíveis durante a navegação. */
+#produtos-destaque .categorias {
+    top: 38px;
+    margin: 0 0 24px;
+    padding: 10px 12px;
+    border: 1px solid rgba(230, 217, 198, .88);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, .94);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 10px 28px rgba(74, 44, 27, .09);
+}
+
+#produtos-destaque .categorias ul {
+    justify-content: flex-start;
+    gap: 8px;
+    scrollbar-width: thin;
+    padding: 0 2px;
+}
+
+#produtos-destaque .categorias button {
+    flex: 0 0 auto;
+    padding: 9px 15px;
+    font-size: .9rem;
+    border-radius: 999px;
+}
+
+/* No desktop, quatro produtos por linha: maiores e mais fáceis de ler que a grade antiga de cinco. */
+#produtos-destaque .categoria-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px;
+    margin-bottom: 34px;
+    align-items: stretch;
+}
+
+#produtos-destaque .categoria-titulo {
+    margin: 32px 0 15px;
+    padding-bottom: 9px;
+    font-size: clamp(1.08rem, 1.35vw, 1.28rem);
+}
+
+#produtos-destaque .produto-item {
+    width: 100%;
+    min-width: 0;
+    border-radius: 18px;
+    box-shadow: 0 9px 26px rgba(70, 40, 20, .09);
+}
+
+#produtos-destaque .produto-item img {
+    width: 100%;
+    height: clamp(185px, 16vw, 225px);
+}
+
+/* Carrinho/checkout seguem o mesmo eixo do catálogo. */
+#carrinho.container,
+main > .container:not(:first-of-type) {
+    width: min(calc(100% - (var(--site-gutter) * 2)), var(--site-max-width));
+    max-width: var(--site-max-width);
+}
+
+#carrinho {
+    scroll-margin-top: 88px;
+    margin-top: 28px;
+}
+
+#carrinho .carrinho-itens {
+    border-radius: 18px;
+    box-shadow: var(--site-shadow-soft);
+}
+
+/* Barra do carrinho com largura controlada, sem atravessar a tela inteira. */
+.carrinho-flutuante {
+    width: auto;
+    max-width: min(92vw, 620px);
+    justify-content: center;
+    padding: 12px 20px;
+    box-shadow: 0 12px 30px rgba(63, 35, 22, .24);
+}
+
+/* Tablets / notebooks menores */
+@media (max-width: 1180px) {
+    :root { --site-gutter: 22px; }
+    #produtos-destaque .categoria-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 17px;
+    }
+    #produtos-destaque .produto-item img {
+        height: clamp(180px, 21vw, 220px);
+    }
+}
+
+@media (max-width: 860px) {
+    :root { --site-gutter: 16px; }
+    main > .container:first-of-type .destaques {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    #produtos-destaque .categoria-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+    #produtos-destaque .produto-item img {
+        height: clamp(175px, 33vw, 230px);
+    }
+    #produtos-destaque .categorias {
+        top: 36px;
+        border-radius: 14px;
+    }
+}
+
+@media (max-width: 560px) {
+    :root { --site-gutter: 12px; }
+    .container,
+    .carrossel-destaques.container,
+    #produtos-destaque,
+    #carrinho.container,
+    main > .container:not(:first-of-type) {
+        width: calc(100% - (var(--site-gutter) * 2));
+    }
+    main { padding-top: 8px; }
+    main > .container:first-of-type .destaques {
+        gap: 8px;
+    }
+    main > .container:first-of-type .destaque-item {
+        min-height: 44px;
+        padding: 7px 9px;
+    }
+    #produtos-destaque > h2 {
+        margin-bottom: 12px;
+    }
+    #produtos-destaque .categorias {
+        margin-left: -4px;
+        margin-right: -4px;
+        padding: 8px;
+        top: 34px;
+    }
+    #produtos-destaque .categorias button {
+        padding: 8px 13px;
+        font-size: .84rem;
+    }
+    #produtos-destaque .categoria-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+        margin-bottom: 28px;
+    }
+    #produtos-destaque .produto-item img {
+        height: clamp(210px, 64vw, 285px);
+    }
+    #produtos-destaque .categoria-titulo {
+        margin-top: 26px;
+    }
+    .carrinho-flutuante {
+        bottom: 10px;
+        width: calc(100% - 24px);
+        max-width: 520px;
+        padding: 11px 14px;
+    }
+}
