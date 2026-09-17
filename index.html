@@ -25,7 +25,7 @@
     <link rel="apple-touch-icon" href="logopng.png">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 
     <style>
@@ -66,11 +66,31 @@
 </head>
 <body>
     <div id="telaBoasVindas" class="tela-boas-vindas" style="display:none;">
-        <div class="boas-vindas-conteudo">
-            <img id="boasVindasLogo" src="logopng.png" alt="Logo da loja" class="boas-vindas-logo">
+        <div class="boas-vindas-luz boas-vindas-luz--um" aria-hidden="true"></div>
+        <div class="boas-vindas-luz boas-vindas-luz--dois" aria-hidden="true"></div>
+        <div class="boas-vindas-assinatura boas-vindas-assinatura--esquerda" aria-hidden="true">
+            <span>MAIS QUE DOCES</span>
+            <strong>MOMENTOS ESPECIAIS</strong>
+        </div>
+        <div class="boas-vindas-assinatura boas-vindas-assinatura--direita" aria-hidden="true">
+            <span>Feitos com</span>
+            <strong>carinho</strong>
+        </div>
+        <div class="boas-vindas-conteudo" role="dialog" aria-modal="true" aria-labelledby="boasVindasTitulo">
+            <div class="boas-vindas-kicker">BEM-VINDO</div>
+            <div class="boas-vindas-logo-wrap">
+                <img id="boasVindasLogo" src="logopng.png" alt="Logo da loja" class="boas-vindas-logo">
+            </div>
             <h2 id="boasVindasTitulo">Bem-vindo à Brit's Confeitaria! 🎂</h2>
-            <p>Bolos, doces e salgados fresquinhos, feitos com carinho.</p>
-            <button onclick="fecharBoasVindas()">Ver Cardápio</button>
+            <div class="boas-vindas-divisor" aria-hidden="true"><span>♥</span></div>
+            <p class="boas-vindas-subtitulo">Bolos, doces e salgados fresquinhos, feitos com carinho.</p>
+            <button class="boas-vindas-cta" onclick="fecharBoasVindas()">
+                <span>Ver Cardápio</span>
+                <span class="boas-vindas-seta" aria-hidden="true">→</span>
+            </button>
+            <div class="boas-vindas-valores" aria-hidden="true">
+                <span>Sabor</span><i>•</i><span>Qualidade</span><i>•</i><span>Afeto</span>
+            </div>
         </div>
     </div>
 

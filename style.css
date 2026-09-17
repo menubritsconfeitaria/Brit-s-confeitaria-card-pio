@@ -1101,57 +1101,450 @@ footer {
     border-color: var(--primary);
 }
 
-/* Tela de boas-vindas */
+/* Tela de boas-vindas — Premium */
 .tela-boas-vindas {
     position: fixed;
     inset: 0;
     z-index: 100;
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 24px;
+    min-height: 100vh;
+    min-height: 100svh;
+    padding: clamp(20px, 4vw, 48px);
+    overflow: hidden;
+    isolation: isolate;
+    background:
+        radial-gradient(circle at 16% 18%, rgba(255, 221, 180, .26), transparent 26%),
+        radial-gradient(circle at 82% 23%, rgba(255, 236, 210, .13), transparent 27%),
+        radial-gradient(circle at 50% 112%, rgba(83, 33, 16, .55), transparent 48%),
+        linear-gradient(135deg, #7d351c 0%, #9f4d28 38%, #783318 72%, #3f1f16 100%);
     opacity: 1;
-    transition: opacity 0.3s ease;
+    transition: opacity .34s ease, visibility .34s ease;
 }
+
+.tela-boas-vindas::before,
+.tela-boas-vindas::after {
+    content: "";
+    position: absolute;
+    z-index: -2;
+    border-radius: 999px;
+    pointer-events: none;
+    filter: blur(1px);
+}
+
+.tela-boas-vindas::before {
+    width: min(72vw, 980px);
+    height: min(72vw, 980px);
+    left: -34vw;
+    bottom: -49vw;
+    border: 1px solid rgba(255, 224, 191, .12);
+    box-shadow:
+        0 0 0 74px rgba(255,255,255,.022),
+        0 0 0 148px rgba(255,255,255,.014);
+}
+
+.tela-boas-vindas::after {
+    width: 460px;
+    height: 460px;
+    right: -210px;
+    top: -160px;
+    background: radial-gradient(circle, rgba(255,239,219,.12), transparent 67%);
+}
+
 .tela-boas-vindas.fechando {
     opacity: 0;
+    visibility: hidden;
 }
+
+.boas-vindas-luz {
+    position: absolute;
+    z-index: -1;
+    width: 340px;
+    height: 340px;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(58px);
+    opacity: .42;
+}
+
+.boas-vindas-luz--um {
+    left: 12%;
+    bottom: 7%;
+    background: rgba(255, 181, 102, .2);
+}
+
+.boas-vindas-luz--dois {
+    right: 11%;
+    top: 9%;
+    background: rgba(255, 232, 200, .16);
+}
+
 .boas-vindas-conteudo {
-    background: var(--card);
-    border-radius: 20px;
-    padding: 36px 28px;
+    position: relative;
+    width: min(100%, 520px);
+    max-width: 520px;
+    padding: clamp(30px, 4vw, 48px) clamp(24px, 4.5vw, 46px) 30px;
     text-align: center;
-    max-width: 360px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255, 225, 192, .84);
+    border-radius: 30px;
+    background:
+        linear-gradient(180deg, rgba(255,253,249,.985), rgba(255,248,240,.97));
+    box-shadow:
+        0 32px 80px rgba(45, 18, 8, .33),
+        0 8px 24px rgba(64, 25, 9, .14),
+        inset 0 1px 0 rgba(255,255,255,.95);
+    overflow: hidden;
+    transform: translateY(0);
+    animation: boasVindasEntrar .62s cubic-bezier(.2,.72,.2,1) both;
 }
-.boas-vindas-logo {
-    max-width: 110px;
-    margin-bottom: 16px;
+
+.boas-vindas-conteudo::before {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border: 1px solid rgba(186, 116, 70, .18);
+    border-radius: 23px;
+    pointer-events: none;
 }
-.boas-vindas-conteudo h2 {
-    color: var(--primary);
-    margin: 0 0 10px;
-    font-size: 1.4em;
+
+.boas-vindas-conteudo::after {
+    content: "";
+    position: absolute;
+    width: 210px;
+    height: 210px;
+    right: -112px;
+    top: -105px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(200, 134, 85, .12), rgba(200,134,85,0) 68%);
+    pointer-events: none;
 }
-.boas-vindas-conteudo p {
-    color: var(--muted);
-    margin: 0 0 22px;
-    font-size: 0.95em;
+
+@keyframes boasVindasEntrar {
+    from { opacity: 0; transform: translateY(18px) scale(.985); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
-.boas-vindas-conteudo button {
-    background: var(--primary);
-    color: #fff;
-    border: none;
-    padding: 13px 30px;
-    border-radius: 12px;
+
+.boas-vindas-kicker {
+    position: relative;
+    z-index: 1;
+    margin-bottom: 15px;
+    color: #a66a43;
+    font-size: .65rem;
     font-weight: 700;
-    font-family: inherit;
-    font-size: 1em;
-    cursor: pointer;
+    letter-spacing: .24em;
+    text-transform: uppercase;
 }
+
+.boas-vindas-logo-wrap {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 154px;
+    min-height: 112px;
+    margin: 0 auto 18px;
+    padding: 8px 12px;
+}
+
+.boas-vindas-logo-wrap::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: 88px;
+    height: 1px;
+    transform: translateX(-50%);
+    background: linear-gradient(90deg, transparent, rgba(155, 86, 49, .38), transparent);
+}
+
+.boas-vindas-logo {
+    display: block;
+    max-width: 142px;
+    max-height: 106px;
+    width: auto;
+    height: auto;
+    margin: 0;
+    object-fit: contain;
+    filter: drop-shadow(0 8px 14px rgba(86, 46, 25, .06));
+}
+
+.boas-vindas-conteudo h2 {
+    position: relative;
+    z-index: 1;
+    max-width: 430px;
+    margin: 0 auto 13px;
+    color: #7f3f24;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: clamp(2.05rem, 4vw, 3.12rem);
+    font-weight: 700;
+    line-height: .99;
+    letter-spacing: -.025em;
+    text-wrap: balance;
+}
+
+.boas-vindas-divisor {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    width: 118px;
+    margin: 16px auto 15px;
+    color: #ca8a5c;
+    font-size: .7rem;
+}
+
+.boas-vindas-divisor::before,
+.boas-vindas-divisor::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(178, 105, 64, .44));
+}
+
+.boas-vindas-divisor::after {
+    transform: rotate(180deg);
+}
+
+.boas-vindas-subtitulo,
+.boas-vindas-conteudo > p {
+    position: relative;
+    z-index: 1;
+    max-width: 370px;
+    margin: 0 auto 24px;
+    color: #776153;
+    font-size: clamp(.9rem, 1.7vw, 1rem);
+    line-height: 1.58;
+    text-wrap: balance;
+}
+
+.boas-vindas-cta,
+.boas-vindas-conteudo button {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    min-width: 238px;
+    min-height: 56px;
+    padding: 14px 24px 14px 28px;
+    border: 1px solid rgba(255, 206, 160, .45);
+    border-radius: 18px;
+    background: linear-gradient(135deg, #9d4a25 0%, #b65d2b 54%, #8b3d20 100%);
+    color: #fffaf4;
+    box-shadow:
+        0 14px 28px rgba(130, 55, 24, .24),
+        inset 0 1px 0 rgba(255,255,255,.19);
+    font-family: 'Poppins', Arial, sans-serif;
+    font-size: .98rem;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    cursor: pointer;
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+
+.boas-vindas-cta:hover,
 .boas-vindas-conteudo button:hover {
-    background: var(--primary-dark);
+    background: linear-gradient(135deg, #a65028 0%, #bf6531 54%, #914222 100%);
+    transform: translateY(-2px);
+    box-shadow:
+        0 18px 32px rgba(130, 55, 24, .3),
+        inset 0 1px 0 rgba(255,255,255,.22);
+    filter: saturate(1.04);
+}
+
+.boas-vindas-cta:active,
+.boas-vindas-conteudo button:active {
+    transform: translateY(0);
+}
+
+.boas-vindas-cta:focus-visible,
+.boas-vindas-conteudo button:focus-visible {
+    outline: 3px solid rgba(255, 222, 187, .74);
+    outline-offset: 4px;
+}
+
+.boas-vindas-seta {
+    display: inline-grid;
+    place-items: center;
+    width: 27px;
+    height: 27px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.12);
+    font-size: 1.15rem;
+    font-weight: 500;
+    transition: transform .18s ease, background .18s ease;
+}
+
+.boas-vindas-cta:hover .boas-vindas-seta {
+    transform: translateX(3px);
+    background: rgba(255,255,255,.18);
+}
+
+.boas-vindas-valores {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 24px;
+    color: #9a6a4e;
+    font-size: .59rem;
+    font-weight: 700;
+    letter-spacing: .19em;
+    text-transform: uppercase;
+}
+
+.boas-vindas-valores i {
+    color: #d9ab87;
+    font-style: normal;
+    letter-spacing: 0;
+}
+
+.boas-vindas-assinatura {
+    position: absolute;
+    z-index: 0;
+    display: flex;
+    flex-direction: column;
+    color: rgba(255, 232, 207, .72);
+    pointer-events: none;
+    user-select: none;
+}
+
+.boas-vindas-assinatura--esquerda {
+    left: clamp(28px, 8vw, 120px);
+    top: 21%;
+    max-width: 210px;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+.boas-vindas-assinatura--esquerda span,
+.boas-vindas-assinatura--esquerda strong {
+    font-size: clamp(.66rem, 1vw, .78rem);
+    line-height: 1.7;
+    letter-spacing: .31em;
+}
+
+.boas-vindas-assinatura--esquerda strong {
+    max-width: 175px;
+    color: rgba(255, 230, 202, .9);
+    font-weight: 600;
+}
+
+.boas-vindas-assinatura--esquerda::after {
+    content: "";
+    width: 70px;
+    height: 1px;
+    margin-top: 20px;
+    background: rgba(255, 220, 183, .48);
+}
+
+.boas-vindas-assinatura--direita {
+    right: clamp(32px, 9vw, 140px);
+    bottom: 23%;
+    align-items: center;
+    transform: rotate(-4deg);
+    color: rgba(255, 229, 201, .75);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    line-height: .95;
+}
+
+.boas-vindas-assinatura--direita span {
+    font-size: clamp(1rem, 1.6vw, 1.35rem);
+    font-style: italic;
+}
+
+.boas-vindas-assinatura--direita strong {
+    font-size: clamp(1.5rem, 2.4vw, 2rem);
+    font-style: italic;
+    font-weight: 600;
+}
+
+@media (max-width: 980px) {
+    .boas-vindas-assinatura { display: none; }
+    .boas-vindas-conteudo { width: min(100%, 500px); }
+}
+
+@media (max-width: 560px) {
+    .tela-boas-vindas {
+        align-items: center;
+        padding: 18px;
+        background:
+            radial-gradient(circle at 15% 12%, rgba(255, 222, 181, .22), transparent 25%),
+            radial-gradient(circle at 80% 88%, rgba(255, 218, 177, .12), transparent 28%),
+            linear-gradient(160deg, #8d4324 0%, #9e4b28 46%, #5f2c1b 100%);
+    }
+
+    .boas-vindas-conteudo {
+        width: 100%;
+        max-width: 430px;
+        padding: 29px 20px 24px;
+        border-radius: 25px;
+    }
+
+    .boas-vindas-conteudo::before {
+        inset: 6px;
+        border-radius: 20px;
+    }
+
+    .boas-vindas-kicker {
+        margin-bottom: 10px;
+        font-size: .57rem;
+    }
+
+    .boas-vindas-logo-wrap {
+        width: 132px;
+        min-height: 94px;
+        margin-bottom: 14px;
+    }
+
+    .boas-vindas-logo {
+        max-width: 122px;
+        max-height: 90px;
+    }
+
+    .boas-vindas-conteudo h2 {
+        max-width: 330px;
+        font-size: clamp(2rem, 10vw, 2.55rem);
+        line-height: 1.02;
+    }
+
+    .boas-vindas-subtitulo,
+    .boas-vindas-conteudo > p {
+        max-width: 315px;
+        margin-bottom: 21px;
+        font-size: .87rem;
+    }
+
+    .boas-vindas-cta,
+    .boas-vindas-conteudo button {
+        width: 100%;
+        max-width: 310px;
+        min-height: 54px;
+        border-radius: 16px;
+    }
+
+    .boas-vindas-valores {
+        margin-top: 20px;
+        gap: 6px;
+        font-size: .51rem;
+        letter-spacing: .13em;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .boas-vindas-conteudo { animation: none; }
+    .tela-boas-vindas,
+    .boas-vindas-cta,
+    .boas-vindas-conteudo button,
+    .boas-vindas-seta { transition: none; }
 }
 
 /* Carrossel de fotos do produto */
