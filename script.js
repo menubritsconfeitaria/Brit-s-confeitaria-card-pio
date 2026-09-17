@@ -3027,15 +3027,22 @@ async function finalizarCompra() {
         }
     };
 
+    // ETAPA 3 — primeiras leituras reais do contexto único.
+    // Apenas dados de cadastro/entrega/carrinho/cupom/totais/fidelidade passam a sair do
+    // contextoCheckout. As decisões de pagamento, InfinitePay, sinal e tratamento de falha
+    // continuam exatamente nas variáveis e caminhos já validados nas etapas anteriores.
     const { id: pedidoId, promessaSalvo, bloqueadoPorPausa } = await salvarPedidoNoPainel({
-        nome, telefone,
-        tipoEntrega: tipoEntregaAtual,
-        endereco: tipoEntregaAtual === 'entrega' ? { rua, numero, complemento, bairro, cidade, estado, cep } : null,
+        nome: contextoCheckout.cliente.nome,
+        telefone: contextoCheckout.cliente.telefone,
+        tipoEntrega: contextoCheckout.entrega.tipo,
+        endereco: contextoCheckout.entrega.endereco,
         formaPagamento: formaPagamentoAtual,
         troco: (formaPagamentoAtual === 'Dinheiro' && troco) ? troco : null,
-        observacoes: obs || null,
-        dataEncomenda: querAgendar && dataEncomenda ? dataEncomenda : null,
-        itens: carrinho.map(item => {
+        observacoes: contextoCheckout.cliente.observacoes,
+        dataEncomenda: contextoCheckout.encomenda.querAgendar && contextoCheckout.encomenda.data
+            ? contextoCheckout.encomenda.data
+            : null,
+        itens: contextoCheckout.carrinho.itens.map(item => {
             const produtoAtual = produtos.find(p => p.id === item.produtoId);
             return {
                 produtoId: item.produtoId || null,
@@ -3048,16 +3055,18 @@ async function finalizarCompra() {
                 adicionaisEscolhidos: Array.isArray(item.adicionaisEscolhidos) ? item.adicionaisEscolhidos : null
             };
         }),
-        subtotal: subtotalPedido,
-        cupom: cupomAplicado ? cupomAplicado.codigo : null,
-        desconto: desconto > 0 ? desconto : 0,
-        frete: tipoEntregaAtual === 'entrega' ? (freteConfirmado ? frete : null) : 0,
-        total: (tipoEntregaAtual === 'retirada' || freteConfirmado) ? (subtotalPedido - desconto + frete) : null,
+        subtotal: contextoCheckout.totais.subtotal,
+        cupom: contextoCheckout.cupom.aplicado ? contextoCheckout.cupom.aplicado.codigo : null,
+        desconto: contextoCheckout.totais.desconto > 0 ? contextoCheckout.totais.desconto : 0,
+        frete: contextoCheckout.entrega.tipo === 'entrega'
+            ? (contextoCheckout.entrega.freteConfirmado ? contextoCheckout.entrega.frete : null)
+            : 0,
+        total: contextoCheckout.totais.total,
         // Guarda a recompensa resgatada (se houver) — os pontos só são efetivamente creditados/descontados
         // quando a loja marcar o pedido como "Entregue" no painel, não na hora do pedido
-        recompensaResgatada: recompensaSelecionada ? {
-            pontos: recompensaSelecionada.pontos,
-            descricao: recompensaSelecionada.descricao
+        recompensaResgatada: contextoCheckout.fidelidade.recompensaSelecionada ? {
+            pontos: contextoCheckout.fidelidade.recompensaSelecionada.pontos,
+            descricao: contextoCheckout.fidelidade.recompensaSelecionada.descricao
         } : null,
         // Metadados anônimos de atribuição: não mudam o fluxo do pedido/pagamento.
         sessaoConversaoId: obterSessaoConversaoId(),
@@ -3072,7 +3081,7 @@ async function finalizarCompra() {
         notificacaoToken: (localStorage.getItem('notificacoesAtivas') === '1')
             ? localStorage.getItem('notificacaoToken')
             : null
-    }, statusInicialPedido);
+    }, contextoCheckout.pedido.statusInicial);
 
     // Defesa final: se a pausa começou entre o clique e a gravação do pedido, o servidor
     // recusa a criação. Nesse caso não abre WhatsApp nem checkout e mantém o carrinho intacto.
