@@ -2819,36 +2819,6 @@ function repetirUltimoPedido() {
     }
 }
 
-async function processarPagamentoSinalEncomenda(pedidoId, promessaSalvo) {
-        if (!pedidoId) {
-            alert('Não foi possível criar o pedido agora. Tente novamente em instantes.');
-            return;
-        }
-        botaoFinalizarCompra.disabled = true;
-        botaoFinalizarCompra.textContent = 'Preparando pagamento do sinal...';
-        try {
-            await promessaSalvo;
-            const criarCheckoutSinal = firebase.functions().httpsCallable('criarCheckoutSinalEncomenda');
-            const resultado = await criarCheckoutSinal({ pedidoId });
-            registrarEventoConversaoFront('checkout');
-            carrinho = [];
-            salvarCarrinho();
-            atualizarCarrinhoHTML();
-            limparFormularioEndereco();
-            window.location.href = resultado.data.checkoutUrl;
-        } catch (err) {
-            console.log('Não foi possível criar o checkout do sinal:', err.message, '| Detalhes:', JSON.stringify(err.details));
-            try {
-                const limparPedido = firebase.functions().httpsCallable('limparPedidoFalhoDeCheckout');
-                await limparPedido({ pedidoId, token: obterTokenCliente() });
-            } catch (e2) { /* segue mesmo se não conseguir limpar */ }
-            alert('Não foi possível iniciar o pagamento do sinal. Tente novamente.');
-            botaoFinalizarCompra.disabled = false;
-            botaoFinalizarCompra.textContent = 'Finalizar Compra';
-        }
-        return;
-}
-
 async function processarPagamentoOnline(pedidoId, promessaSalvo) {
         if (!pedidoId) {
             alert('Não foi possível criar o pedido agora. Tente novamente em instantes.');
