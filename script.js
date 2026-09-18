@@ -1173,13 +1173,7 @@ async function pagarRestanteEncomenda(pedidoIdExplicito, botaoClicado) {
     btn.disabled = true;
     btn.textContent = 'Preparando pagamento...';
     try {
-        const criarCheckout = firebase.functions().httpsCallable('criarCheckoutRestanteEncomenda');
-        const resultado = await criarCheckout({ pedidoId });
-        if (resultado.data && resultado.data.checkoutUrl) {
-            window.location.href = resultado.data.checkoutUrl;
-        } else {
-            throw new Error('Não recebi o link de pagamento.');
-        }
+        await processarPagamentoRestanteEncomenda(pedidoId);
     } catch (err) {
         alert('Não foi possível preparar o pagamento do restante agora. Tenta de novo em instantes, ou fala com a gente pelo WhatsApp.');
         btn.disabled = false;
@@ -1353,14 +1347,57 @@ async function abrirMeusPedidos() {
             const timestamp = dataPedidoParaOrdenacao(pedido, meta);
             const dataFormatada = timestamp ? new Date(timestamp).toLocaleDateString('pt-BR') : 'Data não informada';
             const itensTexto = (pedido.itens || []).map(item => `${item.quantidade}x ${item.nome}`).join(', ');
-            const totalTexto = pedido.total != null ? `R$ ${Number(pedido.total).toFixed(2).replace('.', ',')}` : 'A confirmar';
+            const totalValor = pedido.total != null ? Number(pedido.total) : null;
+            const totalTexto = Number.isFinite(totalValor) ? formatarPrecoTexto(totalValor) : 'A confirmar';
             const statusTexto = rotulosStatusPedido[pedido.status] || pedido.status || '—';
             const numeroTexto = pedido.numero ? `Pedido #${pedido.numero}` : 'Pedido';
             const sinalPago = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' && pedido.pagamento.status === 'pago';
             const restanteJaPago = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'pago';
             const mostrarBotaoRestante = sinalPago && !restanteJaPago && pedido.status !== 'recusado';
-            const valorRestante = pedido.pagamentoRestante && Number(pedido.pagamentoRestante.valorRestante);
-            const valorRestanteTexto = Number.isFinite(valorRestante) ? `R$ ${valorRestante.toFixed(2).replace('.', ',')}` : '';
+
+            // Resumo financeiro Premium da encomenda. O valor do sinal vem do próprio
+            // pedido salvo (nunca da porcentagem atual da loja), então continua correto
+            // mesmo se a configuração de sinal mudar depois da compra.
+            const valorSinal = sinalPago && pedido.pagamento && pedido.pagamento.valorSinal != null
+                ? Number(pedido.pagamento.valorSinal)
+                : null;
+            const valorRestanteSalvo = pedido.pagamentoRestante && pedido.pagamentoRestante.valorRestante != null
+                ? Number(pedido.pagamentoRestante.valorRestante)
+                : null;
+            const valorRestanteCalculado = Number.isFinite(totalValor) && Number.isFinite(valorSinal)
+                ? Math.max(0, Math.round((totalValor - valorSinal) * 100) / 100)
+                : null;
+            const valorRestante = Number.isFinite(valorRestanteSalvo)
+                ? valorRestanteSalvo
+                : valorRestanteCalculado;
+            const valorRestanteTexto = Number.isFinite(valorRestante) ? formatarPrecoTexto(valorRestante) : '';
+            const mostrarResumoFinanceiro = sinalPago && Number.isFinite(valorSinal) && Number.isFinite(valorRestante);
+
+            const resumoFinanceiroHtml = mostrarResumoFinanceiro ? `
+                <div class="item-meus-pedidos-financeiro${restanteJaPago ? ' pagamento-completo' : ''}">
+                    <div class="item-meus-pedidos-financeiro-topo">
+                        <span>Pagamento da encomenda</span>
+                        <strong>${restanteJaPago ? '✅ Pagamento completo' : '✅ Sinal confirmado'}</strong>
+                    </div>
+                    <div class="item-meus-pedidos-financeiro-valores">
+                        <div class="item-meus-pedidos-financeiro-valor">
+                            <span>${restanteJaPago ? 'Sinal pago' : 'Pago no sinal'}</span>
+                            <strong>${formatarPrecoTexto(valorSinal)}</strong>
+                        </div>
+                        <div class="item-meus-pedidos-financeiro-valor">
+                            <span>${restanteJaPago ? 'Restante pago' : 'Falta pagar'}</span>
+                            <strong>${formatarPrecoTexto(valorRestante)}</strong>
+                        </div>
+                    </div>
+                    ${Number.isFinite(totalValor) ? `
+                        <div class="item-meus-pedidos-financeiro-total">
+                            <span>Total da encomenda</span>
+                            <strong>${formatarPrecoTexto(totalValor)}</strong>
+                        </div>
+                    ` : ''}
+                </div>
+            ` : '';
+
             return `
                 <div class="item-meus-pedidos">
                     <div class="item-meus-pedidos-topo">
@@ -1369,8 +1406,9 @@ async function abrirMeusPedidos() {
                     </div>
                     <p class="item-meus-pedidos-meta">${dataFormatada}${formaPagamentoPedidoTexto(pedido)}</p>
                     <p class="item-meus-pedidos-itens">${itensTexto || 'Itens não informados'}</p>
-                    <p class="item-meus-pedidos-total">${totalTexto}</p>
-                    ${mostrarBotaoRestante ? `<button class="btn-pagar-restante-lista" onclick="pagarRestanteEncomenda('${id}', this)">💳 Pagar o restante ${valorRestanteTexto}</button>` : ''}
+                    ${sinalPago && mostrarResumoFinanceiro ? '' : `<p class="item-meus-pedidos-total">${totalTexto}</p>`}
+                    ${resumoFinanceiroHtml}
+                    ${mostrarBotaoRestante ? `<button class="btn-pagar-restante-lista" onclick="pagarRestanteEncomenda('${id}', this)">💳 Pagar o restante${valorRestanteTexto ? ` • ${valorRestanteTexto}` : ''}</button>` : ''}
                 </div>
             `;
         });
