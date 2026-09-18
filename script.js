@@ -3065,17 +3065,9 @@ async function finalizarCompra() {
         }
     };
 
-    // ETAPA 4 — decisão de pagamento online passa a ler do contexto único.
-    // Só esta decisão usa o contexto nesta fase; o corpo do InfinitePay, sinal, falhas,
-    // limpeza e redirecionamentos continuam exatamente como estavam.
-    const pagamentoOnlineSelecionado = contextoCheckout.pagamento.onlineAtivo
-        && !contextoCheckout.encomenda.querAgendar
-        && (contextoCheckout.pagamento.forma === 'Pix' || contextoCheckout.pagamento.forma === 'Cartão');
-
-    // ETAPA 5 — a decisão do sinal da encomenda também passa a usar o contexto único.
-    // O corpo do checkout do sinal continua intocado; só a condição de entrada foi centralizada.
-    const sinalEncomendaSelecionado = contextoCheckout.encomenda.querAgendar
-        && contextoCheckout.encomenda.percentualSinal > 0;
+    // PASSO 15 — as decisões financeiras saem do script.js.
+    // O contexto completo segue para pagamento.js, que decide internamente se o pedido
+    // usa sinal, pagamento online ou continua no fluxo normal do checkout.
 
     // ETAPA 3 — primeiras leituras reais do contexto único.
     // Apenas dados de cadastro/entrega/carrinho/cupom/totais/fidelidade passam a sair do
@@ -3158,11 +3150,37 @@ async function finalizarCompra() {
     // Nome, telefone e endereço permanecem disponíveis nas próximas visitas.
     salvarDadosClienteCompleto();
 
+    // PASSO 14 — o módulo de pagamento recebe as ações que dependem do script.js,
+    // em vez de acessar diretamente carrinho, botão, token e funções de interface.
+    const acoesPagamentoCheckout = {
+        avisar: (mensagem) => alert(mensagem),
+        prepararBotao: (texto) => {
+            botaoFinalizarCompra.disabled = true;
+            botaoFinalizarCompra.textContent = texto;
+        },
+        restaurarBotao: (texto) => {
+            botaoFinalizarCompra.disabled = false;
+            botaoFinalizarCompra.textContent = texto;
+        },
+        limparPedidoFalho: async (pedidoIdFalho) => {
+            const limparPedido = firebase.functions().httpsCallable('limparPedidoFalhoDeCheckout');
+            await limparPedido({ pedidoId: pedidoIdFalho, token: obterTokenCliente() });
+        },
+        concluirCheckout: (checkoutUrl) => {
+            registrarEventoConversaoFront('checkout');
+            carrinho = [];
+            salvarCarrinho();
+            atualizarCarrinhoHTML();
+            limparFormularioEndereco();
+            window.location.href = checkoutUrl;
+        }
+    };
+
     const pagamentoProcessado = await processarPagamentoCheckout({
-        sinalEncomendaSelecionado,
-        pagamentoOnlineSelecionado,
+        contextoCheckout,
         pedidoId,
-        promessaSalvo
+        promessaSalvo,
+        acoesPagamentoCheckout
     });
 
     if (pagamentoProcessado) {
