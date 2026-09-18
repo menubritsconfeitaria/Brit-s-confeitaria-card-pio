@@ -71,6 +71,7 @@
         // sempre inclui no retorno (é o mesmo valor) — cobre o caso de um dos dois "sumir"
         // por causa de como a InfinitePay monta a URL de volta
         const pedidoId = parametros.get('pedido') || parametros.get('order_nsu');
+        const fasePagamento = parametros.get('fase') || 'normal';
         const numeroTexto = document.getElementById('numeroPedidoTexto');
         const statusTexto = document.getElementById('statusTexto');
         const statusBadge = document.getElementById('statusBadge');
@@ -91,6 +92,33 @@
         function atualizarTelaComPedido(pedido) {
             if (!pedido) return;
             numeroTexto.textContent = pedido.numero ? `Pedido #${String(pedido.numero).padStart(3, '0')}` : '';
+
+            // O retorno do pagamento do restante chega com ?fase=restante. Nesse caso,
+            // acompanha especificamente pagamentoRestante para não confundir o sinal já pago
+            // com a quitação final da encomenda.
+            if (fasePagamento === 'restante') {
+                const pagamentoRestante = pedido.pagamentoRestante || {};
+                const statusRestante = pagamentoRestante.status;
+                if (statusRestante === 'pago') {
+                    const valorRestante = Number(pagamentoRestante.valorRestante || 0);
+                    statusBadge.className = 'status-badge status-pago';
+                    statusBadge.innerHTML = '🟢 Restante confirmado!';
+                    statusTexto.textContent = valorRestante > 0
+                        ? `Recebemos o restante de R$ ${valorRestante.toFixed(2).replace('.', ',')}. Sua encomenda está com o pagamento completo.`
+                        : 'Recebemos o restante. Sua encomenda está com o pagamento completo.';
+                    return true;
+                } else if (statusRestante === 'divergente') {
+                    statusBadge.className = 'status-badge status-divergente';
+                    statusBadge.innerHTML = '⚠️ Precisa de atenção';
+                    statusTexto.textContent = 'Encontramos uma diferença no pagamento do restante. A loja vai entrar em contato com você.';
+                    return true;
+                } else {
+                    statusBadge.className = 'status-badge status-aguardando';
+                    statusBadge.innerHTML = '<span class="girando">🔄</span> Confirmando restante...';
+                    statusTexto.textContent = 'Estamos confirmando o pagamento do restante — pode aguardar aqui, a página se atualiza sozinha.';
+                    return false;
+                }
+            }
 
             const status = pedido.pagamento && pedido.pagamento.status;
             const ehSinal = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal';

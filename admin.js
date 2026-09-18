@@ -1854,6 +1854,24 @@ function montarTagPagamento(pedido) {
         return '<span class="pedido-tag tag-pagamento-pago">🟢 Pago (confirmado manualmente)</span>';
     }
     const ehSinal = p.tipoPagamento === 'sinal';
+    const restantePago = ehSinal && pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'pago';
+
+    // Quando o sinal e o restante já foram pagos, o pedido está financeiramente quitado.
+    // Essa é apenas uma leitura dos dados já confirmados pelo webhook; não altera pagamento nenhum.
+    if (restantePago) {
+        const valorSinal = Number(p.valorSinal || 0);
+        const valorRestante = Number(pedido.pagamentoRestante.valorRestante || 0);
+        const totalPago = valorSinal + valorRestante;
+        let html = `<span class="pedido-tag tag-pagamento-pago">🟢 Pagamento completo — sinal ${formatarPreco(valorSinal)} + restante ${formatarPreco(valorRestante)} = ${formatarPreco(totalPago)}</span>`;
+        if (p.receiptUrl) {
+            html += ` <a href="${p.receiptUrl}" target="_blank" rel="noopener noreferrer" class="link-comprovante">🧾 Comprovante do sinal</a>`;
+        }
+        if (pedido.pagamentoRestante.receiptUrl) {
+            html += ` <a href="${pedido.pagamentoRestante.receiptUrl}" target="_blank" rel="noopener noreferrer" class="link-comprovante">🧾 Comprovante do restante</a>`;
+        }
+        return html;
+    }
+
     const totalPedido = totalDoPedido(pedido);
     const restante = ehSinal && p.valorSinal != null ? formatarPreco(totalPedido - p.valorSinal) : null;
     const freteTexto = ehSinal && p.freteInformado > 0 ? ` (esse valor já inclui o frete de ${formatarPreco(p.freteInformado)})` : '';
