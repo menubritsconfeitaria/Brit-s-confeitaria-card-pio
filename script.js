@@ -2819,41 +2819,6 @@ function repetirUltimoPedido() {
     }
 }
 
-async function processarPagamentoOnline(pedidoId, promessaSalvo) {
-        if (!pedidoId) {
-            alert('Não foi possível criar o pedido agora. Tente novamente em instantes.');
-            return;
-        }
-        botaoFinalizarCompra.disabled = true;
-        botaoFinalizarCompra.textContent = 'Preparando pagamento...';
-        try {
-            // Espera o pedido REALMENTE terminar de ser escrito no banco antes de pedir
-            // pra Cloud Function ler ele — senão, ela pode chegar cedo demais e não achar nada
-            await promessaSalvo;
-            const criarCheckout = firebase.functions().httpsCallable('criarCheckoutInfinitePay');
-            const resultado = await criarCheckout({ pedidoId });
-            registrarEventoConversaoFront('checkout');
-            carrinho = [];
-            salvarCarrinho();
-            atualizarCarrinhoHTML();
-            limparFormularioEndereco();
-            window.location.href = resultado.data.checkoutUrl;
-        } catch (err) {
-            console.log('Não foi possível criar o checkout de pagamento:', err.message, '| Detalhes:', JSON.stringify(err.details));
-            // Apaga o pedido malsucedido via Cloud Function — o cliente (sem login)
-            // não tem permissão de apagar direto, só criar. Sem isso, cada nova
-            // tentativa ficava empilhando pedidos duplicados no painel
-            try {
-                const limparPedido = firebase.functions().httpsCallable('limparPedidoFalhoDeCheckout');
-                await limparPedido({ pedidoId, token: obterTokenCliente() });
-            } catch (e2) { /* segue mesmo se não conseguir limpar */ }
-            alert('Não foi possível iniciar o pagamento. Tente novamente.');
-            botaoFinalizarCompra.disabled = false;
-            botaoFinalizarCompra.textContent = '🌐 Pagar Agora';
-        }
-        return;
-}
-
 async function finalizarCompra() {
     // Proteção contra clique duplo — sem isso, clicar 2x rápido (comum no celular)
     // cria 2 pedidos duplicados de verdade, com cobrança/contagem em dobro
