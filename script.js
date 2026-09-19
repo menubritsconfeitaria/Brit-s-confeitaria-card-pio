@@ -1172,7 +1172,7 @@ function mostrarStatusPedido(pedidoId) {
     refStatusPedidoAtual = setInterval(atualizar, 3500);
 }
 
-function escolherFormaPagamentoRestante() {
+function escolherFormaPagamentoRestante(permitirDinheiro = false) {
     return new Promise(resolve => {
         let modal = document.getElementById('modalFormaPagamentoRestante');
 
@@ -1217,6 +1217,9 @@ function escolherFormaPagamentoRestante() {
                         line-height:1.45;
                     ">
                         Escolha agora a forma de pagamento do restante da encomenda.
+                        <span data-aviso-data-dinheiro style="display:block;margin-top:8px;">
+                            Dinheiro fica disponível a partir do dia agendado para entrega ou retirada.
+                        </span>
                     </div>
 
                     <div style="display:grid;gap:10px;">
@@ -1291,6 +1294,10 @@ function escolherFormaPagamentoRestante() {
             document.body.appendChild(modal);
         }
 
+        // Atualiza também ao reutilizar o modal para outro pedido.
+        modal.querySelector('[data-forma-restante="Dinheiro"]').style.display = permitirDinheiro ? '' : 'none';
+        modal.querySelector('[data-aviso-data-dinheiro]').style.display = permitirDinheiro ? 'none' : 'block';
+
         let resolvido = false;
 
         const finalizar = forma => {
@@ -1335,16 +1342,20 @@ async function pagarRestanteEncomenda(pedidoIdExplicito, botaoClicado) {
     btn.disabled = true;
     btn.textContent = 'Escolha como pagar...';
 
-    const formaEscolhida =
-        await escolherFormaPagamentoRestante();
-
-    if (!formaEscolhida) {
-        btn.disabled = false;
-        btn.textContent = textoOriginal;
-        return;
-    }
-
     try {
+        // Consulta a permissão no clique: não depende da data/relógio do navegador.
+        const pedidoAtual = await consultarStatusPedidoSeguro(pedidoId);
+        if (!pedidoAtual) throw new Error('Não foi possível consultar o pedido.');
+        const formaEscolhida = await escolherFormaPagamentoRestante(
+            pedidoAtual.restanteDinheiroLiberado === true
+        );
+
+        if (!formaEscolhida) {
+            btn.disabled = false;
+            btn.textContent = textoOriginal;
+            return;
+        }
+
         if (formaEscolhida === 'Dinheiro') {
             btn.textContent = 'Registrando pagamento em dinheiro...';
 
