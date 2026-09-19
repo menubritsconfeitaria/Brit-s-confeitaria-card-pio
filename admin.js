@@ -1981,18 +1981,57 @@ function aplicarUrgenciaVisualCard(card, pedido, comAcoes) {
                 'tempo-atrasado'
             );
 
-            badge.classList.add('tempo-normal');
+            badge.classList.add('tempo-normal', 'pedido-agendamento-premium');
+
+            // Encomenda agendada não usa cronômetro operacional antes da data.
+            // O aviso sai do cantinho do horário e vira uma faixa própria logo abaixo
+            // do cabeçalho, evitando estouro lateral em colunas estreitas do kanban.
+            const topo = card.querySelector('.pedido-topo');
+            if (topo && badge.parentElement !== card) {
+                topo.insertAdjacentElement('afterend', badge);
+            }
+
+            badge.style.cssText = [
+                'display:flex',
+                'align-items:center',
+                'justify-content:space-between',
+                'gap:10px',
+                'width:100%',
+                'box-sizing:border-box',
+                'margin:9px 0 10px',
+                'padding:9px 11px',
+                'border:1px solid rgba(41,145,88,.16)',
+                'border-radius:12px',
+                'background:linear-gradient(135deg,rgba(231,248,238,.98),rgba(245,252,248,.98))',
+                'box-shadow:0 5px 14px rgba(31,116,70,.06)',
+                'font-size:11px',
+                'line-height:1.25',
+                'white-space:normal',
+                'overflow:visible',
+                'color:#246b45'
+            ].join(';');
 
             if (dataEncomenda === hoje) {
-                badge.textContent = '📅 Encomenda para hoje';
+                badge.innerHTML = `
+                    <span style="display:flex;align-items:center;gap:6px;font-weight:800;min-width:0;">
+                        <span aria-hidden="true">📅</span>
+                        <span>Encomenda para hoje</span>
+                    </span>
+                    <span style="font-size:10px;font-weight:800;opacity:.78;white-space:nowrap;">DIA AGENDADO</span>
+                `;
             } else {
                 const dataBr = dataEncomenda
                     .split('-')
                     .reverse()
                     .join('/');
 
-                badge.textContent =
-                    `📅 ${dataBr} • Aguardando a data agendada`;
+                badge.innerHTML = `
+                    <span style="display:flex;align-items:center;gap:6px;font-weight:850;white-space:nowrap;">
+                        <span aria-hidden="true">📅</span>
+                        <span>${dataBr}</span>
+                    </span>
+                    <span style="font-size:10.5px;font-weight:750;text-align:right;min-width:0;">Aguardando a data agendada</span>
+                `;
             }
         }
 
