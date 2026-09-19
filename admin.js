@@ -1718,9 +1718,10 @@ function alternarPagamentoConfirmadoManual(id, novoValor) {
         .catch(err => alert('Erro ao atualizar: ' + err.message));
 }
 
-// PASSO 18B — confirma no servidor o recebimento do restante em dinheiro.
-// Só aparece para encomenda com sinal pago + restante em dinheiro aguardando recebimento.
-// A Cloud Function exige usuário autenticado no painel e reconfere o estado do pedido.
+// PASSO 18B — confirma no servidor o recebimento presencial do restante.
+// O cliente não precisa escolher "Dinheiro" no site: no dia agendado, se o sinal já
+// está pago e o restante ainda não foi quitado online, a loja confirma o recebimento aqui.
+// A Cloud Function exige usuário autenticado no painel e reconfere todo o estado do pedido.
 async function confirmarRecebimentoRestanteDinheiro(id, botao) {
     if (!id) return;
 
@@ -2148,13 +2149,18 @@ function montarCardPedido(id, pedido, comAcoes) {
     }
 
     const pagamentoEhSinal = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal';
-    const restanteDinheiroAguardandoRecebimento = pagamentoEhSinal &&
-        pedido.pagamento && pedido.pagamento.status === 'pago' &&
-        pedido.pagamentoRestante &&
-        pedido.pagamentoRestante.status === 'aguardando_recebimento' &&
-        pedido.pagamentoRestante.forma === 'Dinheiro';
+    const sinalConfirmado = pagamentoEhSinal && pedido.pagamento.status === 'pago';
+    const restanteAtual = pedido.pagamentoRestante || null;
+    const restanteJaPago = !!(restanteAtual && restanteAtual.status === 'pago');
+    // Se existe um checkout online ainda aguardando na InfinitePay, não oferecemos
+    // confirmação presencial ao mesmo tempo. Isso evita dois caminhos de cobrança ativos.
+    const restanteOnlineEmAndamento = !!(restanteAtual &&
+        restanteAtual.status === 'aguardando' &&
+        restanteAtual.provedor === 'infinitepay');
     const dataEncomendaConfirmacao = String(pedido.dataEncomenda || '').trim();
-    const restanteDinheiroPodeSerConfirmado = restanteDinheiroAguardandoRecebimento &&
+    const restanteDinheiroPodeSerConfirmado = sinalConfirmado &&
+        !restanteJaPago &&
+        !restanteOnlineEmAndamento &&
         /^\d{4}-\d{2}-\d{2}$/.test(dataEncomendaConfirmacao) &&
         dataEncomendaConfirmacao <= hojeIsoLocal() &&
         pedido.status !== 'recusado';
