@@ -131,8 +131,26 @@ let primeiraCargaConcluida = false;
  * normal — é o caso da Brit's e de qualquer cliente em dia).
  */
 function hojeIsoLocal() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const partes = {};
+    new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).formatToParts(new Date()).forEach(parte => {
+        if (parte.type !== 'literal') partes[parte.type] = parte.value;
+    });
+    return `${partes.year}-${partes.month}-${partes.day}`;
+}
+
+function escaparHtmlSeguro(valor) {
+    return String(valor == null ? '' : valor).replace(/[&<>"']/g, caractere => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    })[caractere]);
 }
 
 function dataIsoParaDateLocal(dataIso) {
@@ -149,8 +167,8 @@ function formatarDataIsoBr(dataIso) {
 function diferencaDiasDataIso(dataIso) {
     const alvo = dataIsoParaDateLocal(dataIso);
     if (!alvo) return null;
-    const hoje = new Date();
-    const hojeMeioDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 12, 0, 0, 0);
+    const hojeMeioDia = dataIsoParaDateLocal(hojeIsoLocal());
+    if (!hojeMeioDia) return null;
     return Math.ceil((alvo.getTime() - hojeMeioDia.getTime()) / 86400000);
 }
 
@@ -1820,40 +1838,40 @@ function formatarHora(timestamp) {
 function montarHtmlTicketImpressao(pedido, numeroPedido) {
     const tipoLabel = pedido.tipoEntrega === 'entrega' ? '🛵 Delivery' : '🏠 Retirada no local';
     const enderecoLinha = pedido.tipoEntrega === 'entrega'
-        ? `<p><strong>Endereço:</strong> ${formatarEnderecoResumo(pedido.endereco)}</p>`
+        ? `<p><strong>Endereço:</strong> ${escaparHtmlSeguro(formatarEnderecoResumo(pedido.endereco))}</p>`
         : '';
     const numeroHtml = numeroPedido
-        ? `<p class="ticket-numero">🛒 Pedido #${String(numeroPedido).padStart(3, '0')}</p>`
+        ? `<p class="ticket-numero">🛒 Pedido #${escaparHtmlSeguro(String(numeroPedido).padStart(3, '0'))}</p>`
         : '';
     const itensHtml = (pedido.itens || []).map(item => `
         <div class="ticket-item">
-            <strong>${item.quantidade}x ${item.nome}</strong>
-            ${item.observacao ? `<div class="ticket-obs">↳ ${item.observacao}</div>` : ''}
-            ${item.adicionaisTexto ? `<div class="ticket-obs">↳ ${item.adicionaisTexto}</div>` : ''}
+            <strong>${escaparHtmlSeguro(item.quantidade)}x ${escaparHtmlSeguro(item.nome)}</strong>
+            ${item.observacao ? `<div class="ticket-obs">↳ ${escaparHtmlSeguro(item.observacao)}</div>` : ''}
+            ${item.adicionaisTexto ? `<div class="ticket-obs">↳ ${escaparHtmlSeguro(item.adicionaisTexto)}</div>` : ''}
         </div>
     `).join('');
 
     return `
         <div class="ticket-cabecalho">
-            <h2>${LOJA_CONFIG.nome}</h2>
+            <h2>${escaparHtmlSeguro(LOJA_CONFIG.nome)}</h2>
             ${numeroHtml}
-            <p>${formatarHora(pedido.timestamp) || 'Não informado'}</p>
+            <p>${escaparHtmlSeguro(formatarHora(pedido.timestamp) || 'Não informado')}</p>
         </div>
         <hr>
-        <p><strong>Cliente:</strong> ${pedido.nome || 'Não informado'}</p>
-        <p><strong>Telefone:</strong> ${pedido.telefone || 'Não informado'}</p>
+        <p><strong>Cliente:</strong> ${escaparHtmlSeguro(pedido.nome || 'Não informado')}</p>
+        <p><strong>Telefone:</strong> ${escaparHtmlSeguro(pedido.telefone || 'Não informado')}</p>
         <p><strong>${tipoLabel}</strong></p>
         ${enderecoLinha}
         <hr>
         <h3>Itens do pedido</h3>
         ${itensHtml}
         <hr>
-        <p><strong>Forma de pagamento:</strong> ${pedido.formaPagamento || 'Não informado'}</p>
-        ${pedido.troco ? `<p><strong>${formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))}</strong></p>` : ''}
-        ${pedido.observacoes ? `<p><strong>Observações:</strong> ${pedido.observacoes}</p>` : ''}
-        ${pedido.recompensaResgatada ? `<p><strong>🎁 RESGATE DO CLUBE:</strong> ${pedido.recompensaResgatada.descricao}</p>` : ''}
-        ${pedido.dataEncomenda ? `<p><strong>📅 ENCOMENDA:</strong> ${pedido.dataEncomenda.split('-').reverse().join('/')}${pedido.horaEncomenda ? ` às ${pedido.horaEncomenda}` : ''}</p>` : ''}
-        ${pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' ? `<p><strong>💰 SINAL:</strong> ${pedido.pagamento.percentualSinal}% do produto pago (${formatarPreco(pedido.pagamento.valorSinal)}) — falta ${formatarPreco(totalDoPedido(pedido) - pedido.pagamento.valorSinal)} na entrega${pedido.pagamento.freteInformado > 0 ? ` (esse valor já inclui o frete de ${formatarPreco(pedido.pagamento.freteInformado)})` : ''}</p>` : ''}
+        <p><strong>Forma de pagamento:</strong> ${escaparHtmlSeguro(pedido.formaPagamento || 'Não informado')}</p>
+        ${pedido.troco ? `<p><strong>${escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido)))}</strong></p>` : ''}
+        ${pedido.observacoes ? `<p><strong>Observações:</strong> ${escaparHtmlSeguro(pedido.observacoes)}</p>` : ''}
+        ${pedido.recompensaResgatada ? `<p><strong>🎁 RESGATE DO CLUBE:</strong> ${escaparHtmlSeguro(pedido.recompensaResgatada.descricao)}</p>` : ''}
+        ${pedido.dataEncomenda ? `<p><strong>📅 ENCOMENDA:</strong> ${escaparHtmlSeguro(pedido.dataEncomenda.split('-').reverse().join('/'))}${pedido.horaEncomenda ? ` às ${escaparHtmlSeguro(pedido.horaEncomenda)}` : ''}</p>` : ''}
+        ${pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' ? `<p><strong>💰 SINAL:</strong> ${escaparHtmlSeguro(pedido.pagamento.percentualSinal)}% do produto pago (${formatarPreco(pedido.pagamento.valorSinal)}) — falta ${formatarPreco(totalDoPedido(pedido) - pedido.pagamento.valorSinal)} na entrega${pedido.pagamento.freteInformado > 0 ? ` (esse valor já inclui o frete de ${formatarPreco(pedido.pagamento.freteInformado)})` : ''}</p>` : ''}
         <p class="ticket-total"><strong>Total: ${formatarPreco(totalDoPedido(pedido))}</strong></p>
         <div class="ticket-espaco-final" aria-hidden="true"></div>
         <hr class="ticket-linha-final">
@@ -2203,18 +2221,29 @@ function montarCardPedido(id, pedido, comAcoes) {
 
     let itensHtml = '';
     (pedido.itens || []).forEach(item => {
-        itensHtml += `<li><span>${item.quantidade}x ${item.nome}${item.observacao ? ` <em>— ${item.observacao}</em>` : ''}${item.adicionaisTexto ? ` <em>(${item.adicionaisTexto})</em>` : ''}</span><span>${formatarPreco(item.preco * item.quantidade)}</span></li>`;
+        const quantidadeSegura = escaparHtmlSeguro(item.quantidade);
+        const nomeSeguro = escaparHtmlSeguro(item.nome);
+        const observacaoSegura = item.observacao ? escaparHtmlSeguro(item.observacao) : '';
+        const adicionaisSeguros = item.adicionaisTexto ? escaparHtmlSeguro(item.adicionaisTexto) : '';
+        itensHtml += `<li><span>${quantidadeSegura}x ${nomeSeguro}${observacaoSegura ? ` <em>— ${observacaoSegura}</em>` : ''}${adicionaisSeguros ? ` <em>(${adicionaisSeguros})</em>` : ''}</span><span>${formatarPreco(item.preco * item.quantidade)}</span></li>`;
     });
 
     let enderecoHtml = '';
     if (pedido.tipoEntrega === 'entrega' && pedido.endereco) {
         const e = pedido.endereco;
-        enderecoHtml = `<div class="pedido-endereco">📍 ${e.rua || ''}, ${e.numero || ''} ${e.complemento ? '(' + e.complemento + ')' : ''} — ${e.bairro || ''}, ${e.cidade || ''}/${e.estado || ''} — CEP ${e.cep || ''}</div>`;
+        const rua = escaparHtmlSeguro(e.rua || '');
+        const numero = escaparHtmlSeguro(e.numero || '');
+        const complemento = escaparHtmlSeguro(e.complemento || '');
+        const bairro = escaparHtmlSeguro(e.bairro || '');
+        const cidade = escaparHtmlSeguro(e.cidade || '');
+        const estado = escaparHtmlSeguro(e.estado || '');
+        const cep = escaparHtmlSeguro(e.cep || '');
+        enderecoHtml = `<div class="pedido-endereco">📍 ${rua}, ${numero} ${complemento ? '(' + complemento + ')' : ''} — ${bairro}, ${cidade}/${estado} — CEP ${cep}</div>`;
     }
 
-    const obsHtml = pedido.observacoes ? `<div class="pedido-obs">📝 ${pedido.observacoes}</div>` : '';
+    const obsHtml = pedido.observacoes ? `<div class="pedido-obs">📝 ${escaparHtmlSeguro(pedido.observacoes)}</div>` : '';
     const resgateHtml = pedido.recompensaResgatada
-        ? `<div class="pedido-resgate">🎁 Cliente do Clube resgatou: <strong>${pedido.recompensaResgatada.descricao}</strong> — separa isso no pedido!</div>`
+        ? `<div class="pedido-resgate">🎁 Cliente do Clube resgatou: <strong>${escaparHtmlSeguro(pedido.recompensaResgatada.descricao)}</strong> — separa isso no pedido!</div>`
         : '';
     const dataEncomendaCard = String(pedido.dataEncomenda || '').trim();
     const horaEncomendaCard = /^([01]\d|2[0-3]):[0-5]\d$/.test(String(pedido.horaEncomenda || ''))
@@ -2299,10 +2328,10 @@ function montarCardPedido(id, pedido, comAcoes) {
     div.innerHTML = `
         <div class="pedido-topo">
             <div>
-                <div class="pedido-cliente">${pedido.numero ? `<span class="pedido-numero">🛒Pedido #${String(pedido.numero).padStart(3, '0')}</span> - ` : ''}${pedido.nome || 'Cliente'}</div>
+                <div class="pedido-cliente">${pedido.numero ? `<span class="pedido-numero">🛒Pedido #${escaparHtmlSeguro(String(pedido.numero).padStart(3, '0'))}</span> - ` : ''}${escaparHtmlSeguro(pedido.nome || 'Cliente')}</div>
                 <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;">
                     <span class="pedido-tag ${pedido.tipoEntrega === 'entrega' ? 'tag-entrega' : 'tag-retirada'}">${pedido.tipoEntrega === 'entrega' ? '🛵 Entrega' : '🏠 Retirada'}</span>
-                    <span class="pedido-tag tag-pagamento" style="cursor:pointer;" onclick="editarFormaPagamentoPedido('${id}', this)" title="Clique pra corrigir a forma de pagamento">💰 ${pedido.formaPagamento || ''}${pedido.troco ? ' (' + formatarTrocoLabel(pedido.troco, totalDoPedido(pedido)) + ')' : ''} ✏️</span>
+                    <span class="pedido-tag tag-pagamento" style="cursor:pointer;" onclick="editarFormaPagamentoPedido('${id}', this)" title="Clique pra corrigir a forma de pagamento">💰 ${escaparHtmlSeguro(pedido.formaPagamento || '')}${pedido.troco ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''} ✏️</span>
                     ${botaoPagamentoManualHtml}
                     ${tagStatus}
                 </div>
@@ -2317,7 +2346,7 @@ function montarCardPedido(id, pedido, comAcoes) {
         ${avisoAgendamentoTopoHtml}
         ${resgateHtml}
         ${encomendaHtml}
-        <div>📞 ${pedido.telefone || ''}</div>
+        <div>📞 ${escaparHtmlSeguro(pedido.telefone || '')}</div>
         <ul class="pedido-itens">${itensHtml}</ul>
         <div class="pedido-total-linha"><span>Subtotal</span><span>${formatarPreco(pedido.subtotal)}</span></div>
         ${freteLinha}
@@ -2354,7 +2383,9 @@ async function verificarRecompensaDisponivelNoPedido(id, pedido) {
 
         const alvo = document.getElementById('avisoRecompensaDisponivel_' + id);
         if (!alvo) return; // card pode já ter sumido da tela (pedido finalizado rápido)
-        const listaTexto = disponiveis.map(r => `${r.descricao} (${r.pontos} pts)`).join(' · ');
+        const listaTexto = disponiveis
+            .map(r => `${escaparHtmlSeguro(r.descricao)} (${escaparHtmlSeguro(r.pontos)} pts)`)
+            .join(' · ');
         alvo.innerHTML = `<div class="pedido-resgate">⭐ Esse cliente já TEM pontos pra resgatar: <strong>${listaTexto}</strong> — vale oferecer!</div>`;
     } catch (err) {
         console.log('Não foi possível checar recompensa disponível:', err.message);
@@ -3483,11 +3514,12 @@ function adicionarPeriodoNaListaPendente() {
     if (!dataInicio) { msgEl.textContent = 'Escolhe pelo menos a data de início.'; return; }
     if (dataFim < dataInicio) { msgEl.textContent = 'A data final não pode ser antes da inicial.'; return; }
 
-    let cursor = new Date(dataInicio + 'T00:00:00');
-    const fim = new Date(dataFim + 'T00:00:00');
+    let cursor = new Date(dataInicio + 'T12:00:00Z');
+    const fim = new Date(dataFim + 'T12:00:00Z');
     while (cursor <= fim) {
-        datasPendentesDeBloqueio.add(cursor.toISOString().slice(0, 10));
-        cursor.setDate(cursor.getDate() + 1);
+        const dataIso = `${cursor.getUTCFullYear()}-${String(cursor.getUTCMonth() + 1).padStart(2, '0')}-${String(cursor.getUTCDate()).padStart(2, '0')}`;
+        datasPendentesDeBloqueio.add(dataIso);
+        cursor.setUTCDate(cursor.getUTCDate() + 1);
     }
     document.getElementById('dataInicioBloqueio').value = '';
     document.getElementById('dataFimBloqueio').value = '';
@@ -9357,8 +9389,7 @@ function escaparHtmlCupomAdmin(valor) {
 }
 
 function hojeIsoCupomAdmin() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return hojeIsoLocal();
 }
 
 function formatarDataCupomAdmin(dataIso) {

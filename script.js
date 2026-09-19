@@ -2,7 +2,106 @@ console.log("O script.js foi carregado com sucesso!");
 
 // Produtos e cupons agora vêm do Firebase (gerenciados pelo painel admin.html).
 // Começam vazios e são preenchidos assim que a função escutarProdutos()/escutarCupons() carregar os dados.
+
 let produtos = [];
+
+// ---------- DATA/HORA OPERACIONAL DA LOJA ----------
+// Usa explicitamente o fuso da loja, em vez do UTC ou do fuso configurado no aparelho.
+// Isso evita virada de dia errada em cupom, encomenda e disponibilidade programada.
+function obterPartesAgoraSaoPaulo(data = new Date()) {
+    const partes = {};
+    new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23'
+    }).formatToParts(data).forEach(parte => {
+        if (parte.type !== 'literal') partes[parte.type] = parte.value;
+    });
+
+    const dataIso = `${partes.year}-${partes.month}-${partes.day}`;
+    const hora = `${partes.hour}:${partes.minute}`;
+    // Meio-dia em UTC preserva a data civil e permite obter o dia da semana sem
+    // depender do fuso local do navegador.
+    const diaSemana = new Date(`${dataIso}T12:00:00Z`).getUTCDay();
+    return {
+        dataIso,
+        hora,
+        diaSemana,
+        minutos: (Number(partes.hour) * 60) + Number(partes.minute)
+    };
+}
+
+function hojeIsoSaoPaulo() {
+    return obterPartesAgoraSaoPaulo().dataIso;
+}
+
+function minutosDeHorario(horario) {
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(horario || ''))) return null;
+    const [h, m] = String(horario).split(':').map(Number);
+    return (h * 60) + m;
+}
+
+function produtoDisponivelPorHorarioAgora(produto, agora = obterPartesAgoraSaoPaulo()) {
+    const agenda = produto && produto.agendaDisponibilidade;
+    if (!agenda || agenda.ativa !== true || !agenda.dias || typeof agenda.dias !== 'object') return true;
+
+    const regraValida = regra => !!(
+        regra &&
+        regra.ativo === true &&
+        minutosDeHorario(regra.inicio) != null &&
+        minutosDeHorario(regra.fim) != null
+    );
+
+    const dentroDaRegra = (regra, minutos, parteDoDiaAnterior = false) => {
+        if (!regraValida(regra)) return false;
+        const inicio = minutosDeHorario(regra.inicio);
+        const fim = minutosDeHorario(regra.fim);
+
+        if (inicio < fim) {
+            return !parteDoDiaAnterior && minutos >= inicio && minutos < fim;
+        }
+        if (inicio > fim) {
+            // Janela atravessando a meia-noite, ex.: 18:00 até 02:00.
+            return parteDoDiaAnterior ? minutos < fim : minutos >= inicio;
+        }
+        // Mesmo horário inicial/final não cria uma janela de venda válida.
+        return false;
+    };
+
+    const regraHoje = agenda.dias[agora.diaSemana] || agenda.dias[String(agora.diaSemana)];
+    if (dentroDaRegra(regraHoje, agora.minutos, false)) return true;
+
+    const diaAnterior = (agora.diaSemana + 6) % 7;
+    const regraAnterior = agenda.dias[diaAnterior] || agenda.dias[String(diaAnterior)];
+    if (dentroDaRegra(regraAnterior, agora.minutos, true)) return true;
+
+    return false;
+}
+
+function encomendaAindaFutura(pedido, agora = obterPartesAgoraSaoPaulo()) {
+    const data = pedido && String(pedido.dataEncomenda || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return false;
+    if (data > agora.dataIso) return true;
+    if (data < agora.dataIso) return false;
+
+    const hora = pedido && String(pedido.horaEncomenda || '').trim();
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) return false;
+    return hora > agora.hora;
+}
+
+function formatarMomentoEncomendaCliente(pedido) {
+    const data = pedido && String(pedido.dataEncomenda || '').trim();
+    const hora = pedido && String(pedido.horaEncomenda || '').trim();
+    const dataBr = /^\d{4}-\d{2}-\d{2}$/.test(data)
+        ? data.split('-').reverse().join('/')
+        : '';
+    const horaValida = /^([01]\d|2[0-3]):[0-5]\d$/.test(hora) ? hora : '';
+    return [dataBr, horaValida ? `às ${horaValida}` : ''].filter(Boolean).join(' ');
+}
 
 // Carrega o carrinho do Local Storage ou inicializa como vazio
 let carrinho = JSON.parse(localStorage.getItem('carrinho')) || [];
@@ -236,7 +335,7 @@ function aplicarCupom() {
     }
 
     // Confere o período de validade, se configurado
-    const hojeISO = new Date().toISOString().slice(0, 10);
+    const hojeISO = hojeIsoSaoPaulo();
     if (cupom.validoDe && hojeISO < cupom.validoDe) {
         cupomAplicado = null;
         msg.textContent = `Esse cupom só é válido a partir de ${cupom.validoDe.split('-').reverse().join('/')}.`;
@@ -613,6 +712,29 @@ function escutarConfigFrete() {
     });
 }
 
+let assinaturaDisponibilidadeProdutos = '';
+
+function calcularAssinaturaDisponibilidadeProdutos() {
+    const agora = obterPartesAgoraSaoPaulo();
+    return produtos
+        .filter(p => p && p.agendaDisponibilidade && p.agendaDisponibilidade.ativa === true)
+        .map(p => `${p.id || p.nome}:${produtoDisponivelPorHorarioAgora(p, agora) ? '1' : '0'}`)
+        .join('|');
+}
+
+function atualizarProdutosSeVirarHorarioProgramado() {
+    const novaAssinatura = calcularAssinaturaDisponibilidadeProdutos();
+    if (assinaturaDisponibilidadeProdutos && novaAssinatura !== assinaturaDisponibilidadeProdutos) {
+        assinaturaDisponibilidadeProdutos = novaAssinatura;
+        renderizarProdutos();
+        atualizarAvisoOferta();
+        return;
+    }
+    assinaturaDisponibilidadeProdutos = novaAssinatura;
+}
+
+setInterval(atualizarProdutosSeVirarHorarioProgramado, 30000);
+
 function escutarProdutos() {
     if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) {
         listaProdutosDiv.innerHTML = '<p class="cardapio-erro">Não foi possível carregar o cardápio agora. Recarregue a página em instantes.</p>';
@@ -625,6 +747,7 @@ function escutarProdutos() {
             .map(([id, p]) => ({ ...p, id }));
         lista.sort((a, b) => (a.criadoEm || 0) - (b.criadoEm || 0));
         produtos = lista;
+        assinaturaDisponibilidadeProdutos = calcularAssinaturaDisponibilidadeProdutos();
         sincronizarPrecosCarrinho();
         renderizarCategorias();
         renderizarProdutos();
@@ -1072,6 +1195,11 @@ function acaoCarrosselDestaque(produtoId) {
         irParaProdutoDestaque(produtoId);
         return;
     }
+    if (!produtoDisponivelPorHorarioAgora(produto)) {
+        irParaProdutoDestaque(produtoId);
+        alert('Esse produto está fora do horário de venda agora.');
+        return;
+    }
 
     // Produtos com escolha obrigatória, adicionais ou encomenda precisam passar pelo card
     // para não pular nenhuma regra da compra. Os simples entram direto no carrinho.
@@ -1109,7 +1237,14 @@ function renderizarStatusPedido(pedido) {
         texto.textContent = '🕒 Pedido enviado! Aguardando a confirmação da loja...';
     } else if (status === 'aceito') {
         banner.classList.add('status-aceito');
-        texto.textContent = '✅ Seu pedido foi aceito e já está sendo preparado!';
+        if (encomendaAindaFutura(pedido)) {
+            const momento = formatarMomentoEncomendaCliente(pedido);
+            texto.textContent = momento
+                ? `✅ Encomenda confirmada para ${momento}. A produção será iniciada no momento combinado.`
+                : '✅ Encomenda confirmada. A produção será iniciada no momento combinado.';
+        } else {
+            texto.textContent = '✅ Seu pedido foi aceito e já está sendo preparado!';
+        }
     } else if (status === 'em_rota') {
         banner.classList.add('status-em_rota');
         texto.textContent = '🛵 Seu pedido saiu para entrega!';
@@ -1458,6 +1593,13 @@ const rotulosStatusPedido = {
     recusado: '❌ Recusado'
 };
 
+function rotuloStatusPedidoCliente(pedido) {
+    if (pedido && pedido.status === 'aceito' && encomendaAindaFutura(pedido)) {
+        return '✅ Encomenda confirmada';
+    }
+    return rotulosStatusPedido[pedido && pedido.status] || (pedido && pedido.status) || '—';
+}
+
 function telefoneParaBuscaMeusPedidos() {
     try {
         const dados = JSON.parse(localStorage.getItem('dadosCliente')) || {};
@@ -1501,7 +1643,7 @@ function variantesTelefoneMeusPedidos(telefone) {
 
 async function buscarPedidosPorTelefone(telefone) {
     const telefoneNormalizado = normalizarTelefone(telefone);
-    if (!telefoneNormalizado || telefoneNormalizado.length < 10) return [];
+    if (!telefoneNormalizado || telefoneNormalizado.length < 10) return { autorizado: false, pedidos: [] };
     if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length || !firebase.functions) {
         throw new Error('Cloud Functions indisponível para consultar Meus Pedidos.');
     }
@@ -1616,7 +1758,7 @@ async function abrirMeusPedidos() {
             const itensTexto = (pedido.itens || []).map(item => `${item.quantidade}x ${item.nome}`).join(', ');
             const totalValor = pedido.total != null ? Number(pedido.total) : null;
             const totalTexto = Number.isFinite(totalValor) ? formatarPrecoTexto(totalValor) : 'A confirmar';
-            const statusTexto = rotulosStatusPedido[pedido.status] || pedido.status || '—';
+            const statusTexto = rotuloStatusPedidoCliente(pedido);
             const numeroTexto = pedido.numero ? `Pedido #${pedido.numero}` : 'Pedido';
             const sinalPago = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' && pedido.pagamento.status === 'pago';
             const restanteJaPago = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'pago';
@@ -2216,7 +2358,9 @@ function renderizarProdutos() {
         produtoItemDiv.classList.add('produto-item');
         if (produto.id) produtoItemDiv.id = 'produto-' + produto.id;
 
-        if (!produto.disponivel) {
+        const disponivelPorHorario = produtoDisponivelPorHorarioAgora(produto);
+        const disponivelParaCompra = produto.disponivel !== false && disponivelPorHorario;
+        if (!disponivelParaCompra) {
             produtoItemDiv.classList.add('indisponivel');
         }
 
@@ -2245,20 +2389,20 @@ function renderizarProdutos() {
             <p class="preco">
                 ${emOferta ? `<span class="preco-original">R$ ${produto.precoOriginal.toFixed(2).replace('.', ',')}</span> ` : ''}R$ ${produto.preco.toFixed(2).replace('.', ',')}
             </p>
-            ${produto.disponivel && temVariantes
+            ${disponivelParaCompra && temVariantes
                 ? `<div class="variantes-lista">${produto.variantes.map(v => `<button type="button" class="variante-pill" data-variante="${v}">${v}</button>`).join('')}</div>`
                 : ''
             }
-            ${produto.disponivel ? `
+            ${disponivelParaCompra ? `
                 <div class="produto-quantidade-stepper">
                     <button type="button" class="qtd-btn qtd-menos">−</button>
                     <span class="qtd-valor">1</span>
                     <button type="button" class="qtd-btn qtd-mais">+</button>
                 </div>` : ''
             }
-            ${produto.disponivel
+            ${disponivelParaCompra
                 ? `<button class="adicionar-carrinho" data-nome="${produto.nome}" data-preco="${produto.preco}">Adicionar ao Carrinho</button>`
-                : `<button class="adicionar-carrinho indisponivel-btn" disabled>Esgotado</button>`
+                : `<button class="adicionar-carrinho indisponivel-btn" disabled>${produto.disponivel === false ? 'Esgotado' : 'Fora do horário'}</button>`
             }
             ${produto.id ? `<button type="button" class="btn-copiar-link-produto" data-id="${produto.id}">🔗 Copiar link deste produto</button>` : ''}
         `;
@@ -2303,12 +2447,10 @@ function renderizarProdutos() {
             </div>
         `;
         listaProdutosDiv.appendChild(introEncomenda);
-        // Impede escolher uma data que já passou, usando a data local do navegador.
-        const hojeLocal = new Date();
-        const hojeIsoLocal = `${hojeLocal.getFullYear()}-${String(hojeLocal.getMonth() + 1).padStart(2, '0')}-${String(hojeLocal.getDate()).padStart(2, '0')}`;
+        // Impede escolher uma data que já passou usando o mesmo fuso operacional da loja.
         const dataInputEncomenda = document.getElementById('encomendaDataInput');
         const horaInputEncomenda = document.getElementById('encomendaHoraInput');
-        dataInputEncomenda.min = hojeIsoLocal;
+        dataInputEncomenda.min = hojeIsoSaoPaulo();
         if (dataEncomendaEscolhida) dataInputEncomenda.value = dataEncomendaEscolhida;
         if (horaEncomendaEscolhida) horaInputEncomenda.value = horaEncomendaEscolhida;
 
@@ -2450,6 +2592,12 @@ function renderizarProdutos() {
             // abre o modal de escolha em vez de adicionar direto — quem finaliza a adição
             // nesse caso é confirmarAdicionaisEAdicionar(), depois que a pessoa escolher
             const produtoCompleto = produtos.find(p => p.nome === nomeProduto);
+            if (produtoCompleto && !produtoDisponivelPorHorarioAgora(produtoCompleto)) {
+                alert('Esse produto está fora do horário de venda agora.');
+                assinaturaDisponibilidadeProdutos = calcularAssinaturaDisponibilidadeProdutos();
+                renderizarProdutos();
+                return;
+            }
 
             // Produto de encomenda exige que a data já tenha sido escolhida e verificada
             // como disponível antes de deixar adicionar ao carrinho
