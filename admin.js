@@ -1722,10 +1722,14 @@ function alternarPagamentoConfirmadoManual(id, novoValor) {
 // O cliente não precisa escolher "Dinheiro" no site: no dia agendado, se o sinal já
 // está pago e o restante ainda não foi quitado online, a loja confirma o recebimento aqui.
 // A Cloud Function exige usuário autenticado no painel e reconfere todo o estado do pedido.
-async function confirmarRecebimentoRestanteDinheiro(id, botao) {
+async function confirmarRecebimentoRestanteDinheiro(id, botao, checkoutOnlineEmAndamento = false) {
     if (!id) return;
 
-    if (!confirm('Confirmar que o restante deste pedido foi recebido em dinheiro?')) return;
+    const mensagemConfirmacao = checkoutOnlineEmAndamento
+        ? '⚠️ O cliente chegou a abrir um pagamento online do restante, mas ele ainda não foi confirmado.\n\nConfirme em dinheiro SOMENTE se você realmente recebeu o valor presencialmente e tem certeza de que o cliente não concluiu o checkout online.\n\nConfirmar o recebimento do restante agora?'
+        : 'Confirmar que o restante deste pedido foi recebido em dinheiro?';
+
+    if (!confirm(mensagemConfirmacao)) return;
 
     const textoOriginal = botao ? botao.textContent : '';
     if (botao) {
@@ -1914,6 +1918,13 @@ function montarTagPagamento(pedido) {
         }
         if (pedido.pagamentoRestante.receiptUrl) {
             html += ` <a href="${pedido.pagamentoRestante.receiptUrl}" target="_blank" rel="noopener noreferrer" class="link-comprovante">🧾 Restante</a>`;
+        }
+        const pagamentoOnlinePosterior = pedido.pagamentoRestante.pagamentoOnlinePosterior;
+        if (pagamentoOnlinePosterior && pagamentoOnlinePosterior.status) {
+            html += ` <span class="pedido-tag tag-pagamento-divergente">⚠️ Pagamento online posterior detectado — confira possível duplicidade</span>`;
+            if (pagamentoOnlinePosterior.receiptUrl) {
+                html += ` <a href="${pagamentoOnlinePosterior.receiptUrl}" target="_blank" rel="noopener noreferrer" class="link-comprovante">🧾 Pagamento online posterior</a>`;
+            }
         }
         return html;
     }
@@ -2159,15 +2170,16 @@ function montarCardPedido(id, pedido, comAcoes) {
     const sinalConfirmado = pagamentoEhSinal && pedido.pagamento.status === 'pago';
     const restanteAtual = pedido.pagamentoRestante || null;
     const restanteJaPago = !!(restanteAtual && restanteAtual.status === 'pago');
-    // Se existe um checkout online ainda aguardando na InfinitePay, não oferecemos
-    // confirmação presencial ao mesmo tempo. Isso evita dois caminhos de cobrança ativos.
+    // Abrir o checkout online NÃO significa pagamento confirmado. Se o cliente desistir
+    // do Pix/Cartão e pagar presencialmente no dia do evento, a loja ainda precisa poder
+    // registrar o recebimento. Mantemos a informação só para mostrar um aviso extra antes
+    // da confirmação manual, evitando confundir checkout aberto com pagamento realizado.
     const restanteOnlineEmAndamento = !!(restanteAtual &&
         restanteAtual.status === 'aguardando' &&
         restanteAtual.provedor === 'infinitepay');
     const dataEncomendaConfirmacao = String(pedido.dataEncomenda || '').trim();
     const restanteDinheiroPodeSerConfirmado = sinalConfirmado &&
         !restanteJaPago &&
-        !restanteOnlineEmAndamento &&
         /^\d{4}-\d{2}-\d{2}$/.test(dataEncomendaConfirmacao) &&
         dataEncomendaConfirmacao <= hojeIsoLocal() &&
         pedido.status !== 'recusado';
@@ -2206,7 +2218,7 @@ function montarCardPedido(id, pedido, comAcoes) {
         <span class="pedido-tag ${pedido.pagamentoConfirmadoManual ? 'tag-status-entregue' : ''}" style="cursor:pointer;" onclick="alternarPagamentoConfirmadoManual('${id}', ${!pedido.pagamentoConfirmadoManual})" title="Clique pra marcar/desmarcar como pago (uso manual, ex: cliente pagou Pix por fora)">${pedido.pagamentoConfirmadoManual ? '✅ Pago' : '☐ Marcar como pago'}</span>`;
     const pagamentoOnlineHtml = montarTagPagamento(pedido);
     const botaoConfirmarRestanteDinheiroHtml = restanteDinheiroPodeSerConfirmado
-        ? `<button type="button" class="btn-entregue" style="margin-top:7px;padding:8px 11px;font-size:11px;" onclick="confirmarRecebimentoRestanteDinheiro('${id}', this)">✅ Confirmar recebimento do restante</button>`
+        ? `<button type="button" class="btn-entregue" style="margin-top:7px;padding:8px 11px;font-size:11px;" onclick="confirmarRecebimentoRestanteDinheiro('${id}', this, ${restanteOnlineEmAndamento})">✅ Confirmar recebimento do restante</button>`
         : '';
 
     div.innerHTML = `
