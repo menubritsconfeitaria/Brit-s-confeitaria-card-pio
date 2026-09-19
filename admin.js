@@ -1855,33 +1855,51 @@ function montarTagPagamento(pedido) {
     }
     const ehSinal = p.tipoPagamento === 'sinal';
     const restantePago = ehSinal && pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'pago';
+    const restanteDinheiroPendente = ehSinal && pedido.pagamentoRestante &&
+        pedido.pagamentoRestante.status === 'aguardando_recebimento' &&
+        pedido.pagamentoRestante.forma === 'Dinheiro';
 
     // Quando o sinal e o restante já foram pagos, o pedido está financeiramente quitado.
-    // Essa é apenas uma leitura dos dados já confirmados pelo webhook; não altera pagamento nenhum.
+    // Essa é apenas uma leitura dos dados já confirmados; não altera pagamento nenhum.
     if (restantePago) {
         const valorSinal = Number(p.valorSinal || 0);
         const valorRestante = Number(pedido.pagamentoRestante.valorRestante || 0);
-        const totalPago = valorSinal + valorRestante;
-        let html = `<span class="pedido-tag tag-pagamento-pago">🟢 Pagamento completo — sinal ${formatarPreco(valorSinal)} + restante ${formatarPreco(valorRestante)} = ${formatarPreco(totalPago)}</span>`;
+        let html = `<span class="pedido-tag tag-pagamento-pago">🟢 Pagamento completo</span>`;
+        html += ` <span class="pedido-tag">Sinal ${formatarPreco(valorSinal)}</span>`;
+        html += ` <span class="pedido-tag">Restante ${formatarPreco(valorRestante)}</span>`;
         if (p.receiptUrl) {
-            html += ` <a href="${p.receiptUrl}" target="_blank" rel="noopener noreferrer" class="link-comprovante">🧾 Comprovante do sinal</a>`;
+            html += ` <a href="${p.receiptUrl}" target="_blank" rel="noopener noreferrer" class="link-comprovante">🧾 Sinal</a>`;
         }
         if (pedido.pagamentoRestante.receiptUrl) {
-            html += ` <a href="${pedido.pagamentoRestante.receiptUrl}" target="_blank" rel="noopener noreferrer" class="link-comprovante">🧾 Comprovante do restante</a>`;
+            html += ` <a href="${pedido.pagamentoRestante.receiptUrl}" target="_blank" rel="noopener noreferrer" class="link-comprovante">🧾 Restante</a>`;
         }
         return html;
     }
 
     const totalPedido = totalDoPedido(pedido);
-    const restante = ehSinal && p.valorSinal != null ? formatarPreco(totalPedido - p.valorSinal) : null;
-    const freteTexto = ehSinal && p.freteInformado > 0 ? ` (esse valor já inclui o frete de ${formatarPreco(p.freteInformado)})` : '';
+    const valorRestanteNumerico = ehSinal && p.valorSinal != null
+        ? Math.max(0, Number(totalPedido || 0) - Number(p.valorSinal || 0))
+        : null;
+    const restante = valorRestanteNumerico != null ? formatarPreco(valorRestanteNumerico) : null;
+
+    // Restante em dinheiro é apenas uma forma escolhida para receber depois; não significa pago.
+    // Mantemos visualmente separado do sinal para não confundir a operação da loja.
+    if (restanteDinheiroPendente) {
+        const valorRestante = Number(pedido.pagamentoRestante.valorRestante || valorRestanteNumerico || 0);
+        let html = `<span class="pedido-tag tag-pagamento-pago">🟢 Sinal pago ${formatarPreco(p.valorSinal)}</span>`;
+        html += ` <span class="pedido-tag tag-pagamento-aguardando">💵 Restante ${formatarPreco(valorRestante)} em dinheiro • aguardando recebimento</span>`;
+        if (p.receiptUrl) {
+            html += ` <a href="${p.receiptUrl}" target="_blank" rel="noopener noreferrer" class="link-comprovante">🧾 Comprovante do sinal</a>`;
+        }
+        return html;
+    }
 
     const tags = {
         aguardando: ehSinal
-            ? `<span class="pedido-tag tag-pagamento-aguardando">🟡 Aguardando sinal (${p.percentualSinal}% do produto = ${formatarPreco(p.valorSinal)})${p.freteInformado > 0 ? ` — frete de ${formatarPreco(p.freteInformado)} fica separado, pago na entrega` : ''}</span>`
+            ? `<span class="pedido-tag tag-pagamento-aguardando">🟡 Aguardando sinal ${formatarPreco(p.valorSinal)}</span>`
             : '<span class="pedido-tag tag-pagamento-aguardando">🟡 Aguardando pagamento</span>',
         pago: ehSinal
-            ? `<span class="pedido-tag tag-pagamento-pago">🟢 Sinal pago (${formatarPreco(p.valorSinal)}, só do produto) — falta ${restante} na entrega${freteTexto}</span>`
+            ? `<span class="pedido-tag tag-pagamento-pago">🟢 Sinal pago ${formatarPreco(p.valorSinal)}</span> <span class="pedido-tag tag-pagamento-aguardando">🟡 Falta ${restante}</span>`
             : `<span class="pedido-tag tag-pagamento-pago">🟢 Pago (${p.metodo || 'Online'})</span>`,
         divergente: '<span class="pedido-tag tag-pagamento-divergente">⚠️ Valor divergente — confira</span>'
     };
@@ -1940,50 +1958,8 @@ function atualizarUrgenciaVisualCard(card) {
 
 function aplicarUrgenciaVisualCard(card, pedido, comAcoes) {
     if (!comAcoes || !pedido || pedido.status === 'entregue' || pedido.status === 'recusado') return;
-
-    const dataEncomenda = String(pedido.dataEncomenda || '').trim();
-    const hoje = hojeIsoLocal();
-    const dataEncomendaValida = /^\d{4}-\d{2}-\d{2}$/.test(dataEncomenda);
-
-    if (dataEncomendaValida && dataEncomenda >= hoje) {
-        const badge = card.querySelector('.pedido-tempo-etapa');
-
-        card.classList.remove(
-            'urgencia-normal',
-            'urgencia-atencao',
-            'urgencia-atrasado'
-        );
-
-        delete card.dataset.urgenciaInicio;
-
-        if (badge) {
-            badge.classList.remove(
-                'tempo-normal',
-                'tempo-atencao',
-                'tempo-atrasado'
-            );
-
-            badge.classList.add('tempo-normal');
-
-            if (dataEncomenda === hoje) {
-                badge.textContent = '📅 Encomenda para hoje';
-            } else {
-                const dataBr = dataEncomenda
-                    .split('-')
-                    .reverse()
-                    .join('/');
-
-                badge.textContent =
-                    `📅 ${dataBr} • Aguardando a data agendada`;
-            }
-        }
-
-        return;
-    }
-
     const inicio = obterInicioEtapaPedido(pedido);
     if (!inicio) return;
-
     card.dataset.urgenciaInicio = String(inicio);
     atualizarUrgenciaVisualCard(card);
 }
@@ -2049,17 +2025,25 @@ function montarCardPedido(id, pedido, comAcoes) {
         freteLinha = `<div class="pedido-total-linha"><span>Entrega</span><span>${pedido.frete != null ? formatarPreco(pedido.frete) : 'A confirmar'}</span></div>`;
     }
 
+    const pagamentoEhSinal = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal';
+    // Em encomenda com sinal online obrigatório, o botão genérico "Marcar como pago"
+    // não deve aparecer: ele poderia dar a impressão de quitar manualmente sinal/restante.
+    // Pedidos normais continuam exatamente com o comportamento anterior.
+    const botaoPagamentoManualHtml = pagamentoEhSinal ? '' : `
+        <span class="pedido-tag ${pedido.pagamentoConfirmadoManual ? 'tag-status-entregue' : ''}" style="cursor:pointer;" onclick="alternarPagamentoConfirmadoManual('${id}', ${!pedido.pagamentoConfirmadoManual})" title="Clique pra marcar/desmarcar como pago (uso manual, ex: cliente pagou Pix por fora)">${pedido.pagamentoConfirmadoManual ? '✅ Pago' : '☐ Marcar como pago'}</span>`;
+    const pagamentoOnlineHtml = montarTagPagamento(pedido);
+
     div.innerHTML = `
         <div class="pedido-topo">
             <div>
                 <div class="pedido-cliente">${pedido.numero ? `<span class="pedido-numero">🛒Pedido #${String(pedido.numero).padStart(3, '0')}</span> - ` : ''}${pedido.nome || 'Cliente'}</div>
-                <div>
+                <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;">
                     <span class="pedido-tag ${pedido.tipoEntrega === 'entrega' ? 'tag-entrega' : 'tag-retirada'}">${pedido.tipoEntrega === 'entrega' ? '🛵 Entrega' : '🏠 Retirada'}</span>
                     <span class="pedido-tag tag-pagamento" style="cursor:pointer;" onclick="editarFormaPagamentoPedido('${id}', this)" title="Clique pra corrigir a forma de pagamento">💰 ${pedido.formaPagamento || ''}${pedido.troco ? ' (' + formatarTrocoLabel(pedido.troco, totalDoPedido(pedido)) + ')' : ''} ✏️</span>
-                    <span class="pedido-tag ${pedido.pagamentoConfirmadoManual ? 'tag-status-entregue' : ''}" style="cursor:pointer;" onclick="alternarPagamentoConfirmadoManual('${id}', ${!pedido.pagamentoConfirmadoManual})" title="Clique pra marcar/desmarcar como pago (uso manual, ex: cliente pagou Pix por fora)">${pedido.pagamentoConfirmadoManual ? '✅ Pago' : '☐ Marcar como pago'}</span>
-                    ${montarTagPagamento(pedido)}
+                    ${botaoPagamentoManualHtml}
                     ${tagStatus}
                 </div>
+                ${pagamentoOnlineHtml ? `<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:6px;">${pagamentoOnlineHtml}</div>` : ''}
             </div>
             <div class="pedido-hora-bloco">
                 <div class="pedido-hora">${formatarHora(pedido.timestamp)}</div>
