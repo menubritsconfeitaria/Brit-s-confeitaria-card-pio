@@ -1718,6 +1718,47 @@ function alternarPagamentoConfirmadoManual(id, novoValor) {
         .catch(err => alert('Erro ao atualizar: ' + err.message));
 }
 
+// PASSO 18B — confirma no servidor o recebimento do restante em dinheiro.
+// Só aparece para encomenda com sinal pago + restante em dinheiro aguardando recebimento.
+// A Cloud Function exige usuário autenticado no painel e reconfere o estado do pedido.
+async function confirmarRecebimentoRestanteDinheiro(id, botao) {
+    if (!id) return;
+
+    if (!confirm('Confirmar que o restante deste pedido foi recebido em dinheiro?')) return;
+
+    const textoOriginal = botao ? botao.textContent : '';
+    if (botao) {
+        botao.disabled = true;
+        botao.textContent = 'Confirmando recebimento...';
+    }
+
+    try {
+        const confirmarRecebimento = firebase.functions().httpsCallable('confirmarRecebimentoRestanteDinheiro');
+        const resultado = await confirmarRecebimento({ pedidoId: id });
+        const valor = Number(resultado && resultado.data && resultado.data.valorRestante);
+
+        if (botao) {
+            botao.textContent = Number.isFinite(valor)
+                ? `✅ Restante ${formatarPreco(valor)} recebido`
+                : '✅ Restante recebido';
+        }
+
+        // O listener em tempo real redesenha o card como "Pagamento completo".
+        // O alerta existe só como confirmação imediata para quem está operando o caixa.
+        alert('✅ Recebimento confirmado. O pagamento da encomenda agora está completo.');
+    } catch (err) {
+        console.log('Não foi possível confirmar o recebimento do restante:', err);
+        const mensagem = err && err.message
+            ? err.message.replace(/^.*?:\s*/, '')
+            : 'Tente novamente em instantes.';
+        alert('Não foi possível confirmar o recebimento do restante. ' + mensagem);
+        if (botao) {
+            botao.disabled = false;
+            botao.textContent = textoOriginal;
+        }
+    }
+}
+
 function editarFormaPagamentoPedido(id, elemento) {
     const opcoes = ['Dinheiro', 'Cartão de Crédito', 'Cartão de Débito', 'Pix', 'Transferência Bancária', 'Outros'];
     const select = document.createElement('select');
@@ -2107,6 +2148,16 @@ function montarCardPedido(id, pedido, comAcoes) {
     }
 
     const pagamentoEhSinal = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal';
+    const restanteDinheiroAguardandoRecebimento = pagamentoEhSinal &&
+        pedido.pagamento && pedido.pagamento.status === 'pago' &&
+        pedido.pagamentoRestante &&
+        pedido.pagamentoRestante.status === 'aguardando_recebimento' &&
+        pedido.pagamentoRestante.forma === 'Dinheiro';
+    const dataEncomendaConfirmacao = String(pedido.dataEncomenda || '').trim();
+    const restanteDinheiroPodeSerConfirmado = restanteDinheiroAguardandoRecebimento &&
+        /^\d{4}-\d{2}-\d{2}$/.test(dataEncomendaConfirmacao) &&
+        dataEncomendaConfirmacao <= hojeIsoLocal() &&
+        pedido.status !== 'recusado';
 
     // Encomenda agendada para hoje ou data futura NÃO cria cronômetro operacional no topo.
     // A decisão acontece antes de montar o HTML, evitando que um contador apareça e depois
@@ -2133,6 +2184,9 @@ function montarCardPedido(id, pedido, comAcoes) {
     const botaoPagamentoManualHtml = pagamentoEhSinal ? '' : `
         <span class="pedido-tag ${pedido.pagamentoConfirmadoManual ? 'tag-status-entregue' : ''}" style="cursor:pointer;" onclick="alternarPagamentoConfirmadoManual('${id}', ${!pedido.pagamentoConfirmadoManual})" title="Clique pra marcar/desmarcar como pago (uso manual, ex: cliente pagou Pix por fora)">${pedido.pagamentoConfirmadoManual ? '✅ Pago' : '☐ Marcar como pago'}</span>`;
     const pagamentoOnlineHtml = montarTagPagamento(pedido);
+    const botaoConfirmarRestanteDinheiroHtml = restanteDinheiroPodeSerConfirmado
+        ? `<button type="button" class="btn-entregue" style="margin-top:7px;padding:8px 11px;font-size:11px;" onclick="confirmarRecebimentoRestanteDinheiro('${id}', this)">✅ Confirmar recebimento do restante</button>`
+        : '';
 
     div.innerHTML = `
         <div class="pedido-topo">
@@ -2145,6 +2199,7 @@ function montarCardPedido(id, pedido, comAcoes) {
                     ${tagStatus}
                 </div>
                 ${pagamentoOnlineHtml ? `<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:6px;">${pagamentoOnlineHtml}</div>` : ''}
+                ${botaoConfirmarRestanteDinheiroHtml ? `<div>${botaoConfirmarRestanteDinheiroHtml}</div>` : ''}
             </div>
             <div class="pedido-hora-bloco">
                 <div class="pedido-hora">${formatarHora(pedido.timestamp)}</div>
