@@ -1520,10 +1520,32 @@ async function buscarPedidosPorTelefone(telefone) {
     };
 }
 
-function formaPagamentoPedidoTexto(pedido) {
-    const forma = pedido.formaPagamento || (pedido.pagamento && pedido.pagamento.forma) || '';
-    if (!forma) return '';
-    return ` • ${forma}`;
+function resumoMetaPedidoTexto(pedido, dataPedidoFormatada) {
+    const ehEncomendaComSinal = !!(
+        pedido &&
+        pedido.pagamento &&
+        pedido.pagamento.tipoPagamento === 'sinal'
+    );
+
+    if (ehEncomendaComSinal) {
+        const dataEncomenda = pedido.dataEncomenda && /^\d{4}-\d{2}-\d{2}$/.test(pedido.dataEncomenda)
+            ? pedido.dataEncomenda.split('-').reverse().join('/')
+            : null;
+        const formaSinal =
+            (pedido.pagamento && (pedido.pagamento.metodo || pedido.pagamento.forma)) ||
+            pedido.formaPagamento ||
+            '';
+
+        const partes = [];
+        partes.push(dataEncomenda ? `Encomenda para ${dataEncomenda}` : dataPedidoFormatada);
+        if (formaSinal) partes.push(`Sinal: ${formaSinal}`);
+        return partes.filter(Boolean).join(' • ');
+    }
+
+    const forma = pedido.formaPagamento ||
+        (pedido.pagamento && (pedido.pagamento.metodo || pedido.pagamento.forma)) ||
+        '';
+    return `${dataPedidoFormatada}${forma ? ` • ${forma}` : ''}`;
 }
 
 function dataPedidoParaOrdenacao(pedido, meta) {
@@ -1644,7 +1666,7 @@ async function abrirMeusPedidos() {
                         <strong>${numeroTexto}</strong>
                         <span>${statusTexto}</span>
                     </div>
-                    <p class="item-meus-pedidos-meta">${dataFormatada}${formaPagamentoPedidoTexto(pedido)}</p>
+                    <p class="item-meus-pedidos-meta">${resumoMetaPedidoTexto(pedido, dataFormatada)}</p>
                     <p class="item-meus-pedidos-itens">${itensTexto || 'Itens não informados'}</p>
                     ${sinalPago && mostrarResumoFinanceiro ? '' : `<p class="item-meus-pedidos-total">${totalTexto}</p>`}
                     ${resumoFinanceiroHtml}
