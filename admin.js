@@ -6338,25 +6338,274 @@ function mostrarDetalheProdutoRelatorio() {
 let tempItensOrcamento = [];
 let editingItemOrcamentoIndex = null;
 
+function garantirBuscaProdutoOrcamento() {
+    const sel = document.getElementById('orcSelectProduto');
+    if (!sel || document.getElementById('orcBuscaProduto')) return;
+
+    // Mantém o select original escondido como fonte do valor escolhido.
+    // Assim o restante do fluxo continua usando o mesmo ID e a busca vira apenas
+    // a interface, no mesmo padrão da Ficha Técnica.
+    sel.style.display = 'none';
+
+    const label = document.querySelector('label[for="orcSelectProduto"]');
+    if (label) label.setAttribute('for', 'orcBuscaProduto');
+
+    const wrapper = document.createElement('div');
+    wrapper.id = 'orcBuscaProdutoWrapper';
+    wrapper.style.cssText = 'position:relative;width:100%;';
+
+    const busca = document.createElement('input');
+    busca.type = 'text';
+    busca.id = 'orcBuscaProduto';
+    busca.placeholder = '🔍 Buscar produto...';
+    busca.autocomplete = 'off';
+    busca.setAttribute('role', 'combobox');
+    busca.setAttribute('aria-autocomplete', 'list');
+    busca.setAttribute('aria-expanded', 'false');
+    busca.setAttribute('aria-controls', 'orcResultadosProduto');
+    busca.style.paddingRight = '42px';
+
+    const limpar = document.createElement('button');
+    limpar.type = 'button';
+    limpar.id = 'orcLimparBuscaProduto';
+    limpar.textContent = '×';
+    limpar.title = 'Limpar busca';
+    limpar.setAttribute('aria-label', 'Limpar busca de produto');
+    limpar.style.cssText = [
+        'position:absolute',
+        'right:10px',
+        'top:50%',
+        'transform:translateY(-50%)',
+        'z-index:2',
+        'width:28px',
+        'height:28px',
+        'border:0',
+        'border-radius:50%',
+        'background:transparent',
+        'color:var(--muted,#8a7562)',
+        'font-size:20px',
+        'line-height:1',
+        'cursor:pointer',
+        'display:none'
+    ].join(';');
+
+    const resultados = document.createElement('div');
+    resultados.id = 'orcResultadosProduto';
+    resultados.hidden = true;
+    resultados.setAttribute('role', 'listbox');
+    resultados.style.cssText = [
+        'position:absolute',
+        'left:0',
+        'right:0',
+        'top:calc(100% + 6px)',
+        'z-index:60',
+        'max-height:320px',
+        'overflow:auto',
+        'background:#fff',
+        'border:1px solid var(--border,#e7d7ca)',
+        'border-radius:14px',
+        'box-shadow:0 16px 38px rgba(71,46,31,.14)',
+        'padding:8px'
+    ].join(';');
+
+    sel.parentNode.insertBefore(wrapper, sel);
+    wrapper.appendChild(busca);
+    wrapper.appendChild(limpar);
+    wrapper.appendChild(resultados);
+    wrapper.appendChild(sel);
+
+    const atualizarBotaoLimpar = () => {
+        limpar.style.display = busca.value ? 'block' : 'none';
+    };
+
+    const abrir = () => {
+        atualizarBotaoLimpar();
+        renderResultadosBuscaProdutoOrcamento();
+    };
+
+    busca.addEventListener('focus', abrir);
+    busca.addEventListener('click', abrir);
+    busca.addEventListener('input', () => {
+        // Digitou novamente: a seleção anterior deixa de valer até escolher outro resultado.
+        sel.value = '';
+        atualizarBotaoLimpar();
+        renderResultadosBuscaProdutoOrcamento();
+    });
+
+    limpar.addEventListener('click', evento => {
+        evento.preventDefault();
+        evento.stopPropagation();
+        busca.value = '';
+        sel.value = '';
+        atualizarBotaoLimpar();
+        busca.focus();
+        renderResultadosBuscaProdutoOrcamento();
+    });
+
+    busca.addEventListener('keydown', evento => {
+        if (evento.key === 'Escape') {
+            fecharBuscaProdutoOrcamento();
+            busca.blur();
+            return;
+        }
+        if (evento.key === 'Enter') {
+            const primeiro = resultados.querySelector('[data-orc-produto-id]');
+            if (primeiro && !resultados.hidden) {
+                evento.preventDefault();
+                selecionarProdutoBuscaOrcamento(primeiro.dataset.orcProdutoId);
+            }
+        }
+    });
+
+    document.addEventListener('click', evento => {
+        if (!wrapper.contains(evento.target)) fecharBuscaProdutoOrcamento();
+    });
+}
+
+function produtosDisponiveisOrcamento(termo = '') {
+    const filtro = normalizarTexto(termo || '');
+    if (!filtro) return [...fichaTecnica];
+    return fichaTecnica.filter(produto =>
+        normalizarTexto(produto.nome || '').includes(filtro)
+    );
+}
+
+function renderResultadosBuscaProdutoOrcamento() {
+    const busca = document.getElementById('orcBuscaProduto');
+    const resultados = document.getElementById('orcResultadosProduto');
+    if (!busca || !resultados) return;
+
+    const encontrados = produtosDisponiveisOrcamento(busca.value);
+    resultados.innerHTML = '';
+
+    if (!encontrados.length) {
+        const vazio = document.createElement('div');
+        vazio.textContent = `Nenhum produto encontrado para "${busca.value}".`;
+        vazio.style.cssText = 'padding:12px 14px;color:var(--muted,#8a7562);font-size:.9rem;';
+        resultados.appendChild(vazio);
+    } else {
+        encontrados.forEach(produto => {
+            const botao = document.createElement('button');
+            botao.type = 'button';
+            botao.dataset.orcProdutoId = produto.id;
+            botao.setAttribute('role', 'option');
+            botao.style.cssText = [
+                'display:flex',
+                'align-items:center',
+                'justify-content:space-between',
+                'gap:12px',
+                'width:100%',
+                'border:0',
+                'border-bottom:1px solid var(--border,#eee2d8)',
+                'background:transparent',
+                'padding:12px 10px',
+                'text-align:left',
+                'cursor:pointer',
+                'color:inherit',
+                'font:inherit'
+            ].join(';');
+
+            const nome = document.createElement('strong');
+            nome.textContent = produto.nome || 'Produto sem nome';
+
+            const calculo = calcularCustoFichaTecnica(produto);
+            const preco = document.createElement('small');
+            preco.textContent = formatarPreco(calculo.precoVenda);
+            preco.style.cssText = 'white-space:nowrap;color:var(--muted,#8a7562);';
+
+            botao.appendChild(nome);
+            botao.appendChild(preco);
+            botao.addEventListener('mouseenter', () => botao.style.background = 'rgba(160,82,45,.06)');
+            botao.addEventListener('mouseleave', () => botao.style.background = 'transparent');
+            botao.addEventListener('click', () => selecionarProdutoBuscaOrcamento(produto.id));
+            resultados.appendChild(botao);
+        });
+    }
+
+    resultados.hidden = false;
+    busca.setAttribute('aria-expanded', 'true');
+}
+
+function selecionarProdutoBuscaOrcamento(id) {
+    const sel = document.getElementById('orcSelectProduto');
+    const busca = document.getElementById('orcBuscaProduto');
+    const produto = getFichaTecnica(id);
+    if (!sel || !busca || !produto) return;
+
+    sel.value = id;
+    busca.value = produto.nome || '';
+    const limpar = document.getElementById('orcLimparBuscaProduto');
+    if (limpar) limpar.style.display = busca.value ? 'block' : 'none';
+    fecharBuscaProdutoOrcamento();
+
+    const qtd = document.getElementById('orcQtdItem');
+    if (qtd) {
+        qtd.focus();
+        qtd.select();
+    }
+}
+
+function fecharBuscaProdutoOrcamento() {
+    const busca = document.getElementById('orcBuscaProduto');
+    const resultados = document.getElementById('orcResultadosProduto');
+    if (resultados) resultados.hidden = true;
+    if (busca) busca.setAttribute('aria-expanded', 'false');
+}
+
 function popularSelectProdutoOrcamento() {
     const sel = document.getElementById('orcSelectProduto');
     if (!sel) return;
+
     const valorAtual = sel.value;
-    sel.innerHTML = '<option value="">Selecione</option>' + fichaTecnica.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
-    sel.value = valorAtual;
+    sel.innerHTML = '<option value="">Selecione</option>' +
+        fichaTecnica.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+
+    if ([...sel.options].some(opt => opt.value === valorAtual)) {
+        sel.value = valorAtual;
+    } else {
+        sel.value = '';
+    }
+
+    garantirBuscaProdutoOrcamento();
+
+    const busca = document.getElementById('orcBuscaProduto');
+    if (busca && sel.value) {
+        const selecionado = getFichaTecnica(sel.value);
+        if (selecionado) busca.value = selecionado.nome || '';
+    }
+
+    const limpar = document.getElementById('orcLimparBuscaProduto');
+    if (limpar && busca) limpar.style.display = busca.value ? 'block' : 'none';
+
+    if (busca && busca.getAttribute('aria-expanded') === 'true') {
+        renderResultadosBuscaProdutoOrcamento();
+    }
 }
 
 function adicionarItemOrcamento() {
-    const ftId = document.getElementById('orcSelectProduto').value;
-    const qtd = parseFloat(document.getElementById('orcQtdItem').value.replace(',', '.'));
+    const sel = document.getElementById('orcSelectProduto');
+    const busca = document.getElementById('orcBuscaProduto');
+    const ftId = sel ? sel.value : '';
+    const qtdEl = document.getElementById('orcQtdItem');
+    const qtd = parseFloat(String(qtdEl ? qtdEl.value : '').replace(',', '.'));
     if (!ftId || !qtd) { alert('Seleciona o produto e a quantidade.'); return; }
+
     const ft = getFichaTecnica(ftId);
     if (!ft) return;
     const { precoVenda } = calcularCustoFichaTecnica(ft);
     tempItensOrcamento.push({ nome: ft.nome, preco: precoVenda, quantidade: qtd });
-    document.getElementById('orcQtdItem').value = '1';
+
+    if (qtdEl) qtdEl.value = '1';
+    if (sel) sel.value = '';
+    if (busca) busca.value = '';
+    const limpar = document.getElementById('orcLimparBuscaProduto');
+    if (limpar) limpar.style.display = 'none';
+    fecharBuscaProdutoOrcamento();
+
     editingItemOrcamentoIndex = null;
     renderItensOrcamento();
+
+    if (busca) busca.focus();
 }
 
 // Mesmo padrão da Ficha Técnica e de Lançar Pedido: a edição acontece
