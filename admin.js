@@ -5171,6 +5171,7 @@ async function excluirClienteGestao(id) {
 // fechamento e relatórios sempre verem tudo junto, nunca separado
 let tempItensPedidoManual = [];
 let editingPedidoManualId = null;
+let editingItemPedidoManualIndex = null;
 
 function popularSelectClientePedidoManual() {
     const dl = document.getElementById('pmClientesDatalist');
@@ -5192,6 +5193,9 @@ async function obterOuCriarClienteGestaoPorNome(nomeDigitado) {
 function garantirBuscaProdutoPedidoManual() {
     const sel = document.getElementById('pmSelectProduto');
     if (!sel || document.getElementById('pmBuscaProdutoManual')) return;
+
+    const btnAdicionar = document.querySelector('button[onclick="adicionarItemPedidoManual()"]');
+    if (btnAdicionar && !btnAdicionar.id) btnAdicionar.id = 'btnAdicionarItemPedidoManual';
 
     // Mantém o select original como fonte do valor escolhido para não alterar
     // adicionarItemPedidoManual() nem qualquer fluxo já validado.
@@ -5434,15 +5438,83 @@ function adicionarItemPedidoManual() {
     const ftId = document.getElementById('pmSelectProduto').value;
     const qtd = parseFloat(document.getElementById('pmQtdItem').value.replace(',', '.'));
     if (!ftId || !qtd) { alert('Seleciona o produto e a quantidade.'); return; }
+
     const ft = getFichaTecnica(ftId);
     if (!ft) return;
+
     const { precoVenda } = calcularCustoFichaTecnica(ft);
-    tempItensPedidoManual.push({ fichaTecnicaId: ftId, nome: ft.nome, preco: precoVenda, quantidade: qtd });
-    document.getElementById('pmQtdItem').value = '1';
+    const novoItem = {
+        fichaTecnicaId: ftId,
+        nome: ft.nome,
+        preco: precoVenda,
+        quantidade: qtd
+    };
+
+    if (editingItemPedidoManualIndex !== null &&
+        tempItensPedidoManual[editingItemPedidoManualIndex]) {
+        tempItensPedidoManual[editingItemPedidoManualIndex] = novoItem;
+        editingItemPedidoManualIndex = null;
+    } else {
+        tempItensPedidoManual.push(novoItem);
+    }
+
+    limparEdicaoItemPedidoManual();
     renderItensPedidoManual();
 }
 
-function removerItemPedidoManual(i) { tempItensPedidoManual.splice(i, 1); renderItensPedidoManual(); }
+function editarItemPedidoManual(i) {
+    const item = tempItensPedidoManual[i];
+    if (!item) return;
+
+    editingItemPedidoManualIndex = i;
+
+    const sel = document.getElementById('pmSelectProduto');
+    const busca = document.getElementById('pmBuscaProdutoManual');
+    const qtd = document.getElementById('pmQtdItem');
+    const btn = document.getElementById('btnAdicionarItemPedidoManual');
+
+    if (sel) sel.value = item.fichaTecnicaId || '';
+    if (busca) {
+        busca.value = item.nome || '';
+        const limpar = document.getElementById('pmLimparBuscaProdutoManual');
+        if (limpar) limpar.style.display = busca.value ? 'block' : 'none';
+    }
+    if (qtd) qtd.value = String(item.quantidade ?? 1);
+    if (btn) btn.textContent = '✏️ Atualizar item';
+
+    if (busca) {
+        busca.focus();
+        busca.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+function limparEdicaoItemPedidoManual() {
+    editingItemPedidoManualIndex = null;
+
+    const sel = document.getElementById('pmSelectProduto');
+    const busca = document.getElementById('pmBuscaProdutoManual');
+    const qtd = document.getElementById('pmQtdItem');
+    const btn = document.getElementById('btnAdicionarItemPedidoManual');
+    const limpar = document.getElementById('pmLimparBuscaProdutoManual');
+
+    if (sel) sel.value = '';
+    if (busca) busca.value = '';
+    if (qtd) qtd.value = '1';
+    if (btn) btn.textContent = '+ Adicionar item';
+    if (limpar) limpar.style.display = 'none';
+}
+
+function removerItemPedidoManual(i) {
+    tempItensPedidoManual.splice(i, 1);
+
+    if (editingItemPedidoManualIndex === i) {
+        limparEdicaoItemPedidoManual();
+    } else if (editingItemPedidoManualIndex !== null && editingItemPedidoManualIndex > i) {
+        editingItemPedidoManualIndex--;
+    }
+
+    renderItensPedidoManual();
+}
 
 function renderItensPedidoManual() {
     const div = document.getElementById('pmListaItens');
@@ -5454,7 +5526,10 @@ function renderItensPedidoManual() {
         const linha = document.createElement('div');
         linha.style.cssText = 'display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border);';
         linha.innerHTML = `<span>${item.quantidade}x ${item.nome} = ${formatarPreco(totalItem)}</span>
-            <button class="btn-excluir-cupom" onclick="removerItemPedidoManual(${i})">🗑️</button>`;
+            <span style="display:flex;align-items:center;gap:6px;">
+                <button type="button" class="btn-secondary" style="padding:5px 9px;" onclick="editarItemPedidoManual(${i})" title="Editar item">✏️ Editar</button>
+                <button type="button" class="btn-excluir-cupom" onclick="removerItemPedidoManual(${i})" title="Excluir item">🗑️</button>
+            </span>`;
         div.appendChild(linha);
     });
     document.getElementById('pmSubtotalTemp').textContent = formatarPreco(subtotal);
@@ -5607,6 +5682,7 @@ function imprimirPedidoGestao(id) {
 function editarPedidoManual(id) {
     const p = ultimosPedidosManuais.find(x => x.id === id);
     if (!p) return;
+    editingItemPedidoManualIndex = null;
     document.getElementById('pmCliente').value = p.nome || '';
     if (p.timestamp) {
         const d = new Date(p.timestamp);
