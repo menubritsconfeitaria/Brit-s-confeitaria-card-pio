@@ -8294,21 +8294,74 @@ function filtrarProdutosAdmin() {
 
     const termo = normalizarTextoBuscaProduto(campoBusca.value);
     const cards = Array.from(lista.querySelectorAll('.produto-admin-item'));
-    let visiveis = 0;
 
-    cards.forEach(card => {
-        const nome = card.querySelector('input[id^="prodNome_"]')?.value || '';
-        const categoria = card.querySelector('input[id^="prodCategoria_"]')?.value || '';
-        const texto = normalizarTextoBuscaProduto(`${nome} ${categoria}`);
-        const mostrar = !termo || texto.includes(termo);
-        card.style.display = mostrar ? '' : 'none';
-        if (mostrar) visiveis++;
+    // Guarda a posição original de cada produto.
+    // Isso permite trazer o resultado para cima e restaurar tudo
+    // exatamente como estava quando a pesquisa for apagada.
+    cards.forEach((card, indice) => {
+        if (!card.dataset.ordemBuscaProdutosAdmin) {
+            card.dataset.ordemBuscaProdutosAdmin = String(indice + 1);
+        }
     });
 
+    const ordemOriginal = card =>
+        Number(card.dataset.ordemBuscaProdutosAdmin || 0);
+
+    let visiveis = 0;
+    const encontrados = [];
+    const demais = [];
+
+    cards.forEach(card => {
+        const nome =
+            card.querySelector('input[id^="prodNome_"]')?.value || '';
+
+        const categoria =
+            card.querySelector('input[id^="prodCategoria_"]')?.value || '';
+
+        const texto =
+            normalizarTextoBuscaProduto(`${nome} ${categoria}`);
+
+        const mostrar = !termo || texto.includes(termo);
+
+        card.style.display = mostrar ? '' : 'none';
+
+        if (mostrar) {
+            visiveis++;
+            encontrados.push(card);
+        } else {
+            demais.push(card);
+        }
+    });
+
+    // Mantém a ordem original entre os próprios resultados.
+    encontrados.sort((a, b) => ordemOriginal(a) - ordemOriginal(b));
+    demais.sort((a, b) => ordemOriginal(a) - ordemOriginal(b));
+
+    if (termo) {
+        // Resultado encontrado vai fisicamente para o início da grade.
+        [...encontrados, ...demais].forEach(card => {
+            lista.appendChild(card);
+        });
+    } else {
+        // Ao apagar a pesquisa, devolve exatamente a ordem anterior.
+        cards
+            .slice()
+            .sort((a, b) => ordemOriginal(a) - ordemOriginal(b))
+            .forEach(card => {
+                lista.appendChild(card);
+            });
+    }
+
     if (resultado) {
-        if (!termo) resultado.textContent = '';
-        else if (visiveis === 0) resultado.textContent = 'Nenhum produto encontrado.';
-        else resultado.textContent = `${visiveis} produto${visiveis === 1 ? '' : 's'} encontrado${visiveis === 1 ? '' : 's'}.`;
+        if (!termo) {
+            resultado.textContent = '';
+        } else if (visiveis === 0) {
+            resultado.textContent = 'Nenhum produto encontrado.';
+        } else {
+            resultado.textContent =
+                `${visiveis} produto${visiveis === 1 ? '' : 's'} ` +
+                `encontrado${visiveis === 1 ? '' : 's'}.`;
+        }
     }
 }
 
