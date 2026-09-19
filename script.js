@@ -1124,15 +1124,25 @@ function renderizarStatusPedido(pedido) {
 
     const sinalPago = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' && pedido.pagamento.status === 'pago';
     const restanteJaPago = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'pago';
+    const restanteDinheiroPendente = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'aguardando_recebimento' && pedido.pagamentoRestante.forma === 'Dinheiro';
 
     if (btnRestante) {
-        if (sinalPago && !restanteJaPago && status !== 'recusado') {
-            const valorRestante = pedido.pagamentoRestante ? Number(pedido.pagamentoRestante.valorRestante) : null;
+        const valorRestante = pedido.pagamentoRestante ? Number(pedido.pagamentoRestante.valorRestante) : null;
+
+        if (sinalPago && restanteDinheiroPendente && status !== 'recusado') {
+            btnRestante.textContent = Number.isFinite(valorRestante)
+                ? `💵 Restante de R$ ${valorRestante.toFixed(2).replace('.', ',')} em dinheiro • aguardando recebimento`
+                : '💵 Restante em dinheiro • aguardando recebimento';
+            btnRestante.disabled = true;
+            btnRestante.style.display = 'block';
+        } else if (sinalPago && !restanteJaPago && status !== 'recusado') {
+            btnRestante.disabled = false;
             btnRestante.textContent = Number.isFinite(valorRestante)
                 ? `💳 Pagar o restante (R$ ${valorRestante.toFixed(2).replace('.', ',')})`
                 : '💳 Pagar o restante';
             btnRestante.style.display = 'block';
         } else {
+            btnRestante.disabled = false;
             btnRestante.style.display = 'none';
         }
     }
@@ -1162,20 +1172,238 @@ function mostrarStatusPedido(pedidoId) {
     refStatusPedidoAtual = setInterval(atualizar, 3500);
 }
 
-// Chamado pelo botão "Pagar o restante" no banner de acompanhamento — cria o
-// checkout via Cloud Function e manda o cliente pra tela de pagamento, mesmo
-// caminho profissional que já é usado pro sinal
+function escolherFormaPagamentoRestante() {
+    return new Promise(resolve => {
+        let modal = document.getElementById('modalFormaPagamentoRestante');
+
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'modalFormaPagamentoRestante';
+            modal.setAttribute('role', 'dialog');
+            modal.setAttribute('aria-modal', 'true');
+
+            modal.style.cssText = `
+                position:fixed;
+                inset:0;
+                z-index:99999;
+                display:none;
+                align-items:center;
+                justify-content:center;
+                padding:20px;
+                background:rgba(0,0,0,.55);
+            `;
+
+            modal.innerHTML = `
+                <div style="
+                    width:min(420px,100%);
+                    background:#fff;
+                    border-radius:20px;
+                    padding:22px;
+                    box-shadow:0 20px 60px rgba(0,0,0,.28);
+                ">
+                    <div style="
+                        font-size:1.15rem;
+                        font-weight:800;
+                        color:#2f241d;
+                        margin-bottom:6px;
+                    ">
+                        Como quer pagar o restante?
+                    </div>
+
+                    <div style="
+                        font-size:.92rem;
+                        color:#75645a;
+                        margin-bottom:18px;
+                        line-height:1.45;
+                    ">
+                        Escolha agora a forma de pagamento do restante da encomenda.
+                    </div>
+
+                    <div style="display:grid;gap:10px;">
+                        <button
+                            type="button"
+                            data-forma-restante="Pix"
+                            style="
+                                border:0;
+                                border-radius:14px;
+                                padding:15px;
+                                font-size:1rem;
+                                font-weight:700;
+                                cursor:pointer;
+                                background:var(--primary,#a0522d);
+                                color:#fff;
+                            "
+                        >
+                            ⚡ Pix
+                        </button>
+
+                        <button
+                            type="button"
+                            data-forma-restante="Cartão"
+                            style="
+                                border:1px solid #ddd2cb;
+                                border-radius:14px;
+                                padding:15px;
+                                font-size:1rem;
+                                font-weight:700;
+                                cursor:pointer;
+                                background:#fff;
+                                color:#3a2b20;
+                            "
+                        >
+                            💳 Cartão
+                        </button>
+
+                        <button
+                            type="button"
+                            data-forma-restante="Dinheiro"
+                            style="
+                                border:1px solid #ddd2cb;
+                                border-radius:14px;
+                                padding:15px;
+                                font-size:1rem;
+                                font-weight:700;
+                                cursor:pointer;
+                                background:#fff;
+                                color:#3a2b20;
+                            "
+                        >
+                            💵 Dinheiro
+                        </button>
+
+                        <button
+                            type="button"
+                            data-cancelar-restante
+                            style="
+                                border:0;
+                                background:transparent;
+                                padding:10px;
+                                cursor:pointer;
+                                color:#75645a;
+                            "
+                        >
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+        }
+
+        let resolvido = false;
+
+        const finalizar = forma => {
+            if (resolvido) return;
+            resolvido = true;
+            modal.style.display = 'none';
+            resolve(forma);
+        };
+
+        modal.querySelectorAll('[data-forma-restante]').forEach(botao => {
+            botao.onclick = () =>
+                finalizar(botao.dataset.formaRestante);
+        });
+
+        modal.querySelector('[data-cancelar-restante]').onclick =
+            () => finalizar(null);
+
+        modal.onclick = evento => {
+            if (evento.target === modal) finalizar(null);
+        };
+
+        modal.style.display = 'flex';
+    });
+}
+
+// Chamado pelo botão "Pagar o restante" no banner de acompanhamento — deixa o cliente
+// escolher Pix, Cartão ou Dinheiro. Pix/Cartão seguem pro checkout InfinitePay (mesmo
+// caminho já usado pro sinal); Dinheiro só registra a escolha como "aguardando
+// recebimento" — quem confirma o recebimento de verdade é a loja, no painel
 async function pagarRestanteEncomenda(pedidoIdExplicito, botaoClicado) {
-    const pedidoId = pedidoIdExplicito || pedidoIdParaPagarRestante;
+    const pedidoId =
+        pedidoIdExplicito || pedidoIdParaPagarRestante;
+
     if (!pedidoId) return;
-    const btn = botaoClicado || document.getElementById('btnPagarRestante');
+
+    const btn =
+        botaoClicado ||
+        document.getElementById('btnPagarRestante');
+
     const textoOriginal = btn.textContent;
+
     btn.disabled = true;
-    btn.textContent = 'Preparando pagamento...';
+    btn.textContent = 'Escolha como pagar...';
+
+    const formaEscolhida =
+        await escolherFormaPagamentoRestante();
+
+    if (!formaEscolhida) {
+        btn.disabled = false;
+        btn.textContent = textoOriginal;
+        return;
+    }
+
     try {
+        if (formaEscolhida === 'Dinheiro') {
+            btn.textContent = 'Registrando pagamento em dinheiro...';
+
+            const definirDinheiro =
+                firebase.functions().httpsCallable(
+                    'definirRestanteDinheiroEncomenda'
+                );
+
+            const resultado = await definirDinheiro({
+                pedidoId,
+                token: obterTokenCliente()
+            });
+
+            const valor =
+                Number(resultado.data &&
+                       resultado.data.valorRestante);
+
+            btn.textContent = Number.isFinite(valor)
+                ? `💵 Restante de R$ ${valor
+                    .toFixed(2)
+                    .replace('.', ',')} em dinheiro • aguardando recebimento`
+                : '💵 Restante em dinheiro • aguardando recebimento';
+
+            btn.disabled = true;
+
+            alert(
+                '💵 Forma de pagamento registrada.\n\n' +
+                'O restante será pago em dinheiro e só será marcado como pago depois que a loja confirmar o recebimento.'
+            );
+
+            if (
+                btn.classList &&
+                btn.classList.contains('btn-pagar-restante-lista')
+            ) {
+                await abrirMeusPedidos();
+            }
+
+            return;
+        }
+
+        btn.textContent =
+            formaEscolhida === 'Pix'
+                ? 'Abrindo pagamento por Pix...'
+                : 'Abrindo pagamento no cartão...';
+
+        // PIX e CARTÃO continuam exatamente no fluxo InfinitePay
+        // que já foi validado no pedido #231.
         await processarPagamentoRestanteEncomenda(pedidoId);
+
     } catch (err) {
-        alert('Não foi possível preparar o pagamento do restante agora. Tenta de novo em instantes, ou fala com a gente pelo WhatsApp.');
+        console.log(
+            'Não foi possível preparar o pagamento do restante:',
+            err.message || err
+        );
+
+        alert(
+            'Não foi possível preparar o pagamento do restante agora. Tenta de novo em instantes.'
+        );
+
         btn.disabled = false;
         btn.textContent = textoOriginal;
     }
@@ -1353,7 +1581,8 @@ async function abrirMeusPedidos() {
             const numeroTexto = pedido.numero ? `Pedido #${pedido.numero}` : 'Pedido';
             const sinalPago = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' && pedido.pagamento.status === 'pago';
             const restanteJaPago = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'pago';
-            const mostrarBotaoRestante = sinalPago && !restanteJaPago && pedido.status !== 'recusado';
+            const restanteDinheiroPendente = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'aguardando_recebimento' && pedido.pagamentoRestante.forma === 'Dinheiro';
+            const mostrarBotaoRestante = sinalPago && !restanteJaPago && !restanteDinheiroPendente && pedido.status !== 'recusado';
 
             // Resumo financeiro Premium da encomenda. O valor do sinal vem do próprio
             // pedido salvo (nunca da porcentagem atual da loja), então continua correto
@@ -1408,6 +1637,7 @@ async function abrirMeusPedidos() {
                     <p class="item-meus-pedidos-itens">${itensTexto || 'Itens não informados'}</p>
                     ${sinalPago && mostrarResumoFinanceiro ? '' : `<p class="item-meus-pedidos-total">${totalTexto}</p>`}
                     ${resumoFinanceiroHtml}
+                    ${restanteDinheiroPendente ? `<p class="item-meus-pedidos-meta">💵 Restante${valorRestanteTexto ? ` de ${valorRestanteTexto}` : ''} em dinheiro • aguardando recebimento</p>` : ''}
                     ${mostrarBotaoRestante ? `<button class="btn-pagar-restante-lista" onclick="pagarRestanteEncomenda('${id}', this)">💳 Pagar o restante${valorRestanteTexto ? ` • ${valorRestanteTexto}` : ''}</button>` : ''}
                 </div>
             `;
@@ -3073,13 +3303,18 @@ async function finalizarCompra() {
     // Apenas dados de cadastro/entrega/carrinho/cupom/totais/fidelidade passam a sair do
     // contextoCheckout. As decisões de pagamento, InfinitePay, sinal e tratamento de falha
     // continuam exatamente nas variáveis e caminhos já validados nas etapas anteriores.
+    const sinalObrigatorioNestePedido = contextoCheckout.encomenda.querAgendar && contextoCheckout.encomenda.percentualSinal > 0;
+
     const { id: pedidoId, promessaSalvo, bloqueadoPorPausa } = await salvarPedidoNoPainel({
         nome: contextoCheckout.cliente.nome,
         telefone: contextoCheckout.cliente.telefone,
         tipoEntrega: contextoCheckout.entrega.tipo,
         endereco: contextoCheckout.entrega.endereco,
-        formaPagamento: formaPagamentoAtual,
-        troco: (formaPagamentoAtual === 'Dinheiro' && troco) ? troco : null,
+        // Sinal obrigatório é sempre via Pix/Cartão — mesmo que o cliente tenha clicado em
+        // "Dinheiro" antes de decidir agendar a encomenda, essa escolha não vale pro sinal.
+        // O nome real (Pix ou Cartão) só é conhecido depois que o webhook confirmar.
+        formaPagamento: sinalObrigatorioNestePedido ? 'Pix/Cartão' : formaPagamentoAtual,
+        troco: (formaPagamentoAtual === 'Dinheiro' && troco && !sinalObrigatorioNestePedido) ? troco : null,
         observacoes: contextoCheckout.cliente.observacoes,
         dataEncomenda: contextoCheckout.encomenda.querAgendar && contextoCheckout.encomenda.data
             ? contextoCheckout.encomenda.data
