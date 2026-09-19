@@ -5213,6 +5213,31 @@ function garantirBuscaProdutoPedidoManual() {
     busca.setAttribute('aria-autocomplete', 'list');
     busca.setAttribute('aria-expanded', 'false');
     busca.setAttribute('aria-controls', 'pmResultadosProdutoManual');
+    busca.style.paddingRight = '42px';
+
+    const limpar = document.createElement('button');
+    limpar.type = 'button';
+    limpar.id = 'pmLimparBuscaProdutoManual';
+    limpar.textContent = '×';
+    limpar.title = 'Limpar busca';
+    limpar.setAttribute('aria-label', 'Limpar busca de produto');
+    limpar.style.cssText = [
+        'position:absolute',
+        'right:10px',
+        'top:50%',
+        'transform:translateY(-50%)',
+        'z-index:2',
+        'width:28px',
+        'height:28px',
+        'border:0',
+        'border-radius:50%',
+        'background:transparent',
+        'color:var(--muted,#8a7562)',
+        'font-size:20px',
+        'line-height:1',
+        'cursor:pointer',
+        'display:none'
+    ].join(';');
 
     const resultados = document.createElement('div');
     resultados.id = 'pmResultadosProdutoManual';
@@ -5235,16 +5260,35 @@ function garantirBuscaProdutoPedidoManual() {
 
     sel.parentNode.insertBefore(wrapper, sel);
     wrapper.appendChild(busca);
+    wrapper.appendChild(limpar);
     wrapper.appendChild(resultados);
     wrapper.appendChild(sel);
 
-    const abrir = () => renderResultadosBuscaProdutoPedidoManual();
+    const atualizarBotaoLimpar = () => {
+        limpar.style.display = busca.value ? 'block' : 'none';
+    };
+
+    const abrir = () => {
+        atualizarBotaoLimpar();
+        renderResultadosBuscaProdutoPedidoManual();
+    };
     busca.addEventListener('focus', abrir);
     busca.addEventListener('click', abrir);
     busca.addEventListener('input', () => {
         // Se o usuário voltou a digitar depois de selecionar, a seleção anterior
         // deixa de valer até ele clicar em um resultado.
         sel.value = '';
+        atualizarBotaoLimpar();
+        renderResultadosBuscaProdutoPedidoManual();
+    });
+
+    limpar.addEventListener('click', evento => {
+        evento.preventDefault();
+        evento.stopPropagation();
+        busca.value = '';
+        sel.value = '';
+        atualizarBotaoLimpar();
+        busca.focus();
         renderResultadosBuscaProdutoPedidoManual();
     });
 
@@ -5344,6 +5388,8 @@ function selecionarProdutoBuscaPedidoManual(id) {
 
     sel.value = id;
     busca.value = produto.nome || '';
+    const limpar = document.getElementById('pmLimparBuscaProdutoManual');
+    if (limpar) limpar.style.display = busca.value ? 'block' : 'none';
     fecharBuscaProdutoPedidoManual();
 }
 
@@ -5375,6 +5421,9 @@ function popularSelectProdutoPedidoManual() {
         const selecionado = getFichaTecnica(sel.value);
         if (selecionado) busca.value = selecionado.nome || '';
     }
+
+    const limpar = document.getElementById('pmLimparBuscaProdutoManual');
+    if (limpar && busca) limpar.style.display = busca.value ? 'block' : 'none';
 
     if (busca && busca.getAttribute('aria-expanded') === 'true') {
         renderResultadosBuscaProdutoPedidoManual();
