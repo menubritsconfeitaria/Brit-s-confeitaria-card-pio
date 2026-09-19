@@ -87,6 +87,7 @@ let valorPorKmEncomenda = valorPorKmEncomendaPadrao;
 let freteAtual = 0;
 let dataEncomendaVerificada = null; // guarda a última data checada e se estava disponível, pra não deixar finalizar sem checar
 let dataEncomendaEscolhida = null; // data de encomenda escolhida na aba dedicada, null = pedido normal
+let horaEncomendaEscolhida = null; // horário do evento informado pelo cliente (HH:MM)
 let freteConfirmado = true;
 
 // Referências aos elementos HTML
@@ -422,6 +423,7 @@ function atualizarStatusLoja(config) {
     // Se desativou o recurso, esquece qualquer data que tivesse sido escolhida antes
     if (!agendamentoAtivo) {
         dataEncomendaEscolhida = null;
+        horaEncomendaEscolhida = null;
         dataEncomendaVerificada = null;
     }
     // Se o interruptor mudou de estado, re-renderiza pra mostrar/esconder a aba Encomendas
@@ -1532,13 +1534,16 @@ function resumoMetaPedidoTexto(pedido, dataPedidoFormatada) {
         const dataEncomenda = pedido.dataEncomenda && /^\d{4}-\d{2}-\d{2}$/.test(pedido.dataEncomenda)
             ? pedido.dataEncomenda.split('-').reverse().join('/')
             : null;
+        const horaEncomenda = pedido.horaEncomenda && /^([01]\d|2[0-3]):[0-5]\d$/.test(pedido.horaEncomenda)
+            ? pedido.horaEncomenda
+            : null;
         const formaSinal =
             (pedido.pagamento && (pedido.pagamento.metodo || pedido.pagamento.forma)) ||
             pedido.formaPagamento ||
             '';
 
         const partes = [];
-        partes.push(dataEncomenda ? `Encomenda para ${dataEncomenda}` : dataPedidoFormatada);
+        partes.push(dataEncomenda ? `Encomenda para ${dataEncomenda}${horaEncomenda ? ` às ${horaEncomenda}` : ''}` : dataPedidoFormatada);
         if (formaSinal) partes.push(`Sinal: ${formaSinal}`);
         return partes.filter(Boolean).join(' • ');
     }
@@ -1868,6 +1873,9 @@ function atualizarResumoEncomendaCheckout() {
     }
 
     const dataFormatada = dataEncomendaEscolhida.split('-').reverse().join('/');
+    const horarioFormatado = horaEncomendaEscolhida && /^([01]\d|2[0-3]):[0-5]\d$/.test(horaEncomendaEscolhida)
+        ? ` às ${horaEncomendaEscolhida}`
+        : '';
     if (percentualSinalEncomenda > 0) {
         // O sinal cobre só o valor do produto — o frete NUNCA entra nessa conta, fica
         // sempre separado e avisado à parte, pra não ser injusto cobrar antecipado em
@@ -1887,11 +1895,18 @@ function atualizarResumoEncomendaCheckout() {
             }
         }
 
-        resumoTexto.innerHTML = `📅 <strong>Encomenda pra ${dataFormatada}</strong> — pra confirmar a reserva, você vai pagar um sinal de <strong>${percentualSinalEncomenda}% sobre o valor do produto</strong> (${valorTexto}) na próxima etapa.${avisoFrete} ⏰ <strong>Você tem ${prazoPagamentoHorasEfetivo}h pra concluir esse pagamento</strong>, senão a reserva é cancelada automaticamente. O restante fica combinado pra hora da entrega. A loja irá entrar em contato pra confirmação.`;
+        resumoTexto.innerHTML = `📅 <strong>Encomenda para ${dataFormatada}${horarioFormatado}</strong> — pra confirmar a reserva, você vai pagar um sinal de <strong>${percentualSinalEncomenda}% sobre o valor do produto</strong> (${valorTexto}) na próxima etapa.${avisoFrete} ⏰ <strong>Você tem ${prazoPagamentoHorasEfetivo}h pra concluir esse pagamento</strong>, senão a reserva é cancelada automaticamente. O restante fica combinado pra entrega ou retirada. A loja irá entrar em contato pra alinhar os detalhes do evento.`;
     } else {
-        resumoTexto.innerHTML = `📅 <strong>Esse pedido inclui uma encomenda</strong> pra <strong>${dataFormatada}</strong> — não é confirmação automática, a loja vai entrar em contato pra confirmar disponibilidade.`;
+        resumoTexto.innerHTML = `📅 <strong>Esse pedido inclui uma encomenda</strong> para <strong>${dataFormatada}${horarioFormatado}</strong> — não é confirmação automática; a loja vai entrar em contato pra alinhar os detalhes.`;
     }
     resumoDiv.style.display = 'block';
+}
+
+function atualizarHorarioEncomenda() {
+    const input = document.getElementById('encomendaHoraInput');
+    const valor = input ? String(input.value || '').trim() : '';
+    horaEncomendaEscolhida = /^([01]\d|2[0-3]):[0-5]\d$/.test(valor) ? valor : null;
+    atualizarResumoEncomendaCheckout();
 }
 
 // Consulta o servidor pra saber se a data escolhida pra encomenda está disponível
@@ -1904,6 +1919,9 @@ async function verificarDisponibilidadeAgenda() {
         msgEl.textContent = '';
         dataEncomendaVerificada = null;
         dataEncomendaEscolhida = null;
+        horaEncomendaEscolhida = null;
+        const horaInput = document.getElementById('encomendaHoraInput');
+        if (horaInput) horaInput.value = '';
         atualizarResumoEncomendaCheckout();
         if (cepClienteInput.value.replace(/\D/g, '').length === 8) calcularFrete(); // recalcula com a taxa normal
         return;
@@ -2260,14 +2278,39 @@ function renderizarProdutos() {
         const introEncomenda = document.createElement('div');
         introEncomenda.classList.add('encomenda-intro');
         introEncomenda.innerHTML = `
-            <p>Escolha a data desejada pra sua encomenda antes de adicionar ao carrinho — a gente já confere na hora se tem disponibilidade.</p>
-            <label>Data desejada</label>
-            <input type="date" id="encomendaDataInput" onchange="verificarDisponibilidadeAgenda()">
-            <p id="encomendaDisponibilidadeMsg" class="dica-encomenda"></p>
+            <div style="border:1px solid rgba(111,78,55,.14);border-radius:20px;padding:18px;background:linear-gradient(145deg,#fffdf9 0%,#fff8ef 100%);box-shadow:0 14px 34px rgba(76,49,32,.08);margin-bottom:18px;">
+                <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:16px;">
+                    <div style="width:42px;height:42px;min-width:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#6f4e37,#a66a3f);color:#fff;font-size:20px;box-shadow:0 8px 18px rgba(111,78,55,.18);">📅</div>
+                    <div style="min-width:0;">
+                        <div style="font-size:12px;font-weight:850;letter-spacing:.08em;text-transform:uppercase;color:#9b6d49;margin-bottom:3px;">Agendamento da encomenda</div>
+                        <div style="font-size:17px;font-weight:850;color:#35271f;line-height:1.25;">Informe a data e o horário do evento</div>
+                        <div style="font-size:12.5px;color:#7b6a60;line-height:1.45;margin-top:5px;">Essas informações ajudam a loja a organizar a produção e combinar a entrega ou retirada com você.</div>
+                    </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;">
+                    <label style="display:block;font-size:12px;font-weight:800;color:#5f493b;">
+                        <span style="display:block;margin-bottom:7px;">📆 Data do evento</span>
+                        <input type="date" id="encomendaDataInput" onchange="verificarDisponibilidadeAgenda()" style="width:100%;box-sizing:border-box;border:1px solid #e3d6ca;border-radius:13px;background:#fff;padding:12px 13px;font:inherit;color:#35271f;outline:none;min-height:46px;">
+                    </label>
+                    <label style="display:block;font-size:12px;font-weight:800;color:#5f493b;">
+                        <span style="display:block;margin-bottom:7px;">🕒 Horário do evento</span>
+                        <input type="time" id="encomendaHoraInput" step="900" onchange="atualizarHorarioEncomenda()" oninput="atualizarHorarioEncomenda()" style="width:100%;box-sizing:border-box;border:1px solid #e3d6ca;border-radius:13px;background:#fff;padding:12px 13px;font:inherit;color:#35271f;outline:none;min-height:46px;">
+                    </label>
+                </div>
+
+                <div id="encomendaDisponibilidadeMsg" class="dica-encomenda" style="min-height:18px;margin-top:12px;padding:10px 12px;border-radius:12px;background:rgba(111,78,55,.055);color:#6f5c50;font-size:12px;line-height:1.35;">Escolha uma data para conferir a disponibilidade.</div>
+            </div>
         `;
         listaProdutosDiv.appendChild(introEncomenda);
-        // Impede escolher uma data que já passou
-        document.getElementById('encomendaDataInput').min = new Date().toISOString().slice(0, 10);
+        // Impede escolher uma data que já passou, usando a data local do navegador.
+        const hojeLocal = new Date();
+        const hojeIsoLocal = `${hojeLocal.getFullYear()}-${String(hojeLocal.getMonth() + 1).padStart(2, '0')}-${String(hojeLocal.getDate()).padStart(2, '0')}`;
+        const dataInputEncomenda = document.getElementById('encomendaDataInput');
+        const horaInputEncomenda = document.getElementById('encomendaHoraInput');
+        dataInputEncomenda.min = hojeIsoLocal;
+        if (dataEncomendaEscolhida) dataInputEncomenda.value = dataEncomendaEscolhida;
+        if (horaEncomendaEscolhida) horaInputEncomenda.value = horaEncomendaEscolhida;
 
         const gridEncomenda = document.createElement('div');
         gridEncomenda.classList.add('categoria-grid');
@@ -2411,7 +2454,13 @@ function renderizarProdutos() {
             // Produto de encomenda exige que a data já tenha sido escolhida e verificada
             // como disponível antes de deixar adicionar ao carrinho
             if (produtoCompleto && produtoCompleto.disponivelParaEncomenda && !dataEncomendaEscolhida) {
-                alert('Escolha e confirme a data desejada, ali em cima na seção "🎂 Encomendas", antes de adicionar esse produto.');
+                alert('Escolha e confirme a data do evento, ali em cima na seção "🎂 Encomendas", antes de adicionar esse produto.');
+                return;
+            }
+            if (produtoCompleto && produtoCompleto.disponivelParaEncomenda && !horaEncomendaEscolhida) {
+                alert('Informe também o horário do evento antes de adicionar a encomenda ao carrinho.');
+                const horaInput = document.getElementById('encomendaHoraInput');
+                if (horaInput) horaInput.focus();
                 return;
             }
 
@@ -3181,11 +3230,16 @@ async function finalizarCompra() {
     const obs = clienteObsInput.value.trim();
     const querAgendar = agendamentoAtivo && !!dataEncomendaEscolhida;
     const dataEncomenda = dataEncomendaEscolhida;
+    const horaEncomenda = horaEncomendaEscolhida;
 
     // A verificação já é exigida na própria aba Encomendas antes de liberar o produto
     // pro carrinho — aqui só uma última conferência de segurança, caso algo tenha mudado
     if (querAgendar && dataEncomendaVerificada !== dataEncomenda) {
         alert('A disponibilidade da data da sua encomenda precisa ser verificada de novo — volta na aba Encomendas e confirma a data.');
+        return;
+    }
+    if (querAgendar && !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(horaEncomenda || ''))) {
+        alert('Informe o horário do evento antes de finalizar a encomenda.');
         return;
     }
 
@@ -3228,7 +3282,7 @@ async function finalizarCompra() {
     mensagemPedido += `*Tipo:* ${tipoEntregaAtual === 'entrega' ? 'Entrega' : 'Retirada no local'}\n`;
     if (querAgendar && dataEncomenda) {
         const [ano, mes, dia] = dataEncomenda.split('-');
-        mensagemPedido += `📅 *ENCOMENDA PRA:* ${dia}/${mes}/${ano} (confirmar disponibilidade com o cliente)\n`;
+        mensagemPedido += `📅 *ENCOMENDA:* ${dia}/${mes}/${ano}${horaEncomenda ? ` às ${horaEncomenda}` : ''} (alinhar detalhes com o cliente)\n`;
     }
     if (tipoEntregaAtual === 'entrega') {
         mensagemPedido += `*Endereço:* ${rua}, ${numero} ${complemento ? `(${complemento})` : ''}\n`;
@@ -3298,6 +3352,7 @@ async function finalizarCompra() {
             agendamentoAtivo,
             querAgendar,
             data: dataEncomenda,
+            hora: horaEncomenda,
             dataVerificada: dataEncomendaVerificada,
             percentualSinal: percentualSinalEncomenda
         },
@@ -3352,6 +3407,9 @@ async function finalizarCompra() {
         observacoes: contextoCheckout.cliente.observacoes,
         dataEncomenda: contextoCheckout.encomenda.querAgendar && contextoCheckout.encomenda.data
             ? contextoCheckout.encomenda.data
+            : null,
+        horaEncomenda: contextoCheckout.encomenda.querAgendar && contextoCheckout.encomenda.hora
+            ? contextoCheckout.encomenda.hora
             : null,
         itens: contextoCheckout.carrinho.itens.map(item => {
             const produtoAtual = produtos.find(p => p.id === item.produtoId);
@@ -3467,7 +3525,7 @@ async function finalizarCompra() {
     // não é confirmação automática — a loja ainda precisa confirmar por fora
     if (querAgendar && dataEncomenda) {
         const [ano, mes, dia] = dataEncomenda.split('-');
-        alert(`📅 Pedido de encomenda enviado!\n\nA ${LOJA_CONFIG.nome} vai entrar em contato pra confirmar a disponibilidade da data solicitada (${dia}/${mes}/${ano}).`);
+        alert(`📅 Pedido de encomenda enviado!\n\nEvento: ${dia}/${mes}/${ano}${horaEncomenda ? ` às ${horaEncomenda}` : ''}.\nA ${LOJA_CONFIG.nome} vai entrar em contato pra alinhar os detalhes.`);
     }
 
     // Limpa o carrinho e o formulário após o envio para o WhatsApp

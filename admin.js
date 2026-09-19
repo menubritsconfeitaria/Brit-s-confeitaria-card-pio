@@ -1848,7 +1848,7 @@ function montarHtmlTicketImpressao(pedido, numeroPedido) {
         ${pedido.troco ? `<p><strong>${formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))}</strong></p>` : ''}
         ${pedido.observacoes ? `<p><strong>Observações:</strong> ${pedido.observacoes}</p>` : ''}
         ${pedido.recompensaResgatada ? `<p><strong>🎁 RESGATE DO CLUBE:</strong> ${pedido.recompensaResgatada.descricao}</p>` : ''}
-        ${pedido.dataEncomenda ? `<p><strong>📅 ENCOMENDA PRA:</strong> ${pedido.dataEncomenda.split('-').reverse().join('/')}</p>` : ''}
+        ${pedido.dataEncomenda ? `<p><strong>📅 ENCOMENDA:</strong> ${pedido.dataEncomenda.split('-').reverse().join('/')}${pedido.horaEncomenda ? ` às ${pedido.horaEncomenda}` : ''}</p>` : ''}
         ${pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' ? `<p><strong>💰 SINAL:</strong> ${pedido.pagamento.percentualSinal}% do produto pago (${formatarPreco(pedido.pagamento.valorSinal)}) — falta ${formatarPreco(totalDoPedido(pedido) - pedido.pagamento.valorSinal)} na entrega${pedido.pagamento.freteInformado > 0 ? ` (esse valor já inclui o frete de ${formatarPreco(pedido.pagamento.freteInformado)})` : ''}</p>` : ''}
         <p class="ticket-total"><strong>Total: ${formatarPreco(totalDoPedido(pedido))}</strong></p>
         <div class="ticket-espaco-final" aria-hidden="true"></div>
@@ -2053,13 +2053,16 @@ function aplicarUrgenciaVisualCard(card, pedido, comAcoes) {
                 'color:#246b45'
             ].join(';');
 
+            const horaEvento = /^([01]\d|2[0-3]):[0-5]\d$/.test(String(pedido.horaEncomenda || ''))
+                ? String(pedido.horaEncomenda)
+                : '';
             if (dataEncomenda === hoje) {
                 badge.innerHTML = `
                     <span style="display:flex;align-items:center;gap:6px;font-weight:800;min-width:0;">
                         <span aria-hidden="true">📅</span>
-                        <span>Encomenda para hoje</span>
+                        <span>Hoje${horaEvento ? ` • ${horaEvento}` : ''}</span>
                     </span>
-                    <span style="font-size:10px;font-weight:800;opacity:.78;white-space:nowrap;">DIA AGENDADO</span>
+                    <span style="font-size:10px;font-weight:800;opacity:.78;white-space:nowrap;">DIA DO EVENTO</span>
                 `;
             } else {
                 const dataBr = dataEncomenda
@@ -2070,9 +2073,9 @@ function aplicarUrgenciaVisualCard(card, pedido, comAcoes) {
                 badge.innerHTML = `
                     <span style="display:flex;align-items:center;gap:6px;font-weight:850;white-space:nowrap;">
                         <span aria-hidden="true">📅</span>
-                        <span>${dataBr}</span>
+                        <span>${dataBr}${horaEvento ? ` • ${horaEvento}` : ''}</span>
                     </span>
-                    <span style="font-size:10.5px;font-weight:750;text-align:right;min-width:0;">Aguardando a data agendada</span>
+                    <span style="font-size:10.5px;font-weight:750;text-align:right;min-width:0;">Agendada</span>
                 `;
             }
         }
@@ -2130,8 +2133,12 @@ function montarCardPedido(id, pedido, comAcoes) {
     const resgateHtml = pedido.recompensaResgatada
         ? `<div class="pedido-resgate">🎁 Cliente do Clube resgatou: <strong>${pedido.recompensaResgatada.descricao}</strong> — separa isso no pedido!</div>`
         : '';
-    const encomendaHtml = pedido.dataEncomenda
-        ? `<div class="pedido-resgate">📅 Encomenda pra <strong>${pedido.dataEncomenda.split('-').reverse().join('/')}</strong> — confirma a disponibilidade com o cliente!</div>`
+    const dataEncomendaCard = String(pedido.dataEncomenda || '').trim();
+    const horaEncomendaCard = /^([01]\d|2[0-3]):[0-5]\d$/.test(String(pedido.horaEncomenda || ''))
+        ? String(pedido.horaEncomenda)
+        : '';
+    const encomendaHtml = /^\d{4}-\d{2}-\d{2}$/.test(dataEncomendaCard) && dataEncomendaCard < hojeIsoLocal()
+        ? `<div class="pedido-resgate">📅 Evento: <strong>${dataEncomendaCard.split('-').reverse().join('/')}${horaEncomendaCard ? ` às ${horaEncomendaCard}` : ''}</strong></div>`
         : '';
 
     const tagStatus = {
@@ -2175,13 +2182,21 @@ function montarCardPedido(id, pedido, comAcoes) {
     if (encomendaAgendadaSemContador) {
         const dataBrTopo = dataEncomendaTopo.split('-').reverse().join('/');
         const ehHojeTopo = dataEncomendaTopo === hojeIsoLocal();
+        const horaTopo = /^([01]\d|2[0-3]):[0-5]\d$/.test(String(pedido.horaEncomenda || ''))
+            ? String(pedido.horaEncomenda)
+            : '';
+        const dataHoraTopo = `${ehHojeTopo ? 'Hoje' : dataBrTopo}${horaTopo ? ` • ${horaTopo}` : ''}`;
         avisoAgendamentoTopoHtml = `
-            <div class="pedido-agendamento-premium" style="display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;box-sizing:border-box;margin:9px 0 10px;padding:9px 11px;border:1px solid rgba(41,145,88,.16);border-radius:12px;background:linear-gradient(135deg,rgba(231,248,238,.98),rgba(245,252,248,.98));box-shadow:0 5px 14px rgba(31,116,70,.06);font-size:11px;line-height:1.25;color:#246b45;">
-                <span style="display:flex;align-items:center;gap:6px;font-weight:850;white-space:nowrap;">
-                    <span aria-hidden="true">📅</span>
-                    <span>${ehHojeTopo ? 'Encomenda para hoje' : dataBrTopo}</span>
-                </span>
-                <span style="font-size:10.5px;font-weight:750;text-align:right;min-width:0;">${ehHojeTopo ? 'DIA AGENDADO' : 'Aguardando a data agendada'}</span>
+            <div class="pedido-agendamento-premium" style="width:100%;box-sizing:border-box;margin:9px 0 10px;padding:11px 12px;border:1px solid rgba(151,105,68,.18);border-radius:14px;background:linear-gradient(145deg,rgba(255,250,243,.99),rgba(255,255,255,.99));box-shadow:0 7px 18px rgba(96,62,39,.07);color:#5a4030;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px;">
+                    <span style="display:flex;align-items:center;gap:6px;font-size:9.5px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;color:#9a6844;min-width:0;">
+                        <span aria-hidden="true" style="font-size:13px;">📅</span>
+                        <span>Encomenda agendada</span>
+                    </span>
+                    <span style="padding:4px 7px;border-radius:999px;background:${ehHojeTopo ? 'rgba(32,151,87,.10)' : 'rgba(171,119,75,.09)'};font-size:8.8px;font-weight:900;letter-spacing:.04em;white-space:nowrap;color:${ehHojeTopo ? '#237548' : '#8b613f'};">${ehHojeTopo ? 'DIA DO EVENTO' : 'AGENDADA'}</span>
+                </div>
+                <div style="font-size:14px;font-weight:900;line-height:1.2;color:#3d2b21;margin-bottom:4px;">${dataHoraTopo}</div>
+                <div style="font-size:10.5px;line-height:1.35;color:#7d695c;">${ehHojeTopo ? 'Evento marcado para hoje • confira os detalhes de entrega ou retirada.' : 'Aguardando a data do evento • detalhes combinados com o cliente.'}</div>
             </div>`;
     }
     // Em encomenda com sinal online obrigatório, o botão genérico "Marcar como pago"
