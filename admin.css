@@ -16382,3 +16382,91 @@ section[data-tab="agenda"] .agenda-bloqueio-box input[type="date"] {
         max-height: 260px;
     }
 }
+
+/* Orçamento — edição inline no mesmo padrão da Ficha Técnica / Lançar Pedido */
+.orcamento-premium #orcListaItens .orcamento-item-resumo {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.orcamento-premium #orcListaItens .orcamento-item-acoes {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    flex: 0 0 auto;
+}
+
+.orcamento-premium #orcListaItens .orcamento-btn-editar,
+.orcamento-premium #orcListaItens .orcamento-btn-aplicar,
+.orcamento-premium #orcListaItens .orcamento-btn-cancelar {
+    min-height: 30px;
+    padding: 5px 9px;
+    border-radius: 8px;
+    font-size: .67rem;
+    white-space: nowrap;
+}
+
+.orcamento-premium #orcListaItens > .orcamento-item-linha.is-editing {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 120px auto;
+    align-items: end;
+    gap: 10px;
+}
+
+.orcamento-premium #orcListaItens .orcamento-item-info {
+    min-width: 0;
+}
+
+.orcamento-premium #orcListaItens .orcamento-item-info strong,
+.orcamento-premium #orcListaItens .orcamento-item-info small {
+    display: block;
+}
+
+.orcamento-premium #orcListaItens .orcamento-item-info strong {
+    color: #4d392c;
+    font-size: .72rem;
+}
+
+.orcamento-premium #orcListaItens .orcamento-item-info small {
+    margin-top: 3px;
+    color: #8a7568;
+    font-size: .62rem;
+}
+
+.orcamento-premium #orcListaItens .orcamento-item-edicao label {
+    display: block;
+    margin-bottom: 4px;
+    color: #725746;
+    font-size: .6rem;
+    font-weight: 700;
+}
+
+.orcamento-premium #orcListaItens .orcamento-item-edicao input {
+    width: 100%;
+    height: 32px;
+    padding: 5px 8px;
+    border: 1px solid #e6d7cb;
+    border-radius: 8px;
+    background: #fff;
+    font: inherit;
+    font-size: .68rem;
+    box-sizing: border-box;
+}
+
+.orcamento-premium #orcListaItens .orcamento-item-edicao input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+@media (max-width: 700px) {
+    .orcamento-premium #orcListaItens > .orcamento-item-linha.is-editing {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .orcamento-premium #orcListaItens .orcamento-item-acoes {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+}

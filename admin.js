@@ -6336,6 +6336,7 @@ function mostrarDetalheProdutoRelatorio() {
 
 // ---------- Sistema de Gestão — Orçamento (proposta pro cliente) ----------
 let tempItensOrcamento = [];
+let editingItemOrcamentoIndex = null;
 
 function popularSelectProdutoOrcamento() {
     const sel = document.getElementById('orcSelectProduto');
@@ -6354,10 +6355,57 @@ function adicionarItemOrcamento() {
     const { precoVenda } = calcularCustoFichaTecnica(ft);
     tempItensOrcamento.push({ nome: ft.nome, preco: precoVenda, quantidade: qtd });
     document.getElementById('orcQtdItem').value = '1';
+    editingItemOrcamentoIndex = null;
     renderItensOrcamento();
 }
 
-function removerItemOrcamento(i) { tempItensOrcamento.splice(i, 1); renderItensOrcamento(); }
+// Mesmo padrão da Ficha Técnica e de Lançar Pedido: a edição acontece
+// na própria linha do item, sem jogar o usuário de volta para o seletor no topo.
+function editarItemOrcamento(i) {
+    if (!tempItensOrcamento[i]) return;
+    editingItemOrcamentoIndex = i;
+    renderItensOrcamento();
+
+    const input = document.querySelector(`[data-orc-editar-qtd="${i}"]`);
+    if (input) {
+        input.focus();
+        input.select();
+    }
+}
+
+function cancelarEdicaoItemOrcamento() {
+    editingItemOrcamentoIndex = null;
+    renderItensOrcamento();
+}
+
+function salvarEdicaoItemOrcamento(i) {
+    const item = tempItensOrcamento[i];
+    const input = document.querySelector(`[data-orc-editar-qtd="${i}"]`);
+    if (!item || !input) return;
+
+    const qtd = parseFloat(String(input.value || '').replace(',', '.'));
+    if (!qtd || qtd <= 0) {
+        alert('Informa uma quantidade válida.');
+        input.focus();
+        return;
+    }
+
+    item.quantidade = qtd;
+    editingItemOrcamentoIndex = null;
+    renderItensOrcamento();
+}
+
+function removerItemOrcamento(i) {
+    tempItensOrcamento.splice(i, 1);
+
+    if (editingItemOrcamentoIndex === i) {
+        editingItemOrcamentoIndex = null;
+    } else if (editingItemOrcamentoIndex !== null && editingItemOrcamentoIndex > i) {
+        editingItemOrcamentoIndex--;
+    }
+
+    renderItensOrcamento();
+}
 
 function renderItensOrcamento() {
     const div = document.getElementById('orcListaItens');
@@ -6367,9 +6415,32 @@ function renderItensOrcamento() {
         const totalItem = item.preco * item.quantidade;
         total += totalItem;
         const linha = document.createElement('div');
-        linha.style.cssText = 'display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border);';
-        linha.innerHTML = `<span>${item.quantidade}x ${item.nome} = ${formatarPreco(totalItem)}</span>
-            <button class="btn-excluir-cupom" onclick="removerItemOrcamento(${i})">🗑️</button>`;
+        linha.className = 'orcamento-item-linha';
+
+        if (editingItemOrcamentoIndex === i) {
+            linha.classList.add('is-editing');
+            linha.innerHTML = `
+                <div class="orcamento-item-info">
+                    <strong>${item.nome}</strong>
+                    <small>Preço unitário: ${formatarPreco(item.preco)} · Total atual: ${formatarPreco(totalItem)}</small>
+                </div>
+                <div class="orcamento-item-edicao">
+                    <label>Quantidade</label>
+                    <input type="text" inputmode="decimal" value="${item.quantidade}" data-orc-editar-qtd="${i}"
+                        onkeydown="if(event.key === 'Enter'){ event.preventDefault(); salvarEdicaoItemOrcamento(${i}); } else if(event.key === 'Escape'){ cancelarEdicaoItemOrcamento(); }">
+                </div>
+                <div class="orcamento-item-acoes">
+                    <button type="button" class="btn-secondary orcamento-btn-aplicar" onclick="salvarEdicaoItemOrcamento(${i})">✓ Aplicar</button>
+                    <button type="button" class="btn-secondary orcamento-btn-cancelar" onclick="cancelarEdicaoItemOrcamento()">Cancelar</button>
+                </div>`;
+        } else {
+            linha.innerHTML = `
+                <span class="orcamento-item-resumo">${item.quantidade}x ${item.nome} = <strong>${formatarPreco(totalItem)}</strong></span>
+                <div class="orcamento-item-acoes">
+                    <button type="button" class="btn-secondary orcamento-btn-editar" onclick="editarItemOrcamento(${i})" title="Editar item">✏️ Editar</button>
+                    <button type="button" class="btn-excluir-cupom" onclick="removerItemOrcamento(${i})" title="Excluir item">🗑️</button>
+                </div>`;
+        }
         div.appendChild(linha);
     });
     const frete = parseFloat((document.getElementById('orcFrete').value || '0').replace(',', '.')) || 0;
