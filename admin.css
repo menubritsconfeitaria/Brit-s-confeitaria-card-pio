@@ -6857,6 +6857,31 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
     margin-bottom: 12px;
 }
 
+.bases-premium .bases-search-wrap {
+    flex: 0 1 360px;
+    width: 100%;
+}
+
+.bases-premium #baseBusca {
+    width: 100%;
+    min-height: 40px;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 8px 10px;
+    border: 1px solid #dfd1bf;
+    border-radius: 10px;
+    background: #fff;
+    color: var(--text);
+    font-family: inherit;
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+
+.bases-premium #baseBusca:focus {
+    border-color: #c9976c;
+    box-shadow: 0 0 0 3px rgba(160,82,45,.08);
+}
+
 .bases-premium #listaBases {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -6923,6 +6948,16 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
 
     .bases-premium .bases-hero-tags {
         justify-content: flex-start;
+    }
+
+    .bases-premium .bases-lista-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .bases-premium .bases-search-wrap {
+        flex-basis: auto;
+        width: 100%;
     }
 
     .bases-premium .bases-grid--identificacao,
@@ -15413,6 +15448,11 @@ section[data-tab="agenda"] .agenda-bloqueio-box input[type="date"] {
     background: transparent !important;
     box-shadow: none !important;
     transform: none !important;
+}
+
+/* Busca de produtos: precisa vencer o display:block !important dos cards recolhidos. */
+.painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-item.produto-busca-oculto {
+    display: none !important;
 }
 .painel-main > section[data-tab="produtos"].produtos-premium-v4:has(#produtosAdminList) .produto-admin-item.produto-card-recolhido > :not(.produto-resumo-premium) {
     display: none !important;

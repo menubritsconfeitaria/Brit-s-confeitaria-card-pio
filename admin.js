@@ -4276,12 +4276,19 @@ function salvarBase() {
 }
 
 function renderBases() {
+    const buscaEl = document.getElementById('baseBusca');
+    const busca = normalizarTexto(buscaEl ? buscaEl.value : '');
     const container = document.getElementById('listaBases');
-    if (bases.length === 0) {
-        container.innerHTML = '<p class="dica-secao">Nenhuma base cadastrada ainda.</p>';
+    const filtradas = bases.filter(b => normalizarTexto(b.nome).includes(busca));
+
+    if (filtradas.length === 0) {
+        container.innerHTML = busca
+            ? '<p class="dica-secao">Nenhuma base encontrada.</p>'
+            : '<p class="dica-secao">Nenhuma base cadastrada ainda.</p>';
         return;
     }
-    container.innerHTML = bases.map(b => {
+
+    container.innerHTML = filtradas.map(b => {
         const { custoTotal, custoPorUnidade } = calcularBase(b);
         return `
             <div class="pedido-card" style="margin-top:8px;">
@@ -8728,7 +8735,11 @@ function filtrarProdutosAdmin() {
         const categoria = card.querySelector('input[id^="prodCategoria_"]')?.value || '';
         const texto = normalizarTextoBuscaProduto(`${nome} ${categoria}`);
         const mostrar = !termo || texto.includes(termo);
-        card.style.display = mostrar ? '' : 'none';
+
+        // Usa uma classe própria porque os cards recolhidos possuem display:block !important
+        // no layout premium. Assim a pesquisa realmente deixa na grade somente os achados,
+        // no mesmo padrão visual da lista da Ficha Técnica, sem recriar nenhum card.
+        card.classList.toggle('produto-busca-oculto', !mostrar);
         if (mostrar) visiveis++;
     });
 
