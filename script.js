@@ -1218,7 +1218,7 @@ function escolherFormaPagamentoRestante(permitirDinheiro = false) {
                     ">
                         Escolha agora a forma de pagamento do restante da encomenda.
                         <span data-aviso-data-dinheiro style="display:block;margin-top:8px;">
-                            Dinheiro fica disponível a partir do dia agendado para entrega ou retirada.
+                            💵 Dinheiro é pago presencialmente na entrega ou retirada.
                         </span>
                     </div>
 
@@ -1295,8 +1295,10 @@ function escolherFormaPagamentoRestante(permitirDinheiro = false) {
         }
 
         // Atualiza também ao reutilizar o modal para outro pedido.
-        modal.querySelector('[data-forma-restante="Dinheiro"]').style.display = permitirDinheiro ? '' : 'none';
-        modal.querySelector('[data-aviso-data-dinheiro]').style.display = permitirDinheiro ? 'none' : 'block';
+        // Dinheiro é sempre presencial: o cliente não seleciona essa forma no site.
+        // O painel da loja confirma o recebimento no dia da entrega/retirada.
+        modal.querySelector('[data-forma-restante="Dinheiro"]').style.display = 'none';
+        modal.querySelector('[data-aviso-data-dinheiro]').style.display = 'block';
 
         let resolvido = false;
 
@@ -1343,12 +1345,11 @@ async function pagarRestanteEncomenda(pedidoIdExplicito, botaoClicado) {
     btn.textContent = 'Escolha como pagar...';
 
     try {
-        // Consulta a permissão no clique: não depende da data/relógio do navegador.
+        // Confirma o estado atual do pedido antes de abrir as formas online.
+        // Dinheiro permanece presencial e nunca aparece como opção neste modal.
         const pedidoAtual = await consultarStatusPedidoSeguro(pedidoId);
         if (!pedidoAtual) throw new Error('Não foi possível consultar o pedido.');
-        const formaEscolhida = await escolherFormaPagamentoRestante(
-            pedidoAtual.restanteDinheiroLiberado === true
-        );
+        const formaEscolhida = await escolherFormaPagamentoRestante(false);
 
         if (!formaEscolhida) {
             btn.disabled = false;
