@@ -5189,12 +5189,196 @@ async function obterOuCriarClienteGestaoPorNome(nomeDigitado) {
     return { id: ref.key, nome: nomeDigitado };
 }
 
+function garantirBuscaProdutoPedidoManual() {
+    const sel = document.getElementById('pmSelectProduto');
+    if (!sel || document.getElementById('pmBuscaProdutoManual')) return;
+
+    // Mantém o select original como fonte do valor escolhido para não alterar
+    // adicionarItemPedidoManual() nem qualquer fluxo já validado.
+    sel.style.display = 'none';
+
+    const label = document.querySelector('label[for="pmSelectProduto"]');
+    if (label) label.setAttribute('for', 'pmBuscaProdutoManual');
+
+    const wrapper = document.createElement('div');
+    wrapper.id = 'pmBuscaProdutoManualWrapper';
+    wrapper.style.cssText = 'position:relative;width:100%;';
+
+    const busca = document.createElement('input');
+    busca.type = 'text';
+    busca.id = 'pmBuscaProdutoManual';
+    busca.placeholder = '🔍 Buscar produto...';
+    busca.autocomplete = 'off';
+    busca.setAttribute('role', 'combobox');
+    busca.setAttribute('aria-autocomplete', 'list');
+    busca.setAttribute('aria-expanded', 'false');
+    busca.setAttribute('aria-controls', 'pmResultadosProdutoManual');
+
+    const resultados = document.createElement('div');
+    resultados.id = 'pmResultadosProdutoManual';
+    resultados.hidden = true;
+    resultados.setAttribute('role', 'listbox');
+    resultados.style.cssText = [
+        'position:absolute',
+        'left:0',
+        'right:0',
+        'top:calc(100% + 6px)',
+        'z-index:60',
+        'max-height:320px',
+        'overflow:auto',
+        'background:#fff',
+        'border:1px solid var(--border,#e7d7ca)',
+        'border-radius:14px',
+        'box-shadow:0 16px 38px rgba(71,46,31,.14)',
+        'padding:8px'
+    ].join(';');
+
+    sel.parentNode.insertBefore(wrapper, sel);
+    wrapper.appendChild(busca);
+    wrapper.appendChild(resultados);
+    wrapper.appendChild(sel);
+
+    const abrir = () => renderResultadosBuscaProdutoPedidoManual();
+    busca.addEventListener('focus', abrir);
+    busca.addEventListener('click', abrir);
+    busca.addEventListener('input', () => {
+        // Se o usuário voltou a digitar depois de selecionar, a seleção anterior
+        // deixa de valer até ele clicar em um resultado.
+        sel.value = '';
+        renderResultadosBuscaProdutoPedidoManual();
+    });
+
+    busca.addEventListener('keydown', evento => {
+        if (evento.key === 'Escape') {
+            fecharBuscaProdutoPedidoManual();
+            busca.blur();
+            return;
+        }
+        if (evento.key === 'Enter') {
+            const primeiro = resultados.querySelector('[data-pm-produto-id]');
+            if (primeiro && !resultados.hidden) {
+                evento.preventDefault();
+                selecionarProdutoBuscaPedidoManual(primeiro.dataset.pmProdutoId);
+            }
+        }
+    });
+
+    document.addEventListener('click', evento => {
+        if (!wrapper.contains(evento.target)) fecharBuscaProdutoPedidoManual();
+    });
+}
+
+function produtosDisponiveisPedidoManual(termo = '') {
+    const filtro = normalizarTexto(termo || '');
+    if (!filtro) return [...fichaTecnica];
+
+    // Procura o trecho em QUALQUER posição do nome, independentemente
+    // da posição do produto na lista.
+    return fichaTecnica.filter(p =>
+        normalizarTexto(p.nome || '').includes(filtro)
+    );
+}
+
+function renderResultadosBuscaProdutoPedidoManual() {
+    const busca = document.getElementById('pmBuscaProdutoManual');
+    const resultados = document.getElementById('pmResultadosProdutoManual');
+    if (!busca || !resultados) return;
+
+    const encontrados = produtosDisponiveisPedidoManual(busca.value);
+    resultados.innerHTML = '';
+
+    if (!encontrados.length) {
+        const vazio = document.createElement('div');
+        vazio.textContent = `Nenhum produto encontrado para "${busca.value}".`;
+        vazio.style.cssText = 'padding:12px 14px;color:var(--muted,#8a7562);font-size:.9rem;';
+        resultados.appendChild(vazio);
+    } else {
+        encontrados.forEach(produto => {
+            const botao = document.createElement('button');
+            botao.type = 'button';
+            botao.dataset.pmProdutoId = produto.id;
+            botao.setAttribute('role', 'option');
+            botao.style.cssText = [
+                'display:flex',
+                'align-items:center',
+                'justify-content:space-between',
+                'gap:12px',
+                'width:100%',
+                'border:0',
+                'border-bottom:1px solid var(--border,#eee2d8)',
+                'background:transparent',
+                'padding:12px 10px',
+                'text-align:left',
+                'cursor:pointer',
+                'color:inherit',
+                'font:inherit'
+            ].join(';');
+
+            const nome = document.createElement('strong');
+            nome.textContent = produto.nome || 'Produto sem nome';
+
+            const calculo = calcularCustoFichaTecnica(produto);
+            const preco = document.createElement('small');
+            preco.textContent = formatarPreco(calculo.precoVenda);
+            preco.style.cssText = 'white-space:nowrap;color:var(--muted,#8a7562);';
+
+            botao.appendChild(nome);
+            botao.appendChild(preco);
+            botao.addEventListener('mouseenter', () => botao.style.background = 'rgba(160,82,45,.06)');
+            botao.addEventListener('mouseleave', () => botao.style.background = 'transparent');
+            botao.addEventListener('click', () => selecionarProdutoBuscaPedidoManual(produto.id));
+
+            resultados.appendChild(botao);
+        });
+    }
+
+    resultados.hidden = false;
+    busca.setAttribute('aria-expanded', 'true');
+}
+
+function selecionarProdutoBuscaPedidoManual(id) {
+    const sel = document.getElementById('pmSelectProduto');
+    const busca = document.getElementById('pmBuscaProdutoManual');
+    const produto = getFichaTecnica(id);
+    if (!sel || !busca || !produto) return;
+
+    sel.value = id;
+    busca.value = produto.nome || '';
+    fecharBuscaProdutoPedidoManual();
+}
+
+function fecharBuscaProdutoPedidoManual() {
+    const busca = document.getElementById('pmBuscaProdutoManual');
+    const resultados = document.getElementById('pmResultadosProdutoManual');
+    if (resultados) resultados.hidden = true;
+    if (busca) busca.setAttribute('aria-expanded', 'false');
+}
+
 function popularSelectProdutoPedidoManual() {
     const sel = document.getElementById('pmSelectProduto');
     if (!sel) return;
+
     const valorAtual = sel.value;
-    sel.innerHTML = '<option value="">Selecione</option>' + fichaTecnica.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
-    sel.value = valorAtual;
+    sel.innerHTML = '<option value="">Selecione</option>' +
+        fichaTecnica.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+
+    if ([...sel.options].some(opt => opt.value === valorAtual)) {
+        sel.value = valorAtual;
+    } else {
+        sel.value = '';
+    }
+
+    garantirBuscaProdutoPedidoManual();
+
+    const busca = document.getElementById('pmBuscaProdutoManual');
+    if (busca && sel.value) {
+        const selecionado = getFichaTecnica(sel.value);
+        if (selecionado) busca.value = selecionado.nome || '';
+    }
+
+    if (busca && busca.getAttribute('aria-expanded') === 'true') {
+        renderResultadosBuscaProdutoPedidoManual();
+    }
 }
 
 function adicionarItemPedidoManual() {
@@ -8294,74 +8478,21 @@ function filtrarProdutosAdmin() {
 
     const termo = normalizarTextoBuscaProduto(campoBusca.value);
     const cards = Array.from(lista.querySelectorAll('.produto-admin-item'));
-
-    // Guarda a posição original de cada produto.
-    // Isso permite trazer o resultado para cima e restaurar tudo
-    // exatamente como estava quando a pesquisa for apagada.
-    cards.forEach((card, indice) => {
-        if (!card.dataset.ordemBuscaProdutosAdmin) {
-            card.dataset.ordemBuscaProdutosAdmin = String(indice + 1);
-        }
-    });
-
-    const ordemOriginal = card =>
-        Number(card.dataset.ordemBuscaProdutosAdmin || 0);
-
     let visiveis = 0;
-    const encontrados = [];
-    const demais = [];
 
     cards.forEach(card => {
-        const nome =
-            card.querySelector('input[id^="prodNome_"]')?.value || '';
-
-        const categoria =
-            card.querySelector('input[id^="prodCategoria_"]')?.value || '';
-
-        const texto =
-            normalizarTextoBuscaProduto(`${nome} ${categoria}`);
-
+        const nome = card.querySelector('input[id^="prodNome_"]')?.value || '';
+        const categoria = card.querySelector('input[id^="prodCategoria_"]')?.value || '';
+        const texto = normalizarTextoBuscaProduto(`${nome} ${categoria}`);
         const mostrar = !termo || texto.includes(termo);
-
         card.style.display = mostrar ? '' : 'none';
-
-        if (mostrar) {
-            visiveis++;
-            encontrados.push(card);
-        } else {
-            demais.push(card);
-        }
+        if (mostrar) visiveis++;
     });
 
-    // Mantém a ordem original entre os próprios resultados.
-    encontrados.sort((a, b) => ordemOriginal(a) - ordemOriginal(b));
-    demais.sort((a, b) => ordemOriginal(a) - ordemOriginal(b));
-
-    if (termo) {
-        // Resultado encontrado vai fisicamente para o início da grade.
-        [...encontrados, ...demais].forEach(card => {
-            lista.appendChild(card);
-        });
-    } else {
-        // Ao apagar a pesquisa, devolve exatamente a ordem anterior.
-        cards
-            .slice()
-            .sort((a, b) => ordemOriginal(a) - ordemOriginal(b))
-            .forEach(card => {
-                lista.appendChild(card);
-            });
-    }
-
     if (resultado) {
-        if (!termo) {
-            resultado.textContent = '';
-        } else if (visiveis === 0) {
-            resultado.textContent = 'Nenhum produto encontrado.';
-        } else {
-            resultado.textContent =
-                `${visiveis} produto${visiveis === 1 ? '' : 's'} ` +
-                `encontrado${visiveis === 1 ? '' : 's'}.`;
-        }
+        if (!termo) resultado.textContent = '';
+        else if (visiveis === 0) resultado.textContent = 'Nenhum produto encontrado.';
+        else resultado.textContent = `${visiveis} produto${visiveis === 1 ? '' : 's'} encontrado${visiveis === 1 ? '' : 's'}.`;
     }
 }
 
