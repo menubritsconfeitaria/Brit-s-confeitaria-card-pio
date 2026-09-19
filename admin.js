@@ -2107,6 +2107,26 @@ function montarCardPedido(id, pedido, comAcoes) {
     }
 
     const pagamentoEhSinal = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal';
+
+    // Encomenda agendada para hoje ou data futura NÃO cria cronômetro operacional no topo.
+    // A decisão acontece antes de montar o HTML, evitando que um contador apareça e depois
+    // precise ser substituído visualmente. Pedidos comuns continuam com o contador normal.
+    const dataEncomendaTopo = String(pedido.dataEncomenda || '').trim();
+    const dataEncomendaTopoValida = /^\d{4}-\d{2}-\d{2}$/.test(dataEncomendaTopo);
+    const encomendaAgendadaSemContador = dataEncomendaTopoValida && dataEncomendaTopo >= hojeIsoLocal();
+    let avisoAgendamentoTopoHtml = '';
+    if (encomendaAgendadaSemContador) {
+        const dataBrTopo = dataEncomendaTopo.split('-').reverse().join('/');
+        const ehHojeTopo = dataEncomendaTopo === hojeIsoLocal();
+        avisoAgendamentoTopoHtml = `
+            <div class="pedido-agendamento-premium" style="display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;box-sizing:border-box;margin:9px 0 10px;padding:9px 11px;border:1px solid rgba(41,145,88,.16);border-radius:12px;background:linear-gradient(135deg,rgba(231,248,238,.98),rgba(245,252,248,.98));box-shadow:0 5px 14px rgba(31,116,70,.06);font-size:11px;line-height:1.25;color:#246b45;">
+                <span style="display:flex;align-items:center;gap:6px;font-weight:850;white-space:nowrap;">
+                    <span aria-hidden="true">📅</span>
+                    <span>${ehHojeTopo ? 'Encomenda para hoje' : dataBrTopo}</span>
+                </span>
+                <span style="font-size:10.5px;font-weight:750;text-align:right;min-width:0;">${ehHojeTopo ? 'DIA AGENDADO' : 'Aguardando a data agendada'}</span>
+            </div>`;
+    }
     // Em encomenda com sinal online obrigatório, o botão genérico "Marcar como pago"
     // não deve aparecer: ele poderia dar a impressão de quitar manualmente sinal/restante.
     // Pedidos normais continuam exatamente com o comportamento anterior.
@@ -2128,9 +2148,10 @@ function montarCardPedido(id, pedido, comAcoes) {
             </div>
             <div class="pedido-hora-bloco">
                 <div class="pedido-hora">${formatarHora(pedido.timestamp)}</div>
-                ${comAcoes ? '<div class="pedido-tempo-etapa"></div>' : montarTempoFinalizadoPedido(pedido)}
+                ${comAcoes && !encomendaAgendadaSemContador ? '<div class="pedido-tempo-etapa"></div>' : (!comAcoes ? montarTempoFinalizadoPedido(pedido) : '')}
             </div>
         </div>
+        ${avisoAgendamentoTopoHtml}
         ${resgateHtml}
         ${encomendaHtml}
         <div>📞 ${pedido.telefone || ''}</div>
