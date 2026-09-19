@@ -1940,8 +1940,50 @@ function atualizarUrgenciaVisualCard(card) {
 
 function aplicarUrgenciaVisualCard(card, pedido, comAcoes) {
     if (!comAcoes || !pedido || pedido.status === 'entregue' || pedido.status === 'recusado') return;
+
+    const dataEncomenda = String(pedido.dataEncomenda || '').trim();
+    const hoje = hojeIsoLocal();
+    const dataEncomendaValida = /^\d{4}-\d{2}-\d{2}$/.test(dataEncomenda);
+
+    if (dataEncomendaValida && dataEncomenda >= hoje) {
+        const badge = card.querySelector('.pedido-tempo-etapa');
+
+        card.classList.remove(
+            'urgencia-normal',
+            'urgencia-atencao',
+            'urgencia-atrasado'
+        );
+
+        delete card.dataset.urgenciaInicio;
+
+        if (badge) {
+            badge.classList.remove(
+                'tempo-normal',
+                'tempo-atencao',
+                'tempo-atrasado'
+            );
+
+            badge.classList.add('tempo-normal');
+
+            if (dataEncomenda === hoje) {
+                badge.textContent = '📅 Encomenda para hoje';
+            } else {
+                const dataBr = dataEncomenda
+                    .split('-')
+                    .reverse()
+                    .join('/');
+
+                badge.textContent =
+                    `📅 ${dataBr} • Aguardando a data agendada`;
+            }
+        }
+
+        return;
+    }
+
     const inicio = obterInicioEtapaPedido(pedido);
     if (!inicio) return;
+
     card.dataset.urgenciaInicio = String(inicio);
     atualizarUrgenciaVisualCard(card);
 }
