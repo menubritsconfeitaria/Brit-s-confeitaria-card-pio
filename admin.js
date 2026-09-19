@@ -1973,11 +1973,55 @@ const URGENCIA_PEDIDOS = {
     atrasadoMinutos: 40
 };
 
+// PASSO 19 — fluxo operacional de encomendas.
+// A encomenda pode ser aceita antes da data para confirmar o compromisso com o cliente,
+// mas produção/expedição/finalização só ficam disponíveis quando chega o momento agendado.
+function obterDataHoraOperacionalEncomenda(pedido) {
+    if (!pedido) return null;
+
+    const data = String(pedido.dataEncomenda || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return null;
+
+    const horaInformada = String(pedido.horaEncomenda || '').trim();
+    const hora = /^([01]\d|2[0-3]):[0-5]\d$/.test(horaInformada)
+        ? horaInformada
+        : '00:00';
+
+    const [ano, mes, dia] = data.split('-').map(Number);
+    const [h, min] = hora.split(':').map(Number);
+    const alvo = new Date(ano, mes - 1, dia, h, min, 0, 0);
+
+    return Number.isNaN(alvo.getTime()) ? null : alvo;
+}
+
+function encomendaAguardandoHorarioOperacional(pedido, agora = new Date()) {
+    const alvo = obterDataHoraOperacionalEncomenda(pedido);
+    return !!(alvo && agora.getTime() < alvo.getTime());
+}
+
+function formatarMomentoOperacionalEncomenda(pedido) {
+    const data = String(pedido && pedido.dataEncomenda || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return '';
+
+    const dataBr = data.split('-').reverse().join('/');
+    const hora = /^([01]\d|2[0-3]):[0-5]\d$/.test(String(pedido.horaEncomenda || '').trim())
+        ? String(pedido.horaEncomenda).trim()
+        : '';
+
+    return `${dataBr}${hora ? ` às ${hora}` : ''}`;
+}
+
 function obterInicioEtapaPedido(pedido) {
     if (!pedido) return 0;
-    // Para pedidos pagos online, o tempo operacional começa quando o pagamento foi confirmado
-    // e o pedido ficou disponível para a loja produzir. Pedidos normais continuam usando o
-    // timestamp original. É apenas leitura dos horários já gravados; não altera Firebase/status.
+
+    // Encomenda: depois que o horário chega, o relógio operacional começa exatamente
+    // no momento agendado, nunca no dia em que o cliente fez ou pagou a encomenda.
+    const momentoAgendado = obterDataHoraOperacionalEncomenda(pedido);
+    if (momentoAgendado && Date.now() >= momentoAgendado.getTime()) {
+        return momentoAgendado.getTime();
+    }
+
+    // Pedido comum mantém a regra já validada.
     const pagamentoConfirmadoEm = Number(pedido.pagamento && pedido.pagamento.confirmadoEm || 0);
     return Number(pagamentoConfirmadoEm || pedido.timestamp || pedido.aceitoEm || pedido.prontoEm || pedido.saiuEntregaEm || 0);
 }
@@ -2015,8 +2059,9 @@ function aplicarUrgenciaVisualCard(card, pedido, comAcoes) {
     const dataEncomenda = String(pedido.dataEncomenda || '').trim();
     const hoje = hojeIsoLocal();
     const dataEncomendaValida = /^\d{4}-\d{2}-\d{2}$/.test(dataEncomenda);
+    const aguardandoMomentoAgendado = encomendaAguardandoHorarioOperacional(pedido);
 
-    if (dataEncomendaValida && dataEncomenda >= hoje) {
+    if (dataEncomendaValida && aguardandoMomentoAgendado) {
         const badge = card.querySelector('.pedido-tempo-etapa');
 
         card.classList.remove(
@@ -2026,6 +2071,8 @@ function aplicarUrgenciaVisualCard(card, pedido, comAcoes) {
         );
 
         delete card.dataset.urgenciaInicio;
+        const momentoOperacional = obterDataHoraOperacionalEncomenda(pedido);
+        if (momentoOperacional) card.dataset.operacionalLiberacao = String(momentoOperacional.getTime());
 
         if (badge) {
             badge.classList.remove(
@@ -2094,10 +2141,18 @@ function aplicarUrgenciaVisualCard(card, pedido, comAcoes) {
         return;
     }
 
+    delete card.dataset.operacionalLiberacao;
     const inicio = obterInicioEtapaPedido(pedido);
     if (!inicio) return;
 
     card.dataset.urgenciaInicio = String(inicio);
+    const badge = card.querySelector('.pedido-tempo-etapa');
+    if (badge) {
+        badge.classList.remove('pedido-agendamento-premium');
+        badge.removeAttribute('style');
+        const horaBloco = card.querySelector('.pedido-hora-bloco');
+        if (horaBloco && badge.parentElement !== horaBloco) horaBloco.appendChild(badge);
+    }
     atualizarUrgenciaVisualCard(card);
 }
 
@@ -2115,8 +2170,24 @@ function montarTempoFinalizadoPedido(pedido) {
 }
 
 // Atualiza só a aparência a cada minuto; não consulta nem altera o banco.
+// Também troca automaticamente uma encomenda de "aguardando horário" para o fluxo
+// operacional quando chega o momento agendado, sem exigir F5 no painel.
 setInterval(() => {
     document.querySelectorAll('.pedido-card[data-urgencia-inicio]').forEach(atualizarUrgenciaVisualCard);
+
+    document.querySelectorAll('.pedido-card[data-operacional-liberacao]').forEach(card => {
+        const liberaEm = Number(card.dataset.operacionalLiberacao || 0);
+        if (!liberaEm || Date.now() < liberaEm) return;
+
+        const pedidoId = card.dataset.pedidoId;
+        const pedido = pedidoId ? pedidosParaImpressao[pedidoId] : null;
+        if (!pedido) return;
+
+        // O próprio card é remontado com os mesmos dados já carregados. Não grava nada
+        // no Firebase e não altera pagamento; apenas libera os botões correspondentes.
+        const cardAtualizado = montarCardPedido(pedidoId, pedido, true);
+        card.replaceWith(cardAtualizado);
+    });
 }, 60000);
 
 function montarCardPedido(id, pedido, comAcoes) {
@@ -2124,6 +2195,7 @@ function montarCardPedido(id, pedido, comAcoes) {
 
     const div = document.createElement('div');
     div.classList.add('pedido-card');
+    div.dataset.pedidoId = id;
     if (comAcoes) {
         div.classList.add('novo');
         div.id = `pendente-${id}`; // id só usado na lista de pendentes, pra remover certinho
@@ -2152,10 +2224,13 @@ function montarCardPedido(id, pedido, comAcoes) {
         ? `<div class="pedido-resgate">📅 Evento: <strong>${dataEncomendaCard.split('-').reverse().join('/')}${horaEncomendaCard ? ` às ${horaEncomendaCard}` : ''}</strong></div>`
         : '';
 
+    const aguardandoFluxoEncomenda = encomendaAguardandoHorarioOperacional(pedido);
     const tagStatus = {
         pendente: '<span class="pedido-tag tag-status-pendente">Pendente</span>',
-        aceito: '<span class="pedido-tag tag-status-aceito">Aceito</span>',
-        em_rota: '<span class="pedido-tag tag-status-em-rota">🛵 Em rota</span>',
+        aceito: aguardandoFluxoEncomenda
+            ? '<span class="pedido-tag tag-status-aceito">✅ Encomenda confirmada</span>'
+            : '<span class="pedido-tag tag-status-aceito">👩‍🍳 Em preparo</span>',
+        em_rota: '<span class="pedido-tag tag-status-em-rota">🛵 Saiu para entrega</span>',
         pronto_retirada: '<span class="pedido-tag tag-status-pronto-retirada">🛍️ Pronto pra retirada</span>',
         entregue: '<span class="pedido-tag tag-status-entregue">✅ Entregue</span>',
         recusado: '<span class="pedido-tag tag-status-recusado">Recusado</span>'
@@ -2189,7 +2264,7 @@ function montarCardPedido(id, pedido, comAcoes) {
     // precise ser substituído visualmente. Pedidos comuns continuam com o contador normal.
     const dataEncomendaTopo = String(pedido.dataEncomenda || '').trim();
     const dataEncomendaTopoValida = /^\d{4}-\d{2}-\d{2}$/.test(dataEncomendaTopo);
-    const encomendaAgendadaSemContador = dataEncomendaTopoValida && dataEncomendaTopo >= hojeIsoLocal();
+    const encomendaAgendadaSemContador = dataEncomendaTopoValida && encomendaAguardandoHorarioOperacional(pedido);
     let avisoAgendamentoTopoHtml = '';
     if (encomendaAgendadaSemContador) {
         const dataBrTopo = dataEncomendaTopo.split('-').reverse().join('/');
@@ -2236,7 +2311,7 @@ function montarCardPedido(id, pedido, comAcoes) {
             </div>
             <div class="pedido-hora-bloco">
                 <div class="pedido-hora">${formatarHora(pedido.timestamp)}</div>
-                ${comAcoes && !encomendaAgendadaSemContador ? '<div class="pedido-tempo-etapa"></div>' : (!comAcoes ? montarTempoFinalizadoPedido(pedido) : '')}
+                ${comAcoes ? '<div class="pedido-tempo-etapa"></div>' : montarTempoFinalizadoPedido(pedido)}
             </div>
         </div>
         ${avisoAgendamentoTopoHtml}
@@ -2288,19 +2363,37 @@ async function verificarRecompensaDisponivelNoPedido(id, pedido) {
 
 function montarBotoesAcaoPedido(id, pedido) {
     let botoesEspecificos = '';
+    const aguardandoEncomenda = encomendaAguardandoHorarioOperacional(pedido);
+
     if (pedido.status === 'pendente') {
+        // Confirmar a encomenda antes da data é permitido: isso firma o compromisso com
+        // o cliente, mas ainda não libera produção/expedição/finalização.
         botoesEspecificos = `
             <button class="btn-aceitar" onclick="responderPedido('${id}', 'aceito')">✅ Aceitar</button>
             <button class="btn-recusar" onclick="responderPedido('${id}', 'recusado')">✖ Recusar</button>`;
+    } else if (pedido.status === 'aceito' && aguardandoEncomenda) {
+        const momento = formatarMomentoOperacionalEncomenda(pedido);
+        botoesEspecificos = `
+            <button type="button" class="btn-secondary" disabled
+                style="cursor:not-allowed;opacity:.78;flex:1;">
+                ⏳ Aguardando ${momento || 'data/hora agendada'}
+            </button>`;
     } else if (pedido.status === 'aceito') {
-        const btnRota = pedido.tipoEntrega === 'entrega'
+        // Aceito representa "Em preparo". Não existe mais atalho direto para Entregue:
+        // primeiro precisa passar pela etapa correta de expedição da modalidade.
+        botoesEspecificos = pedido.tipoEntrega === 'entrega'
             ? `<button class="btn-em-rota" onclick="responderPedido('${id}', 'em_rota')">🛵 Saiu para entrega</button>`
             : `<button class="btn-em-rota" onclick="responderPedido('${id}', 'pronto_retirada')">🛍️ Pronto pra retirada</button>`;
-        botoesEspecificos = `${btnRota}<button class="btn-entregue" onclick="responderPedido('${id}', 'entregue')">✅ Marcar como Entregue</button>`;
     } else if (pedido.status === 'em_rota') {
-        botoesEspecificos = `<button class="btn-entregue" onclick="responderPedido('${id}', 'entregue')">✅ Marcar como Entregue</button>`;
+        // Só delivery chega a esta etapa.
+        botoesEspecificos = pedido.tipoEntrega === 'entrega'
+            ? `<button class="btn-entregue" onclick="responderPedido('${id}', 'entregue')">✅ Marcar como Entregue</button>`
+            : '';
     } else if (pedido.status === 'pronto_retirada') {
-        botoesEspecificos = `<button class="btn-entregue" onclick="responderPedido('${id}', 'entregue')">✅ Marcar como Retirado</button>`;
+        // Só retirada chega a esta etapa.
+        botoesEspecificos = pedido.tipoEntrega !== 'entrega'
+            ? `<button class="btn-entregue" onclick="responderPedido('${id}', 'entregue')">✅ Marcar como Retirado</button>`
+            : '';
     }
 
     // Excluir fica disponível pra QUALQUER pedido, em qualquer status — útil pra
@@ -2331,6 +2424,31 @@ function responderPedido(id, novoStatus) {
         if (!pedido) return;
         // Proteção: se já estava entregue, não credita pontos de novo (evita clique duplo)
         if (novoStatus === 'entregue' && pedido.status === 'entregue') return;
+
+        // PASSO 19 — valida a sequência no próprio handler. Assim, botão antigo, aba
+        // desatualizada ou chamada manual não consegue pular etapa nem misturar retirada/delivery.
+        const transicoesPermitidas = {
+            pendente: ['aceito', 'recusado'],
+            aceito: pedido.tipoEntrega === 'entrega' ? ['em_rota'] : ['pronto_retirada'],
+            em_rota: pedido.tipoEntrega === 'entrega' ? ['entregue'] : [],
+            pronto_retirada: pedido.tipoEntrega !== 'entrega' ? ['entregue'] : [],
+            entregue: [],
+            recusado: []
+        };
+        const permitidas = transicoesPermitidas[pedido.status] || [];
+        if (!permitidas.includes(novoStatus)) {
+            alert('Essa mudança de status não faz parte do fluxo operacional deste pedido. Atualize o painel e tente novamente.');
+            return;
+        }
+
+        // Encomenda futura pode ser aceita/recusada antes da data, mas não pode avançar
+        // para expedição/finalização até chegar a data + hora marcada.
+        const statusOperacionais = ['em_rota', 'pronto_retirada', 'entregue'];
+        if (statusOperacionais.includes(novoStatus) && encomendaAguardandoHorarioOperacional(pedido)) {
+            const momento = formatarMomentoOperacionalEncomenda(pedido);
+            alert(`Essa encomenda está agendada para ${momento || 'uma data/hora futura'}. O fluxo será liberado no momento agendado.`);
+            return;
+        }
 
         // Avisa antes de recusar um pedido que já teve pagamento de verdade coletado
         // (sinal e/ou restante) — pra nunca esquecer de estornar manualmente
@@ -5564,7 +5682,7 @@ function escutarPedidosManuais() {
             return;
         }
 
-        const rotulosStatus = { aguardando_pagamento: '💳 Aguardando pagamento', pendente: '🕒 Pendente', aceito: '✅ Aceito', em_rota: '🛵 Em rota', pronto_retirada: '🛍️ Pronto pra retirada', entregue: '🎉 Entregue', recusado: '❌ Cancelado' };
+        const rotulosStatus = { aguardando_pagamento: '💳 Aguardando pagamento', pendente: '🕒 Pendente', aceito: '👩‍🍳 Em preparo', em_rota: '🛵 Saiu para entrega', pronto_retirada: '🛍️ Pronto pra retirada', entregue: '🎉 Entregue', recusado: '❌ Cancelado' };
         div.innerHTML = `
             <table style="width:100%; border-collapse:collapse; font-size:0.85em;">
                 <thead><tr style="text-align:left; border-bottom:2px solid var(--border);">
@@ -5611,7 +5729,7 @@ function formatarTelefoneWhatsAppGestao(telefone) {
 function gerarTextoPedidoWhatsAppGestao(pedido, paraCliente) {
     const linhas = (pedido.itens || []).map(item => `❤ ${item.nome} x${item.quantidade} = ${formatarPreco(item.preco * item.quantidade)}`).join('\n');
     const dataFormatada = pedido.timestamp ? new Date(pedido.timestamp).toLocaleDateString('pt-BR') : '—';
-    const rotulosStatus = { pendente: 'Pendente', aceito: 'Aceito', em_rota: 'Em rota', pronto_retirada: 'Pronto pra retirada', entregue: 'Entregue', recusado: 'Cancelado' };
+    const rotulosStatus = { pendente: 'Pendente', aceito: 'Em preparo', em_rota: 'Saiu para entrega', pronto_retirada: 'Pronto pra retirada', entregue: 'Entregue', recusado: 'Cancelado' };
 
     let texto = '';
     if (paraCliente) {
@@ -5656,7 +5774,7 @@ function imprimirPedidoGestao(id) {
     const p = ultimosPedidosManuais.find(x => x.id === id);
     if (!p) return;
     const dataFormatada = p.timestamp ? new Date(p.timestamp).toLocaleDateString('pt-BR') : '—';
-    const rotulosStatus = { pendente: 'Pendente', aceito: 'Aceito', em_rota: 'Em rota', pronto_retirada: 'Pronto pra retirada', entregue: 'Entregue', recusado: 'Cancelado' };
+    const rotulosStatus = { pendente: 'Pendente', aceito: 'Em preparo', em_rota: 'Saiu para entrega', pronto_retirada: 'Pronto pra retirada', entregue: 'Entregue', recusado: 'Cancelado' };
     const linhas = (p.itens || []).map(item => `<tr><td>${item.nome}</td><td>${item.quantidade}</td><td>${formatarPreco(item.preco * item.quantidade)}</td></tr>`).join('');
 
     const janela = window.open('', '_blank');
