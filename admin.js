@@ -5568,54 +5568,54 @@ function adicionarItemPedidoManual() {
     if (!ft) return;
 
     const { precoVenda } = calcularCustoFichaTecnica(ft);
-    const novoItem = {
+    tempItensPedidoManual.push({
         fichaTecnicaId: ftId,
         nome: ft.nome,
         preco: precoVenda,
         quantidade: qtd
-    };
+    });
 
-    if (editingItemPedidoManualIndex !== null &&
-        tempItensPedidoManual[editingItemPedidoManualIndex]) {
-        tempItensPedidoManual[editingItemPedidoManualIndex] = novoItem;
-        editingItemPedidoManualIndex = null;
-    } else {
-        tempItensPedidoManual.push(novoItem);
-    }
-
-    limparEdicaoItemPedidoManual();
+    limparCamposNovoItemPedidoManual();
     renderItensPedidoManual();
 }
 
+// Mesmo padrão da Ficha Técnica: editar acontece na própria linha do item.
+// Não joga o usuário de volta para o campo de inclusão no topo.
 function editarItemPedidoManual(i) {
-    const item = tempItensPedidoManual[i];
-    if (!item) return;
-
+    if (!tempItensPedidoManual[i]) return;
     editingItemPedidoManualIndex = i;
+    renderItensPedidoManual();
 
-    const sel = document.getElementById('pmSelectProduto');
-    const busca = document.getElementById('pmBuscaProdutoManual');
-    const qtd = document.getElementById('pmQtdItem');
-    const btn = document.getElementById('btnAdicionarItemPedidoManual');
-
-    if (sel) sel.value = item.fichaTecnicaId || '';
-    if (busca) {
-        busca.value = item.nome || '';
-        const limpar = document.getElementById('pmLimparBuscaProdutoManual');
-        if (limpar) limpar.style.display = busca.value ? 'block' : 'none';
-    }
-    if (qtd) qtd.value = String(item.quantidade ?? 1);
-    if (btn) btn.textContent = '✏️ Atualizar item';
-
-    if (busca) {
-        busca.focus();
-        busca.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const input = document.querySelector(`[data-pm-editar-qtd="${i}"]`);
+    if (input) {
+        input.focus();
+        input.select();
     }
 }
 
-function limparEdicaoItemPedidoManual() {
+function cancelarEdicaoItemPedidoManual() {
     editingItemPedidoManualIndex = null;
+    renderItensPedidoManual();
+}
 
+function salvarEdicaoItemPedidoManual(i) {
+    const item = tempItensPedidoManual[i];
+    const input = document.querySelector(`[data-pm-editar-qtd="${i}"]`);
+    if (!item || !input) return;
+
+    const qtd = parseFloat(String(input.value || '').replace(',', '.'));
+    if (!qtd || qtd <= 0) {
+        alert('Informa uma quantidade válida.');
+        input.focus();
+        return;
+    }
+
+    item.quantidade = qtd;
+    editingItemPedidoManualIndex = null;
+    renderItensPedidoManual();
+}
+
+function limparCamposNovoItemPedidoManual() {
     const sel = document.getElementById('pmSelectProduto');
     const busca = document.getElementById('pmBuscaProdutoManual');
     const qtd = document.getElementById('pmQtdItem');
@@ -5627,13 +5627,19 @@ function limparEdicaoItemPedidoManual() {
     if (qtd) qtd.value = '1';
     if (btn) btn.textContent = '+ Adicionar item';
     if (limpar) limpar.style.display = 'none';
+    fecharBuscaProdutoPedidoManual();
+}
+
+// Mantém o nome antigo disponível caso algum trecho legado ainda o chame.
+function limparEdicaoItemPedidoManual() {
+    cancelarEdicaoItemPedidoManual();
 }
 
 function removerItemPedidoManual(i) {
     tempItensPedidoManual.splice(i, 1);
 
     if (editingItemPedidoManualIndex === i) {
-        limparEdicaoItemPedidoManual();
+        editingItemPedidoManualIndex = null;
     } else if (editingItemPedidoManualIndex !== null && editingItemPedidoManualIndex > i) {
         editingItemPedidoManualIndex--;
     }
@@ -5649,12 +5655,32 @@ function renderItensPedidoManual() {
         const totalItem = item.preco * item.quantidade;
         subtotal += totalItem;
         const linha = document.createElement('div');
-        linha.style.cssText = 'display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border);';
-        linha.innerHTML = `<span>${item.quantidade}x ${item.nome} = ${formatarPreco(totalItem)}</span>
-            <span style="display:flex;align-items:center;gap:6px;">
-                <button type="button" class="btn-secondary" style="padding:5px 9px;" onclick="editarItemPedidoManual(${i})" title="Editar item">✏️ Editar</button>
-                <button type="button" class="btn-excluir-cupom" onclick="removerItemPedidoManual(${i})" title="Excluir item">🗑️</button>
-            </span>`;
+        linha.className = 'pedido-manual-item-linha';
+
+        if (editingItemPedidoManualIndex === i) {
+            linha.classList.add('is-editing');
+            linha.innerHTML = `
+                <div class="pedido-manual-item-info">
+                    <strong>${item.nome}</strong>
+                    <small>Preço unitário: ${formatarPreco(item.preco)} · Total atual: ${formatarPreco(totalItem)}</small>
+                </div>
+                <div class="pedido-manual-item-edicao">
+                    <label>Quantidade</label>
+                    <input type="text" inputmode="decimal" value="${item.quantidade}" data-pm-editar-qtd="${i}"
+                        onkeydown="if(event.key === 'Enter'){ event.preventDefault(); salvarEdicaoItemPedidoManual(${i}); } else if(event.key === 'Escape'){ cancelarEdicaoItemPedidoManual(); }">
+                </div>
+                <div class="pedido-manual-item-acoes">
+                    <button type="button" class="btn-secondary pedido-manual-btn-aplicar" onclick="salvarEdicaoItemPedidoManual(${i})">✓ Aplicar</button>
+                    <button type="button" class="btn-secondary pedido-manual-btn-cancelar" onclick="cancelarEdicaoItemPedidoManual()">Cancelar</button>
+                </div>`;
+        } else {
+            linha.innerHTML = `
+                <span class="pedido-manual-item-resumo">${item.quantidade}x ${item.nome} = <strong>${formatarPreco(totalItem)}</strong></span>
+                <div class="pedido-manual-item-acoes">
+                    <button type="button" class="btn-secondary pedido-manual-btn-editar" onclick="editarItemPedidoManual(${i})" title="Editar item">✏️ Editar</button>
+                    <button type="button" class="btn-excluir-cupom" onclick="removerItemPedidoManual(${i})" title="Excluir item">🗑️</button>
+                </div>`;
+        }
         div.appendChild(linha);
     });
     document.getElementById('pmSubtotalTemp').textContent = formatarPreco(subtotal);
@@ -5933,6 +5959,7 @@ async function salvarPedidoManual() {
             editingPedidoManualId = null;
             document.getElementById('btnSalvarPedidoManual').textContent = 'Salvar Pedido';
             tempItensPedidoManual = [];
+            editingItemPedidoManualIndex = null;
             document.getElementById('pmCliente').value = '';
             document.getElementById('pmDesconto').value = '0';
             document.getElementById('pmFrete').value = '0';
@@ -5970,6 +5997,7 @@ async function salvarPedidoManual() {
         .then(() => {
             msgEl.textContent = 'Pedido salvo!';
             tempItensPedidoManual = [];
+            editingItemPedidoManualIndex = null;
             document.getElementById('pmCliente').value = '';
             document.getElementById('pmDesconto').value = '0';
             document.getElementById('pmFrete').value = '0';

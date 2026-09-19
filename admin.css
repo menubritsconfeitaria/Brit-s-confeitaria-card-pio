@@ -6272,6 +6272,101 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
     flex: 0 0 auto;
 }
 
+
+/* Lançar Pedido — edição do item na própria linha, seguindo a lógica da Ficha Técnica. */
+.lancar-pedido-premium #pmListaItens .pedido-manual-item-resumo {
+    min-width: 0;
+    color: #5d4637;
+    line-height: 1.35;
+}
+
+.lancar-pedido-premium #pmListaItens .pedido-manual-item-acoes {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 6px;
+}
+
+.lancar-pedido-premium #pmListaItens .pedido-manual-btn-editar,
+.lancar-pedido-premium #pmListaItens .pedido-manual-btn-aplicar,
+.lancar-pedido-premium #pmListaItens .pedido-manual-btn-cancelar {
+    min-height: 30px;
+    padding: 5px 9px;
+    border-radius: 8px;
+    font-size: .65rem;
+    white-space: nowrap;
+}
+
+.lancar-pedido-premium #pmListaItens > .pedido-manual-item-linha.is-editing {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(120px, 180px) auto;
+    align-items: end;
+    gap: 12px;
+    min-height: 0;
+    padding: 10px !important;
+    margin: 3px 4px;
+    border: 1px solid rgba(173,89,45,.16) !important;
+    border-radius: 10px;
+    background: #fffaf4;
+}
+
+.lancar-pedido-premium #pmListaItens .pedido-manual-item-info {
+    min-width: 0;
+}
+
+.lancar-pedido-premium #pmListaItens .pedido-manual-item-info strong,
+.lancar-pedido-premium #pmListaItens .pedido-manual-item-info small {
+    display: block;
+}
+
+.lancar-pedido-premium #pmListaItens .pedido-manual-item-info strong {
+    color: #5d4637;
+    font-size: .72rem;
+}
+
+.lancar-pedido-premium #pmListaItens .pedido-manual-item-info small {
+    margin-top: 3px;
+    color: #947e6d;
+    font-size: .62rem;
+}
+
+.lancar-pedido-premium #pmListaItens .pedido-manual-item-edicao label {
+    display: block;
+    margin-bottom: 4px;
+    color: #806c5d;
+    font-size: .62rem;
+    font-weight: 800;
+}
+
+.lancar-pedido-premium #pmListaItens .pedido-manual-item-edicao input {
+    width: 100%;
+    min-height: 34px;
+    box-sizing: border-box;
+    padding: 7px 9px;
+    border: 1px solid #d9c6b3;
+    border-radius: 8px;
+    background: #fff;
+    color: var(--text);
+    font: inherit;
+    outline: none;
+}
+
+.lancar-pedido-premium #pmListaItens .pedido-manual-item-edicao input:focus {
+    border-color: #c58b61;
+    box-shadow: 0 0 0 3px rgba(160,82,45,.08);
+}
+
+@media (max-width: 760px) {
+    .lancar-pedido-premium #pmListaItens > .pedido-manual-item-linha.is-editing {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .lancar-pedido-premium #pmListaItens .pedido-manual-item-acoes {
+        justify-content: flex-start;
+    }
+}
+
 .lancar-pedido-premium .lancar-pedido-empty-state--placeholder {
     display: none;
 }
