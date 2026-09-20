@@ -1708,6 +1708,97 @@ function dataPedidoParaOrdenacao(pedido, meta) {
     return ts;
 }
 
+
+// Indicador discreto no botão "Meus Pedidos": aparece somente quando existe uma ação
+// financeira pendente do próprio cliente (ex.: finalizar pagamento/sinal ou pagar restante).
+// Não altera status, notificações, webhook ou fluxo operacional da loja.
+function pedidoExigeAcaoCliente(pedido) {
+    if (!pedido || pedido.status === 'recusado') return false;
+
+    // Pedido/sinal criado, mas ainda não confirmado pelo pagamento.
+    if (pedido.status === 'aguardando_pagamento') return true;
+
+    // Encomenda com sinal confirmado e restante ainda disponível para pagamento online.
+    const sinalPago = pedido.pagamento &&
+        pedido.pagamento.tipoPagamento === 'sinal' &&
+        pedido.pagamento.status === 'pago';
+    const restantePago = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'pago';
+    const restanteDinheiroPendente = pedido.pagamentoRestante &&
+        pedido.pagamentoRestante.status === 'aguardando_recebimento' &&
+        pedido.pagamentoRestante.forma === 'Dinheiro';
+
+    return !!(sinalPago && !restantePago && !restanteDinheiroPendente);
+}
+
+function renderizarIndicadorMeusPedidos(pedidos) {
+    const botao = document.getElementById('btnMeusPedidos');
+    if (!botao) return;
+
+    let badge = botao.querySelector('.badge-meus-pedidos-pendente');
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'badge-meus-pedidos-pendente';
+        badge.setAttribute('aria-hidden', 'true');
+        Object.assign(badge.style, {
+            position: 'absolute',
+            top: '-8px',
+            right: '-8px',
+            minWidth: '22px',
+            height: '22px',
+            padding: '0 6px',
+            borderRadius: '999px',
+            display: 'none',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#dc2626',
+            color: '#fff',
+            border: '2px solid #fff',
+            boxSizing: 'border-box',
+            boxShadow: '0 2px 8px rgba(0,0,0,.22)',
+            fontSize: '12px',
+            fontWeight: '800',
+            lineHeight: '1',
+            zIndex: '2'
+        });
+        botao.style.position = 'relative';
+        botao.appendChild(badge);
+    }
+
+    const quantidade = (Array.isArray(pedidos) ? pedidos : [])
+        .filter(item => item && item.pedido && pedidoExigeAcaoCliente(item.pedido))
+        .length;
+
+    if (quantidade > 0) {
+        badge.textContent = quantidade > 99 ? '99+' : String(quantidade);
+        badge.style.display = 'inline-flex';
+        const descricao = quantidade === 1
+            ? 'Você tem 1 pagamento pendente em Meus Pedidos.'
+            : `Você tem ${quantidade} pagamentos pendentes em Meus Pedidos.`;
+        botao.title = descricao;
+        botao.setAttribute('aria-label', `Meus Pedidos. ${descricao}`);
+    } else {
+        badge.style.display = 'none';
+        badge.textContent = '';
+        botao.removeAttribute('title');
+        botao.setAttribute('aria-label', 'Meus Pedidos');
+    }
+}
+
+async function atualizarIndicadorMeusPedidos() {
+    try {
+        const telefone = telefoneParaBuscaMeusPedidos();
+        if (normalizarTelefone(telefone).length < 10) {
+            renderizarIndicadorMeusPedidos([]);
+            return;
+        }
+        const resultado = await buscarPedidosPorTelefone(telefone);
+        renderizarIndicadorMeusPedidos(resultado && resultado.pedidos ? resultado.pedidos : []);
+    } catch (err) {
+        // O indicador é auxiliar: qualquer falha de rede não interfere no cardápio nem no checkout.
+        console.log('Não foi possível atualizar o indicador de Meus Pedidos:', err && err.message ? err.message : err);
+    }
+}
+
 // Checkouts pendentes são mantidos somente em memória nesta página. O servidor só
 // devolve o link quando o token é exatamente o mesmo que criou aquele pedido.
 const pagamentosPendentesMeusPedidos = new Map();
@@ -1782,6 +1873,7 @@ async function abrirMeusPedidos() {
             .sort((a, b) => dataPedidoParaOrdenacao(b.pedido, b.meta) - dataPedidoParaOrdenacao(a.pedido, a.meta))
             .slice(0, 10);
 
+        renderizarIndicadorMeusPedidos(pedidos);
         pagamentosPendentesMeusPedidos.clear();
 
         // Reconstitui o apoio local com pedidos reais encontrados. Isso ajuda a manter a
@@ -3887,6 +3979,11 @@ atualizarCarrinhoHTML();
 carregarDadosClienteSalvos(); // Preenche nome/telefone/endereço da última compra
 verificarPedidoSalvo(); // Mostra o status do último pedido, se ainda for recente
 escutarStatusLoja(); // Mostra se a loja está aberta ou fechada agora
+
+// Badge de ação em "Meus Pedidos". O pageshow também cobre retorno do checkout pelo botão Voltar.
+window.addEventListener('pageshow', () => {
+    setTimeout(() => atualizarIndicadorMeusPedidos(), 300);
+});
 
 // Registra o Service Worker (pra permitir instalar como app / carregar mais rápido)
 if ('serviceWorker' in navigator) {
