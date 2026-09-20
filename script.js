@@ -1236,6 +1236,19 @@ function renderizarStatusPedido(pedido) {
     const status = pedido.status;
     banner.classList.remove('status-pendente', 'status-aceito', 'status-recusado', 'status-em_rota', 'status-pronto_retirada', 'status-entregue', 'status-aguardando_pagamento');
 
+    if (pedido.canceladoPeloCliente === true) {
+        banner.classList.add('status-recusado');
+        texto.textContent = pedido.dataEncomenda
+            ? '❌ Encomenda cancelada por você. Nenhum valor foi confirmado neste pedido.'
+            : '❌ Pedido cancelado por você. Nenhum valor foi confirmado neste pedido.';
+        if (btnRestante) {
+            btnRestante.disabled = false;
+            btnRestante.style.display = 'none';
+        }
+        banner.style.display = 'flex';
+        return;
+    }
+
     if (status === 'aguardando_pagamento') {
         banner.classList.add('status-aguardando_pagamento');
         texto.textContent = '💳 Aguardando a confirmação do seu pagamento...';
@@ -1713,7 +1726,7 @@ function dataPedidoParaOrdenacao(pedido, meta) {
 // financeira pendente do próprio cliente (ex.: finalizar pagamento/sinal ou pagar restante).
 // Não altera status, notificações, webhook ou fluxo operacional da loja.
 function pedidoExigeAcaoCliente(pedido) {
-    if (!pedido || pedido.status === 'recusado') return false;
+    if (!pedido || pedido.status === 'recusado' || pedido.canceladoPeloCliente === true) return false;
 
     // Pedido/sinal criado, mas ainda não confirmado pelo pagamento.
     if (pedido.status === 'aguardando_pagamento') return true;
@@ -1844,6 +1857,147 @@ async function retomarPagamentoPendenteMeusPedidos(pedidoId, botao) {
     }
 }
 
+
+function confirmarCancelamentoPendenteMeusPedidos(ehEncomenda) {
+    return new Promise(resolve => {
+        let modal = document.getElementById('modalCancelarPedidoCliente');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'modalCancelarPedidoCliente';
+            modal.setAttribute('role', 'dialog');
+            modal.setAttribute('aria-modal', 'true');
+            modal.style.cssText = `
+                position:fixed;
+                inset:0;
+                z-index:100001;
+                display:none;
+                align-items:center;
+                justify-content:center;
+                padding:20px;
+                background:rgba(0,0,0,.52);
+            `;
+            modal.innerHTML = `
+                <div data-caixa-cancelamento style="
+                    width:min(430px,100%);
+                    background:#fffaf4;
+                    border:1px solid rgba(160,82,45,.18);
+                    border-radius:20px;
+                    padding:22px;
+                    box-shadow:0 20px 60px rgba(0,0,0,.28);
+                    color:#3b2b21;
+                ">
+                    <div data-titulo-cancelamento style="font-size:1.12rem;font-weight:800;margin-bottom:10px;"></div>
+                    <div data-texto-cancelamento style="font-size:.95rem;line-height:1.5;color:#6b584d;"></div>
+                    <div style="display:grid;grid-template-columns:1fr 1.35fr;gap:10px;margin-top:18px;">
+                        <button type="button" data-voltar-cancelamento style="
+                            border:1px solid #d9c9be;
+                            border-radius:12px;
+                            padding:13px 12px;
+                            background:#fff;
+                            color:#5c493e;
+                            font-weight:700;
+                            cursor:pointer;
+                        ">Voltar</button>
+                        <button type="button" data-confirmar-cancelamento style="
+                            border:0;
+                            border-radius:12px;
+                            padding:13px 12px;
+                            background:#a9472a;
+                            color:#fff;
+                            font-weight:800;
+                            cursor:pointer;
+                        "></button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        const nome = ehEncomenda ? 'encomenda' : 'pedido';
+        modal.querySelector('[data-titulo-cancelamento]').textContent =
+            `Tem certeza que deseja cancelar ${ehEncomenda ? 'a encomenda' : 'o pedido'}?`;
+        modal.querySelector('[data-texto-cancelamento]').innerHTML = ehEncomenda
+            ? `O pagamento ainda não foi realizado. Ao cancelar, sua encomenda será encerrada e a data reservada ficará disponível novamente.<br><br><strong>Importante:</strong> se houver uma tela de pagamento aberta em outra aba, feche-a e não conclua aquele pagamento.`
+            : `O pagamento ainda não foi realizado. Ao cancelar, seu pedido será encerrado.<br><br><strong>Importante:</strong> se houver uma tela de pagamento aberta em outra aba, feche-a e não conclua aquele pagamento.`;
+        modal.querySelector('[data-confirmar-cancelamento]').textContent =
+            `Sim, cancelar ${nome}`;
+
+        let resolvido = false;
+        const finalizar = valor => {
+            if (resolvido) return;
+            resolvido = true;
+            modal.style.display = 'none';
+            resolve(valor);
+        };
+
+        modal.querySelector('[data-voltar-cancelamento]').onclick = () => finalizar(false);
+        modal.querySelector('[data-confirmar-cancelamento]').onclick = () => finalizar(true);
+        modal.onclick = evento => {
+            if (evento.target === modal) finalizar(false);
+        };
+        modal.style.display = 'flex';
+    });
+}
+
+async function cancelarPedidoPendenteMeusPedidos(pedidoId, ehEncomenda, botao) {
+    if (!pedidoId) return;
+
+    const confirmou = await confirmarCancelamentoPendenteMeusPedidos(!!ehEncomenda);
+    if (!confirmou) return;
+
+    const textoOriginal = botao ? botao.textContent : '';
+    if (botao) {
+        botao.disabled = true;
+        botao.textContent = 'Cancelando...';
+    }
+
+    try {
+        const cancelar = firebase.functions().httpsCallable('cancelarPedidoClienteNaoPago');
+        const resposta = await cancelar({
+            pedidoId,
+            token: obterTokenCliente()
+        });
+
+        if (!(resposta && resposta.data && resposta.data.ok)) {
+            throw new Error('O servidor não confirmou o cancelamento.');
+        }
+
+        pagamentosPendentesMeusPedidos.delete(pedidoId);
+
+        try {
+            const ultimo = JSON.parse(localStorage.getItem('ultimoPedido') || 'null');
+            if (ultimo && ultimo.id === pedidoId) fecharStatusPedido();
+        } catch (e) { /* apoio local; não interfere no cancelamento real */ }
+
+        try {
+            const historico = JSON.parse(localStorage.getItem('historicoPedidos') || '[]');
+            if (Array.isArray(historico)) {
+                localStorage.setItem(
+                    'historicoPedidos',
+                    JSON.stringify(historico.filter(item => item && item.id !== pedidoId))
+                );
+            }
+        } catch (e) { /* ignora */ }
+
+        alert(
+            ehEncomenda
+                ? '✅ Encomenda cancelada com sucesso.\n\nNenhum valor foi confirmado neste pedido.'
+                : '✅ Pedido cancelado com sucesso.\n\nNenhum valor foi confirmado neste pedido.'
+        );
+
+        await abrirMeusPedidos();
+        await atualizarIndicadorMeusPedidos();
+    } catch (err) {
+        console.log('Não foi possível cancelar o pedido agora:', err);
+        const mensagem = err && err.message ? String(err.message).replace(/^Firebase:\s*/i, '') : '';
+        alert(mensagem || 'Não foi possível cancelar agora. Atualize a tela e tente novamente.');
+        if (botao) {
+            botao.disabled = false;
+            botao.textContent = textoOriginal || (ehEncomenda ? 'Cancelar encomenda' : 'Cancelar pedido');
+        }
+    }
+}
+
 // "Meus Pedidos" usa o telefone já salvo do cliente como fonte principal e mantém o
 // histórico local apenas como apoio. Pedidos aguardando pagamento também aparecem no
 // aparelho que os criou, para o cliente poder concluir a compra sem o pedido "sumir".
@@ -1954,6 +2108,13 @@ async function abrirMeusPedidos() {
                     </span>
                 </div>
                 <button class="btn-pagar-restante-lista" onclick="retomarPagamentoPendenteMeusPedidos('${id}', this)">💳 Finalizar pagamento</button>
+                <button
+                    type="button"
+                    onclick="cancelarPedidoPendenteMeusPedidos('${id}', ${ehEncomendaPendente ? 'true' : 'false'}, this)"
+                    style="width:100%;margin-top:8px;padding:11px 12px;border-radius:12px;border:1px solid rgba(169,71,42,.35);background:transparent;color:#963f28;font-weight:700;cursor:pointer;"
+                >
+                    ${ehEncomendaPendente ? 'Cancelar encomenda' : 'Cancelar pedido'}
+                </button>
             ` : '';
 
             const resumoFinanceiroHtml = mostrarResumoFinanceiro ? `
