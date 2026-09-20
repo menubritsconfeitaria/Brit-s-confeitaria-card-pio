@@ -36,7 +36,8 @@ async function processarPagamentoSinalEncomenda(pedidoId, promessaSalvo, acoesPa
         try {
             await promessaSalvo;
             const criarCheckoutSinal = firebase.functions().httpsCallable('criarCheckoutSinalEncomenda');
-            const resultado = await criarCheckoutSinal({ pedidoId });
+            const token = acoesPagamentoCheckout.obterToken();
+            const resultado = await criarCheckoutSinal({ pedidoId, token });
             concluirCheckoutPedidoNovo(resultado, acoesPagamentoCheckout);
         } catch (err) {
             await tratarFalhaCheckoutPedidoNovo({
@@ -62,7 +63,8 @@ async function processarPagamentoOnline(pedidoId, promessaSalvo, acoesPagamentoC
             // pra Cloud Function ler ele — senão, ela pode chegar cedo demais e não achar nada
             await promessaSalvo;
             const criarCheckout = firebase.functions().httpsCallable('criarCheckoutInfinitePay');
-            const resultado = await criarCheckout({ pedidoId });
+            const token = acoesPagamentoCheckout.obterToken();
+            const resultado = await criarCheckout({ pedidoId, token });
             concluirCheckoutPedidoNovo(resultado, acoesPagamentoCheckout);
         } catch (err) {
             await tratarFalhaCheckoutPedidoNovo({

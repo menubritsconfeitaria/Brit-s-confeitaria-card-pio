@@ -3659,6 +3659,7 @@ async function finalizarCompra() {
             botaoFinalizarCompra.disabled = false;
             botaoFinalizarCompra.textContent = texto;
         },
+        obterToken: () => obterTokenCliente(),
         limparPedidoFalho: async (pedidoIdFalho) => {
             const limparPedido = firebase.functions().httpsCallable('limparPedidoFalhoDeCheckout');
             await limparPedido({ pedidoId: pedidoIdFalho, token: obterTokenCliente() });
