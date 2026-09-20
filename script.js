@@ -1007,8 +1007,15 @@ async function salvarPedidoNoPainel(dadosPedido, statusInicial) {
     } catch (err) {
         console.log('Não foi possível salvar o pedido no painel:', err);
         const mensagemErro = String((err && err.message) || '');
+        const codigoErro = String((err && err.code) || '');
         const bloqueadoPorPausa = /pausad/i.test(mensagemErro);
-        return { id: null, promessaSalvo: Promise.resolve(), bloqueadoPorPausa };
+        return {
+            id: null,
+            promessaSalvo: Promise.resolve(),
+            bloqueadoPorPausa,
+            erroServidor: mensagemErro,
+            codigoErro
+        };
     }
 }
 
@@ -3542,7 +3549,7 @@ async function finalizarCompra() {
     // continuam exatamente nas variáveis e caminhos já validados nas etapas anteriores.
     const sinalObrigatorioNestePedido = contextoCheckout.encomenda.querAgendar && contextoCheckout.encomenda.percentualSinal > 0;
 
-    const { id: pedidoId, promessaSalvo, bloqueadoPorPausa } = await salvarPedidoNoPainel({
+    const { id: pedidoId, promessaSalvo, bloqueadoPorPausa, erroServidor, codigoErro } = await salvarPedidoNoPainel({
         nome: contextoCheckout.cliente.nome,
         telefone: contextoCheckout.cliente.telefone,
         tipoEntrega: contextoCheckout.entrega.tipo,
@@ -3607,6 +3614,21 @@ async function finalizarCompra() {
         lojaAbertaAtual = false;
         atualizarStatusLoja({ ...(ultimaConfigLojaReal || {}), pausada: true });
         alert('Os pedidos foram pausados antes da finalização. Seu carrinho foi mantido para você continuar quando o atendimento for retomado.');
+        return;
+    }
+
+    // O servidor é a autoridade final das regras do pedido. Se ele recusou a criação,
+    // não seguimos para pagamento/WhatsApp nem limpamos o carrinho. Isso evita que um
+    // pedido bloqueado por bairro, pedido mínimo ou outra validação vire uma mensagem
+    // "solta" para a loja sem existir no painel.
+    if (!pedidoId) {
+        const mensagemLimpa = String(erroServidor || '')
+            .replace(/^FirebaseError:\s*/i, '')
+            .replace(/^functions\/[a-z-]+:\s*/i, '')
+            .trim();
+        const mensagem = mensagemLimpa ||
+            (codigoErro ? 'Não foi possível validar o pedido no servidor. Tente novamente.' : 'Não foi possível registrar o pedido no painel. Tente novamente.');
+        alert(mensagem);
         return;
     }
 
