@@ -79,11 +79,12 @@ async function processarPagamentoOnline(pedidoId, promessaSalvo, acoesPagamentoC
         return;
 }
 
-async function processarPagamentoRestanteEncomenda(pedidoId) {
+async function processarPagamentoRestanteEncomenda(pedidoId, token) {
     if (!pedidoId) throw new Error('Pedido inválido para pagamento do restante.');
+    if (!token) throw new Error('Aparelho inválido para pagamento do restante.');
 
     const criarCheckout = firebase.functions().httpsCallable('criarCheckoutRestanteEncomenda');
-    const resultado = await criarCheckout({ pedidoId });
+    const resultado = await criarCheckout({ pedidoId, token });
 
     if (resultado.data && resultado.data.checkoutUrl) {
         window.location.href = resultado.data.checkoutUrl;

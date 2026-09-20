@@ -1548,7 +1548,7 @@ async function pagarRestanteEncomenda(pedidoIdExplicito, botaoClicado) {
 
         // PIX e CARTÃO continuam exatamente no fluxo InfinitePay
         // que já foi validado no pedido #231.
-        await processarPagamentoRestanteEncomenda(pedidoId);
+        await processarPagamentoRestanteEncomenda(pedidoId, obterTokenCliente());
 
     } catch (err) {
         console.log(
