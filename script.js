@@ -1708,9 +1708,54 @@ function dataPedidoParaOrdenacao(pedido, meta) {
     return ts;
 }
 
+// Checkouts pendentes são mantidos somente em memória nesta página. O servidor só
+// devolve o link quando o token é exatamente o mesmo que criou aquele pedido.
+const pagamentosPendentesMeusPedidos = new Map();
+
+async function retomarPagamentoPendenteMeusPedidos(pedidoId, botao) {
+    const dados = pagamentosPendentesMeusPedidos.get(pedidoId);
+    if (!dados) {
+        alert('Não foi possível localizar este pagamento agora. Atualize a página e tente novamente.');
+        return;
+    }
+
+    const textoOriginal = botao ? botao.textContent : '';
+    if (botao) {
+        botao.disabled = true;
+        botao.textContent = 'Abrindo pagamento...';
+    }
+
+    try {
+        if (dados.checkoutUrl) {
+            window.location.href = dados.checkoutUrl;
+            return;
+        }
+
+        // Fallback seguro para o raro caso em que o pedido foi gravado, mas o link ainda
+        // não chegou a ser persistido. As próprias Functions validam token, tipo do pedido
+        // e regras financeiras antes de criar qualquer checkout.
+        const nomeFunction = dados.ehEncomenda
+            ? 'criarCheckoutSinalEncomenda'
+            : 'criarCheckoutInfinitePay';
+        const criarCheckout = firebase.functions().httpsCallable(nomeFunction);
+        const resultado = await criarCheckout({ pedidoId, token: obterTokenCliente() });
+        const checkoutUrl = resultado && resultado.data && resultado.data.checkoutUrl;
+        if (!checkoutUrl) throw new Error('Link de pagamento indisponível.');
+
+        window.location.href = checkoutUrl;
+    } catch (err) {
+        console.log('Não foi possível retomar o pagamento pendente:', err);
+        alert('Não foi possível abrir o pagamento agora. Seu pedido continua salvo. Tente novamente em instantes.');
+        if (botao) {
+            botao.disabled = false;
+            botao.textContent = textoOriginal || '💳 Finalizar pagamento';
+        }
+    }
+}
+
 // "Meus Pedidos" usa o telefone já salvo do cliente como fonte principal e mantém o
-// histórico local apenas como apoio. Assim um pedido não desaparece da tela só porque a
-// lista local ficou vazia. Pedidos ainda aguardando pagamento ficam invisíveis aqui também.
+// histórico local apenas como apoio. Pedidos aguardando pagamento também aparecem no
+// aparelho que os criou, para o cliente poder concluir a compra sem o pedido "sumir".
 async function abrirMeusPedidos() {
     const modal = document.getElementById('modalMeusPedidos');
     const lista = document.getElementById('listaMeusPedidos');
@@ -1733,9 +1778,11 @@ async function abrirMeusPedidos() {
         });
 
         const pedidos = Array.from(unicos.values())
-            .filter(item => item.pedido && item.pedido.status !== 'aguardando_pagamento')
+            .filter(item => item.pedido)
             .sort((a, b) => dataPedidoParaOrdenacao(b.pedido, b.meta) - dataPedidoParaOrdenacao(a.pedido, a.meta))
             .slice(0, 10);
+
+        pagamentosPendentesMeusPedidos.clear();
 
         // Reconstitui o apoio local com pedidos reais encontrados. Isso ajuda a manter a
         // experiência rápida nas próximas aberturas, sem transformar o localStorage na fonte oficial.
@@ -1771,6 +1818,21 @@ async function abrirMeusPedidos() {
             const restanteJaPago = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'pago';
             const restanteDinheiroPendente = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'aguardando_recebimento' && pedido.pagamentoRestante.forma === 'Dinheiro';
             const mostrarBotaoRestante = sinalPago && !restanteJaPago && !restanteDinheiroPendente && pedido.status !== 'recusado';
+            const aguardandoPagamento = pedido.status === 'aguardando_pagamento';
+            const ehEncomendaPendente = aguardandoPagamento && !!(pedido.dataEncomenda && pedido.horaEncomenda);
+            const checkoutPendente = aguardandoPagamento && pedido.pagamento && pedido.pagamento.checkoutUrl
+                ? String(pedido.pagamento.checkoutUrl)
+                : null;
+            const valorSinalPendente = aguardandoPagamento && pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' && pedido.pagamento.valorSinal != null
+                ? Number(pedido.pagamento.valorSinal)
+                : null;
+
+            if (aguardandoPagamento) {
+                pagamentosPendentesMeusPedidos.set(id, {
+                    checkoutUrl: checkoutPendente,
+                    ehEncomenda: ehEncomendaPendente
+                });
+            }
 
             // Resumo financeiro Premium da encomenda. O valor do sinal vem do próprio
             // pedido salvo (nunca da porcentagem atual da loja), então continua correto
@@ -1789,6 +1851,18 @@ async function abrirMeusPedidos() {
                 : valorRestanteCalculado;
             const valorRestanteTexto = Number.isFinite(valorRestante) ? formatarPrecoTexto(valorRestante) : '';
             const mostrarResumoFinanceiro = sinalPago && Number.isFinite(valorSinal) && Number.isFinite(valorRestante);
+
+            const mensagemPagamentoPendenteHtml = aguardandoPagamento ? `
+                <div style="margin-top:10px; padding:12px 14px; border-radius:12px; background:rgba(245, 158, 11, 0.10); border:1px solid rgba(245, 158, 11, 0.28);">
+                    <strong style="display:block; margin-bottom:5px;">🟠 ${ehEncomendaPendente ? 'Aguardando pagamento do sinal' : 'Aguardando pagamento'}</strong>
+                    <span style="display:block; font-size:0.92rem; line-height:1.45;">
+                        ${ehEncomendaPendente
+                            ? `Sua encomenda foi registrada, mas a data só fica confirmada após o sinal${Number.isFinite(valorSinalPendente) ? ` de ${formatarPrecoTexto(valorSinalPendente)}` : ''}. Finalize o pagamento para confirmar a encomenda e liberar o atendimento da ${LOJA_CONFIG.nome}.`
+                            : `Seu pedido foi criado, mas ainda não está confirmado. Finalize o pagamento para confirmar a compra e liberar o atendimento da ${LOJA_CONFIG.nome}.`}
+                    </span>
+                </div>
+                <button class="btn-pagar-restante-lista" onclick="retomarPagamentoPendenteMeusPedidos('${id}', this)">💳 Finalizar pagamento</button>
+            ` : '';
 
             const resumoFinanceiroHtml = mostrarResumoFinanceiro ? `
                 <div class="item-meus-pedidos-financeiro${restanteJaPago ? ' pagamento-completo' : ''}">
@@ -1824,6 +1898,7 @@ async function abrirMeusPedidos() {
                     <p class="item-meus-pedidos-meta">${resumoMetaPedidoTexto(pedido, dataFormatada)}</p>
                     <p class="item-meus-pedidos-itens">${itensTexto || 'Itens não informados'}</p>
                     ${sinalPago && mostrarResumoFinanceiro ? '' : `<p class="item-meus-pedidos-total">${totalTexto}</p>`}
+                    ${mensagemPagamentoPendenteHtml}
                     ${resumoFinanceiroHtml}
                     ${restanteDinheiroPendente ? `<p class="item-meus-pedidos-meta">💵 Restante${valorRestanteTexto ? ` de ${valorRestanteTexto}` : ''} em dinheiro • aguardando recebimento</p>` : ''}
                     ${mostrarBotaoRestante ? `<button class="btn-pagar-restante-lista" onclick="pagarRestanteEncomenda('${id}', this)">💳 Pagar o restante${valorRestanteTexto ? ` • ${valorRestanteTexto}` : ''}</button>` : ''}
