@@ -3,7 +3,7 @@
 // HTML/CSS/JS NÃO ficam em cache de propósito, pra você nunca ficar preso numa versão antiga
 // depois que eu (ou você) atualizar o site.
 
-const CACHE_NAME = 'cardapio-imagens-v1';
+const CACHE_NAME = 'cardapio-imagens-v2';
 
 // --- Notificações push (Firebase Cloud Messaging) ---
 // Precisa rodar aqui dentro do service worker pra funcionar mesmo com o site fechado.
@@ -85,7 +85,11 @@ self.addEventListener('fetch', (event) => {
             cache.match(event.request).then(respostaCache => {
                 if (respostaCache) return respostaCache;
                 return fetch(event.request).then(respostaRede => {
-                    cache.put(event.request, respostaRede.clone());
+                    // Não guarda respostas com erro (ex.: 404). Isso evita deixar uma
+                    // imagem quebrada presa no cache mesmo depois de o arquivo ser corrigido.
+                    if (respostaRede.ok || respostaRede.type === 'opaque') {
+                        cache.put(event.request, respostaRede.clone());
+                    }
                     return respostaRede;
                 }).catch(() => respostaCache);
             })

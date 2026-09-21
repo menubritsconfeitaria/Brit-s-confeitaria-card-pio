@@ -37,7 +37,7 @@ const LOJA_CONFIG = {
     instagramUrl: "https://www.instagram.com/brites.doces/",
 
     // URL onde esse cardápio fica publicado (usada nas tags de compartilhamento)
-    urlCardapio: "https://menubritsconfeitaria.github.io/Brit-s-confeitaria-card-pio/",
+    urlCardapio: new URL('./', location.href).href,
 
     // Cores da marca (aceita qualquer cor CSS válida, ex: "#a0522d" ou "rgb(160,82,45)")
     corPrimaria: "#a0522d",

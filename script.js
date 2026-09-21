@@ -4394,7 +4394,7 @@ function fecharBoasVindas() {
 
 // Link direto pra divulgação: acessando o cardápio com "?venda=1" no final da URL,
 // pula a tela de boas-vindas e já abre a seção de personalização sozinha, expandida.
-// Ex: https://menubritsconfeitaria.github.io/Brit-s-confeitaria-card-pio/?venda=1
+// Ex: https://britsconfeitaria.com.br/?venda=1
 const veioPeloLinkDeVenda = new URLSearchParams(window.location.search).get('venda') === '1';
 const veioPeloLinkDeProduto = window.location.hash.startsWith('#produto-');
 let scrollParaVendaPendente = veioPeloLinkDeVenda; // vira false depois de rolar uma vez

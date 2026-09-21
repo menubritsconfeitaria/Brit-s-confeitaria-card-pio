@@ -1,9 +1,11 @@
 {
+  "id": "./",
   "name": "Brit's Confeitaria - Cardápio Online",
   "short_name": "Brit's Confeitaria",
   "description": "Bolos, doces e salgados fresquinhos, feitos com carinho. Peça direto pelo cardápio!",
-  "start_url": "https://menubritsconfeitaria.github.io/Brit-s-confeitaria-card-pio/index.html",
-  "scope": "https://menubritsconfeitaria.github.io/Brit-s-confeitaria-card-pio/",
+  "lang": "pt-BR",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f7f1e8",
   "theme_color": "#a0522d",
