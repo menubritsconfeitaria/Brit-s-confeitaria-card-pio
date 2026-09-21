@@ -713,6 +713,12 @@ function escutarConfigFrete() {
             });
             bairrosEntrega = bairrosFiltrados;
         }
+
+        // A configuração de frete/exceções chega de forma assíncrona. Se o carrinho
+        // já foi renderizado antes dessa leitura terminar (ex.: endereço restaurado
+        // do navegador + ViaCEP), recalcula agora para aplicar imediatamente a exceção
+        // de pedido mínimo do bairro e não deixar na tela o mínimo padrão antigo.
+        if (typeof atualizarCarrinhoHTML === 'function') atualizarCarrinhoHTML();
     });
 }
 
