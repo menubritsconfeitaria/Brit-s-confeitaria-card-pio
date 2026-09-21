@@ -2387,11 +2387,21 @@ async function verificarRecompensaDisponivelNoPedido(id, pedido) {
     const tel = String(pedido.telefone).replace(/\D/g, '');
     if (tel.length < 10) return;
     try {
-        const [fidSnap, recSnap] = await Promise.all([
+        const [fidSnap, recSnap, modoSnap] = await Promise.all([
             db.ref('fidelidade/' + tel).once('value'),
-            db.ref('configuracao/recompensasFidelidade').once('value')
+            db.ref('configuracao/recompensasFidelidade').once('value'),
+            db.ref('configuracao/fidelidadeProcessamentoServidor').once('value')
         ]);
-        const pontosAtuais = (fidSnap.val() || {}).pontos || 0;
+        const fidelidadeAtual = fidSnap.val() || {};
+        let pontosAtuais = Number(fidelidadeAtual.pontos) || 0;
+        if (modoSnap.val() === true) {
+            const reservas = fidelidadeAtual.reservas && typeof fidelidadeAtual.reservas === 'object'
+                ? fidelidadeAtual.reservas
+                : {};
+            const pontosReservados = Object.values(reservas).reduce((soma, reserva) =>
+                soma + Math.max(0, Number(reserva && reserva.pontos) || 0), 0);
+            pontosAtuais = Math.max(0, pontosAtuais - pontosReservados);
+        }
         const recompensas = (recSnap.val() || []).filter(Boolean);
         const disponiveis = recompensas.filter(r => r.pontos <= pontosAtuais);
         if (disponiveis.length === 0) return;
@@ -2522,7 +2532,7 @@ function responderPedido(id, novoStatus) {
 
         return pedidoRef.update(atualizacaoStatus).then(() => {
             if (novoStatus === 'entregue') {
-                creditarPontosFidelidade(pedido);
+                creditarPontosFidelidade(pedido, id);
             }
             // Impressão automática — só dispara se o toggle estiver ativo. Reaproveita a
             // mesma função do botão manual "🖨️ Imprimir", só chamando ela sozinha.
@@ -10360,13 +10370,49 @@ function escutarConfigFidelidade() {
     });
 }
 
-// Credita os pontos ganhos (e desconta os de uma recompensa resgatada) só quando o pedido é
-// marcado como Entregue — nunca antes disso, pra não premiar pedidos recusados/cancelados
-function creditarPontosFidelidade(pedido) {
+// Compatibilidade segura durante a migração: enquanto a chave
+// configuracao/fidelidadeProcessamentoServidor NÃO estiver true, mantém exatamente o
+// processamento antigo no painel. Depois da ativação, o navegador para de escrever saldo
+// e apenas acompanha o resultado atômico gravado pela Function no servidor.
+function creditarPontosFidelidade(pedido, pedidoId) {
     if (!pedido || !pedido.telefone) return;
     const tel = String(pedido.telefone).replace(/\D/g, '');
     if (tel.length < 10) return;
 
+    db.ref('configuracao/fidelidadeProcessamentoServidor').once('value').then(modoSnap => {
+        if (modoSnap.val() !== true) {
+            creditarPontosFidelidadeLegado(pedido, tel);
+            return;
+        }
+        if (!pedidoId) return;
+
+        const movimentoRef = db.ref(`fidelidade/${tel}/movimentos/${pedidoId}`);
+        let tentativas = 0;
+        const maxTentativas = 12;
+
+        const conferir = () => {
+            movimentoRef.once('value').then(snap => {
+                const movimento = snap.val();
+                if (movimento && movimento.estado === 'concluido') {
+                    const pontosAntes = Number(movimento.pontosAntes) || 0;
+                    const pontosDepois = Number(movimento.pontosDepois) || 0;
+                    avisarSeAtingiuPatamarFidelidade(pedido.nome || '', pontosAntes, pontosDepois);
+                    return;
+                }
+                tentativas += 1;
+                if (tentativas < maxTentativas) setTimeout(conferir, 500);
+            }).catch(err => console.log('Não foi possível acompanhar processamento da fidelidade:', err.message));
+        };
+
+        conferir();
+    }).catch(err => {
+        // Em caso de falha ao ler a chave de corte, não arriscamos uma escrita local que
+        // poderia duplicar pontos se o servidor já estiver ativo.
+        console.log('Não foi possível confirmar o modo de processamento da fidelidade:', err.message);
+    });
+}
+
+function creditarPontosFidelidadeLegado(pedido, tel) {
     const cfg = configFidelidadeAtual || {};
     const valorBase = Math.max(0, (pedido.subtotal || 0) - (pedido.desconto || 0));
     let pontosGanhos = 0;
