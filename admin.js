@@ -5469,6 +5469,7 @@ async function excluirClienteGestao(id) {
 let tempItensPedidoManual = [];
 let editingPedidoManualId = null;
 let editingPedidoManualTelefoneOriginal = null; // preserva o telefone real ao editar pedido vindo do cardápio
+let editingPedidoManualTimestampOriginal = null; // preserva data/hora original para a edição não mudar a posição do pedido
 let editingItemPedidoManualIndex = null;
 
 function popularSelectClientePedidoManual() {
@@ -6059,6 +6060,7 @@ function editarPedidoManual(id) {
     tempItensPedidoManual = (p.itens || []).map(item => ({ ...item }));
     editingPedidoManualId = id;
     editingPedidoManualTelefoneOriginal = p.telefone || null;
+    editingPedidoManualTimestampOriginal = p.timestamp || null;
     document.getElementById('btnSalvarPedidoManual').textContent = 'Atualizar Pedido';
     renderItensPedidoManual();
     document.getElementById('pmCliente').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -6091,13 +6093,21 @@ async function salvarPedidoManual() {
 
     if (tempItensPedidoManual.length === 0) { msgEl.textContent = 'Adiciona pelo menos 1 item.'; return; }
 
-    // Usa a data escolhida (na hora atual, do jeito que estamos agora — só a data muda,
-    // não afeta o horário) — se não escolher nada, usa a data de hoje
+    // Em edição, preserva a hora original do pedido. Assim atualizar um pedido não
+    // faz ele subir/descer na lista. Se a data for alterada manualmente, muda somente
+    // o dia, mantendo a hora original; pedido novo continua usando a hora atual.
     let timestampEscolhido;
     if (dataEscolhida) {
         const [ano, mes, dia] = dataEscolhida.split('-').map(Number);
-        const agora = new Date();
-        timestampEscolhido = new Date(ano, mes - 1, dia, agora.getHours(), agora.getMinutes(), agora.getSeconds()).getTime();
+        const baseHorario = (editingPedidoManualId && editingPedidoManualTimestampOriginal)
+            ? new Date(editingPedidoManualTimestampOriginal)
+            : new Date();
+        timestampEscolhido = new Date(
+            ano, mes - 1, dia,
+            baseHorario.getHours(), baseHorario.getMinutes(), baseHorario.getSeconds(), baseHorario.getMilliseconds()
+        ).getTime();
+    } else if (editingPedidoManualId && editingPedidoManualTimestampOriginal) {
+        timestampEscolhido = editingPedidoManualTimestampOriginal;
     } else {
         timestampEscolhido = Date.now();
     }
@@ -6127,7 +6137,7 @@ async function salvarPedidoManual() {
         endereco: null,
         formaPagamento: formaPagamento || null,
         observacoes: obs || null,
-        itens: tempItensPedidoManual.map(item => ({ produtoId: null, fichaTecnicaId: item.fichaTecnicaId, nome: item.nome, preco: item.preco, quantidade: item.quantidade })),
+        itens: tempItensPedidoManual.map(item => ({ produtoId: null, fichaTecnicaId: item.fichaTecnicaId ?? null, nome: item.nome, preco: item.preco, quantidade: item.quantidade })),
         subtotal: arred(subtotal),
         desconto,
         frete,
@@ -6173,6 +6183,7 @@ async function salvarPedidoManual() {
             msgEl.textContent = 'Pedido atualizado!';
             editingPedidoManualId = null;
             editingPedidoManualTelefoneOriginal = null;
+            editingPedidoManualTimestampOriginal = null;
             document.getElementById('btnSalvarPedidoManual').textContent = 'Salvar Pedido';
             tempItensPedidoManual = [];
             editingItemPedidoManualIndex = null;
