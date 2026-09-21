@@ -456,7 +456,8 @@ let ultimaConfigAplicadaAssinatura = null; // evita reaplicar a identidade da lo
 let whatsappPedidosEfetivo = null; // reflete o WhatsApp real em uso (painel ou arquivo)
 let percentualSinalEncomenda = 0; // 0 = não exige sinal, encomenda segue o fluxo combinado normal
 let prazoPagamentoHorasEfetivo = 24; // prazo padrão, sobrescrito pela config do painel
-let pedidoMinimoValor = 0; // 0 = sem pedido mínimo configurado
+let pedidoMinimoValor = 0; // mínimo padrão da loja; 0 = sem pedido mínimo configurado
+let pedidoMinimoBairros = {}; // exceções por bairro: ausência = usa o padrão; 0 = sem mínimo naquele bairro
 let freteGratisAcimaValor = 0; // 0 = sem frete grátis por valor configurado
 let produtoSugeridoFreteGratisId = null; // produto que a loja escolheu sugerir pra completar o frete grátis
 let modoDemoAtivo = false; // true enquanto a prévia personalizada está ativa
@@ -693,6 +694,9 @@ function escutarConfigFrete() {
         }
         valorPorKm = (config && config.valorPorKm) || valorPorKmPadrao;
         valorPorKmEncomenda = (config && config.valorPorKmEncomenda) || valorPorKmEncomendaPadrao;
+        pedidoMinimoBairros = (config && config.pedidoMinimoBairros && typeof config.pedidoMinimoBairros === 'object')
+            ? config.pedidoMinimoBairros
+            : {};
 
         // Modo restrito: atende só os bairros marcados temporariamente, sem apagar os
         // outros do banco — só filtra quais entram no "bairrosEntrega" que a checagem usa.
@@ -710,6 +714,26 @@ function escutarConfigFrete() {
             bairrosEntrega = bairrosFiltrados;
         }
     });
+}
+
+function obterPedidoMinimoAplicavel() {
+    const minimoPadrao = Math.max(0, Number(pedidoMinimoValor) || 0);
+    // Preserva o comportamento já existente da retirada: exceção por bairro só vale
+    // quando o pedido realmente é para entrega.
+    if (tipoEntregaAtual !== 'entrega') return minimoPadrao;
+
+    const bairroAlvo = normalizar(bairroClienteInput && bairroClienteInput.value);
+    if (!bairroAlvo || !pedidoMinimoBairros || typeof pedidoMinimoBairros !== 'object') return minimoPadrao;
+
+    for (const [chave, valorRaw] of Object.entries(pedidoMinimoBairros)) {
+        let nome = chave;
+        try { nome = decodeURIComponent(chave); } catch (e) { /* chave já legível */ }
+        if (normalizar(nome) !== bairroAlvo) continue;
+        const valor = Number(valorRaw);
+        return Number.isFinite(valor) && valor >= 0 ? valor : minimoPadrao;
+    }
+
+    return minimoPadrao;
 }
 
 let assinaturaDisponibilidadeProdutos = '';
@@ -3375,12 +3399,13 @@ function atualizarCarrinhoHTML() {
     // Mensagem de incentivo: avisa quanto falta pro pedido mínimo, ou pro frete grátis
     // (só mostra uma de cada vez — pedido mínimo primeiro, por ser mais importante)
     const incentivoEl = document.getElementById('incentivoCarrinhoMsg');
+    const pedidoMinimoAplicavel = obterPedidoMinimoAplicavel();
     if (incentivoEl) {
         if (carrinho.length === 0) {
             incentivoEl.style.display = 'none';
-        } else if (pedidoMinimoValor > 0 && subtotalComDesconto < pedidoMinimoValor) {
-            const faltam = (pedidoMinimoValor - subtotalComDesconto).toFixed(2).replace('.', ',');
-            incentivoEl.textContent = `🛒 Faltam R$ ${faltam} pro pedido mínimo de R$ ${pedidoMinimoValor.toFixed(2).replace('.', ',')}`;
+        } else if (pedidoMinimoAplicavel > 0 && subtotalComDesconto < pedidoMinimoAplicavel) {
+            const faltam = (pedidoMinimoAplicavel - subtotalComDesconto).toFixed(2).replace('.', ',');
+            incentivoEl.textContent = `🛒 Faltam R$ ${faltam} pro pedido mínimo de R$ ${pedidoMinimoAplicavel.toFixed(2).replace('.', ',')}`;
             incentivoEl.style.display = 'block';
         } else if (!freteGratis && freteGratisAcimaValor > 0 && subtotalComDesconto < freteGratisAcimaValor) {
             const faltam = (freteGratisAcimaValor - subtotalComDesconto).toFixed(2).replace('.', ',');
@@ -3401,7 +3426,7 @@ function atualizarCarrinhoHTML() {
     // mas continua funcionando exatamente igual pra quem só tem aquele campo simples
     const sugestaoEl = document.getElementById('sugestaoProdutoCarrinho');
     if (sugestaoEl) {
-        const pedidoMinimoAindaFaltando = pedidoMinimoValor > 0 && subtotalComDesconto < pedidoMinimoValor;
+        const pedidoMinimoAindaFaltando = pedidoMinimoAplicavel > 0 && subtotalComDesconto < pedidoMinimoAplicavel;
         const sugestoes = avaliarOfertasCarrinho(subtotalComDesconto, freteGratis, pedidoMinimoAindaFaltando);
         if (sugestoes.length > 0) {
             sugestaoEl.innerHTML = sugestoes.map(s => `
@@ -3833,14 +3858,16 @@ async function finalizarCompra() {
         return;
     }
 
-    // Confere o pedido mínimo (se configurado) antes de deixar finalizar
-    if (pedidoMinimoValor > 0) {
+    // Confere o pedido mínimo aplicável (padrão da loja ou exceção do bairro) antes de finalizar.
+    // A mesma regra é refeita no servidor; aqui é apenas o retorno imediato ao cliente.
+    const pedidoMinimoAplicavel = obterPedidoMinimoAplicavel();
+    if (pedidoMinimoAplicavel > 0) {
         const subtotalAtual = carrinho.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
         const descontoAtual = calcularDesconto(subtotalAtual);
         const subtotalComDescontoAtual = subtotalAtual - descontoAtual;
-        if (subtotalComDescontoAtual < pedidoMinimoValor) {
-            const faltam = (pedidoMinimoValor - subtotalComDescontoAtual).toFixed(2).replace('.', ',');
-            alert(`Pedido mínimo de R$ ${pedidoMinimoValor.toFixed(2).replace('.', ',')} — faltam R$ ${faltam} pra você poder finalizar.`);
+        if (subtotalComDescontoAtual < pedidoMinimoAplicavel) {
+            const faltam = (pedidoMinimoAplicavel - subtotalComDescontoAtual).toFixed(2).replace('.', ',');
+            alert(`Pedido mínimo de R$ ${pedidoMinimoAplicavel.toFixed(2).replace('.', ',')} — faltam R$ ${faltam} pra você poder finalizar.`);
             return;
         }
     }

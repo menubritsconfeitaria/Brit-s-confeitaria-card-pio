@@ -3037,6 +3037,7 @@ function escutarConfigFrete() {
         if (chkRestrito) chkRestrito.checked = !!config.modoRestritoAtivo;
         if (areaRestrito) areaRestrito.style.display = config.modoRestritoAtivo ? 'block' : 'none';
         renderizarListaBairrosRestritos(config.bairros || {}, config.bairrosAtivos || {});
+        renderizarPedidoMinimoBairros();
 
         renderizarListaBairros();
     });
@@ -3119,8 +3120,116 @@ function salvarBairro() {
 
 function removerBairro(nomeCodificado) {
     if (!confirm('Remover esse bairro da lista de entrega?')) return;
-    db.ref('configuracao/frete/bairros/' + nomeCodificado).remove()
+    const atualizacoes = {};
+    atualizacoes['configuracao/frete/bairros/' + nomeCodificado] = null;
+    // Se o bairro tinha uma exceção de pedido mínimo, remove junto para não deixar
+    // configuração órfã escondida no Firebase.
+    atualizacoes['configuracao/frete/pedidoMinimoBairros/' + nomeCodificado] = null;
+    db.ref().update(atualizacoes)
         .catch(err => alert('Erro ao remover: ' + err.message));
+}
+
+function encontrarBairroConfiguradoPedidoMinimo(nomeDigitado) {
+    const alvo = normalizarTexto(nomeDigitado || '');
+    if (!alvo) return null;
+    const bairros = configFreteAtual.bairros || {};
+    for (const chave of Object.keys(bairros)) {
+        let nome = chave;
+        try { nome = decodeURIComponent(chave); } catch (e) { /* chave já legível */ }
+        if (normalizarTexto(nome) === alvo) return { chave, nome };
+    }
+    return null;
+}
+
+function renderizarPedidoMinimoBairros() {
+    const datalist = document.getElementById('pedidoMinimoBairrosLista');
+    const container = document.getElementById('pedidoMinimoBairrosExcecoes');
+    if (!datalist || !container) return;
+
+    const bairros = configFreteAtual.bairros || {};
+    const excecoes = configFreteAtual.pedidoMinimoBairros || {};
+
+    datalist.innerHTML = '';
+    Object.keys(bairros)
+        .map(chave => {
+            let nome = chave;
+            try { nome = decodeURIComponent(chave); } catch (e) { /* chave já legível */ }
+            return { chave, nome };
+        })
+        .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+        .forEach(bairro => {
+            const option = document.createElement('option');
+            option.value = bairro.nome;
+            datalist.appendChild(option);
+        });
+
+    container.innerHTML = '';
+    const entradas = Object.entries(excecoes)
+        .map(([chave, valor]) => {
+            let nome = chave;
+            try { nome = decodeURIComponent(chave); } catch (e) { /* chave já legível */ }
+            return { chave, nome, valor: Math.max(0, Number(valor) || 0) };
+        })
+        .filter(item => Object.prototype.hasOwnProperty.call(bairros, item.chave))
+        .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
+    if (!entradas.length) return;
+
+    entradas.forEach(item => {
+        const chip = document.createElement('span');
+        chip.className = 'loja-minimo-bairro-chip';
+
+        const texto = document.createElement('span');
+        texto.textContent = `${item.nome} — ${item.valor > 0 ? `R$ ${item.valor.toFixed(2).replace('.', ',')}` : 'Sem pedido mínimo'}`;
+
+        const remover = document.createElement('button');
+        remover.type = 'button';
+        remover.className = 'loja-minimo-bairro-remover';
+        remover.setAttribute('aria-label', `Remover exceção de ${item.nome}`);
+        remover.title = 'Voltar a usar o mínimo padrão';
+        remover.textContent = '×';
+        remover.onclick = () => removerPedidoMinimoBairro(item.chave);
+
+        chip.append(texto, remover);
+        container.appendChild(chip);
+    });
+}
+
+function salvarPedidoMinimoBairro() {
+    const bairroEl = document.getElementById('pedidoMinimoBairroBusca');
+    const valorEl = document.getElementById('pedidoMinimoBairroValor');
+    const msgEl = document.getElementById('pedidoMinimoBairroMsg');
+    if (!bairroEl || !valorEl) return;
+
+    const bairro = encontrarBairroConfiguradoPedidoMinimo(bairroEl.value.trim());
+    if (!bairro) {
+        if (msgEl) msgEl.textContent = 'Escolha um bairro que já esteja cadastrado em Áreas de Entrega.';
+        return;
+    }
+
+    const textoValor = valorEl.value.trim();
+    const valor = textoValor === '' ? 0 : parseFloat(textoValor.replace(',', '.'));
+    if (!Number.isFinite(valor) || valor < 0) {
+        if (msgEl) msgEl.textContent = 'Digite um valor válido ou deixe vazio para ficar sem pedido mínimo.';
+        return;
+    }
+
+    db.ref('configuracao/frete/pedidoMinimoBairros/' + bairro.chave).set(valor)
+        .then(() => {
+            bairroEl.value = '';
+            valorEl.value = '';
+            if (msgEl) msgEl.textContent = valor > 0
+                ? `${bairro.nome}: mínimo de R$ ${valor.toFixed(2).replace('.', ',')} salvo.`
+                : `${bairro.nome}: sem pedido mínimo.`;
+        })
+        .catch(err => { if (msgEl) msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+}
+
+function removerPedidoMinimoBairro(nomeCodificado) {
+    const msgEl = document.getElementById('pedidoMinimoBairroMsg');
+    db.ref('configuracao/frete/pedidoMinimoBairros/' + nomeCodificado).remove()
+        .then(() => { if (msgEl) msgEl.textContent = 'Exceção removida — o bairro voltou a usar o mínimo padrão.'; })
+        .catch(err => { if (msgEl) msgEl.textContent = 'Erro ao remover: ' + err.message; });
 }
 
 // Mostra a lista de bairros já cadastrados, filtrando pela busca (se tiver algo digitado)

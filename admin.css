@@ -13399,6 +13399,16 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
 .loja-premium-v2 .loja-input-prefix { display:flex; align-items:center; overflow:hidden; border:1px solid #dfd3c5; border-radius:9px; background:#fff; }
 .loja-premium-v2 .loja-input-prefix span { flex:0 0 auto; padding:0 8px; color:#a26a47; font-size:.65rem; font-weight:800; border-right:1px solid #eee4da; }
 .loja-premium-v2 .loja-input-prefix input { min-width:0; border:0 !important; border-radius:0 !important; box-shadow:none !important; }
+.loja-premium-v2 .loja-minimo-bairros { grid-column:1 / -1; margin-top:1px; padding:10px; border:1px solid #eee4da; border-radius:11px; background:#fdfbf8; }
+.loja-premium-v2 .loja-minimo-bairro-editor { display:grid; grid-template-columns:minmax(0,1fr) 175px auto; gap:7px; align-items:center; }
+.loja-premium-v2 .loja-minimo-bairro-editor > input,
+.loja-premium-v2 .loja-minimo-bairro-editor .loja-input-prefix { height:36px; margin:0; box-sizing:border-box; }
+.loja-premium-v2 .loja-minimo-bairro-editor > input { border-radius:9px; }
+.loja-premium-v2 .loja-minimo-bairro-editor .btn-secondary { min-height:36px; margin:0; white-space:nowrap; }
+.loja-premium-v2 .loja-minimo-bairros-lista { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.loja-premium-v2 .loja-minimo-bairro-chip { display:inline-flex; align-items:center; gap:6px; padding:5px 7px 5px 9px; border:1px solid #eadfd4; border-radius:999px; background:#fff; color:#665043; font-size:.62rem; font-weight:700; }
+.loja-premium-v2 .loja-minimo-bairro-remover { width:20px; height:20px; display:grid; place-items:center; padding:0; margin:0; border:0; border-radius:50%; background:#f4ebe4; color:#a45b35; font-size:.8rem; line-height:1; cursor:pointer; }
+.loja-premium-v2 .loja-minimo-bairro-msg { margin:6px 0 0; min-height:0; }
 
 .loja-premium-v2 .loja-entrega-layout { display:grid; grid-template-columns:minmax(280px,.78fr) minmax(0,1.22fr); gap:12px; align-items:start; }
 .loja-premium-v2 .loja-entrega-col { display:grid; gap:10px; min-width:0; }
@@ -13464,6 +13474,8 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
     .loja-premium-v2 .loja-horarios-lista .linha-horario { grid-template-columns:1fr 86px auto 86px; }
     .loja-premium-v2 .loja-bairro-editor-grid { grid-template-columns:1fr 100px; }
     .loja-premium-v2 .loja-bairro-editor-grid .btn-secondary { grid-column:1 / -1; width:100%; }
+    .loja-premium-v2 .loja-minimo-bairro-editor { grid-template-columns:1fr 125px; }
+    .loja-premium-v2 .loja-minimo-bairro-editor .btn-secondary { grid-column:1 / -1; width:100%; }
     .loja-premium-v2 .loja-qr-card { grid-template-columns:1fr; text-align:left; }
     .loja-premium-v2 .loja-qr-preview { grid-column:1; grid-row:auto; }
     .loja-premium-v2 .loja-qr-card > button { grid-column:1; width:100%; justify-self:stretch; }

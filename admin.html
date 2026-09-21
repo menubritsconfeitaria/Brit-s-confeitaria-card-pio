@@ -420,6 +420,20 @@
                                 <div class="campo-com-label loja-regra-produto"><label class="campo-label">Produto sugerido para completar o frete grátis</label><select id="produtoSugeridoFreteGratis"><option value="">— Nenhum (só mostra a mensagem, sem sugestão) —</option></select></div>
                             </div>
                             <div class="loja-inline-help">💡 A sugestão só aparece quando o cliente estiver perto do frete grátis, o produto ainda não estiver no carrinho e estiver disponível.</div>
+
+                            <div class="loja-minimo-bairros">
+                                <div class="loja-bloco-label"><span>Exceções de pedido mínimo por bairro</span><small>Opcional</small></div>
+                                <div class="loja-minimo-bairro-editor">
+                                    <input type="text" id="pedidoMinimoBairroBusca" list="pedidoMinimoBairrosLista" placeholder="🔎 Buscar bairro cadastrado..." autocomplete="off">
+                                    <datalist id="pedidoMinimoBairrosLista"></datalist>
+                                    <div class="loja-input-prefix"><span>R$</span><input type="text" inputmode="decimal" id="pedidoMinimoBairroValor" placeholder="Vazio = sem mínimo"></div>
+                                    <button type="button" class="btn-secondary" onclick="salvarPedidoMinimoBairro()">+ Adicionar</button>
+                                </div>
+                                <div id="pedidoMinimoBairrosExcecoes" class="loja-minimo-bairros-lista"></div>
+                                <p id="pedidoMinimoBairroMsg" class="ordem-categorias-msg loja-minimo-bairro-msg"></p>
+                                <p class="dica-secao">Bairros não listados aqui continuam usando o valor mínimo padrão. Deixe o valor vazio para não exigir pedido mínimo naquele bairro.</p>
+                            </div>
+
                             <div class="loja-card-actions"><button class="btn-salvar-ordem" onclick="salvarPedidoMinimoEFreteGratis()">💾 Salvar regras comerciais</button><p id="pedidoMinimoMsg" class="ordem-categorias-msg"></p></div>
                         </section>
 
