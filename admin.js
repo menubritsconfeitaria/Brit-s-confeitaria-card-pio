@@ -5911,7 +5911,17 @@ function escutarPedidosManuais() {
         const manuais = Object.entries(val)
             .map(([id, p]) => ({ id, ...p }))
             .filter(p => p.status !== 'aguardando_pagamento')
-            .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            // A numeração é a ordem oficial dos pedidos. Editar um pedido nunca deve
+            // fazê-lo subir/descer no histórico só porque algum timestamp foi alterado.
+            // Para registros antigos sem número, mantém o timestamp como fallback.
+            .sort((a, b) => {
+                const numeroA = Number(a.numero);
+                const numeroB = Number(b.numero);
+                const temNumeroA = Number.isFinite(numeroA) && numeroA > 0;
+                const temNumeroB = Number.isFinite(numeroB) && numeroB > 0;
+                if (temNumeroA && temNumeroB && numeroA !== numeroB) return numeroB - numeroA;
+                return (b.timestamp || 0) - (a.timestamp || 0);
+            });
         ultimosPedidosManuais = manuais;
 
         const div = document.getElementById('listaPedidosManuais');
