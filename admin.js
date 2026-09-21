@@ -1189,6 +1189,21 @@ function removerBairroMestre(nomeCodificado) {
         .catch(err => alert('Erro ao remover: ' + err.message));
 }
 
+// Formata SOMENTE a exibição do nome do bairro no painel.
+// A chave/valor salvo no Firebase continua exatamente como já está.
+function formatarNomeBairroExibicao(nome) {
+    const conectivos = new Set(['de', 'da', 'do', 'das', 'dos', 'e']);
+    return String(nome || '')
+        .trim()
+        .split(/\s+/)
+        .map((parte, indice) => {
+            const minusculo = parte.toLocaleLowerCase('pt-BR');
+            if (indice > 0 && conectivos.has(minusculo)) return minusculo;
+            return minusculo.charAt(0).toLocaleUpperCase('pt-BR') + minusculo.slice(1);
+        })
+        .join(' ');
+}
+
 function renderizarListaBairrosMestre() {
     const container = document.getElementById('listaBairrosMestre');
     if (!container) return;
@@ -1208,7 +1223,7 @@ function renderizarListaBairrosMestre() {
 
     container.innerHTML = entradas.map((b, i) => `
         <div class="loja-status-card" style="margin-bottom:6px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center;">
-            <span style="text-transform:capitalize;">${b.nome} <span class="dica-secao">(${b.km} km)</span></span>
+            <span>${formatarNomeBairroExibicao(b.nome)} <span class="dica-secao">(${b.km} km)</span></span>
             <button class="btn-secondary btn-remover-bairro-mestre" data-indice="${i}">Remover</button>
         </div>
     `).join('');
@@ -3057,7 +3072,7 @@ function renderizarListaBairrosRestritos(bairros, bairrosAtivos) {
         const escondido = busca && !normalizarTexto(b.nome).includes(busca);
         return `
         <label class="produto-disponivel-check" style="display:${escondido ? 'none' : 'block'}; padding:4px 0;">
-            <input type="checkbox" data-bairro-cod="${b.cod}" ${bairrosAtivos[b.cod] ? 'checked' : ''} onchange="salvarBairrosAtivosRestrito()"> ${b.nome}
+            <input type="checkbox" data-bairro-cod="${b.cod}" ${bairrosAtivos[b.cod] ? 'checked' : ''} onchange="salvarBairrosAtivosRestrito()"> ${formatarNomeBairroExibicao(b.nome)}
         </label>
     `;
     }).join('') || '<p class="dica-secao">Nenhum bairro cadastrado ainda.</p>';
@@ -3159,7 +3174,7 @@ function renderizarPedidoMinimoBairros() {
         .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
         .forEach(bairro => {
             const option = document.createElement('option');
-            option.value = bairro.nome;
+            option.value = formatarNomeBairroExibicao(bairro.nome);
             datalist.appendChild(option);
         });
 
@@ -3180,12 +3195,12 @@ function renderizarPedidoMinimoBairros() {
         chip.className = 'loja-minimo-bairro-chip';
 
         const texto = document.createElement('span');
-        texto.textContent = `${item.nome} — ${item.valor > 0 ? `R$ ${item.valor.toFixed(2).replace('.', ',')}` : 'Sem pedido mínimo'}`;
+        texto.textContent = `${formatarNomeBairroExibicao(item.nome)} — ${item.valor > 0 ? `R$ ${item.valor.toFixed(2).replace('.', ',')}` : 'Sem pedido mínimo'}`;
 
         const remover = document.createElement('button');
         remover.type = 'button';
         remover.className = 'loja-minimo-bairro-remover';
-        remover.setAttribute('aria-label', `Remover exceção de ${item.nome}`);
+        remover.setAttribute('aria-label', `Remover exceção de ${formatarNomeBairroExibicao(item.nome)}`);
         remover.title = 'Voltar a usar o mínimo padrão';
         remover.textContent = '×';
         remover.onclick = () => removerPedidoMinimoBairro(item.chave);
@@ -3219,8 +3234,8 @@ function salvarPedidoMinimoBairro() {
             bairroEl.value = '';
             valorEl.value = '';
             if (msgEl) msgEl.textContent = valor > 0
-                ? `${bairro.nome}: mínimo de R$ ${valor.toFixed(2).replace('.', ',')} salvo.`
-                : `${bairro.nome}: sem pedido mínimo.`;
+                ? `${formatarNomeBairroExibicao(bairro.nome)}: mínimo de R$ ${valor.toFixed(2).replace('.', ',')} salvo.`
+                : `${formatarNomeBairroExibicao(bairro.nome)}: sem pedido mínimo.`;
         })
         .catch(err => { if (msgEl) msgEl.textContent = 'Erro ao salvar: ' + err.message; });
 }
@@ -3249,7 +3264,7 @@ function renderizarListaBairros() {
     }
     container.innerHTML = entradas.map(b => `
         <div class="loja-status-card" style="margin-bottom:6px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center;">
-            <span style="text-transform:capitalize;">${b.nome} <span class="dica-secao">(${b.km} km)</span></span>
+            <span>${formatarNomeBairroExibicao(b.nome)} <span class="dica-secao">(${b.km} km)</span></span>
             <button class="btn-secondary" onclick="removerBairro('${b.nomeCodificado}')">Remover</button>
         </div>
     `).join('');
