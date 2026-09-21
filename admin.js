@@ -5273,6 +5273,22 @@ function salvarClienteGestao() {
     if (!nome) { msgEl.textContent = 'Informa o nome do cliente.'; return; }
 
     const obj = { nome, telefone: telefone || null, email: email || null, endereco: endereco || null };
+
+    // Telefone é a identidade principal do cliente. A comparação usa a chave canônica
+    // (só DDD + número), então máscara, espaços, hífen ou +55 não criam outro cadastro.
+    // Se o mesmo telefone já pertence a outro registro, bloqueia uma nova duplicata.
+    const telefoneChave = normalizarTelefoneClienteBrasil(telefone);
+    if (telefoneChave) {
+        const mesmoTelefone = clientesGestao.find(c =>
+            c.id !== editingClienteGestaoId &&
+            normalizarTelefoneClienteBrasil(c.telefone) === telefoneChave
+        );
+        if (mesmoTelefone) {
+            msgEl.textContent = `Esse telefone já está cadastrado para ${mesmoTelefone.nome || 'outro cliente'}. Edite o cadastro existente em vez de criar outro.`;
+            return;
+        }
+    }
+
     msgEl.textContent = 'Salvando...';
 
     const promessa = editingClienteGestaoId
@@ -5436,10 +5452,10 @@ async function excluirClienteGestao(id) {
     const cliente = getClienteGestao(id);
     let temPedidos = false;
     if (cliente && cliente.telefone) {
-        const telNormalizado = normalizarTelefone(cliente.telefone);
+        const telNormalizado = normalizarTelefoneClienteBrasil(cliente.telefone);
         const snap = await db.ref('pedidos').once('value');
         const val = snap.val() || {};
-        temPedidos = Object.values(val).some(p => normalizarTelefone(p.telefone) === telNormalizado);
+        temPedidos = Object.values(val).some(p => normalizarTelefoneClienteBrasil(p.telefone) === telNormalizado);
     }
     let msg = 'Excluir este cliente do CRM?';
     if (temPedidos) msg += '\n\nEle tem pedidos registrados — excluir o cliente não apaga os pedidos, só o cadastro dele.';
@@ -5452,6 +5468,7 @@ async function excluirClienteGestao(id) {
 // fechamento e relatórios sempre verem tudo junto, nunca separado
 let tempItensPedidoManual = [];
 let editingPedidoManualId = null;
+let editingPedidoManualTelefoneOriginal = null; // preserva o telefone real ao editar pedido vindo do cardápio
 let editingItemPedidoManualIndex = null;
 
 function popularSelectClientePedidoManual() {
@@ -5461,14 +5478,46 @@ function popularSelectClientePedidoManual() {
     dl.innerHTML = ordenados.map(c => `<option value="${c.nome}">`).join('');
 }
 
-// Acha um cliente pelo nome digitado, ou cria um novo na hora se não existir —
-// mesmo comportamento do sistema antigo (obterOuCriarClientePorNome)
-async function obterOuCriarClienteGestaoPorNome(nomeDigitado) {
-    if (!nomeDigitado) return null;
+// Identifica o cliente pelo TELEFONE quando ele existe (fonte principal de identidade).
+// O nome é só fallback para pedidos manuais antigos/novos que ainda não têm telefone.
+// Assim, "Danielly" e "Danielly de Souza" com o mesmo WhatsApp continuam sendo
+// um único cadastro, mesmo com máscara, espaços, hífen ou +55 diferentes.
+async function obterOuCriarClienteGestaoPorNome(nomeDigitado, telefonePreferencial = null) {
+    if (!nomeDigitado && !telefonePreferencial) return null;
+
+    const telefoneChave = normalizarTelefoneClienteBrasil(telefonePreferencial);
+    if (telefoneChave) {
+        const porTelefone = clientesGestao.find(c =>
+            normalizarTelefoneClienteBrasil(c.telefone) === telefoneChave
+        );
+        if (porTelefone) return porTelefone;
+
+        // Corrige com segurança um cadastro antigo criado só pelo nome (sem telefone):
+        // reaproveita o MESMO registro e apenas completa o telefone, sem duplicar cliente.
+        const porNomeSemTelefone = acharPorNome(clientesGestao, nomeDigitado);
+        if (porNomeSemTelefone && !normalizarTelefoneClienteBrasil(porNomeSemTelefone.telefone)) {
+            await db.ref('clientesGestao/' + porNomeSemTelefone.id + '/telefone').set(telefonePreferencial);
+            return { ...porNomeSemTelefone, telefone: telefonePreferencial };
+        }
+
+        const novo = {
+            nome: nomeDigitado || 'Cliente',
+            telefone: telefonePreferencial,
+            email: null,
+            endereco: null
+        };
+        const ref = await db.ref('clientesGestao').push(novo);
+        return { id: ref.key, ...novo };
+    }
+
+    // Sem telefone não existe uma chave segura para distinguir homônimos; mantém o
+    // comportamento antigo e reaproveita apenas pelo nome.
     const jaExiste = acharPorNome(clientesGestao, nomeDigitado);
     if (jaExiste) return jaExiste;
-    const ref = await db.ref('clientesGestao').push({ nome: nomeDigitado, telefone: null, email: null, endereco: null });
-    return { id: ref.key, nome: nomeDigitado };
+
+    const novo = { nome: nomeDigitado, telefone: null, email: null, endereco: null };
+    const ref = await db.ref('clientesGestao').push(novo);
+    return { id: ref.key, ...novo };
 }
 
 function garantirBuscaProdutoPedidoManual() {
@@ -6009,6 +6058,7 @@ function editarPedidoManual(id) {
 
     tempItensPedidoManual = (p.itens || []).map(item => ({ ...item }));
     editingPedidoManualId = id;
+    editingPedidoManualTelefoneOriginal = p.telefone || null;
     document.getElementById('btnSalvarPedidoManual').textContent = 'Atualizar Pedido';
     renderItensPedidoManual();
     document.getElementById('pmCliente').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -6053,7 +6103,12 @@ async function salvarPedidoManual() {
     }
 
     msgEl.textContent = 'Salvando...';
-    const cliente = await obterOuCriarClienteGestaoPorNome(nomeClienteDigitado);
+
+    // Ao editar um pedido do cardápio, o telefone que veio no próprio pedido é a
+    // identidade do cliente. Nunca tenta decidir só pelo nome, porque o mesmo cliente
+    // pode escrever o nome abreviado numa compra e completo em outra.
+    const telefoneOriginalDoPedido = editingPedidoManualId ? editingPedidoManualTelefoneOriginal : null;
+    const cliente = await obterOuCriarClienteGestaoPorNome(nomeClienteDigitado, telefoneOriginalDoPedido);
     const subtotal = tempItensPedidoManual.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
     const descontoPercent = parseFloat(document.getElementById('pmDesconto').value.replace(',', '.')) || 0;
     const frete = parseFloat(document.getElementById('pmFrete').value.replace(',', '.')) || 0;
@@ -6062,8 +6117,12 @@ async function salvarPedidoManual() {
 
     const dadosPedido = {
         origem: 'manual',
-        nome: cliente ? cliente.nome : 'Cliente balcão',
-        telefone: cliente ? cliente.telefone : null,
+        // Mantém o nome digitado/que já estava no pedido. A identidade do cliente é o telefone,
+        // então uma variação de nome não cria outro cadastro nem troca o nome do pedido sem querer.
+        nome: nomeClienteDigitado || (cliente ? cliente.nome : 'Cliente balcão'),
+        // Em edição preserva exatamente o telefone original do pedido; em pedido novo usa
+        // o telefone do cadastro selecionado. Nunca envia undefined ao Firebase.
+        telefone: telefoneOriginalDoPedido || (cliente?.telefone ?? null),
         tipoEntrega: 'retirada',
         endereco: null,
         formaPagamento: formaPagamento || null,
@@ -6113,6 +6172,7 @@ async function salvarPedidoManual() {
             await db.ref('pedidos/' + editingPedidoManualId).update(dadosPedido);
             msgEl.textContent = 'Pedido atualizado!';
             editingPedidoManualId = null;
+            editingPedidoManualTelefoneOriginal = null;
             document.getElementById('btnSalvarPedidoManual').textContent = 'Salvar Pedido';
             tempItensPedidoManual = [];
             editingItemPedidoManualIndex = null;
@@ -7043,6 +7103,15 @@ function normalizarTelefone(tel) {
 function normalizarTelefoneClienteBrasil(tel) {
     let digitos = normalizarTelefone(tel);
     if (!digitos) return '';
+
+    // +55 + DDD + número: remove o código do Brasil explicitamente. Isso cobre tanto
+    // celular (13 dígitos no total) quanto telefone fixo (12), sem confundir DDD 55.
+    if ((digitos.length === 12 || digitos.length === 13) && digitos.startsWith('55')) {
+        digitos = digitos.slice(2);
+    }
+
+    // Prefixos antigos de operadora/zero ou qualquer outro prefixo extra não mudam a
+    // identidade: preservamos no máximo os 11 dígitos úteis finais (DDD + número).
     if (digitos.length > 11) digitos = digitos.slice(-11);
     return digitos;
 }
@@ -7419,7 +7488,7 @@ async function removerDuplicatas() {
             totalRemovidos++;
         }
     }
-    for (const grupo of agrupar(clientesGestao, c => c.telefone || (c.nome || '').trim().toLowerCase())) {
+    for (const grupo of agrupar(clientesGestao, c => normalizarTelefoneClienteBrasil(c.telefone) || normalizarTexto(c.nome))) {
         for (const dup of grupo.slice(1)) {
             await db.ref('clientesGestao/' + dup.id).remove();
             totalRemovidos++;
@@ -7583,9 +7652,9 @@ async function importarBackupSistemaGestao() {
             msgEl.textContent = 'Importando clientes...';
             const mapaClientes = {};
             for (const cli of (dados.clientes || [])) {
-                const telNormalizado = normalizarTelefone(cli.telefone);
+                const telNormalizado = normalizarTelefoneClienteBrasil(cli.telefone);
                 const jaExiste = telNormalizado
-                    ? clientesGestao.find(c => normalizarTelefone(c.telefone) === telNormalizado)
+                    ? clientesGestao.find(c => normalizarTelefoneClienteBrasil(c.telefone) === telNormalizado)
                     : acharPorNome(clientesGestao, cli.nome);
                 if (jaExiste) { mapaClientes[cli.id] = jaExiste.id; continue; }
                 const { id: idAntigo, ...resto } = cli;
