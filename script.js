@@ -1038,9 +1038,14 @@ async function salvarPedidoNoPainel(dadosPedido, statusInicial) {
         });
 
         const pedidoId = resposta && resposta.data && resposta.data.pedidoId;
+        const numeroPedido = resposta && resposta.data ? Number(resposta.data.numero) : NaN;
         if (!pedidoId) throw new Error('O servidor não devolveu o ID do pedido.');
 
-        return { id: pedidoId, promessaSalvo: Promise.resolve() };
+        return {
+            id: pedidoId,
+            numero: Number.isFinite(numeroPedido) && numeroPedido > 0 ? numeroPedido : null,
+            promessaSalvo: Promise.resolve()
+        };
     } catch (err) {
         console.log('Não foi possível salvar o pedido no painel:', err);
         const mensagemErro = String((err && err.message) || '');
@@ -1048,6 +1053,7 @@ async function salvarPedidoNoPainel(dadosPedido, statusInicial) {
         const bloqueadoPorPausa = /pausad/i.test(mensagemErro);
         return {
             id: null,
+            numero: null,
             promessaSalvo: Promise.resolve(),
             bloqueadoPorPausa,
             erroServidor: mensagemErro,
@@ -3926,13 +3932,17 @@ async function finalizarCompra() {
         return;
     }
 
-    // Formata os itens do carrinho para a mensagem
+    // Formata os itens do carrinho. Mantém o texto técnico já usado no contexto
+    // do checkout e cria, separadamente, uma versão visual para a mensagem do WhatsApp.
     let itensPedido = '';
+    let itensPedidoWhatsApp = '';
     let subtotalPedido = 0;
     carrinho.forEach(item => {
         const subitem = item.preco * item.quantidade;
         subtotalPedido += subitem;
-        itensPedido += `- ${item.nome}${item.observacao ? ` (${item.observacao})` : ''}${item.adicionaisTexto ? ` — ${item.adicionaisTexto}` : ''} (x${item.quantidade}) - R$ ${subitem.toFixed(2).replace('.', ',')}\n`;
+        const detalhesItem = `${item.nome}${item.observacao ? ` (${item.observacao})` : ''}${item.adicionaisTexto ? ` — ${item.adicionaisTexto}` : ''}`;
+        itensPedido += `- ${detalhesItem} (x${item.quantidade}) - R$ ${subitem.toFixed(2).replace('.', ',')}\n`;
+        itensPedidoWhatsApp += `• ${detalhesItem}\n*${item.quantidade}x* — R$ ${subitem.toFixed(2).replace('.', ',')}\n\n`;
     });
 
     const desconto = calcularDesconto(subtotalPedido);
@@ -3948,35 +3958,44 @@ async function finalizarCompra() {
         ? `R$ ${(subtotalPedido - desconto + frete).toFixed(2).replace('.', ',')}`
         : `${subtotalTexto} + entrega (a confirmar)`;
 
-    // Monta a mensagem final
-    let mensagemPedido = `🍰 *Novo Pedido - ${LOJA_CONFIG.nome}* 🍰\n\n`;
-    mensagemPedido += `*Cliente:* ${nome}\n`;
-    mensagemPedido += `*Telefone:* ${telefone}\n`;
-    mensagemPedido += `*Tipo:* ${tipoEntregaAtual === 'entrega' ? 'Entrega' : 'Retirada no local'}\n`;
+    // Monta a mensagem final no padrão visual da loja. O número sequencial real
+    // só existe depois que o servidor grava o pedido, então o título entra como marcador
+    // e é preenchido logo após a resposta do criarPedidoCliente.
+    const marcadorTituloPedidoWhatsApp = '__TITULO_PEDIDO_WHATSAPP__';
+    let mensagemPedido = `${marcadorTituloPedidoWhatsApp}\n`;
+    mensagemPedido += `━━━━━━━━━━━━━━━━━━━\n\n`;
+    mensagemPedido += `📱 *Telefone:* ${telefone}\n\n`;
+    mensagemPedido += `${tipoEntregaAtual === 'entrega' ? '🚚 *Entrega*' : '🛍️ *Retirada no local*'}\n`;
     if (querAgendar && dataEncomenda) {
         const [ano, mes, dia] = dataEncomenda.split('-');
-        mensagemPedido += `📅 *ENCOMENDA:* ${dia}/${mes}/${ano}${horaEncomenda ? ` às ${horaEncomenda}` : ''} (alinhar detalhes com o cliente)\n`;
+        mensagemPedido += `📅 *ENCOMENDA:* ${dia}/${mes}/${ano}${horaEncomenda ? ` às ${horaEncomenda}` : ''}\n`;
     }
     if (tipoEntregaAtual === 'entrega') {
-        mensagemPedido += `*Endereço:* ${rua}, ${numero} ${complemento ? `(${complemento})` : ''}\n`;
-        mensagemPedido += `*Bairro:* ${bairro}\n`;
-        mensagemPedido += `*Cidade/Estado:* ${cidade}/${estado}\n`;
-        mensagemPedido += `*CEP:* ${cep}\n`;
+        mensagemPedido += `📍 ${rua}, ${numero}${complemento ? ` (${complemento})` : ''}\n`;
+        mensagemPedido += `🏘️ ${bairro} — ${cidade}/${estado}\n`;
+        mensagemPedido += `📮 CEP: ${cep}\n`;
     }
-    mensagemPedido += `*Forma de pagamento:* ${formaPagamentoAtual}\n`;
+    mensagemPedido += `\n💳 *Pagamento:* ${formaPagamentoAtual}\n`;
     if (formaPagamentoAtual === 'Dinheiro' && troco) {
         const trocoNormalizado = troco.trim().toLowerCase();
         const semTroco = ['sem troco', 'não preciso', 'nao preciso', 'não precisa', 'nao precisa'].includes(trocoNormalizado);
-        mensagemPedido += semTroco ? `*Sem troco*\n` : `*Troco para:* ${troco}\n`;
+        mensagemPedido += semTroco ? `💵 *Troco:* Não precisa\n` : `💵 *Troco para:* ${troco}\n`;
     }
-    mensagemPedido += `\n*Itens:*\n${itensPedido}\n`;
+    mensagemPedido += `\n🛍️ *ITENS DO PEDIDO*\n`;
+    mensagemPedido += `───────────────────\n`;
+    mensagemPedido += itensPedidoWhatsApp;
+    mensagemPedido += `───────────────────\n`;
     mensagemPedido += `*Subtotal:* ${subtotalTexto}\n`;
     if (cupomAplicado) mensagemPedido += `*Cupom:* ${cupomAplicado.codigo}${desconto > 0 ? ` (- R$ ${desconto.toFixed(2).replace('.', ',')})` : ''}\n`;
     if (recompensaSelecionada) mensagemPedido += `*Recompensa do Clube:* ${recompensaSelecionada.descricao} (${recompensaSelecionada.pontos} pontos)\n`;
-    if (tipoEntregaAtual === 'entrega') mensagemPedido += `*Taxa de entrega:* ${freteTexto}\n`;
-    mensagemPedido += `*Total:* ${totalPedido}\n`;
-    if (obs) mensagemPedido += `\n*Observações:* ${obs}\n`;
-    mensagemPedido += `\nAguardando a confirmação!`;
+    if (tipoEntregaAtual === 'entrega') mensagemPedido += `*Entrega:* ${freteTexto}\n`;
+    mensagemPedido += `\n💰 *TOTAL: ${totalPedido}*\n`;
+    mensagemPedido += `━━━━━━━━━━━━━━━━━━━\n`;
+    if (obs) mensagemPedido += `\n📝 *Observações:* ${obs}\n`;
+    mensagemPedido += `\n⏳ *Pedido enviado com sucesso!*\n`;
+    mensagemPedido += `Agora é só aguardar a confirmação da *${LOJA_CONFIG.nome}*.\n\n`;
+    mensagemPedido += `💕 Obrigado por escolher a ${LOJA_CONFIG.nome}!\n`;
+    mensagemPedido += `Feito com carinho para adoçar o seu dia. 🍰✨`;
 
     // Salva o pedido no painel da loja (Firebase), sem travar o fluxo caso falhe
     // Se o pedido ainda vai exigir um pagamento online (sinal da encomenda, ou Pix/Cartão
@@ -4067,7 +4086,7 @@ async function finalizarCompra() {
     // continuam exatamente nas variáveis e caminhos já validados nas etapas anteriores.
     const sinalObrigatorioNestePedido = contextoCheckout.encomenda.querAgendar && contextoCheckout.encomenda.percentualSinal > 0;
 
-    const { id: pedidoId, promessaSalvo, bloqueadoPorPausa, erroServidor, codigoErro } = await salvarPedidoNoPainel({
+    const { id: pedidoId, numero: numeroPedido, promessaSalvo, bloqueadoPorPausa, erroServidor, codigoErro } = await salvarPedidoNoPainel({
         nome: contextoCheckout.cliente.nome,
         telefone: contextoCheckout.cliente.telefone,
         tipoEntrega: contextoCheckout.entrega.tipo,
@@ -4149,6 +4168,15 @@ async function finalizarCompra() {
         alert(mensagem);
         return;
     }
+
+    // Agora que o servidor devolveu o número sequencial real, finaliza o título
+    // da mensagem. Se uma instalação antiga não devolver número, evita exibir um ID técnico.
+    const numeroPedidoValido = Number.isFinite(Number(numeroPedido)) && Number(numeroPedido) > 0;
+    const tituloPedidoWhatsApp = numeroPedidoValido
+        ? `🛒 *Pedido #${Number(numeroPedido)} - ${nome}*`
+        : `🛒 *Pedido - ${nome}*`;
+    mensagemPedido = mensagemPedido.replace(marcadorTituloPedidoWhatsApp, tituloPedidoWhatsApp);
+    contextoCheckout.pedido.mensagem = mensagemPedido;
 
     // Guarda esse pedido pra mostrar o status (pendente/aceito/em rota/entregue/recusado) pro cliente
     if (pedidoId) {
