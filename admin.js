@@ -9237,7 +9237,7 @@ async function salvarBannerCarrossel() {
 
     if (!arquivo && !bannerAtual?.imagem) { if (msgEl) msgEl.textContent = 'Escolha a imagem do banner primeiro.'; return; }
     if (arquivo && !arquivo.type.startsWith('image/')) { if (msgEl) msgEl.textContent = 'O arquivo escolhido não parece ser uma imagem.'; return; }
-    if (arquivo && arquivo.size > 4 * 1024 * 1024) { if (msgEl) msgEl.textContent = 'Imagem muito grande — use um arquivo de até 4MB.'; return; }
+    if (arquivo && arquivo.size > 6 * 1024 * 1024) { if (msgEl) msgEl.textContent = 'Imagem muito grande — use um arquivo de até 6MB.'; return; }
     if (inicio && fim && fim < inicio) { if (msgEl) msgEl.textContent = 'A data final não pode ser anterior à data inicial.'; return; }
 
     if (msgEl) msgEl.textContent = editandoId ? 'Salvando alterações...' : 'Enviando campanha...';
@@ -9248,7 +9248,7 @@ async function salvarBannerCarrossel() {
 
         if (arquivo) {
             const extensao = (arquivo.name.split('.').pop() || 'jpg').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'jpg';
-            const novoStoragePath = `produtos/banner-carrossel-${Date.now()}.${extensao}`;
+            const novoStoragePath = `banners/banner-carrossel-${Date.now()}.${extensao}`;
             const ref = firebase.storage().ref(novoStoragePath);
             await ref.put(arquivo);
             imagem = await ref.getDownloadURL();
