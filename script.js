@@ -1,7 +1,7 @@
 console.log("O script.js foi carregado com sucesso!");
 
-// Produtos e cupons agora vêm do Firebase (gerenciados pelo painel admin.html).
-// Começam vazios e são preenchidos assim que a função escutarProdutos()/escutarCupons() carregar os dados.
+// Produtos públicos continuam vindo do Firebase. Cupons são gerenciados no painel,
+// mas o cardápio valida somente o código digitado via Cloud Function — não baixa a lista.
 
 let produtos = [];
 
@@ -294,30 +294,34 @@ function escutarOrdemCategorias() {
 }
 
 /* ===================================================================
-   Os cupons de desconto agora são gerenciados pelo painel (admin.html),
-   dentro da seção "🎟️ Cupons de desconto". Aqui só carregamos o que
-   estiver cadastrado no Firebase.
+   Cupons de desconto
+   O cardápio NÃO baixa mais a coleção /cupons do Realtime Database.
+   O cliente envia somente o código digitado para a Cloud Function
+   validarCupomCliente, que devolve apenas os dados necessários daquele cupom.
+   Assim, os demais códigos cadastrados não ficam expostos no navegador.
    =================================================================== */
-let cupons = {};
-
 let cupomAplicado = null; // { codigo, tipo, valor }
 
-function calcularDesconto(subtotal) {
+function calcularDescontoCupom(subtotal) {
+    if (!cupomAplicado) return 0;
     let desconto = 0;
-    if (cupomAplicado) {
-        if (cupomAplicado.tipo === 'percentual') desconto += subtotal * (cupomAplicado.valor / 100);
-        else if (cupomAplicado.tipo === 'fixo') desconto += cupomAplicado.valor;
-    }
+    if (cupomAplicado.tipo === 'percentual') desconto = subtotal * (cupomAplicado.valor / 100);
+    else if (cupomAplicado.tipo === 'fixo') desconto = cupomAplicado.valor;
+    return Math.min(Math.max(0, desconto), Math.max(0, subtotal));
+}
+
+function calcularDesconto(subtotal) {
+    let desconto = calcularDescontoCupom(subtotal);
     if (recompensaSelecionada && recompensaSelecionada.tipo === 'desconto') {
         desconto += recompensaSelecionada.valor;
     }
     return Math.min(desconto, subtotal);
 }
 
-function aplicarCupom() {
+async function aplicarCupom() {
     const input = document.getElementById('cupomInput');
     const msg = document.getElementById('cupomMensagem');
-    const codigo = input.value.trim().toUpperCase();
+    const codigo = String(input && input.value || '').trim().toUpperCase();
 
     if (!codigo) {
         msg.textContent = 'Digite um cupom.';
@@ -325,45 +329,46 @@ function aplicarCupom() {
         return;
     }
 
-    const cupom = cupons[codigo];
-    if (!cupom) {
+    if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length || !firebase.functions) {
         cupomAplicado = null;
-        msg.textContent = 'Cupom inválido.';
+        msg.textContent = 'Não foi possível validar o cupom agora. Tente novamente.';
         msg.className = 'cupom-mensagem erro';
         atualizarCarrinhoHTML();
         return;
     }
 
-    // Confere o período de validade, se configurado
-    const hojeISO = hojeIsoSaoPaulo();
-    if (cupom.validoDe && hojeISO < cupom.validoDe) {
-        cupomAplicado = null;
-        msg.textContent = `Esse cupom só é válido a partir de ${cupom.validoDe.split('-').reverse().join('/')}.`;
-        msg.className = 'cupom-mensagem erro';
-        atualizarCarrinhoHTML();
-        return;
-    }
-    if (cupom.validoAte && hojeISO > cupom.validoAte) {
-        cupomAplicado = null;
-        msg.textContent = 'Esse cupom expirou.';
-        msg.className = 'cupom-mensagem erro';
-        atualizarCarrinhoHTML();
-        return;
-    }
+    try {
+        msg.textContent = 'Validando cupom...';
+        msg.className = 'cupom-mensagem';
 
-    // Confere o limite de resgates, se configurado
-    if (cupom.limiteUsos && (cupom.usosContados || 0) >= cupom.limiteUsos) {
+        const validarCupom = firebase.functions().httpsCallable('validarCupomCliente');
+        const resposta = await validarCupom({ codigo });
+        const cupom = resposta && resposta.data && resposta.data.cupom;
+
+        if (!cupom || !cupom.codigo || !cupom.tipo) {
+            throw new Error('Cupom inválido.');
+        }
+
+        cupomAplicado = {
+            codigo: String(cupom.codigo).toUpperCase(),
+            tipo: cupom.tipo,
+            valor: Math.max(0, Number(cupom.valor) || 0)
+        };
+        msg.textContent = '✅ Cupom aplicado!';
+        msg.className = 'cupom-mensagem sucesso';
+        atualizarCarrinhoHTML();
+    } catch (err) {
         cupomAplicado = null;
-        msg.textContent = 'Esse cupom já atingiu o limite de resgates disponíveis. 😊';
+        const erro = String(err && err.message || '');
+        let texto = 'Não foi possível validar o cupom agora. Tente novamente.';
+        if (erro.includes('Cupom inválido')) texto = 'Cupom inválido.';
+        else if (erro.includes('ainda não está válido')) texto = 'Esse cupom ainda não está válido.';
+        else if (erro.includes('expirou')) texto = 'Esse cupom expirou.';
+        else if (erro.includes('limite de utilizações')) texto = 'Esse cupom já atingiu o limite de resgates disponíveis. 😊';
+        msg.textContent = texto;
         msg.className = 'cupom-mensagem erro';
         atualizarCarrinhoHTML();
-        return;
     }
-
-    cupomAplicado = { codigo, ...cupom };
-    msg.textContent = '✅ Cupom aplicado!';
-    msg.className = 'cupom-mensagem sucesso';
-    atualizarCarrinhoHTML();
 }
 
 // Salva o pedido no Firebase para aparecer em tempo real no painel da loja (admin.html)
@@ -1015,12 +1020,10 @@ function agendarVendedorInteligente() {
     }, 18000);
 }
 
-// Carrega os cupons de desconto cadastrados no painel
+// Compatibilidade com a inicialização existente. A validação dos cupons agora é
+// feita sob demanda pela Cloud Function; nenhum código de cupom é baixado em lote.
 function escutarCupons() {
-    if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
-    firebase.database().ref('cupons').on('value', snap => {
-        cupons = snap.val() || {};
-    });
+    return;
 }
 
 async function salvarPedidoNoPainel(dadosPedido, statusInicial) {
@@ -4074,7 +4077,8 @@ async function finalizarCompra() {
     mensagemPedido += itensPedidoWhatsApp;
     mensagemPedido += `───────────────────\n`;
     mensagemPedido += `*Subtotal:* ${subtotalTexto}\n`;
-    if (cupomAplicado) mensagemPedido += `*Cupom:* ${cupomAplicado.codigo}${desconto > 0 ? ` (- R$ ${desconto.toFixed(2).replace('.', ',')})` : ''}\n`;
+    const descontoSomenteCupom = calcularDescontoCupom(subtotalPedido);
+    if (cupomAplicado) mensagemPedido += `*Cupom:* ${cupomAplicado.codigo}${descontoSomenteCupom > 0 ? ` (- R$ ${descontoSomenteCupom.toFixed(2).replace('.', ',')})` : ''}\n`;
     if (recompensaSelecionada) mensagemPedido += `*Recompensa do Clube:* ${recompensaSelecionada.descricao} (${recompensaSelecionada.pontos} pontos)\n`;
     if (tipoEntregaAtual === 'entrega') mensagemPedido += `*Entrega:* ${freteTexto}\n`;
     mensagemPedido += `\n💰 *TOTAL: ${totalPedido}*\n`;

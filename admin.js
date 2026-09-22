@@ -2303,6 +2303,16 @@ function montarCardPedido(id, pedido, comAcoes) {
         freteLinha = `<div class="pedido-total-linha"><span>Entrega</span><span>${pedido.frete != null ? formatarPreco(pedido.frete) : 'A confirmar'}</span></div>`;
     }
 
+    // Mostra no card operacional o mesmo resumo de cupom que o cliente recebe no
+    // WhatsApp: código aplicado + valor abatido. Para pedidos antigos, em que ainda não
+    // existia um campo separado de desconto do cupom, pedido.desconto é o melhor registro
+    // disponível e preserva a leitura histórica sem alterar nenhum dado.
+    const codigoCupomCard = String(pedido.cupom || '').trim().toUpperCase();
+    const descontoCupomCard = codigoCupomCard ? Math.max(0, Number(pedido.desconto) || 0) : 0;
+    const cupomLinha = codigoCupomCard
+        ? `<div class="pedido-total-linha"><span>🎟️ Cupom: <strong>${escaparHtmlSeguro(codigoCupomCard)}</strong>${descontoCupomCard > 0 ? ` (- ${formatarPreco(descontoCupomCard)})` : ''}</span><span></span></div>`
+        : '';
+
     const pagamentoEhSinal = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal';
     const sinalConfirmado = pagamentoEhSinal && pedido.pagamento.status === 'pago';
     const restanteAtual = pedido.pagamentoRestante || null;
@@ -2382,6 +2392,7 @@ function montarCardPedido(id, pedido, comAcoes) {
         <div>📞 ${escaparHtmlSeguro(pedido.telefone || '')}</div>
         <ul class="pedido-itens">${itensHtml}</ul>
         <div class="pedido-total-linha"><span>Subtotal</span><span>${formatarPreco(subtotalExibicaoPedido(pedido))}</span></div>
+        ${cupomLinha}
         ${freteLinha}
         <div class="pedido-total-linha total-final"><span>Total</span><span>${pedido.total != null ? formatarPreco(pedido.total) : 'A confirmar'}</span></div>
         ${enderecoHtml}
