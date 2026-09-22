@@ -1090,7 +1090,44 @@ function idsDaListaCarrossel(valor) {
         .filter(Boolean);
 }
 
-function recalcularCarrosselDestaques(produtosVal, modoSalvo, autoVal, manuaisVal) {
+// Campanhas visuais: o painel grava em configuracao/bannersCarrossel.
+// Mantem a mesma regra de datas, prioridade e limite de 5 posicoes do painel.
+function obterBannersAtivosCarrossel(valor) {
+    const agora = new Date();
+    const hoje = agora.getFullYear() + '-' + String(agora.getMonth() + 1).padStart(2, '0') + '-' + String(agora.getDate()).padStart(2, '0');
+    return Object.entries(valor || {})
+        .map(([id, banner]) => ({ id, ...(banner || {}) }))
+        .filter(b => b.imagem && b.ativo !== false && (!b.inicio || b.inicio <= hoje) && (!b.fim || b.fim >= hoje))
+        .sort((a, b) => (Number(a.ordem) || 999) - (Number(b.ordem) || 999) || (Number(a.criadoEm) || 0) - (Number(b.criadoEm) || 0))
+        .slice(0, 5)
+        .map(b => ({ tipo: 'banner', imagem: b.imagem, nome: b.titulo || 'Campanha em destaque', link: b.link || '' }));
+}
+
+function escaparHtmlCarrossel(valor) {
+    return String(valor == null ? '' : valor)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
+function linkSeguroCarrossel(valor) {
+    if (!valor || typeof valor !== 'string') return '';
+    try {
+        const url = new URL(valor.trim(), location.href);
+        return ['https:', 'http:'].includes(url.protocol) ? url.href : '';
+    } catch (e) { return ''; }
+}
+
+function criarSlideBannerCarrossel(banner) {
+    const imagem = escaparHtmlCarrossel(banner.imagem);
+    const nome = escaparHtmlCarrossel(banner.nome);
+    const link = linkSeguroCarrossel(banner.link);
+    const foto = `<img class="carrossel-banner-imagem" src="${imagem}" alt="${nome}" loading="eager">`;
+    return `<div class="carrossel-slide carrossel-slide-banner${link ? ' tem-link' : ''}">
+        ${link ? `<a href="${escaparHtmlCarrossel(link)}" target="_blank" rel="noopener noreferrer" style="position:absolute;inset:0;display:block;z-index:2;" aria-label="${nome}">${foto}</a>` : foto}
+    </div>`;
+}
+
+function recalcularCarrosselDestaques(produtosVal, modoSalvo, autoVal, manuaisVal, bannersVal) {
     const modo = ['manual','automatico','misto'].includes(modoSalvo) ? modoSalvo : 'automatico';
     const produtoPodeAparecer = (p) => !!(p && p.disponivel === true && !p.escondido);
     const montarDestaqueDoProduto = (id) => {
@@ -1117,8 +1154,11 @@ function recalcularCarrosselDestaques(produtosVal, modoSalvo, autoVal, manuaisVa
         .filter(Boolean)
         .slice(0, 5);
 
-    if (destaques.length > 0) {
-        montarCarrossel(destaques);
+    // Campanhas ativas primeiro; produtos completam as posicoes disponiveis.
+    const banners = obterBannersAtivosCarrossel(bannersVal);
+    const slides = [...banners, ...destaques].slice(0, 5);
+    if (slides.length > 0) {
+        montarCarrossel(slides);
         return;
     }
 
@@ -1140,17 +1180,19 @@ function carregarCarrosselDestaques() {
         produtos: db.ref('produtos'),
         modo: db.ref('configuracao/carrosselModo'),
         auto: db.ref('configuracao/carrosselDestaquesAuto'),
-        manuais: db.ref('configuracao/destaquesManuais')
+        manuais: db.ref('configuracao/destaquesManuais'),
+        banners: db.ref('configuracao/bannersCarrossel')
     };
     refsCarrosselDestaques = Object.values(refs);
 
-    const estado = { produtos: {}, modo: 'automatico', auto: [], manuais: [] };
-    const atualizar = () => recalcularCarrosselDestaques(estado.produtos, estado.modo, estado.auto, estado.manuais);
+    const estado = { produtos: {}, modo: 'automatico', auto: [], manuais: [], banners: {} };
+    const atualizar = () => recalcularCarrosselDestaques(estado.produtos, estado.modo, estado.auto, estado.manuais, estado.banners);
 
     refs.produtos.on('value', snap => { estado.produtos = snap.val() || {}; atualizar(); });
     refs.modo.on('value', snap => { estado.modo = snap.val(); atualizar(); });
     refs.auto.on('value', snap => { estado.auto = snap.val() || []; atualizar(); });
     refs.manuais.on('value', snap => { estado.manuais = snap.val() || []; atualizar(); });
+    refs.banners.on('value', snap => { estado.banners = snap.val() || {}; atualizar(); }, err => console.warn('Banners do carrossel: leitura indisponivel:', err));
 }
 
 function montarCarrossel(destaques) {
@@ -1166,7 +1208,7 @@ function montarCarrossel(destaques) {
         return;
     }
 
-    trilho.innerHTML = destaquesVisiveis.map(d => `
+    trilho.innerHTML = destaquesVisiveis.map(d => d.tipo === 'banner' ? criarSlideBannerCarrossel(d) : `
         <div class="carrossel-slide" data-produto-id="${d.id || ''}" onclick="irParaProdutoDestaque('${d.id || ''}')">
             ${d.imagem ? `<img class="carrossel-fundo" src="${d.imagem}" alt="" aria-hidden="true">` : ''}
             ${d.imagem ? `<img class="carrossel-foto" src="${d.imagem}" alt="${d.nome || 'Produto em destaque'}">` : ''}
