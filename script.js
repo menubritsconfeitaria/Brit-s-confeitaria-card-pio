@@ -4632,6 +4632,55 @@ function agendarConviteNotificacoes() {
     }, 9000);
 }
 
+// O cliente que já autorizou push precisa religar o listener sempre que abre o site.
+// A permissão e o token são conferidos sem abrir outro registro de Service Worker.
+let escutaNotificacoesInstalada = false;
+function instalarEscutaNotificacoes(messaging) {
+    if (escutaNotificacoesInstalada) return;
+    messaging.onMessage((payload) => {
+        const titulo = (payload.notification && payload.notification.title) || LOJA_CONFIG.nome;
+        const corpo = (payload.notification && payload.notification.body) || '';
+        mostrarToastNotificacao(titulo, corpo);
+    });
+    escutaNotificacoesInstalada = true;
+}
+
+async function sincronizarNotificacoesAtivas() {
+    // Nunca pedir permissão automaticamente; só conferir quem já optou pelo push.
+    if (localStorage.getItem('notificacoesAtivas') !== '1' || !podeReceberNotificacoes()) return;
+    if (ehIOS() && !ehPWAInstalada()) return;
+    if (Notification.permission !== 'granted') {
+        if (Notification.permission === 'denied') {
+            localStorage.removeItem('notificacoesAtivas');
+            atualizarBotaoNotificacao();
+        }
+        return;
+    }
+
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        // Importante: passar nosso Service Worker existente para NÃO provocar 404
+        // tentando buscar o antigo firebase-messaging-sw.js.
+        const messaging = firebase.messaging();
+        const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
+        if (!token) throw new Error('O Firebase não retornou um token de notificação.');
+        instalarEscutaNotificacoes(messaging);
+
+        const tokenAnterior = localStorage.getItem('notificacaoToken');
+        const ultimaSincronizacao = Number(localStorage.getItem('notificacoesUltimaSincronizacaoEm') || 0);
+        const seteDias = 7 * 24 * 60 * 60 * 1000;
+        if (token !== tokenAnterior || !ultimaSincronizacao || Date.now() - ultimaSincronizacao >= seteDias) {
+            const registrarToken = firebase.functions().httpsCallable('registrarTokenNotificacao');
+            await registrarToken({ token });
+            localStorage.setItem('notificacaoToken', token);
+            localStorage.setItem('notificacoesUltimaSincronizacaoEm', String(Date.now()));
+        }
+    } catch (err) {
+        // Se falhar, repetir na próxima abertura: não apagar o token nem travar o cardápio.
+        console.warn('Falha ao conferir notificações já ativadas:', err);
+    }
+}
+
 async function ativarNotificacoes() {
     if (ehIOS() && !ehPWAInstalada()) {
         alert('No iPhone, para receber notificações, primeiro adicione o cardápio à Tela de Início (toque em Compartilhar 📤 → "Adicionar à Tela de Início"). Você pode continuar fazendo seu pedido normalmente enquanto isso.');
@@ -4655,24 +4704,15 @@ async function ativarNotificacoes() {
         const messaging = firebase.messaging();
         const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
         if (token) {
-            // Escuta mensagens em primeiro plano (aba aberta) usando esse MESMO
-            // messaging já configurado com o nosso Service Worker — reaproveitar
-            // evita o Firebase tentar registrar um arquivo próprio dele mesmo.
-            try {
-                messaging.onMessage((payload) => {
-                    const titulo = (payload.notification && payload.notification.title) || LOJA_CONFIG.nome;
-                    const corpo = (payload.notification && payload.notification.body) || '';
-                    mostrarToastNotificacao(titulo, corpo);
-                });
-            } catch (e) {
-                console.log('Não foi possível escutar notificações em primeiro plano:', e);
-            }
+            // Reaproveita a mesma escuta da inicialização (sem listener duplicado).
+            instalarEscutaNotificacoes(messaging);
             // O token é registrado pelo servidor, em vez de escrever direto no banco.
             // Isso permite deixar as regras do Firebase mais fechadas sem quebrar o push.
             const registrarToken = firebase.functions().httpsCallable('registrarTokenNotificacao');
             await registrarToken({ token });
             localStorage.setItem('notificacoesAtivas', '1');
             localStorage.setItem('notificacaoToken', token); // guarda o token pra anexar aos pedidos depois
+            localStorage.setItem('notificacoesUltimaSincronizacaoEm', String(Date.now()));
             localStorage.removeItem('conviteNotificacoesAdiado');
             atualizarBotaoNotificacao();
             mostrarToastNotificacao('✅ Notificações ativadas!', "Agora você pode receber novidades, promoções e avisos da Brit's.");
@@ -4697,6 +4737,7 @@ function mostrarToastNotificacao(titulo, corpo) {
 }
 
 atualizarBotaoNotificacao();
+sincronizarNotificacoesAtivas();
 agendarConviteNotificacoes();
 registrarEventoConversaoFront('visita');
 agendarVendedorInteligente();
@@ -4886,13 +4927,9 @@ async function enviarInteressePersonalizado() {
     window.open(link, '_blank');
 }
 
-// A escuta de mensagens em primeiro plano (onMessage) fica dentro de
-// ativarNotificacoes(), reaproveitando o MESMO "messaging" já configurado com o
-// nosso Service Worker — evita criar uma segunda instância separada aqui, que era
-// o que fazia o Firebase tentar registrar um arquivo próprio (firebase-messaging-sw.js,
-// que não existe no projeto) toda vez que a página carregava, mesmo sem o cliente
-// ter ativado nada. Achado real: 404 repetido, contribuindo pro Service Worker
-// travar em "tentando instalar" sem parar.
+// A escuta de primeiro plano agora é religada nas novas visitas SOMENTE para quem
+// já autorizou o push. O token é sempre obtido com o service-worker.js existente,
+// sem registrar o antigo firebase-messaging-sw.js.
 
 // Fecha o lightbox clicando fora da imagem, e permite navegar com o teclado (setas e Esc)
 document.addEventListener('DOMContentLoaded', () => {
