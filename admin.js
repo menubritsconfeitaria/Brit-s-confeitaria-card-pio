@@ -1849,6 +1849,24 @@ function formatarHora(timestamp) {
     return new Date(timestamp).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
+// No banco, o item de recompensa mantém o preço real para que subtotal, desconto e
+// auditoria financeira continuem consistentes. Na operação, porém, ele é grátis para o
+// cliente e deve aparecer como R$ 0,00 em todas as telas/textos do pedido.
+function itemEhRecompensaClubeAdmin(item) {
+    if (!item) return false;
+    return item.recompensaClube === true || String(item.observacao || '').includes('Recompensa do Clube');
+}
+
+function valorItemExibicaoPedido(item) {
+    if (itemEhRecompensaClubeAdmin(item)) return 0;
+    return (Number(item && item.preco) || 0) * (Number(item && item.quantidade) || 0);
+}
+
+function subtotalExibicaoPedido(pedido) {
+    if (!pedido || !Array.isArray(pedido.itens)) return Number(pedido && pedido.subtotal) || 0;
+    return pedido.itens.reduce((soma, item) => soma + valorItemExibicaoPedido(item), 0);
+}
+
 // Monta um "ticket" simples e limpo de um pedido, pronto pra imprimir (ex: pra levar pra cozinha)
 function montarHtmlTicketImpressao(pedido, numeroPedido) {
     const tipoLabel = pedido.tipoEntrega === 'entrega' ? '🛵 Delivery' : '🏠 Retirada no local';
@@ -2240,7 +2258,7 @@ function montarCardPedido(id, pedido, comAcoes) {
         const nomeSeguro = escaparHtmlSeguro(item.nome);
         const observacaoSegura = item.observacao ? escaparHtmlSeguro(item.observacao) : '';
         const adicionaisSeguros = item.adicionaisTexto ? escaparHtmlSeguro(item.adicionaisTexto) : '';
-        itensHtml += `<li><span>${quantidadeSegura}x ${nomeSeguro}${observacaoSegura ? ` <em>— ${observacaoSegura}</em>` : ''}${adicionaisSeguros ? ` <em>(${adicionaisSeguros})</em>` : ''}</span><span>${formatarPreco(item.preco * item.quantidade)}</span></li>`;
+        itensHtml += `<li><span>${quantidadeSegura}x ${nomeSeguro}${observacaoSegura ? ` <em>— ${observacaoSegura}</em>` : ''}${adicionaisSeguros ? ` <em>(${adicionaisSeguros})</em>` : ''}</span><span>${formatarPreco(valorItemExibicaoPedido(item))}</span></li>`;
     });
 
     let enderecoHtml = '';
@@ -2363,7 +2381,7 @@ function montarCardPedido(id, pedido, comAcoes) {
         ${encomendaHtml}
         <div>📞 ${escaparHtmlSeguro(pedido.telefone || '')}</div>
         <ul class="pedido-itens">${itensHtml}</ul>
-        <div class="pedido-total-linha"><span>Subtotal</span><span>${formatarPreco(pedido.subtotal)}</span></div>
+        <div class="pedido-total-linha"><span>Subtotal</span><span>${formatarPreco(subtotalExibicaoPedido(pedido))}</span></div>
         ${freteLinha}
         <div class="pedido-total-linha total-final"><span>Total</span><span>${pedido.total != null ? formatarPreco(pedido.total) : 'A confirmar'}</span></div>
         ${enderecoHtml}
@@ -5986,7 +6004,7 @@ function formatarTelefoneWhatsAppGestao(telefone) {
 }
 
 function gerarTextoPedidoWhatsAppGestao(pedido, paraCliente) {
-    const linhas = (pedido.itens || []).map(item => `❤ ${item.nome} x${item.quantidade} = ${formatarPreco(item.preco * item.quantidade)}`).join('\n');
+    const linhas = (pedido.itens || []).map(item => `❤ ${item.nome} x${item.quantidade} = ${formatarPreco(valorItemExibicaoPedido(item))}`).join('\n');
     const dataFormatada = pedido.timestamp ? new Date(pedido.timestamp).toLocaleDateString('pt-BR') : '—';
     const rotulosStatus = { pendente: 'Pendente', aceito: 'Em preparo', em_rota: 'Saiu para entrega', pronto_retirada: 'Pronto pra retirada', entregue: 'Entregue', recusado: 'Cancelado' };
 
@@ -6034,7 +6052,7 @@ function imprimirPedidoGestao(id) {
     if (!p) return;
     const dataFormatada = p.timestamp ? new Date(p.timestamp).toLocaleDateString('pt-BR') : '—';
     const rotulosStatus = { pendente: 'Pendente', aceito: 'Em preparo', em_rota: 'Saiu para entrega', pronto_retirada: 'Pronto pra retirada', entregue: 'Entregue', recusado: 'Cancelado' };
-    const linhas = (p.itens || []).map(item => `<tr><td>${item.nome}</td><td>${item.quantidade}</td><td>${formatarPreco(item.preco * item.quantidade)}</td></tr>`).join('');
+    const linhas = (p.itens || []).map(item => `<tr><td>${item.nome}</td><td>${item.quantidade}</td><td>${formatarPreco(valorItemExibicaoPedido(item))}</td></tr>`).join('');
 
     const janela = window.open('', '_blank');
     janela.document.write(`

@@ -724,9 +724,9 @@ function escutarConfigFrete() {
 
 function obterPedidoMinimoAplicavel() {
     const minimoPadrao = Math.max(0, Number(pedidoMinimoValor) || 0);
-    // Preserva o comportamento já existente da retirada: exceção por bairro só vale
-    // quando o pedido realmente é para entrega.
-    if (tipoEntregaAtual !== 'entrega') return minimoPadrao;
+    // Retirada nunca exige pedido mínimo. O mínimo padrão e as exceções por bairro
+    // existem apenas para pedidos de ENTREGA.
+    if (tipoEntregaAtual !== 'entrega') return 0;
 
     const bairroAlvo = normalizar(bairroClienteInput && bairroClienteInput.value);
     if (!bairroAlvo || !pedidoMinimoBairros || typeof pedidoMinimoBairros !== 'object') return minimoPadrao;
