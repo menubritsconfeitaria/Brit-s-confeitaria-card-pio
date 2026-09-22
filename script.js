@@ -3327,6 +3327,7 @@ document.addEventListener('visibilitychange', () => {
 
 // Função para atualizar a exibição do carrinho na página
 function atualizarCarrinhoHTML() {
+    normalizarRecompensaNoCarrinho();
     carrinhoItensDiv.innerHTML = '';
     atualizarResumoEncomendaCheckout(); // mantém o valor estimado do sinal sempre atualizado
 
@@ -3368,8 +3369,8 @@ function atualizarCarrinhoHTML() {
                     <span>${item.nome}${item.observacao ? ` <em class="obs-mini">(${item.observacao})</em>` : ''}${item.adicionaisTexto ? ` <em class="obs-mini">— ${item.adicionaisTexto}</em>` : ''}</span>
                     <div class="quantidade-controle">
                         <button class="btn-quantidade" data-index="${index}" data-acao="diminuir">-</button>
-                        <span>${item.quantidade}</span>
-                        <button class="btn-quantidade" data-index="${index}" data-acao="aumentar">+</button>
+                        <span>${itemEhRecompensaClube(item) ? 1 : item.quantidade}</span>
+                        ${itemEhRecompensaClube(item) ? '' : `<button class="btn-quantidade" data-index="${index}" data-acao="aumentar">+</button>`}
                     </div>
                 </div>
                 <div class="carrinho-item-direita">
@@ -3475,7 +3476,9 @@ function removerItemCarrinho(index) {
     const item = carrinho[index];
     if (!item) return;
     if (!confirm(`Deseja remover "${item.nome}" do carrinho?`)) return;
+    const eraRecompensa = itemEhRecompensaClube(item);
     carrinho.splice(index, 1);
+    if (eraRecompensa) limparRecompensaSelecionada();
     salvarCarrinho();
     atualizarCarrinhoHTML();
 }
@@ -3484,6 +3487,22 @@ function removerItemCarrinho(index) {
 function gerenciarQuantidade(index, acao) {
     const item = carrinho[index];
     if (!item) return;
+
+    if (itemEhRecompensaClube(item)) {
+        if (acao === 'aumentar') {
+            alert('A recompensa do Clube vale 1 unidade por resgate.');
+            return;
+        }
+        if (acao === 'diminuir') {
+            const confirmarRemocao = confirm(`Deseja remover a recompensa "${item.nome}" do carrinho?`);
+            if (!confirmarRemocao) return;
+            carrinho.splice(index, 1);
+            limparRecompensaSelecionada();
+            salvarCarrinho();
+            atualizarCarrinhoHTML();
+            return;
+        }
+    }
 
     if (acao === 'aumentar') {
         const limite = calcularQuantidadePermitidaEstoque(item.produtoId, item.nome, 1);
@@ -3554,6 +3573,68 @@ let recompensasFidelidade = [];
 let dadosFidelidadeCliente = { pontos: 0, totalGasto: 0 };
 let refFidelidadeCliente = null;
 let recompensaSelecionada = null; // { pontos, tipo, valor|produtoNome, descricao, _index }
+
+// Recompensa de produto é sempre UMA unidade grátis. Mantemos uma marca explícita no
+// item do carrinho e também reconhecemos o texto antigo da observação para compatibilidade
+// com carrinhos criados antes desta correção.
+function itemEhRecompensaClube(item) {
+    if (!item) return false;
+    if (item.recompensaClube === true) return true;
+    return String(item.observacao || '').includes('Recompensa do Clube');
+}
+
+function limparRecompensaSelecionada() {
+    recompensaSelecionada = null;
+}
+
+function removerItensRecompensaDoCarrinho() {
+    const tamanhoAntes = carrinho.length;
+    carrinho = carrinho.filter(item => !itemEhRecompensaClube(item));
+    return carrinho.length !== tamanhoAntes;
+}
+
+// Defesa local para carrinhos antigos/stale: nunca deixa uma recompensa com quantidade
+// maior que 1 nem mantém item grátis órfão depois de recarregar a página. O backend faz
+// a mesma validação, então esta camada é só para manter a interface coerente.
+function normalizarRecompensaNoCarrinho() {
+    let encontrou = false;
+    let mudou = false;
+    const recompensaAtiva = !!recompensaSelecionada;
+
+    carrinho = carrinho.filter(item => {
+        if (!itemEhRecompensaClube(item)) return true;
+
+        // Depois de um reload a seleção em memória se perde. É mais seguro remover o
+        // item grátis órfão e pedir novo resgate do que deixá-lo seguir sem a recompensa.
+        if (!recompensaAtiva) {
+            mudou = true;
+            return false;
+        }
+
+        // Só existe uma recompensa por pedido.
+        if (encontrou) {
+            mudou = true;
+            return false;
+        }
+        encontrou = true;
+
+        if (Number(item.quantidade) !== 1) {
+            item.quantidade = 1;
+            mudou = true;
+        }
+        if (Number(item.preco) !== 0) {
+            item.preco = 0;
+            mudou = true;
+        }
+        if (item.recompensaClube !== true) {
+            item.recompensaClube = true;
+            mudou = true;
+        }
+        return true;
+    });
+
+    if (mudou) salvarCarrinho();
+}
 
 function normalizarTelefone(tel) {
     return (tel || '').replace(/\D/g, '');
@@ -3738,32 +3819,39 @@ function resgatarRecompensa(index) {
     const pontos = dadosFidelidadeCliente.pontos || 0;
     if (pontos < r.pontos) { alert('Você ainda não tem pontos suficientes pra essa recompensa.'); return; }
 
-    recompensaSelecionada = { ...r, _index: index };
-
     if (r.tipo === 'produto') {
         const produtoRef = produtos.find(p => p.nome === r.produtoNome);
         if (!produtoRef || produtoRef.disponivel === false || produtoRef.escondido) {
-            recompensaSelecionada = null;
             alert('Essa recompensa está sem disponibilidade no momento. Escolha outra opção ou tente novamente mais tarde.');
             return;
         }
 
         const limite = calcularQuantidadePermitidaEstoque(produtoRef.id, r.produtoNome, 1);
         if (limite.controlado && limite.quantidadePermitida < 1) {
-            recompensaSelecionada = null;
             alert('Essa recompensa está sem estoque disponível no momento. Escolha outra opção ou tente novamente mais tarde.');
             return;
         }
 
+        // Um pedido pode ter somente uma recompensa ativa. Se a pessoa escolher outra,
+        // substituímos a anterior em vez de somar itens grátis.
+        removerItensRecompensaDoCarrinho();
+        recompensaSelecionada = { ...r, _index: index };
         carrinho.push({
             produtoId: produtoRef.id,
             nome: r.produtoNome,
             preco: 0,
             quantidade: 1,
+            recompensaClube: true,
             observacao: `🎁 Recompensa do Clube ${LOJA_CONFIG.nomeCurto}`
         });
         salvarCarrinho();
+    } else {
+        // Ao trocar uma recompensa de produto por desconto, remove o item grátis antigo.
+        const removeuItemAnterior = removerItensRecompensaDoCarrinho();
+        recompensaSelecionada = { ...r, _index: index };
+        if (removeuItemAnterior) salvarCarrinho();
     }
+
     atualizarCarrinhoHTML();
     alert(`Recompensa selecionada: ${r.descricao}! Ela será aplicada quando você finalizar o pedido.`);
 }
@@ -4111,6 +4199,7 @@ async function finalizarCompra() {
                 nome: item.nome,
                 preco: item.preco,
                 quantidade: item.quantidade,
+                recompensaClube: itemEhRecompensaClube(item),
                 observacao: item.observacao || null,
                 adicionaisTexto: item.adicionaisTexto || null,
                 adicionaisEscolhidos: Array.isArray(item.adicionaisEscolhidos) ? item.adicionaisEscolhidos : null
@@ -4187,7 +4276,7 @@ async function finalizarCompra() {
 
     // Importante: os pontos de fidelidade NÃO são creditados aqui — só quando a loja confirmar
     // que o pedido foi entregue, lá no painel. Isso evita creditar pontos de pedidos recusados.
-    recompensaSelecionada = null;
+    limparRecompensaSelecionada();
 
     // Confirma a persistência do cadastro ao finalizar a compra.
     // Nome, telefone e endereço permanecem disponíveis nas próximas visitas.
@@ -4264,6 +4353,14 @@ botaoFinalizarCompra.addEventListener('click', finalizarCompra);
 function sincronizarPrecosCarrinho() {
     let mudou = false;
     carrinho.forEach(item => {
+        if (itemEhRecompensaClube(item)) {
+            if (Number(item.preco) !== 0 || Number(item.quantidade) !== 1) {
+                item.preco = 0;
+                item.quantidade = 1;
+                mudou = true;
+            }
+            return;
+        }
         const produtoAtual = produtos.find(p => p.nome === item.nome);
         if (produtoAtual && produtoAtual.preco !== item.preco) {
             item.preco = produtoAtual.preco;
