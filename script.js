@@ -4445,12 +4445,16 @@ function iniciarRastreioVisitantes() {
         }
     });
 
-    // Conta essa visita no histórico do dia, só uma vez por sessão (não infla recarregando a página)
-    if (!sessionStorage.getItem('visitaContada')) {
-        sessionStorage.setItem('visitaContada', '1');
-        const hoje = new Date();
-        const hojeFormatado = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0');
-        firebase.database().ref('visitasPorDia/' + hojeFormatado).transaction(atual => (atual || 0) + 1);
+    // A visita é contabilizada pelo backend: o visitante nunca escreve no total diário.
+    // Só marca a sessão após a confirmação do servidor; falhas não impedem o cardápio.
+    if (!sessionStorage.getItem('visitaContada') && typeof firebase.functions === 'function') {
+        firebase.functions().httpsCallable('registrarVisitaPublica')({ sessaoId: sessionId })
+            .then(resposta => {
+                if (resposta && resposta.data && resposta.data.ok) {
+                    sessionStorage.setItem('visitaContada', '1');
+                }
+            })
+            .catch(erro => console.warn('Não foi possível registrar a visita:', erro.message));
     }
 }
 iniciarRastreioVisitantes();
