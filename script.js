@@ -4669,11 +4669,17 @@ async function sincronizarNotificacoesAtivas() {
         const tokenAnterior = localStorage.getItem('notificacaoToken');
         const ultimaSincronizacao = Number(localStorage.getItem('notificacoesUltimaSincronizacaoEm') || 0);
         const seteDias = 7 * 24 * 60 * 60 * 1000;
-        if (token !== tokenAnterior || !ultimaSincronizacao || Date.now() - ultimaSincronizacao >= seteDias) {
+        // Primeira abertura após a migração cria o vínculo mesmo para um token inalterado.
+        // Só guardar o marcador após resposta explícita do backend novo.
+        const precisaVincularDispositivo = localStorage.getItem('vinculoPushDispositivoV1') !== '1';
+        if (token !== tokenAnterior || !ultimaSincronizacao || Date.now() - ultimaSincronizacao >= seteDias || precisaVincularDispositivo) {
             const registrarToken = firebase.functions().httpsCallable('registrarTokenNotificacao');
-            await registrarToken({ token });
+            const resposta = await registrarToken({ token, tokenCliente: obterTokenCliente() });
             localStorage.setItem('notificacaoToken', token);
             localStorage.setItem('notificacoesUltimaSincronizacaoEm', String(Date.now()));
+            if (resposta && resposta.data && resposta.data.vinculado === true) {
+                localStorage.setItem('vinculoPushDispositivoV1', '1');
+            }
         }
     } catch (err) {
         // Se falhar, repetir na próxima abertura: não apagar o token nem travar o cardápio.
@@ -4709,7 +4715,10 @@ async function ativarNotificacoes() {
             // O token é registrado pelo servidor, em vez de escrever direto no banco.
             // Isso permite deixar as regras do Firebase mais fechadas sem quebrar o push.
             const registrarToken = firebase.functions().httpsCallable('registrarTokenNotificacao');
-            await registrarToken({ token });
+            const resposta = await registrarToken({ token, tokenCliente: obterTokenCliente() });
+            if (resposta && resposta.data && resposta.data.vinculado === true) {
+                localStorage.setItem('vinculoPushDispositivoV1', '1');
+            }
             localStorage.setItem('notificacoesAtivas', '1');
             localStorage.setItem('notificacaoToken', token); // guarda o token pra anexar aos pedidos depois
             localStorage.setItem('notificacoesUltimaSincronizacaoEm', String(Date.now()));
