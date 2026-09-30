@@ -1570,10 +1570,76 @@ function escolherFormaPagamentoRestante(permitirDinheiro = false) {
     });
 }
 
-// Chamado pelo botão "Pagar o restante" no banner de acompanhamento — deixa o cliente
-// escolher Pix, Cartão ou Dinheiro. Pix/Cartão seguem pro checkout InfinitePay (mesmo
-// caminho já usado pro sinal); Dinheiro só registra a escolha como "aguardando
-// recebimento" — quem confirma o recebimento de verdade é a loja, no painel
+// Confirma explicitamente a escolha entre sinal e quitação total antes de abrir
+// qualquer checkout. Isso evita que um toque/clique acidental transforme a escolha
+// financeira da encomenda em uma transação real.
+function confirmarEscolhaPagamentoEncomenda(tipoPagamento, rotuloEscolha) {
+    return new Promise(resolve => {
+        const ehSinal = tipoPagamento === 'sinal';
+        const modal = document.createElement('div');
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.setAttribute('aria-label', 'Confirmar forma de pagamento da encomenda');
+        Object.assign(modal.style, {
+            position: 'fixed',
+            inset: '0',
+            zIndex: '10030',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            background: 'rgba(35, 25, 20, .46)',
+            backdropFilter: 'blur(2px)'
+        });
+
+        modal.innerHTML = `
+            <div style="width:min(430px,100%);background:#fffaf5;border-radius:20px;padding:22px;box-shadow:0 22px 60px rgba(55,35,24,.24);border:1px solid rgba(169,71,42,.16);">
+                <div style="font-size:1.05rem;font-weight:800;color:#4b382d;margin-bottom:8px;">Confirmar pagamento</div>
+                <div data-resumo-escolha style="padding:12px 14px;border-radius:13px;background:rgba(169,71,42,.08);color:#7b3f27;font-weight:800;margin-bottom:12px;"></div>
+                <div data-mensagem-escolha style="font-size:.94rem;line-height:1.5;color:#66554b;"></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px;">
+                    <button type="button" data-voltar style="padding:12px;border-radius:12px;border:1px solid rgba(117,100,90,.28);background:#fff;color:#66554b;font-weight:750;cursor:pointer;">Voltar</button>
+                    <button type="button" data-confirmar style="padding:12px;border-radius:12px;border:0;background:#ad542b;color:#fff;font-weight:800;cursor:pointer;"></button>
+                </div>
+            </div>
+        `;
+
+        const resumo = modal.querySelector('[data-resumo-escolha]');
+        const mensagem = modal.querySelector('[data-mensagem-escolha]');
+        const confirmar = modal.querySelector('[data-confirmar]');
+        const voltar = modal.querySelector('[data-voltar]');
+
+        resumo.textContent = String(rotuloEscolha || (ehSinal ? 'Pagar sinal' : 'Pagar 100%')).trim();
+
+        if (ehSinal) {
+            mensagem.textContent = 'Você escolheu pagar somente o sinal. Depois da confirmação, o valor restante continuará disponível em Meus Pedidos.';
+            confirmar.textContent = 'Continuar com sinal';
+        } else {
+            mensagem.textContent = 'Você escolheu quitar 100% da encomenda agora. Depois da confirmação, não haverá valor restante para pagar.';
+            confirmar.textContent = 'Pagar 100%';
+        }
+
+        let resolvido = false;
+        const finalizar = confirmado => {
+            if (resolvido) return;
+            resolvido = true;
+            modal.remove();
+            resolve(confirmado);
+        };
+
+        voltar.onclick = () => finalizar(false);
+        confirmar.onclick = () => finalizar(true);
+        modal.onclick = evento => {
+            if (evento.target === modal) finalizar(false);
+        };
+
+        document.body.appendChild(modal);
+        voltar.focus();
+    });
+}
+
+// Chamado após a loja aceitar a encomenda. O cliente escolhe entre pagar o sinal
+// ou quitar 100%, e a escolha é confirmada antes de abrir o checkout.
 async function pagarEncomendaAceita(pedidoId, tipoPagamento, botaoClicado) {
     if (!pedidoId || !['sinal', 'total'].includes(tipoPagamento)) {
         alert('Não foi possível identificar a forma de pagamento desta encomenda.');
@@ -1582,6 +1648,13 @@ async function pagarEncomendaAceita(pedidoId, tipoPagamento, botaoClicado) {
 
     const botao = botaoClicado || null;
     const textoOriginal = botao ? botao.textContent : '';
+
+    const escolhaConfirmada = await confirmarEscolhaPagamentoEncomenda(
+        tipoPagamento,
+        textoOriginal
+    );
+    if (!escolhaConfirmada) return;
+
     if (botao) {
         botao.disabled = true;
         botao.textContent = tipoPagamento === 'sinal' ? 'Preparando sinal...' : 'Preparando pagamento total...';
@@ -1828,10 +1901,14 @@ function resumoMetaPedidoTexto(pedido, dataPedidoFormatada) {
             (pedido.pagamento && (pedido.pagamento.metodo || pedido.pagamento.forma)) ||
             pedido.formaPagamento ||
             '';
+        const tipoPagamentoPrincipal = pedido.pagamento && pedido.pagamento.tipoPagamento;
+        const rotuloFormaPagamento = tipoPagamentoPrincipal === 'total_encomenda'
+            ? 'Pagamento'
+            : 'Sinal';
 
         const partes = [];
         partes.push(dataEncomenda ? `Encomenda para ${dataEncomenda}${horaEncomenda ? ` às ${horaEncomenda}` : ''}` : dataPedidoFormatada);
-        if (formaSinal) partes.push(`Sinal: ${formaSinal}`);
+        if (formaSinal) partes.push(`${rotuloFormaPagamento}: ${formaSinal}`);
         return partes.filter(Boolean).join(' • ');
     }
 
