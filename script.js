@@ -1574,6 +1574,43 @@ function escolherFormaPagamentoRestante(permitirDinheiro = false) {
 // escolher Pix, Cartão ou Dinheiro. Pix/Cartão seguem pro checkout InfinitePay (mesmo
 // caminho já usado pro sinal); Dinheiro só registra a escolha como "aguardando
 // recebimento" — quem confirma o recebimento de verdade é a loja, no painel
+async function pagarEncomendaAceita(pedidoId, tipoPagamento, botaoClicado) {
+    if (!pedidoId || !['sinal', 'total'].includes(tipoPagamento)) {
+        alert('Não foi possível identificar a forma de pagamento desta encomenda.');
+        return;
+    }
+
+    const botao = botaoClicado || null;
+    const textoOriginal = botao ? botao.textContent : '';
+    if (botao) {
+        botao.disabled = true;
+        botao.textContent = tipoPagamento === 'sinal' ? 'Preparando sinal...' : 'Preparando pagamento total...';
+    }
+
+    try {
+        const nomeFunction = tipoPagamento === 'sinal'
+            ? 'criarCheckoutSinalEncomenda'
+            : 'criarCheckoutInfinitePay';
+        const criarCheckout = firebase.functions().httpsCallable(nomeFunction);
+        const resultado = await criarCheckout({ pedidoId, token: obterTokenCliente() });
+        const checkoutUrl = resultado && resultado.data && resultado.data.checkoutUrl;
+        if (!checkoutUrl) throw new Error('Link de pagamento indisponível.');
+        registrarEventoConversaoFront('checkout');
+        window.location.href = checkoutUrl;
+    } catch (err) {
+        console.log('Não foi possível iniciar o pagamento da encomenda aceita:', err);
+        const mensagem = String((err && err.message) || '')
+            .replace(/^FirebaseError:\s*/i, '')
+            .replace(/^functions\/[a-z-]+:\s*/i, '')
+            .trim();
+        alert(mensagem || 'Não foi possível abrir o pagamento agora. Tente novamente em instantes.');
+        if (botao) {
+            botao.disabled = false;
+            botao.textContent = textoOriginal;
+        }
+    }
+}
+
 async function pagarRestanteEncomenda(pedidoIdExplicito, botaoClicado) {
     const pedidoId =
         pedidoIdExplicito || pedidoIdParaPagarRestante;
@@ -1774,13 +1811,13 @@ async function buscarPedidosPorTelefone(telefone) {
 }
 
 function resumoMetaPedidoTexto(pedido, dataPedidoFormatada) {
-    const ehEncomendaComSinal = !!(
+    const ehEncomenda = !!(
         pedido &&
-        pedido.pagamento &&
-        pedido.pagamento.tipoPagamento === 'sinal'
+        pedido.dataEncomenda &&
+        pedido.horaEncomenda
     );
 
-    if (ehEncomendaComSinal) {
+    if (ehEncomenda) {
         const dataEncomenda = pedido.dataEncomenda && /^\d{4}-\d{2}-\d{2}$/.test(pedido.dataEncomenda)
             ? pedido.dataEncomenda.split('-').reverse().join('/')
             : null;
@@ -1818,6 +1855,12 @@ function pedidoExigeAcaoCliente(pedido) {
 
     // Pedido/sinal criado, mas ainda não confirmado pelo pagamento.
     if (pedido.status === 'aguardando_pagamento') return true;
+
+    // Encomenda aceita pela loja, mas o cliente ainda precisa escolher entre pagar
+    // o sinal ou quitar 100%. Também cobre um checkout já aberto e ainda não pago.
+    const ehEncomendaAceita = !!(pedido.dataEncomenda && pedido.horaEncomenda && pedido.status === 'aceito');
+    const pagamentoPrincipalPago = pedido.pagamento && pedido.pagamento.status === 'pago';
+    if (ehEncomendaAceita && !pagamentoPrincipalPago) return true;
 
     // Encomenda com sinal confirmado e restante ainda disponível para pagamento online.
     const sinalPago = pedido.pagamento &&
@@ -1927,7 +1970,7 @@ async function retomarPagamentoPendenteMeusPedidos(pedidoId, botao) {
         // não chegou a ser persistido. As próprias Functions validam token, tipo do pedido
         // e regras financeiras antes de criar qualquer checkout.
         const nomeFunction = dados.ehEncomenda
-            ? 'criarCheckoutSinalEncomenda'
+            ? (dados.tipoPagamento === 'total_encomenda' ? 'criarCheckoutInfinitePay' : 'criarCheckoutSinalEncomenda')
             : 'criarCheckoutInfinitePay';
         const criarCheckout = firebase.functions().httpsCallable(nomeFunction);
         const resultado = await criarCheckout({ pedidoId, token: obterTokenCliente() });
@@ -2149,22 +2192,28 @@ async function abrirMeusPedidos() {
             const statusTexto = rotuloStatusPedidoCliente(pedido);
             const numeroTexto = pedido.numero ? `Pedido #${pedido.numero}` : 'Pedido';
             const sinalPago = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' && pedido.pagamento.status === 'pago';
+            const pagamentoTotalEncomendaPago = pedido.pagamento && pedido.pagamento.tipoPagamento === 'total_encomenda' && pedido.pagamento.status === 'pago';
             const restanteJaPago = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'pago';
             const restanteDinheiroPendente = pedido.pagamentoRestante && pedido.pagamentoRestante.status === 'aguardando_recebimento' && pedido.pagamentoRestante.forma === 'Dinheiro';
             const mostrarBotaoRestante = sinalPago && !restanteJaPago && !restanteDinheiroPendente && pedido.status !== 'recusado';
+            const ehEncomenda = !!(pedido.dataEncomenda && pedido.horaEncomenda);
             const aguardandoPagamento = pedido.status === 'aguardando_pagamento';
-            const ehEncomendaPendente = aguardandoPagamento && !!(pedido.dataEncomenda && pedido.horaEncomenda);
-            const checkoutPendente = aguardandoPagamento && pedido.pagamento && pedido.pagamento.checkoutUrl
+            const pagamentoPrincipalAguardando = pedido.pagamento && pedido.pagamento.status === 'aguardando';
+            const ehEncomendaPendente = ehEncomenda && pedido.status === 'pendente';
+            const ehEncomendaAceitaSemPagamento = ehEncomenda && pedido.status === 'aceito' && !pedido.pagamento;
+            const ehEncomendaAceitaComCheckoutPendente = ehEncomenda && pedido.status === 'aceito' && pagamentoPrincipalAguardando;
+            const checkoutPendente = (aguardandoPagamento || ehEncomendaAceitaComCheckoutPendente) && pedido.pagamento && pedido.pagamento.checkoutUrl
                 ? String(pedido.pagamento.checkoutUrl)
                 : null;
-            const valorSinalPendente = aguardandoPagamento && pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' && pedido.pagamento.valorSinal != null
+            const valorSinalPendente = pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal' && pedido.pagamento.valorSinal != null
                 ? Number(pedido.pagamento.valorSinal)
                 : null;
 
-            if (aguardandoPagamento) {
+            if (aguardandoPagamento || ehEncomendaAceitaComCheckoutPendente) {
                 pagamentosPendentesMeusPedidos.set(id, {
                     checkoutUrl: checkoutPendente,
-                    ehEncomenda: ehEncomendaPendente
+                    ehEncomenda: ehEncomenda,
+                    tipoPagamento: pedido.pagamento && pedido.pagamento.tipoPagamento ? pedido.pagamento.tipoPagamento : null
                 });
             }
 
@@ -2186,23 +2235,52 @@ async function abrirMeusPedidos() {
             const valorRestanteTexto = Number.isFinite(valorRestante) ? formatarPrecoTexto(valorRestante) : '';
             const mostrarResumoFinanceiro = sinalPago && Number.isFinite(valorSinal) && Number.isFinite(valorRestante);
 
-            const mensagemPagamentoPendenteHtml = aguardandoPagamento ? `
+            const mensagemPagamentoPendenteHtml = (aguardandoPagamento || ehEncomendaAceitaComCheckoutPendente) ? `
                 <div style="margin-top:10px; padding:12px 14px; border-radius:12px; background:rgba(245, 158, 11, 0.10); border:1px solid rgba(245, 158, 11, 0.28);">
-                    <strong style="display:block; margin-bottom:5px;">🟠 ${ehEncomendaPendente ? 'Aguardando pagamento do sinal' : 'Aguardando pagamento'}</strong>
+                    <strong style="display:block; margin-bottom:5px;">🟠 ${ehEncomenda ? (pedido.pagamento && pedido.pagamento.tipoPagamento === 'total_encomenda' ? 'Aguardando pagamento total' : 'Aguardando pagamento do sinal') : 'Aguardando pagamento'}</strong>
                     <span style="display:block; font-size:0.92rem; line-height:1.45;">
-                        ${ehEncomendaPendente
-                            ? `Sua encomenda foi registrada, mas a data só fica confirmada após o sinal${Number.isFinite(valorSinalPendente) ? ` de ${formatarPrecoTexto(valorSinalPendente)}` : ''}. Finalize o pagamento para confirmar a encomenda e liberar o atendimento da ${LOJA_CONFIG.nome}.`
+                        ${ehEncomenda
+                            ? (pedido.pagamento && pedido.pagamento.tipoPagamento === 'total_encomenda'
+                                ? `Sua encomenda já foi aceita. Finalize o pagamento total para deixar a encomenda quitada.`
+                                : `Sua encomenda já foi aceita. Finalize o sinal${Number.isFinite(valorSinalPendente) ? ` de ${formatarPrecoTexto(valorSinalPendente)}` : ''} para confirmar o pagamento parcial.`)
                             : `Seu pedido foi criado, mas ainda não está confirmado. Finalize o pagamento para confirmar a compra e liberar o atendimento da ${LOJA_CONFIG.nome}.`}
                     </span>
                 </div>
                 <button class="btn-pagar-restante-lista" onclick="retomarPagamentoPendenteMeusPedidos('${id}', this)">💳 Finalizar pagamento</button>
                 <button
                     type="button"
-                    onclick="cancelarPedidoPendenteMeusPedidos('${id}', ${ehEncomendaPendente ? 'true' : 'false'}, this)"
+                    onclick="cancelarPedidoPendenteMeusPedidos('${id}', ${ehEncomenda ? 'true' : 'false'}, this)"
                     style="width:100%;margin-top:8px;padding:11px 12px;border-radius:12px;border:1px solid rgba(169,71,42,.35);background:transparent;color:#963f28;font-weight:700;cursor:pointer;"
                 >
-                    ${ehEncomendaPendente ? 'Cancelar encomenda' : 'Cancelar pedido'}
+                    ${ehEncomenda ? 'Cancelar encomenda' : 'Cancelar pedido'}
                 </button>
+            ` : '';
+
+            const opcoesPagamentoEncomendaHtml = ehEncomendaAceitaSemPagamento ? `
+                <div style="margin-top:10px;padding:13px 14px;border-radius:14px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.22);">
+                    <strong style="display:block;margin-bottom:5px;">✅ Encomenda aceita pela ${LOJA_CONFIG.nome}</strong>
+                    <span style="display:block;font-size:.92rem;line-height:1.45;">Agora você escolhe como prefere confirmar o pagamento:</span>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">
+                        <button class="btn-pagar-restante-lista" onclick="pagarEncomendaAceita('${id}', 'sinal', this)">💳 Pagar sinal${percentualSinalEncomenda > 0 ? ` • ${percentualSinalEncomenda}%` : ''}</button>
+                        <button class="btn-pagar-restante-lista" onclick="pagarEncomendaAceita('${id}', 'total', this)">✅ Pagar 100%${Number.isFinite(totalValor) ? ` • ${formatarPrecoTexto(totalValor)}` : ''}</button>
+                    </div>
+                    <span style="display:block;margin-top:8px;font-size:.82rem;line-height:1.4;color:var(--muted);">Se pagar o sinal, o restante continuará disponível em Meus Pedidos. Se pagar 100%, a encomenda ficará totalmente quitada.</span>
+                </div>
+            ` : '';
+
+            const pagamentoTotalHtml = pagamentoTotalEncomendaPago ? `
+                <div class="item-meus-pedidos-financeiro pagamento-completo">
+                    <div class="item-meus-pedidos-financeiro-topo">
+                        <span>Pagamento da encomenda</span>
+                        <strong>✅ Pagamento completo</strong>
+                    </div>
+                    ${Number.isFinite(totalValor) ? `
+                        <div class="item-meus-pedidos-financeiro-total">
+                            <span>Total pago</span>
+                            <strong>${formatarPrecoTexto(totalValor)}</strong>
+                        </div>
+                    ` : ''}
+                </div>
             ` : '';
 
             const resumoFinanceiroHtml = mostrarResumoFinanceiro ? `
@@ -2240,6 +2318,8 @@ async function abrirMeusPedidos() {
                     <p class="item-meus-pedidos-itens">${itensTexto || 'Itens não informados'}</p>
                     ${sinalPago && mostrarResumoFinanceiro ? '' : `<p class="item-meus-pedidos-total">${totalTexto}</p>`}
                     ${mensagemPagamentoPendenteHtml}
+                    ${opcoesPagamentoEncomendaHtml}
+                    ${pagamentoTotalHtml}
                     ${resumoFinanceiroHtml}
                     ${restanteDinheiroPendente ? `<p class="item-meus-pedidos-meta">💵 Restante${valorRestanteTexto ? ` de ${valorRestanteTexto}` : ''} em dinheiro • aguardando recebimento</p>` : ''}
                     ${mostrarBotaoRestante ? `<button class="btn-pagar-restante-lista" onclick="pagarRestanteEncomenda('${id}', this)">💳 Pagar o restante${valorRestanteTexto ? ` • ${valorRestanteTexto}` : ''}</button>` : ''}
@@ -2460,7 +2540,7 @@ function atualizarResumoEncomendaCheckout() {
             }
         }
 
-        resumoTexto.innerHTML = `📅 <strong>Encomenda para ${dataFormatada}${horarioFormatado}</strong> — pra confirmar a reserva, você vai pagar um sinal de <strong>${percentualSinalEncomenda}% sobre o valor do produto</strong> (${valorTexto}) na próxima etapa.${avisoFrete} ⏰ <strong>Você tem ${prazoPagamentoHorasEfetivo}h pra concluir esse pagamento</strong>, senão a reserva é cancelada automaticamente. O restante fica combinado pra entrega ou retirada. A loja irá entrar em contato pra alinhar os detalhes do evento.`;
+        resumoTexto.innerHTML = `📅 <strong>Encomenda para ${dataFormatada}${horarioFormatado}</strong> — primeiro a ${LOJA_CONFIG.nome} vai analisar e confirmar a disponibilidade. <strong>Nenhum pagamento é feito antes do aceite.</strong> Depois de aceita, em <strong>Meus Pedidos</strong> você poderá escolher entre pagar um sinal de <strong>${percentualSinalEncomenda}% sobre o valor do produto</strong> (${valorTexto}) ou quitar <strong>100% do pedido</strong>.${avisoFrete} Se escolher o sinal, o restante continuará disponível para pagamento depois. A loja irá entrar em contato pra alinhar os detalhes do evento.`;
     } else {
         resumoTexto.innerHTML = `📅 <strong>Esse pedido inclui uma encomenda</strong> para <strong>${dataFormatada}${horarioFormatado}</strong> — não é confirmação automática; a loja vai entrar em contato pra alinhar os detalhes.`;
     }
@@ -4108,8 +4188,10 @@ async function finalizarCompra() {
         mensagemPedido += `🏘️ ${bairro} — ${cidade}/${estado}\n`;
         mensagemPedido += `📮 CEP: ${cep}\n`;
     }
-    mensagemPedido += `\n💳 *Pagamento:* ${formaPagamentoAtual}\n`;
-    if (formaPagamentoAtual === 'Dinheiro' && troco) {
+    mensagemPedido += querAgendar && percentualSinalEncomenda > 0
+        ? `\n💳 *Pagamento:* A definir após aprovação (sinal ou total online)\n`
+        : `\n💳 *Pagamento:* ${formaPagamentoAtual}\n`;
+    if (!querAgendar && formaPagamentoAtual === 'Dinheiro' && troco) {
         const trocoNormalizado = troco.trim().toLowerCase();
         const semTroco = ['sem troco', 'não preciso', 'nao preciso', 'não precisa', 'nao precisa'].includes(trocoNormalizado);
         mensagemPedido += semTroco ? `💵 *Troco:* Não precisa\n` : `💵 *Troco para:* ${troco}\n`;
@@ -4136,8 +4218,12 @@ async function finalizarCompra() {
     // à vista) antes de valer de verdade, começa com um status "escondido" — só vira
     // "pendente" (aparecendo pra loja, com som e tudo) quando o pagamento for confirmado.
     // Evita a loja ser avisada de um pedido que o cliente talvez nem termine de pagar
-    const exigePagamentoAntes = (querAgendar && percentualSinalEncomenda > 0)
-        || (pagamentoOnlineAtivo && !querAgendar && (formaPagamentoAtual === 'Pix' || formaPagamentoAtual === 'Cartão'));
+    // Encomenda agendada precisa primeiro ser aceita pela loja. Portanto ela nasce
+    // pendente e visível no painel; somente pedido comum Pix/Cartão continua escondido
+    // em aguardando_pagamento até o gateway confirmar.
+    const exigePagamentoAntes = pagamentoOnlineAtivo
+        && !querAgendar
+        && (formaPagamentoAtual === 'Pix' || formaPagamentoAtual === 'Cartão');
     const statusInicialPedido = exigePagamentoAntes ? 'aguardando_pagamento' : 'pendente';
 
     // ETAPA 2 — contexto único do checkout.
@@ -4355,12 +4441,18 @@ async function finalizarCompra() {
         }
     };
 
-    const pagamentoProcessado = await processarPagamentoCheckout({
-        contextoCheckout,
-        pedidoId,
-        promessaSalvo,
-        acoesPagamentoCheckout
-    });
+    // Encomenda com sinal configurado NÃO abre checkout nesta etapa. Primeiro a loja
+    // analisa e aceita/recusa; depois o cliente escolhe em Meus Pedidos entre sinal ou 100%.
+    // pagamento.js permanece intacto e continua responsável pelos pedidos comuns online.
+    let pagamentoProcessado = false;
+    if (!sinalObrigatorioNestePedido) {
+        pagamentoProcessado = await processarPagamentoCheckout({
+            contextoCheckout,
+            pedidoId,
+            promessaSalvo,
+            acoesPagamentoCheckout
+        });
+    }
 
     if (pagamentoProcessado) {
         return;
@@ -4377,7 +4469,7 @@ async function finalizarCompra() {
     // não é confirmação automática — a loja ainda precisa confirmar por fora
     if (querAgendar && dataEncomenda) {
         const [ano, mes, dia] = dataEncomenda.split('-');
-        alert(`📅 Pedido de encomenda enviado!\n\nEvento: ${dia}/${mes}/${ano}${horaEncomenda ? ` às ${horaEncomenda}` : ''}.\nA ${LOJA_CONFIG.nome} vai entrar em contato pra alinhar os detalhes.`);
+        alert(`📅 Solicitação de encomenda enviada!\n\nEvento: ${dia}/${mes}/${ano}${horaEncomenda ? ` às ${horaEncomenda}` : ''}.\nAgora é só aguardar a confirmação da ${LOJA_CONFIG.nome}. Depois do aceite, abra Meus Pedidos para escolher entre pagar o sinal ou quitar 100%.`);
     }
 
     // Limpa o carrinho e o formulário após o envio para o WhatsApp
