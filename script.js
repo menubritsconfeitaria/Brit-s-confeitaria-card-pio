@@ -4465,32 +4465,66 @@ escutarConfigClube();
 /* ===================================================================
    VISITANTES (contador online em tempo real + histórico de visitas por dia)
    =================================================================== */
-function iniciarRastreioVisitantes() {
+async function iniciarRastreioVisitantes() {
     if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
-
-    // Cada aba/sessão do navegador tem um ID único, criado uma vez e reaproveitado
-    let sessionId = sessionStorage.getItem('sessaoVisitante');
-    if (!sessionId) {
-        sessionId = 'v_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
-        sessionStorage.setItem('sessaoVisitante', sessionId);
+    if (typeof firebase.auth !== 'function') {
+        console.warn('Presença online indisponível: Firebase Auth não carregado.');
+        return;
     }
 
-    const presencaRef = firebase.database().ref('presenca/' + sessionId);
-    const conectadoRef = firebase.database().ref('.info/connected');
+    // Presença usa uma SEGUNDA instância Firebase para nunca substituir nem encerrar
+    // a sessão autenticada do painel administrativo na instância padrão.
+    let appPresenca;
+    try {
+        appPresenca = firebase.app('presencaPublica');
+    } catch (_) {
+        appPresenca = firebase.initializeApp(firebaseConfig, 'presencaPublica');
+    }
 
-    // Toda vez que a conexão com o Firebase (re)conecta, registra presença e programa
-    // a remoção automática pro momento em que o visitante sair/fechar a aba
-    conectadoRef.on('value', snap => {
-        if (snap.val() === true) {
-            presencaRef.onDisconnect().remove();
-            presencaRef.set(firebase.database.ServerValue.TIMESTAMP);
+    const authPresenca = appPresenca.auth();
+    try {
+        // SESSION é isolado por aba e sobrevive ao reload da própria aba. Como o app tem
+        // nome próprio, não compartilha o estado de autenticação do painel/admin.
+        await authPresenca.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+        if (!authPresenca.currentUser) {
+            await authPresenca.signInAnonymously();
+        }
+    } catch (erro) {
+        // Falhar presença nunca pode impedir cardápio, checkout, pagamento ou carrinho.
+        console.warn('Presença online indisponível:', erro && erro.message ? erro.message : erro);
+        return;
+    }
+
+    const usuarioPresenca = authPresenca.currentUser;
+    if (!usuarioPresenca || usuarioPresenca.isAnonymous !== true) return;
+
+    // A chave passa a ser o próprio UID anônimo. As regras RTDB aceitam somente
+    // auth.uid == $sessionId, impedindo fabricar/apagar presença de outra sessão.
+    const sessionId = usuarioPresenca.uid;
+    const dbPresenca = appPresenca.database();
+    const presencaRef = dbPresenca.ref('presenca/' + sessionId);
+    const conectadoRef = dbPresenca.ref('.info/connected');
+
+    // Primeiro o servidor confirma a limpeza da conexão; só depois a presença
+    // fica visível. Um número de ciclo impede registrar ao completar uma conexão
+    // que já caiu ou foi substituída por outra.
+    let cicloConexaoPresenca = 0;
+    conectadoRef.on('value', async snap => {
+        const cicloAtual = ++cicloConexaoPresenca;
+        if (snap.val() !== true) return;
+
+        try {
+            await presencaRef.onDisconnect().remove();
+            if (cicloAtual !== cicloConexaoPresenca) return;
+            await presencaRef.set(firebase.database.ServerValue.TIMESTAMP);
+        } catch (erro) {
+            console.warn('Não foi possível registrar presença:', erro && erro.message ? erro.message : erro);
         }
     });
 
-    // A visita é contabilizada pelo backend: o visitante nunca escreve no total diário.
-    // Só marca a sessão após a confirmação do servidor; falhas não impedem o cardápio.
+    // Histórico diário continua sendo registrado exclusivamente pelo backend existente.
     if (!sessionStorage.getItem('visitaContada') && typeof firebase.functions === 'function') {
-        firebase.functions().httpsCallable('registrarVisitaPublica')({ sessaoId: sessionId })
+        appPresenca.functions().httpsCallable('registrarVisitaPublica')({ sessaoId: sessionId })
             .then(resposta => {
                 if (resposta && resposta.data && resposta.data.ok) {
                     sessionStorage.setItem('visitaContada', '1');

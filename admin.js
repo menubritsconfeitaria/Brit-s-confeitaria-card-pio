@@ -538,7 +538,7 @@ function atualizarResumoContratoMestre(contrato, assinaturaPlano) {
     if (estado.chave === 'assinado' && ass.nomeCompleto) {
         const data = ass.assinadoEm ? new Date(ass.assinadoEm).toLocaleString('pt-BR') : 'data registrada no Firebase';
         resumo.style.display = 'block';
-        resumo.innerHTML = `<strong>✅ Assinatura registrada</strong><br>${ass.nomeCompleto}${ass.email ? ' · ' + ass.email : ''}<br>Versão ${ass.versao || contrato.versao || '1.0'} · ${data}${assinaturaPlano.dataAtivacao ? `<br><strong>Acesso ativado em:</strong> ${formatarDataIsoBr(assinaturaPlano.dataAtivacao)}` : '<br><strong>Próxima etapa:</strong> definir a data de ativação para liberar o painel operacional.'}`;
+        resumo.innerHTML = `<strong>✅ Assinatura registrada</strong><br>${escaparHtmlSeguro(ass.nomeCompleto)}${ass.email ? ' · ' + escaparHtmlSeguro(ass.email) : ''}<br>Versão ${escaparHtmlSeguro(ass.versao || contrato.versao || '1.0')} · ${escaparHtmlSeguro(data)}${assinaturaPlano.dataAtivacao ? `<br><strong>Acesso ativado em:</strong> ${escaparHtmlSeguro(formatarDataIsoBr(assinaturaPlano.dataAtivacao))}` : '<br><strong>Próxima etapa:</strong> definir a data de ativação para liberar o painel operacional.'}`;
     } else {
         resumo.style.display = 'none';
         resumo.innerHTML = '';
@@ -574,30 +574,26 @@ async function salvarContratoClienteMestre() {
     msgEl.textContent = 'Salvando contrato...';
     try {
         const plano = (document.getElementById('planoAssinaturaMestre').value || (cliente.assinatura && cliente.assinatura.plano) || 'pro');
-        const dados = {
-            obrigatorio,
-            status: obrigatorio ? 'aguardando_assinatura' : 'dispensado',
-            versao,
-            titulo,
-            valor,
-            plano,
-            texto,
-            assinatura: null,
-            atualizadoEm: firebase.database.ServerValue.TIMESTAMP
-        };
-        await registro.db.ref('configuracao/contrato').update(dados);
-        await registro.db.ref('configuracao/contrato/historico').push({
-            evento: obrigatorio ? 'contrato_disponibilizado' : 'contrato_dispensado',
-            versao,
-            quando: firebase.database.ServerValue.TIMESTAMP
-        });
-        const resumoMestre = { obrigatorio, status: dados.status, versao, titulo, valor, plano, atualizadoEm: firebase.database.ServerValue.TIMESTAMP };
-        await dbMestre.ref('clientes/' + cliente.id + '/contrato').set(resumoMestre);
+        // PASSO 27.4: dados comerciais somente pela Function autorizada pelo Mestre.
+        // Não há fallback para gravação direta no RTDB do cliente.
+        if (!appMestre || !appMestre.auth().currentUser) {
+            throw new Error('Entre no Painel Mestre antes de alterar o contrato.');
+        }
+        const mestreIdToken = await appMestre.auth().currentUser.getIdToken();
+        const salvarContrato = registro.app.functions('us-central1').httpsCallable('mestreSalvarContratoCliente');
+        const resposta = await salvarContrato({ mestreIdToken, contrato: { obrigatorio, versao, titulo, valor, plano, texto } });
+        if (!resposta.data || resposta.data.ok !== true) throw new Error('O servidor não confirmou o contrato.');
+        const resumoMestre = resposta.data.resumo;
         cliente.contrato = { ...resumoMestre };
-        preencherContratoMestre(dados, obterAssinaturaMestreDoFormulario());
-        msgEl.textContent = obrigatorio
-            ? '✅ Contrato disponível. No próximo login, o cliente precisará assinar antes de prosseguir.'
-            : '✅ Exigência de contrato desativada para este cliente.';
+        preencherContratoMestre(resposta.data.contrato, obterAssinaturaMestreDoFormulario());
+        try {
+            await dbMestre.ref('clientes/' + cliente.id + '/contrato').set(resumoMestre);
+            msgEl.textContent = obrigatorio
+                ? '✅ Contrato disponível. No próximo login, o cliente precisará assinar.'
+                : '✅ Exigência de contrato desativada para este cliente.';
+        } catch (erroEspelho) {
+            msgEl.textContent = '✅ Contrato salvo no cliente. ⚠️ Não foi possível atualizar o resumo no Mestre: ' + erroEspelho.message;
+        }
     } catch (err) {
         msgEl.textContent = 'Erro ao salvar contrato: ' + err.message;
     }
@@ -797,15 +793,23 @@ async function salvarAssinaturaClienteMestre() {
 
     msgEl.textContent = 'Salvando...';
     try {
-        const dadosCliente = { ...dados, atualizadoEm: firebase.database.ServerValue.TIMESTAMP };
-        await Promise.all([
-            registro.db.ref('configuracao/assinatura').set(dadosCliente),
-            dbMestre.ref('clientes/' + cliente.id + '/assinatura').set(dadosCliente)
-        ]);
-        cliente.assinatura = dados;
-        preencherAssinaturaMestre(dados);
+        if (!appMestre || !appMestre.auth().currentUser) {
+            throw new Error('Entre no Painel Mestre antes de alterar a assinatura.');
+        }
+        const mestreIdToken = await appMestre.auth().currentUser.getIdToken();
+        const salvarAssinatura = registro.app.functions('us-central1').httpsCallable('mestreSalvarAssinaturaCliente');
+        const resposta = await salvarAssinatura({ mestreIdToken, assinatura: dados });
+        if (!resposta.data || resposta.data.ok !== true) throw new Error('O servidor não confirmou a assinatura.');
+        const dadosCliente = resposta.data.assinatura;
+        cliente.assinatura = dadosCliente;
+        preencherAssinaturaMestre(dadosCliente);
         renderizarVisaoAssinaturasMestre();
-        msgEl.textContent = '✅ Assinatura e alertas salvos. O aviso do cliente passa a ser calculado automaticamente pelas datas.';
+        try {
+            await dbMestre.ref('clientes/' + cliente.id + '/assinatura').set(dadosCliente);
+            msgEl.textContent = '✅ Assinatura e alertas salvos. As datas passam a ser calculadas automaticamente.';
+        } catch (erroEspelho) {
+            msgEl.textContent = '✅ Assinatura salva no cliente. ⚠️ Não foi possível atualizar o resumo no Mestre: ' + erroEspelho.message;
+        }
         try {
             const contratoSnap = await registro.db.ref('configuracao/contrato').once('value');
             atualizarResumoContratoMestre(contratoSnap.val() || {}, dados);
@@ -1242,12 +1246,25 @@ async function aplicarRecursosClienteMestre() {
     const dados = {};
     RECURSOS_MESTRE.forEach(r => { dados[r.chave] = document.getElementById('recursoMestre_' + r.chave).checked; });
 
-    msgEl.textContent = 'Salvando...';
+    // PASSO 27.3: plano SOMENTE via servidor autenticado pelo Mestre.
+    // Não fazer fallback para update direto no RTDB — isso reabriria a falha.
+    if (!appMestre || !appMestre.auth().currentUser) {
+        msgEl.textContent = 'Entre no Painel Mestre antes de liberar um plano.';
+        return;
+    }
+    msgEl.textContent = 'Salvando com autorização do Painel Mestre...';
     try {
-        await registro.db.ref('configuracao/recursosLiberados').update(dados);
-        msgEl.textContent = 'Salvo com sucesso!';
+        const mestreIdToken = await appMestre.auth().currentUser.getIdToken();
+        const aplicarPlano = registro.app.functions('us-central1').httpsCallable('mestreAlterarRecursosPlano');
+        const resposta = await aplicarPlano({ mestreIdToken, recursos: dados });
+        if (!resposta.data || resposta.data.ok !== true) {
+            throw new Error('O servidor não confirmou a alteração do plano.');
+        }
+        msgEl.textContent = resposta.data.semMudancas
+            ? 'O cliente já possui exatamente esses recursos.'
+            : 'Recursos salvos com autorização do Mestre!';
     } catch (err) {
-        msgEl.textContent = 'Erro ao salvar: ' + err.message;
+        msgEl.textContent = 'Não foi possível alterar o plano: ' + (err.message || 'falha de autorização');
     }
 }
 
@@ -1429,7 +1446,7 @@ function preencherTelaContratoPedeAki(contrato, assinaturaPlano, user) {
     const plano = contrato.plano || assinaturaPlano.plano || '—';
     const valor = contrato.valor || '';
     if (titulo) titulo.textContent = contrato.titulo || 'Termo de Contratação PedeAki';
-    if (meta) meta.innerHTML = `<span class="meta-chip">Versão ${versao}</span><span class="meta-chip">Plano ${String(plano).toUpperCase()}</span>${valor ? `<span class="meta-chip">${valor}</span>` : ''}`;
+    if (meta) meta.innerHTML = `<span class="meta-chip">Versão ${escaparHtmlSeguro(versao)}</span><span class="meta-chip">Plano ${escaparHtmlSeguro(String(plano).toUpperCase())}</span>${valor ? `<span class="meta-chip">${escaparHtmlSeguro(valor)}</span>` : ''}`;
     if (texto) texto.textContent = aplicarVariaveisContratoPedeAki(contrato.texto || '', contrato, assinaturaPlano);
     if (nome && !nome.value && user && user.displayName) nome.value = user.displayName;
 }
@@ -1513,30 +1530,17 @@ async function assinarContratoPedeAki() {
     btn.disabled = true;
     msgEl.textContent = 'Registrando assinatura...';
     try {
-        const assinatura = {
+        // A Function confere o UID autorizado da loja, a versão e o hash do
+        // texto vigente no servidor. Nenhum campo comercial é gravado pelo browser.
+        if (!hashTexto) throw new Error('Não foi possível verificar o texto. Acesse pelo endereço HTTPS e tente de novo.');
+        const assinar = firebase.functions('us-central1').httpsCallable('clienteAssinarContrato');
+        const resposta = await assinar({
             nomeCompleto: nome,
-            email: user.email || null,
-            uid: user.uid,
             versao: String(contrato.versao || '1.0'),
-            hashTexto: hashTexto,
-            userAgent: String(navigator.userAgent || '').slice(0, 300),
-            aceitou: true,
-            assinadoEm: firebase.database.ServerValue.TIMESTAMP
-        };
-        await db.ref('configuracao/contrato').update({
-            status: 'assinado',
-            assinatura,
-            atualizadoEm: firebase.database.ServerValue.TIMESTAMP
+            hashTexto,
+            userAgent: String(navigator.userAgent || '').slice(0, 300)
         });
-        await db.ref('configuracao/contrato/historico').push({
-            evento: 'contrato_assinado',
-            nomeCompleto: nome,
-            email: user.email || null,
-            uid: user.uid,
-            versao: assinatura.versao,
-            hashTexto: hashTexto,
-            quando: firebase.database.ServerValue.TIMESTAMP
-        });
+        if (!resposta.data || resposta.data.ok !== true) throw new Error('O servidor não confirmou a assinatura.');
         msgEl.textContent = '✅ Contrato assinado.';
         await verificarContratoAntesDeLiberarPainel(user);
     } catch (err) {
@@ -3173,12 +3177,24 @@ function salvarBairro() {
 }
 
 function removerBairro(nomeCodificado) {
+    if (!recursosPlanoProdutosCarregados) {
+        alert('Aguarde carregar as permissões do plano antes de remover um bairro.');
+        return;
+    }
+    const podeEditarMinimo = recursosPlanoProdutos == null || recursosPlanoProdutos.pedidoMinimo === true;
+    const excecoes = configFreteAtual && configFreteAtual.pedidoMinimoBairros || {};
+    const temExcecao = Object.prototype.hasOwnProperty.call(excecoes, nomeCodificado);
+    if (!podeEditarMinimo && temExcecao) {
+        alert('Este bairro tem uma exceção antiga de pedido mínimo. Peça ao administrador para liberar a limpeza dessa exceção antes de removê-lo; nenhum dado foi apagado.');
+        return;
+    }
     if (!confirm('Remover esse bairro da lista de entrega?')) return;
     const atualizacoes = {};
     atualizacoes['configuracao/frete/bairros/' + nomeCodificado] = null;
-    // Se o bairro tinha uma exceção de pedido mínimo, remove junto para não deixar
-    // configuração órfã escondida no Firebase.
-    atualizacoes['configuracao/frete/pedidoMinimoBairros/' + nomeCodificado] = null;
+    if (podeEditarMinimo) {
+        // Com permissão ativa, remove também a exceção para evitar configuração órfã.
+        atualizacoes['configuracao/frete/pedidoMinimoBairros/' + nomeCodificado] = null;
+    }
     db.ref().update(atualizacoes)
         .catch(err => alert('Erro ao remover: ' + err.message));
 }
@@ -3412,8 +3428,18 @@ function salvarAdicionaisAtivo(ativo) {
 }
 
 function salvarPagamentoOnlineAtivo(ativo) {
-    db.ref('configuracao/loja/pagamentoOnlineAtivo').set(!!ativo)
-        .catch(err => alert('Erro ao atualizar o pagamento online: ' + err.message));
+    // O servidor/regras são a autoridade. Reverte o checkbox se o plano/UID negar.
+    const campo = document.getElementById('chkPagamentoOnlineAtivo');
+    const refPagamento = db.ref('configuracao/loja/pagamentoOnlineAtivo');
+    refPagamento.set(!!ativo).catch(async err => {
+        try {
+            const atual = await refPagamento.once('value');
+            if (campo) campo.checked = atual.val() === true;
+        } catch (_) {
+            if (campo) campo.checked = !ativo;
+        }
+        alert('Não foi possível atualizar o pagamento online: ' + err.message);
+    });
 }
 
 function marcarModoSelecionado(modo) {
@@ -3566,6 +3592,10 @@ function salvarConfigSinal() {
 // Cada recurso avançado tem seu próprio interruptor, liberado individualmente por você
 // (dono do serviço) direto no Firebase — o cliente não tem como mudar isso sozinho.
 // Mapeia o nome do recurso pro(s) elemento(s) do painel que ele controla.
+// 27.6B1: estado tri-state: aguarda a leitura inicial antes de permitir salvar produto.
+let recursosPlanoProdutosCarregados = false;
+let recursosPlanoProdutos = undefined; // null: cliente legado sem matriz
+
 const MAPA_RECURSOS = {
     cupons: { abas: ['cupons'] },
     fidelidade: { abas: ['fidelidade'] },
@@ -3625,7 +3655,13 @@ function aplicarRecursosLiberados(recursos) {
 
 function escutarRecursosLiberados() {
     db.ref('configuracao/recursosLiberados').on('value', snap => {
-        aplicarRecursosLiberados(snap.val());
+        recursosPlanoProdutos = snap.val();
+        recursosPlanoProdutosCarregados = true;
+        aplicarRecursosLiberados(recursosPlanoProdutos);
+        if (recursosPlanoProdutos == null || recursosPlanoProdutos.mensagemMassa === true) {
+            obterOuCriarCampanhaAtual().then(renderHistoricoCampanhasMensagemMassa)
+                .catch(e => console.error('Campanhas indisponíveis:', e));
+        }
     });
 }
 
@@ -3816,6 +3852,7 @@ function escutarHistoricoNotificacoes() {
 
         const tagsPorStatus = {
             agendada: '🟡 Agendada',
+            processando: '🟠 Em processamento',
             enviada: '🟢 Enviada',
             falhou: '🔴 Falhou',
             cancelada: '❌ Cancelada'
@@ -5291,18 +5328,62 @@ function renderEstoque() {
 let clientesGestao = [];
 let editingClienteGestaoId = null;
 
+let crmGestaoCompleta = false;
+let crmListenerAvancado = null;
+let crmAtualizacaoSeq = 0;
+async function atualizarContatosOperacionais() {
+    const seqInicial = crmAtualizacaoSeq;
+    const resposta = await firebase.functions().httpsCallable('listarContatosOperacionais')({});
+    if (seqInicial !== crmAtualizacaoSeq || crmGestaoCompleta) return [];
+    clientesGestao = (resposta.data && resposta.data.contatos) || [];
+    popularSelectClientePedidoManual();
+    return clientesGestao;
+}
 function escutarClientesGestao() {
-    db.ref('clientesGestao').on('value', snap => {
-        const val = snap.val() || {};
-        clientesGestao = Object.entries(val).map(([id, c]) => ({ id, ...c }));
+    // Trocar a matriz em tempo real também revoga acesso à lista CRM antiga.
+    db.ref('configuracao/recursosLiberados').on('value', async snap => {
+        const seq = ++crmAtualizacaoSeq;
+        const matriz = snap.val();
+        const completo = matriz == null || matriz.gestaoCompleta === true;
+        if (crmListenerAvancado) {
+            db.ref('clientesGestao').off('value', crmListenerAvancado);
+            crmListenerAvancado = null;
+        }
+        if (crmGestaoCompleta && !completo) {
+            // Ao perder gestão completa, limpar dados privados que já estavam no formulário.
+            for (const id of ['cgNome','cgTelefone','cgEmail','cgEndereco']) {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            }
+            editingClienteGestaoId = null;
+            const btn = document.getElementById('btnSalvarClienteGestao');
+            if (btn) btn.textContent = '+ Adicionar Cliente';
+        }
+        crmGestaoCompleta = completo;
+        clientesGestao = [];
         renderClientesGestao();
-        if (typeof popularSelectClientePedidoManual === 'function') popularSelectClientePedidoManual();
+        popularSelectClientePedidoManual();
+        if (completo) {
+            crmListenerAvancado = dados => {
+                if (seq !== crmAtualizacaoSeq || !crmGestaoCompleta) return;
+                clientesGestao = Object.entries(dados.val() || {}).map(([id,c])=>({id,...c}));
+                renderClientesGestao();
+                popularSelectClientePedidoManual();
+            };
+            db.ref('clientesGestao').on('value', crmListenerAvancado,
+                e => console.error('CRM completo indisponível:',e));
+        } else {
+            try { await atualizarContatosOperacionais(); }
+            catch(e) { console.error('Não foi possível carregar contatos do painel:',e); }
+            if (seq !== crmAtualizacaoSeq) clientesGestao = [];
+        }
     });
 }
 
 function getClienteGestao(id) { return clientesGestao.find(c => c.id === id); }
 
 function salvarClienteGestao() {
+    if (!crmGestaoCompleta) { alert('Recurso de gestão completa não autorizado.'); return; }
     const nome = document.getElementById('cgNome').value.trim();
     const telefone = document.getElementById('cgTelefone').value.trim();
     const email = document.getElementById('cgEmail').value.trim();
@@ -5392,6 +5473,7 @@ async function montarListaMensagemMassa() {
     const contadorEl = document.getElementById('mmContador');
     if (!texto) { alert('Escreve a mensagem primeiro.'); return; }
 
+    if (!crmGestaoCompleta) await atualizarContatosOperacionais();
     if (!campanhaMensagemMassaAtualId) await obterOuCriarCampanhaAtual();
     await db.ref('campanhasMensagemMassa/' + campanhaMensagemMassaAtualId + '/texto').set(texto);
 
@@ -5451,6 +5533,11 @@ function renderHistoricoCampanhasMensagemMassa() {
 }
 
 function renderClientesGestao() {
+    if (!crmGestaoCompleta) {
+        const lista = document.getElementById('listaClientesGestao');
+        if (lista) lista.textContent = 'Gestão completa de clientes disponível somente com a permissão gestaoCompleta.';
+        return;
+    }
     const busca = normalizarTexto(document.getElementById('cgBusca').value || '');
     const container = document.getElementById('listaClientesGestao');
     const filtrados = clientesGestao
@@ -5476,6 +5563,7 @@ function renderClientesGestao() {
 }
 
 function editarClienteGestao(id) {
+    if (!crmGestaoCompleta) { alert('Recurso de gestão completa não autorizado.'); return; }
     const c = getClienteGestao(id);
     if (!c) return;
     document.getElementById('cgNome').value = c.nome;
@@ -5488,6 +5576,7 @@ function editarClienteGestao(id) {
 }
 
 async function excluirClienteGestao(id) {
+    if (!crmGestaoCompleta) { alert('Recurso de gestão completa não autorizado.'); return; }
     const cliente = getClienteGestao(id);
     let temPedidos = false;
     if (cliente && cliente.telefone) {
@@ -5524,6 +5613,16 @@ function popularSelectClientePedidoManual() {
 // um único cadastro, mesmo com máscara, espaços, hífen ou +55 diferentes.
 async function obterOuCriarClienteGestaoPorNome(nomeDigitado, telefonePreferencial = null) {
     if (!nomeDigitado && !telefonePreferencial) return null;
+    if (!crmGestaoCompleta) {
+        // O servidor cria SOMENTE contato mínimo após verificar UID autorizado.
+        const resp = await firebase.functions().httpsCallable('registrarContatoPedidoManualSeguro')({
+            nome: nomeDigitado, telefone: telefonePreferencial
+        });
+        const contato = resp.data && resp.data.contato;
+        if (!contato || !contato.id) throw Error('Cadastro do cliente não foi confirmado.');
+        await atualizarContatosOperacionais();
+        return contato;
+    }
 
     const telefoneChave = normalizarTelefoneClienteBrasil(telefonePreferencial);
     if (telefoneChave) {
@@ -6167,7 +6266,12 @@ async function salvarPedidoManual() {
     // identidade do cliente. Nunca tenta decidir só pelo nome, porque o mesmo cliente
     // pode escrever o nome abreviado numa compra e completo em outra.
     const telefoneOriginalDoPedido = editingPedidoManualId ? editingPedidoManualTelefoneOriginal : null;
-    const cliente = await obterOuCriarClienteGestaoPorNome(nomeClienteDigitado, telefoneOriginalDoPedido);
+    let cliente;
+    try { cliente = await obterOuCriarClienteGestaoPorNome(nomeClienteDigitado, telefoneOriginalDoPedido); }
+    catch (erro) {
+        msgEl.textContent = 'Cadastro do cliente não confirmado. Pedido não foi gravado: ' + (erro.message || 'tente novamente.');
+        return;
+    }
     const subtotal = tempItensPedidoManual.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
     const descontoPercent = parseFloat(document.getElementById('pmDesconto').value.replace(',', '.')) || 0;
     const frete = parseFloat(document.getElementById('pmFrete').value.replace(',', '.')) || 0;
@@ -7451,6 +7555,7 @@ async function limparTodosOsPedidosDeTeste() {
 }
 
 async function zerarSistemaGestao() {
+    if (!crmGestaoCompleta) { alert('Recurso de gestão completa não autorizado.'); return; }
     const confirmacao1 = confirm('⚠️ Isso vai APAGAR PRA SEMPRE: todos os ingredientes, bases, fichas técnicas, clientes do CRM, e TODOS os pedidos que não vieram do cardápio (importados OU lançados na mão por você) — os pedidos reais do cardápio nunca são tocados. Não tem como desfazer. Tem certeza?');
     if (!confirmacao1) return;
     const digitado = prompt('Pra confirmar de vez, digita ZERAR (em maiúsculas):');
@@ -7486,6 +7591,7 @@ async function zerarSistemaGestao() {
 }
 
 async function removerDuplicatas() {
+    if (!crmGestaoCompleta) { alert('Recurso de gestão completa não autorizado.'); return; }
     if (!confirm('Vai procurar ingredientes, bases, fichas técnicas e clientes com o mesmo nome (ou telefone), manter só o primeiro de cada grupo, e apagar o resto — corrigindo as referências antes de apagar. Confirma?')) return;
     const msgEl = document.getElementById('resultadoDiagnostico');
     msgEl.innerHTML = '<p class="dica-secao">Removendo duplicatas...</p>';
@@ -8060,15 +8166,96 @@ const DADOS_INICIAIS = {
     }
 };
 
-function importarDadosIniciais() {
-    if (!confirm('Isso vai cadastrar os produtos e cupons que já existiam no cardápio. Só faça isso uma vez. Continuar?')) return;
-    Promise.all([
-        db.ref('produtos').set(DADOS_INICIAIS.produtos),
-        db.ref('cupons').set(DADOS_INICIAIS.cupons)
-    ]).then(() => {
-        alert('Importado com sucesso! Os produtos e cupons já aparecem abaixo.');
-    }).catch(err => alert('Erro ao importar: ' + err.message));
+async function importarDadosIniciais() {
+    // Passo 27.6B2D: importação por ID, sem sobrescrever itens ou abrir escrita em /produtos.
+    if (importarDadosIniciais.emAndamento) return;
+    if (!confirm('Importar os produtos de exemplo que ainda não existem? Os itens já cadastrados serão preservados. Continuar?')) return;
+
+    importarDadosIniciais.emAndamento = true;
+    const botao = document.getElementById('btnImportarDados');
+    if (botao) botao.disabled = true;
+    const resultado = { produtosNovos: 0, produtosExistentes: 0, cuponsNovos: 0, cuponsExistentes: 0 };
+
+    try {
+        // Não usar apenas o estado visual do painel: a permissão deve estar legível antes de qualquer escrita.
+        const matrizSnap = await db.ref('configuracao/recursosLiberados').once('value');
+        const matriz = matrizSnap.val();
+        const permiteCupons = matriz == null || matriz.cupons === true; // sem matriz: legado
+        if (!permiteCupons && !confirm('Este plano não permite cupons. Deseja importar SOMENTE os produtos?')) return;
+
+        const produtos = Object.entries(DADOS_INICIAIS.produtos || {});
+        const cupons = Object.entries(DADOS_INICIAIS.cupons || {});
+        // Validar todas as chaves antes de fazer a primeira transação; não criar caminhos inesperados.
+        for (const [id] of [...produtos, ...cupons]) {
+            if (!id || /[.#$\[\]/]/.test(id) || ['__proto__', 'constructor', 'prototype'].includes(id)) {
+                throw new Error('ID inválido na lista de importação. Nenhum novo item foi gravado.');
+            }
+        }
+
+        // Cada transação cria APENAS um ID ausente. Nunca fazer set() na raiz, nem substituir item existente.
+        // A gravação é sequencial: se um produto falhar, não começar os cupons.
+        for (const [id, dados] of produtos) {
+            const referencia = db.ref('produtos/' + id);
+            // Evita ate iniciar uma escrita sobre produto legado com adicionais bloqueados.
+            if ((await referencia.once('value')).exists()) {
+                resultado.produtosExistentes++;
+                continue;
+            }
+            const gravacao = await referencia.transaction(
+                atual => atual === null ? dados : undefined,
+                undefined,
+                false
+            );
+            if (gravacao.committed) resultado.produtosNovos++;
+            else resultado.produtosExistentes++;
+        }
+
+        let motivoCuponsOmitidos = '';
+        if (!permiteCupons) {
+            motivoCuponsOmitidos = 'Cupons não importados: recurso indisponível no plano.';
+        } else {
+            // Rechecar antes dos cupons para não iniciar gravações se o plano mudar no meio da operação.
+            const matrizAtual = (await db.ref('configuracao/recursosLiberados').once('value')).val();
+            if (matrizAtual != null && matrizAtual.cupons !== true) {
+                motivoCuponsOmitidos = 'Cupons não importados: o plano mudou durante a operação.';
+            } else {
+                for (const [id, dados] of cupons) {
+                    const referencia = db.ref('cupons/' + id);
+                    if ((await referencia.once('value')).exists()) {
+                        resultado.cuponsExistentes++;
+                        continue;
+                    }
+                    const gravacao = await referencia.transaction(
+                        atual => atual === null ? dados : undefined,
+                        undefined,
+                        false
+                    );
+                    if (gravacao.committed) resultado.cuponsNovos++;
+                    else resultado.cuponsExistentes++;
+                }
+            }
+        }
+
+        alert([
+            'Importação concluída sem substituir itens existentes.',
+            `Produtos novos: ${resultado.produtosNovos}; já existentes: ${resultado.produtosExistentes}.`,
+            `Cupons novos: ${resultado.cuponsNovos}; já existentes: ${resultado.cuponsExistentes}.`,
+            motivoCuponsOmitidos || 'Produtos e cupons foram tratados separadamente.'
+        ].join('\n'));
+    } catch (erro) {
+        // Não prometer rollback: transações anteriores podem ter sido confirmadas no servidor.
+        alert([
+            'Importação interrompida. Confira os dados antes de tentar novamente.',
+            `Confirmados nesta execução: ${resultado.produtosNovos} produtos e ${resultado.cuponsNovos} cupons.`,
+            'Itens anteriores foram preservados; pode haver importação parcial.',
+            'Detalhe: ' + (erro && erro.message ? erro.message : String(erro))
+        ].join('\n'));
+    } finally {
+        importarDadosIniciais.emAndamento = false;
+        if (botao) botao.disabled = false;
+    }
 }
+
 
 // ---------- PRODUTOS ----------
 
@@ -9501,6 +9688,12 @@ function detectarPossivelErroDeVirgula(grupos) {
 }
 
 function salvarProduto(id) {
+    // Sem leitura da matriz, não arriscar uma gravação que apague grupos legados.
+    if (!recursosPlanoProdutosCarregados) {
+        alert('Aguarde o carregamento das permissões do plano antes de salvar.');
+        return;
+    }
+    const podeEditarGrupoAdicionais = recursosPlanoProdutos == null || recursosPlanoProdutos.adicionais === true;
     const nome = document.getElementById('prodNome_' + id).value.trim();
     const descricao = document.getElementById('prodDesc_' + id).value.trim();
     const preco = paraNumero(document.getElementById('prodPreco_' + id).value);
@@ -9521,12 +9714,17 @@ function salvarProduto(id) {
     const agendaDisponibilidade = coletarAgendaDisponibilidadeProduto(id);
     if (agendaDisponibilidade === null) return;
     const variantesTexto = document.getElementById('prodVariantes_' + id).value.trim();
-    const adicionaisTexto = sincronizarTextareaAdicionaisProduto(id, true);
-    if (adicionaisTexto === null) return;
-    const campoAdicionaisVisual = document.getElementById('prodAdicionais_' + id);
-    const gruposAdicionaisVisuais = campoAdicionaisVisual && Array.isArray(campoAdicionaisVisual.__gruposAdicionais)
-        ? campoAdicionaisVisual.__gruposAdicionais
-        : [];
+    // START: o editor oculto NÃO deve reenviar, zerar ou revalidar grupos antigos.
+    // A autorização real também é exigida pelas regras granulares do RTDB.
+    let gruposAdicionaisVisuais = [];
+    if (podeEditarGrupoAdicionais) {
+        const adicionaisTexto = sincronizarTextareaAdicionaisProduto(id, true);
+        if (adicionaisTexto === null) return;
+        const campoAdicionaisVisual = document.getElementById('prodAdicionais_' + id);
+        gruposAdicionaisVisuais = campoAdicionaisVisual && Array.isArray(campoAdicionaisVisual.__gruposAdicionais)
+            ? campoAdicionaisVisual.__gruposAdicionais
+            : [];
+    }
 
     const imagens = imagensTexto ? imagensTexto.split(',').map(v => v.trim()).filter(v => v.length > 0) : [];
 
@@ -9538,7 +9736,7 @@ function salvarProduto(id) {
     // Estoque controlado em 0 nunca pode continuar vendável. Mantemos "Inativo" separado:
     // se o produto estiver escondido manualmente, ele continua escondido mesmo após reposição.
     const disponivelComEstoque = controlarEstoque && estoqueProduto <= 0 ? false : disponivel;
-    const dados = { nome, descricao, preco, imagem: imagens[0], imagens, categoria, disponivel: disponivelComEstoque, escondido, disponivelParaEncomenda, controlarEstoque, estoqueProduto, agendaDisponibilidade, fichaTecnicaId, imagemCarrossel, ofertaAtiva, ofertaPrecoEspecial, precoOriginal: null, variantes: null, grupoAdicionais: null };
+    const dados = { nome, descricao, preco, imagem: imagens[0], imagens, categoria, disponivel: disponivelComEstoque, escondido, disponivelParaEncomenda, controlarEstoque, estoqueProduto, agendaDisponibilidade, fichaTecnicaId, imagemCarrossel, ofertaAtiva, ofertaPrecoEspecial, precoOriginal: null, variantes: null };
     // Marca apenas o esgotamento causado pelo estoque, para uma devolução/reposição poder
     // reativar o produto sem confundir com um "Em falta" escolhido manualmente.
     dados.esgotadoAutomaticoEstoque = controlarEstoque && estoqueProduto <= 0;
@@ -9551,7 +9749,9 @@ function salvarProduto(id) {
         dados.variantes = variantesTexto.split(',').map(v => v.trim()).filter(v => v.length > 0);
     }
 
-    dados.grupoAdicionais = gruposAdicionaisVisuais.length ? gruposAdicionaisVisuais : null;
+    if (podeEditarGrupoAdicionais) {
+        dados.grupoAdicionais = gruposAdicionaisVisuais.length ? gruposAdicionaisVisuais : null;
+    }
 
     const avisoEl = document.getElementById('avisoAdicionais_' + id);
     if (avisoEl) avisoEl.style.display = 'none';
@@ -10602,7 +10802,7 @@ function iniciarEscutaPedidos() {
     escutarNotificacaoAberturaAtiva();
     escutarModelosNotificacao();
     escutarImpressaoAutomaticaAtiva();
-    obterOuCriarCampanhaAtual().then(renderHistoricoCampanhasMensagemMassa);
+    // Inicialização de campanhas ocorre após conhecer o plano (em escutarRecursosLiberados).
     escutarProdutos();
     escutarCupons();
     escutarOrdemCategorias();
