@@ -3397,6 +3397,10 @@ function renderizarProdutos() {
         tituloEncomenda.textContent = '🎂 Encomendas';
         listaProdutosDiv.appendChild(tituloEncomenda);
 
+        const layoutEncomenda = document.createElement('div');
+        layoutEncomenda.classList.add('encomenda-layout');
+        listaProdutosDiv.appendChild(layoutEncomenda);
+
         const introEncomenda = document.createElement('div');
         introEncomenda.classList.add('encomenda-intro');
         introEncomenda.innerHTML = `
@@ -3426,7 +3430,7 @@ function renderizarProdutos() {
                 </div>
             </div>
         `;
-        listaProdutosDiv.appendChild(introEncomenda);
+        layoutEncomenda.appendChild(introEncomenda);
         // Impede escolher uma data que já passou usando o mesmo fuso operacional da loja.
         const dataInputEncomenda = document.getElementById('encomendaDataInput');
         const horaInputEncomenda = document.getElementById('encomendaHoraInput');
@@ -3437,7 +3441,7 @@ function renderizarProdutos() {
         const gridEncomenda = document.createElement('div');
         gridEncomenda.classList.add('categoria-grid', 'encomenda-grid');
         produtosParaEncomenda.forEach(produto => gridEncomenda.appendChild(construirCardProduto(produto)));
-        listaProdutosDiv.appendChild(gridEncomenda);
+        layoutEncomenda.appendChild(gridEncomenda);
     }
 
     // Seção especial "🔥 Ofertas do Dia" (só aparece se tiver algum produto em oferta disponível)
@@ -3629,6 +3633,8 @@ function renderizarCategorias() {
         btnEncomenda.textContent = '🎂 Encomendas';
         btnEncomenda.classList.add('categoria-btn', 'categoria-btn-encomenda');
         btnEncomenda.addEventListener('click', () => {
+            document.querySelectorAll('.categoria-btn').forEach(btn => btn.classList.remove('active'));
+            btnEncomenda.classList.add('active');
             const alvo = document.getElementById('secao-encomendas');
             if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });

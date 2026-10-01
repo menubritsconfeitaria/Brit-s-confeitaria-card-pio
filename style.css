@@ -2149,15 +2149,21 @@ footer {
     font-size: 1.4em !important;
 }
 .categoria-btn-encomenda {
-    background: var(--bg) !important;
-    border: 1px solid var(--accent) !important;
     font-weight: 600 !important;
 }
 
 /* A agenda vira uma faixa horizontal compacta, integrada ao ritmo do cardápio. */
+.encomenda-layout {
+    display: grid;
+    grid-template-columns: minmax(320px, .82fr) minmax(0, 2.18fr);
+    gap: 22px;
+    align-items: start;
+    margin-bottom: 30px;
+}
+
 .encomenda-intro {
     max-width: none;
-    margin: 0 0 16px;
+    margin: 0;
     padding: 0;
     background: transparent;
     border: 0;
@@ -2166,9 +2172,9 @@ footer {
 
 .encomenda-agendamento-faixa {
     display: grid;
-    grid-template-columns: minmax(280px, 1.15fr) minmax(390px, 1fr);
-    align-items: center;
-    gap: 18px;
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 13px;
     padding: 15px 17px;
     border: 1px solid rgba(111, 78, 55, .15);
     border-radius: 17px;
@@ -2281,21 +2287,26 @@ footer {
 }
 
 /* Preserva a grade do cardápio, mas não centraliza um único produto de encomenda. */
-.encomenda-grid {
-    margin-bottom: 22px;
+#produtos-destaque .categoria-grid.encomenda-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 310px));
+    justify-content: start;
+    align-content: start;
+    gap: 22px;
+    max-width: none;
+    margin: 0;
 }
 
-@media (min-width: 769px) and (max-width: 999px) {
-    .encomenda-grid {
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-        justify-content: start;
-    }
-}
-
-@media (max-width: 768px) {
-    .encomenda-agendamento-faixa {
+@media (max-width: 980px) {
+    .encomenda-layout {
         grid-template-columns: 1fr;
-        gap: 11px;
+        gap: 14px;
+        margin-bottom: 26px;
+    }
+
+    .encomenda-agendamento-faixa {
+        grid-template-columns: minmax(0, 1fr) minmax(330px, .9fr);
+        align-items: center;
+        gap: 14px;
         padding: 13px 14px;
     }
 
@@ -2303,12 +2314,23 @@ footer {
         max-width: none;
     }
 
-    .encomenda-grid {
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-        max-width: none;
-        margin-left: 0;
-        margin-right: 0;
+    #produtos-destaque .categoria-grid.encomenda-grid {
+        grid-template-columns: repeat(auto-fill, minmax(245px, 295px));
         justify-content: start;
+        gap: 18px;
+    }
+}
+
+@media (max-width: 760px) {
+    .encomenda-agendamento-faixa {
+        grid-template-columns: 1fr;
+        gap: 11px;
+    }
+
+    #produtos-destaque .categoria-grid.encomenda-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        justify-content: stretch;
+        gap: 13px;
     }
 }
 
@@ -2371,18 +2393,20 @@ footer {
         font-size: 9.8px;
     }
 
-    .categoria-grid.encomenda-grid {
+    #produtos-destaque .categoria-grid.encomenda-grid {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
-        max-width: none;
-        margin-left: 0;
-        margin-right: 0;
+        grid-template-columns: 1fr;
+        gap: 15px;
+        width: 100%;
+        max-width: 420px;
+        margin-left: auto;
+        margin-right: auto;
         justify-content: stretch;
     }
 
-    .encomenda-grid .produto-item {
-        width: auto;
+    #produtos-destaque .encomenda-grid .produto-item {
+        width: 100% !important;
+        max-width: 420px;
         min-width: 0;
     }
 }
@@ -4737,6 +4761,13 @@ main > .container:first-of-type .destaque-item .txt {
     background: linear-gradient(145deg, #b55d32, #914320);
     color: #fff;
     box-shadow: 0 6px 15px rgba(145, 67, 32, .18);
+}
+
+#produtos-destaque .categorias button.categoria-btn-encomenda.active {
+    border-color: #9d4b28 !important;
+    background: linear-gradient(145deg, #b55d32, #914320) !important;
+    color: #fff !important;
+    box-shadow: 0 6px 15px rgba(145, 67, 32, .18) !important;
 }
 
 /* Títulos das categorias com separação mais discreta. */
