@@ -251,18 +251,32 @@
                             </div>
                         </div>
 
-                        <div class="checkout-bloco checkout-bloco-pagamento">
+                        <div class="checkout-bloco checkout-bloco-pagamento" id="seletorMomentoPagamento">
                             <div class="checkout-bloco-titulo">
                                 <span class="checkout-passo">03</span>
                                 <div>
-                                    <strong>Forma de pagamento</strong>
-                                    <small>Escolha como prefere pagar.</small>
+                                    <strong>Quando você quer pagar?</strong>
+                                    <small>Escolha a opção que deixa sua compra mais confortável.</small>
                                 </div>
                             </div>
                             <div class="opcoes-radio checkout-opcoes-pagamento">
-                                <div class="opcao-btn selecionado" id="btnPix" onclick="selecionarPagamento('Pix')">💠 Pix <span>pagar agora</span></div>
-                                <div class="opcao-btn" id="btnCartao" onclick="selecionarPagamento('Cartão')">💳 Cartão <span>pagar agora</span></div>
-                                <div class="opcao-btn" id="btnDinheiro" onclick="selecionarPagamento('Dinheiro')">💵 Dinheiro <span>na entrega</span></div>
+                                <div class="opcao-btn selecionado" id="btnPagamentoAgora" onclick="selecionarMomentoPagamento('agora')">💳 Pagar agora <span>Pix ou cartão</span></div>
+                                <div class="opcao-btn" id="btnPagamentoRecebimento" onclick="selecionarMomentoPagamento('recebimento')">🏠 Pagar ao receber <span id="rotuloMomentoRecebimento">na retirada</span></div>
+                            </div>
+                        </div>
+
+                        <div class="checkout-bloco checkout-bloco-pagamento" id="metodosPagamentoCheckout">
+                            <div class="checkout-bloco-titulo">
+                                <span class="checkout-passo">04</span>
+                                <div>
+                                    <strong>Forma de pagamento</strong>
+                                    <small id="textoAjudaFormaPagamento">Escolha Pix ou cartão para pagar agora.</small>
+                                </div>
+                            </div>
+                            <div class="opcoes-radio checkout-opcoes-pagamento">
+                                <div class="opcao-btn selecionado" id="btnPix" onclick="selecionarPagamento('Pix')">💠 Pix <span id="rotuloPixPagamento">pagar agora</span></div>
+                                <div class="opcao-btn" id="btnCartao" onclick="selecionarPagamento('Cartão')">💳 Cartão <span id="rotuloCartaoPagamento">pagar agora</span></div>
+                                <div class="opcao-btn" id="btnDinheiro" onclick="selecionarPagamento('Dinheiro')" style="display:none;">💵 Dinheiro <span id="rotuloDinheiroPagamento">na retirada</span></div>
                             </div>
 
                             <div id="areaTroco" style="display:none;">
@@ -276,15 +290,26 @@
                                     <input type="text" id="clienteTroco" placeholder="Ex: R$ 50,00">
                                 </div>
                             </div>
+                        </div>
 
-                            <div id="resumoEncomendaCheckout" style="display:none;">
-                                <p class="dica-encomenda" id="resumoTextoEncomenda"></p>
+                        <div id="avisoPagamentoEncomendaCheckout" class="checkout-bloco checkout-bloco-pagamento" style="display:none;">
+                            <div class="checkout-bloco-titulo">
+                                <span class="checkout-passo">03</span>
+                                <div>
+                                    <strong>Pagamento da encomenda</strong>
+                                    <small>A loja confirma a disponibilidade antes de qualquer cobrança.</small>
+                                </div>
                             </div>
+                            <p class="dica-encomenda" style="margin:0;">Depois do aceite da Brit's, você poderá escolher em <strong>Meus Pedidos</strong> entre pagar o sinal configurado ou quitar 100% da encomenda.</p>
+                        </div>
+
+                        <div id="resumoEncomendaCheckout" style="display:none;">
+                            <p class="dica-encomenda" id="resumoTextoEncomenda"></p>
                         </div>
 
                         <div class="checkout-bloco checkout-bloco-observacoes">
                             <div class="checkout-bloco-titulo checkout-bloco-titulo-menor">
-                                <span class="checkout-passo">04</span>
+                                <span class="checkout-passo" id="passoObservacoesNumero">05</span>
                                 <div>
                                     <strong>Observações</strong>
                                     <small>Opcional — informe algum detalhe importante do pedido.</small>

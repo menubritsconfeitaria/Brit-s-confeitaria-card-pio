@@ -233,6 +233,10 @@ let categoriaAtual = 'Todos';
 // Estado de como o cliente quer receber o pedido e a forma de pagamento
 let tipoEntregaAtual = 'retirada';
 let formaPagamentoAtual = 'Pix';
+// Mantém o comportamento atual como padrão: quando o pagamento online está ativo,
+// Pix/Cartão continuam em "pagar agora" até o cliente escolher explicitamente pagar ao receber.
+// Isso adiciona a nova opção sem alterar silenciosamente o fluxo já aprovado.
+let momentoPagamentoAtual = 'agora'; // 'agora' | 'recebimento'
 
 // Guarda a lista de imagens de cada carrossel (preenchido a cada renderizarProdutos())
 let carrosselImagensRegistro = {};
@@ -522,6 +526,7 @@ function atualizarStatusLoja(config) {
     // pra decidir se Pix/Cartão exigem pagar na hora ou continuam combinados como sempre
     pagamentoOnlineAtivo = !!(config && config.pagamentoOnlineAtivo);
     adicionaisAtivo = !!(config && config.adicionaisAtivo);
+    atualizarOpcoesPagamentoCheckout();
 
     const agendamentoAtivoAntes = agendamentoAtivo;
     agendamentoAtivo = !!(config && config.agendamentoAtivo);
@@ -668,6 +673,7 @@ function escutarStatusLoja() {
     // Escuta a configuração do sinal de encomenda separadamente (nó diferente)
     firebase.database().ref('configuracao/agenda/percentualSinal').on('value', snap => {
         percentualSinalEncomenda = snap.val() || 0;
+        atualizarResumoEncomendaCheckout();
     });
     firebase.database().ref('configuracao/agenda/prazoPagamentoHoras').on('value', snap => {
         prazoPagamentoHorasEfetivo = snap.val() || 24;
@@ -2544,21 +2550,107 @@ function selecionarTipoEntrega(tipo) {
         freteConfirmado = false;
     }
     atualizarCarrinhoHTML();
+    atualizarOpcoesPagamentoCheckout();
+}
+
+function rotuloRecebimentoPagamento() {
+    return tipoEntregaAtual === 'entrega' ? 'na entrega' : 'na retirada';
+}
+
+// Atualiza somente a apresentação/decisão do pagamento. O fluxo financeiro existente
+// continua sendo usado: quando "pagar agora" está ativo, Pix/Cartão seguem para a
+// InfinitePay; quando "pagar ao receber" está ativo, o pedido segue no fluxo combinado
+// que o sistema já suportava para Pix/Cartão/Dinheiro sem pagamento online.
+function atualizarOpcoesPagamentoCheckout() {
+    const seletorMomento = document.getElementById('seletorMomentoPagamento');
+    const metodos = document.getElementById('metodosPagamentoCheckout');
+    const avisoEncomenda = document.getElementById('avisoPagamentoEncomendaCheckout');
+    const btnAgora = document.getElementById('btnPagamentoAgora');
+    const btnRecebimento = document.getElementById('btnPagamentoRecebimento');
+    const btnPix = document.getElementById('btnPix');
+    const btnCartao = document.getElementById('btnCartao');
+    const btnDinheiro = document.getElementById('btnDinheiro');
+    const ajuda = document.getElementById('textoAjudaFormaPagamento');
+    const rotuloMomento = document.getElementById('rotuloMomentoRecebimento');
+    const rotuloPix = document.getElementById('rotuloPixPagamento');
+    const rotuloCartao = document.getElementById('rotuloCartaoPagamento');
+    const rotuloDinheiro = document.getElementById('rotuloDinheiroPagamento');
+    const passoObservacoes = document.getElementById('passoObservacoesNumero');
+
+    const encomendaComSinal = !!dataEncomendaEscolhida && percentualSinalEncomenda > 0;
+    if (encomendaComSinal) {
+        if (seletorMomento) seletorMomento.style.display = 'none';
+        if (metodos) metodos.style.display = 'none';
+        if (avisoEncomenda) avisoEncomenda.style.display = 'block';
+        if (passoObservacoes) passoObservacoes.textContent = '04';
+        if (areaTrocoDiv) areaTrocoDiv.style.display = 'none';
+        if (botaoFinalizarCompra && !lojaPausadaAtual && (lojaAbertaAtual || dataEncomendaEscolhida)) {
+            botaoFinalizarCompra.textContent = '📅 Enviar solicitação de encomenda';
+        }
+        return;
+    }
+
+    if (avisoEncomenda) avisoEncomenda.style.display = 'none';
+    if (passoObservacoes) passoObservacoes.textContent = '05';
+    if (metodos) metodos.style.display = '';
+    if (seletorMomento) seletorMomento.style.display = '';
+
+    // Sem pagamento online habilitado não existe uma escolha real de "pagar agora".
+    // Mantém a etapa visível (organização Premium do checkout), mas oferece apenas o
+    // caminho presencial que já existia no sistema.
+    if (!pagamentoOnlineAtivo) {
+        momentoPagamentoAtual = 'recebimento';
+        if (btnAgora) btnAgora.style.display = 'none';
+    } else if (btnAgora) {
+        btnAgora.style.display = '';
+    }
+
+    const pagarAgora = pagamentoOnlineAtivo && momentoPagamentoAtual === 'agora';
+    if (btnAgora) btnAgora.classList.toggle('selecionado', pagarAgora);
+    if (btnRecebimento) btnRecebimento.classList.toggle('selecionado', !pagarAgora);
+
+    const rotuloRecebimento = rotuloRecebimentoPagamento();
+    if (rotuloMomento) rotuloMomento.textContent = rotuloRecebimento;
+    if (rotuloPix) rotuloPix.textContent = pagarAgora ? 'pagar agora' : rotuloRecebimento;
+    if (rotuloCartao) rotuloCartao.textContent = pagarAgora ? 'pagar agora' : rotuloRecebimento;
+    if (rotuloDinheiro) rotuloDinheiro.textContent = rotuloRecebimento;
+    if (ajuda) ajuda.textContent = pagarAgora
+        ? 'Escolha Pix ou cartão para pagar agora.'
+        : `Escolha como deseja pagar ${rotuloRecebimento}.`;
+
+    // Dinheiro só faz sentido presencialmente. Se o cliente voltar para "pagar agora"
+    // depois de ter escolhido dinheiro, retorna para Pix sem apagar nenhum outro dado.
+    if (pagarAgora && formaPagamentoAtual === 'Dinheiro') formaPagamentoAtual = 'Pix';
+    if (btnDinheiro) btnDinheiro.style.display = pagarAgora ? 'none' : '';
+
+    if (btnPix) btnPix.classList.toggle('selecionado', formaPagamentoAtual === 'Pix');
+    if (btnCartao) btnCartao.classList.toggle('selecionado', formaPagamentoAtual === 'Cartão');
+    if (btnDinheiro) btnDinheiro.classList.toggle('selecionado', formaPagamentoAtual === 'Dinheiro');
+
+    if (areaTrocoDiv) {
+        areaTrocoDiv.style.display = (!pagarAgora && formaPagamentoAtual === 'Dinheiro') ? 'block' : 'none';
+    }
+
+    if (botaoFinalizarCompra && !lojaPausadaAtual && lojaAbertaAtual) {
+        const onlineSelecionado = pagarAgora && (formaPagamentoAtual === 'Pix' || formaPagamentoAtual === 'Cartão');
+        botaoFinalizarCompra.textContent = onlineSelecionado ? '🌐 Pagar Agora' : 'Finalizar Compra';
+    }
+}
+
+function selecionarMomentoPagamento(momento) {
+    if (momento !== 'agora' && momento !== 'recebimento') return;
+    if (momento === 'agora' && !pagamentoOnlineAtivo) return;
+    momentoPagamentoAtual = momento;
+    atualizarOpcoesPagamentoCheckout();
 }
 
 // Alterna a forma de pagamento e mostra o campo de troco quando for "Dinheiro"
 function selecionarPagamento(forma) {
+    // Dinheiro nunca é "pagar agora". Se for acionado por algum navegador/cache antigo,
+    // conduz para o fluxo presencial em vez de tentar iniciar checkout online.
+    if (forma === 'Dinheiro') momentoPagamentoAtual = 'recebimento';
     formaPagamentoAtual = forma;
-    document.getElementById('btnPix').classList.toggle('selecionado', forma === 'Pix');
-    document.getElementById('btnCartao').classList.toggle('selecionado', forma === 'Cartão');
-    document.getElementById('btnDinheiro').classList.toggle('selecionado', forma === 'Dinheiro');
-    areaTrocoDiv.style.display = forma === 'Dinheiro' ? 'block' : 'none';
-    // Pix e Cartão só exigem pagamento na hora se a loja já tiver ativado o pagamento
-    // online (aba Loja, no painel) — senão, funcionam do jeito de sempre (combinado)
-    const vaiPagarAgora = pagamentoOnlineAtivo && (forma === 'Pix' || forma === 'Cartão');
-    if (botaoFinalizarCompra && lojaAbertaAtual) {
-        botaoFinalizarCompra.textContent = vaiPagarAgora ? '🌐 Pagar Agora' : 'Finalizar Compra';
-    }
+    atualizarOpcoesPagamentoCheckout();
 }
 
 // Atualiza o resumo de encomenda mostrado pro cliente no checkout — mostra o valor
@@ -2568,6 +2660,7 @@ function selecionarPagamento(forma) {
 function atualizarResumoEncomendaCheckout() {
     const resumoDiv = document.getElementById('resumoEncomendaCheckout');
     const resumoTexto = document.getElementById('resumoTextoEncomenda');
+    atualizarOpcoesPagamentoCheckout();
 
     // Reage na hora se a loja estiver fechada: escolher (ou desmarcar) uma encomenda
     // libera ou trava o botão de finalizar na hora, sem esperar a próxima atualização
@@ -4265,9 +4358,13 @@ async function finalizarCompra() {
         mensagemPedido += `🏘️ ${bairro} — ${cidade}/${estado}\n`;
         mensagemPedido += `📮 CEP: ${cep}\n`;
     }
-    mensagemPedido += querAgendar && percentualSinalEncomenda > 0
-        ? `\n💳 *Pagamento:* A definir após aprovação (sinal ou total online)\n`
-        : `\n💳 *Pagamento:* ${formaPagamentoAtual}\n`;
+    if (querAgendar && percentualSinalEncomenda > 0) {
+        mensagemPedido += `\n💳 *Pagamento:* A definir após aprovação (sinal ou total online)\n`;
+    } else if (!querAgendar && momentoPagamentoAtual === 'recebimento') {
+        mensagemPedido += `\n💳 *Pagamento:* ${formaPagamentoAtual} — ${rotuloRecebimentoPagamento()}\n`;
+    } else {
+        mensagemPedido += `\n💳 *Pagamento:* ${formaPagamentoAtual}\n`;
+    }
     if (!querAgendar && formaPagamentoAtual === 'Dinheiro' && troco) {
         const trocoNormalizado = troco.trim().toLowerCase();
         const semTroco = ['sem troco', 'não preciso', 'nao preciso', 'não precisa', 'nao precisa'].includes(trocoNormalizado);
@@ -4299,6 +4396,7 @@ async function finalizarCompra() {
     // pendente e visível no painel; somente pedido comum Pix/Cartão continua escondido
     // em aguardando_pagamento até o gateway confirmar.
     const exigePagamentoAntes = pagamentoOnlineAtivo
+        && momentoPagamentoAtual === 'agora'
         && !querAgendar
         && (formaPagamentoAtual === 'Pix' || formaPagamentoAtual === 'Cartão');
     const statusInicialPedido = exigePagamentoAntes ? 'aguardando_pagamento' : 'pendente';
@@ -4333,7 +4431,11 @@ async function finalizarCompra() {
         },
         pagamento: {
             forma: formaPagamentoAtual,
-            onlineAtivo: pagamentoOnlineAtivo,
+            momento: momentoPagamentoAtual,
+            onlineDisponivel: pagamentoOnlineAtivo,
+            // pagamento.js continua intacto: recebe onlineAtivo=true apenas quando o
+            // cliente escolheu explicitamente "Pagar agora".
+            onlineAtivo: pagamentoOnlineAtivo && momentoPagamentoAtual === 'agora',
             precisaTroco: precisaTrocoAtual,
             troco
         },
