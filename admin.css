@@ -16482,3 +16482,278 @@ section[data-tab="agenda"] .agenda-bloqueio-box input[type="date"] {
         flex-wrap: wrap;
     }
 }
+
+
+/* ============================================================
+   ENCOMENDAS CONFIRMADAS — agenda operacional abaixo do Kanban
+   ============================================================ */
+.encomendas-confirmadas-premium {
+    margin-top: 16px;
+    padding: 0;
+    overflow: hidden;
+    background: rgba(255,255,255,.93);
+    border: 1px solid rgba(160,82,45,.16);
+    border-left: 4px solid #d79632;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(70,43,27,.07);
+}
+
+.encomendas-confirmadas-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 17px 20px 14px;
+    border-bottom: 1px solid rgba(160,82,45,.10);
+    background: linear-gradient(135deg, rgba(255,251,245,.98), rgba(255,255,255,.98));
+}
+
+.encomendas-confirmadas-head h2 {
+    margin: 2px 0 4px;
+    color: #4a3022;
+    font-size: 1.03rem;
+}
+
+.encomendas-confirmadas-head .dica-secao {
+    margin: 0;
+}
+
+.encomendas-confirmadas-agenda-link {
+    flex: 0 0 auto;
+    padding: 8px 12px;
+    font: inherit;
+    cursor: pointer;
+    border: 1px solid rgba(160,82,45,.20);
+    border-radius: 10px;
+    color: #8d4d2b;
+    background: #fffaf5;
+    font-size: .72rem;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.encomendas-agenda-lista {
+    padding: 10px 14px 14px;
+}
+
+.encomenda-agenda-grupo + .encomenda-agenda-grupo {
+    margin-top: 10px;
+}
+
+.encomenda-agenda-grupo-titulo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: 10px;
+    background: #f8efe5;
+    color: #6d442e;
+    font-size: .72rem;
+    font-weight: 800;
+}
+
+.encomenda-agenda-grupo-titulo > span:last-child {
+    min-width: 24px;
+    padding: 3px 7px;
+    text-align: center;
+    border-radius: 999px;
+    background: rgba(160,82,45,.10);
+}
+
+.encomenda-agenda-item {
+    display: grid;
+    grid-template-columns: 118px minmax(160px, 1.1fr) minmax(165px, 1.35fr) 76px 104px 128px 82px minmax(255px, auto);
+    align-items: center;
+    gap: 9px;
+    min-height: 48px;
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(160,82,45,.09);
+    color: #4c382c;
+    font-size: .68rem;
+}
+
+.encomenda-agenda-item:last-child {
+    border-bottom: 0;
+}
+
+.encomenda-agenda-pedido,
+.encomenda-agenda-itens {
+    min-width: 0;
+}
+
+.encomenda-agenda-pedido strong,
+.encomenda-agenda-pedido small {
+    display: block;
+}
+
+.encomenda-agenda-pedido strong {
+    overflow: hidden;
+    color: #4a3022;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.encomenda-agenda-pedido small {
+    margin-top: 2px;
+    color: #8a7568;
+    font-size: .6rem;
+}
+
+.encomenda-agenda-itens {
+    overflow: hidden;
+    color: #6c5547;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.encomenda-agenda-hora,
+.encomenda-agenda-modalidade,
+.encomenda-agenda-total {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.encomenda-agenda-total {
+    color: #8b4a28;
+    text-align: right;
+}
+
+.encomenda-agenda-tempo,
+.encomenda-agenda-pagamento {
+    justify-self: start;
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: .61rem;
+    font-weight: 800;
+    line-height: 1.1;
+    white-space: nowrap;
+}
+
+.encomenda-agenda-tempo--futuro {
+    background: #fff2dc;
+    color: #9b641b;
+}
+
+.encomenda-agenda-tempo--atencao {
+    background: #fff0d6;
+    color: #b06a12;
+}
+
+.encomenda-agenda-tempo--agora {
+    background: #fde5e1;
+    color: #b53f34;
+}
+
+.encomenda-agenda-tempo--atrasada {
+    background: #ffe0dc;
+    color: #b02d25;
+}
+
+.encomenda-agenda-tempo--neutro {
+    background: #f0ebe6;
+    color: #74675f;
+}
+
+.encomenda-agenda-pagamento--pago {
+    background: #e1f6e9;
+    color: #24734a;
+}
+
+.encomenda-agenda-pagamento--sinal {
+    background: #e8f1ff;
+    color: #39699d;
+}
+
+.encomenda-agenda-pagamento--aguardando {
+    background: #fff1d6;
+    color: #9b681e;
+}
+
+.encomenda-agenda-acoes {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.encomenda-agenda-btn {
+    min-height: 32px;
+    padding: 6px 9px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    font: inherit;
+    font-size: .61rem;
+    font-weight: 800;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.encomenda-agenda-btn--preparo {
+    border-color: rgba(160,82,45,.18);
+    background: #a9562e;
+    color: #fff;
+}
+
+.encomenda-agenda-btn--expedicao {
+    border-color: rgba(47,137,206,.20);
+    background: #338fd0;
+    color: #fff;
+}
+
+.encomenda-agenda-btn--icone {
+    width: 34px;
+    padding: 6px;
+    border-color: rgba(160,82,45,.16);
+    background: #fffaf6;
+    color: #76513c;
+}
+
+@media (max-width: 1250px) {
+    .encomenda-agenda-item {
+        grid-template-columns: 110px minmax(170px, 1.2fr) minmax(180px, 1.5fr) 80px 110px 1fr;
+    }
+    .encomenda-agenda-pagamento,
+    .encomenda-agenda-total {
+        justify-self: start;
+        text-align: left;
+    }
+    .encomenda-agenda-acoes {
+        grid-column: 1 / -1;
+        justify-content: flex-start;
+        padding-bottom: 2px;
+    }
+}
+
+@media (max-width: 760px) {
+    .encomendas-confirmadas-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .encomenda-agenda-item {
+        grid-template-columns: 1fr 1fr;
+        gap: 7px 10px;
+        padding: 11px 10px;
+    }
+
+    .encomenda-agenda-pedido,
+    .encomenda-agenda-itens,
+    .encomenda-agenda-acoes {
+        grid-column: 1 / -1;
+    }
+
+    .encomenda-agenda-total {
+        text-align: left;
+    }
+
+    .encomenda-agenda-acoes {
+        flex-wrap: wrap;
+    }
+
+    .encomenda-agenda-btn--preparo,
+    .encomenda-agenda-btn--expedicao {
+        flex: 1 1 145px;
+    }
+}

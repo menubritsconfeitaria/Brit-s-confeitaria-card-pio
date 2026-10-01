@@ -303,6 +303,20 @@
                 </div>
             </section>
 
+            <section data-tab="pedidos" id="secaoEncomendasConfirmadas" class="encomendas-confirmadas-premium">
+                <div class="encomendas-confirmadas-head">
+                    <div>
+                        <span class="pedidos-operacao-eyebrow">AGENDA OPERACIONAL</span>
+                        <h2>📅 Encomendas confirmadas <span id="contadorEncomendasConfirmadas" class="badge-contador">0</span></h2>
+                        <p class="dica-secao">Encomendas aceitas ficam aqui até a loja iniciar o preparo. O horário orienta a produção, mas não bloqueia a operação.</p>
+                    </div>
+                    <button type="button" class="encomendas-confirmadas-agenda-link" onclick="document.querySelector('.painel-tab-btn[data-tab=&quot;agenda&quot;]')?.click()">Ver agenda completa</button>
+                </div>
+                <div id="listaEncomendasConfirmadas" class="encomendas-agenda-lista">
+                    <p class="vazio">Nenhuma encomenda confirmada aguardando preparo.</p>
+                </div>
+            </section>
+
             <section data-tab="pedidos" class="pedidos-historico-premium">
                 <div class="pedidos-historico-head">
                     <div>
