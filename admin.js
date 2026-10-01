@@ -2378,7 +2378,7 @@ function montarCardPedido(id, pedido, comAcoes) {
                 <div class="pedido-cliente">${pedido.numero ? `<span class="pedido-numero">🛒Pedido #${escaparHtmlSeguro(String(pedido.numero).padStart(3, '0'))}</span> - ` : ''}${escaparHtmlSeguro(pedido.nome || 'Cliente')}</div>
                 <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;">
                     <span class="pedido-tag ${pedido.tipoEntrega === 'entrega' ? 'tag-entrega' : 'tag-retirada'}">${pedido.tipoEntrega === 'entrega' ? '🛵 Entrega' : '🏠 Retirada'}</span>
-                    <span class="pedido-tag tag-pagamento" style="cursor:pointer;" onclick="editarFormaPagamentoPedido('${id}', this)" title="Clique pra corrigir a forma de pagamento">💰 ${escaparHtmlSeguro(pedido.formaPagamento || '')}${pedido.troco ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''} ✏️</span>
+                    <span class="pedido-tag tag-pagamento" style="cursor:pointer;" onclick="editarFormaPagamentoPedido('${id}', this)" title="Clique pra corrigir a forma de pagamento">💰 ${escaparHtmlSeguro(pedido.formaPagamento || '')}${(!pedido.pagamento && !pedido.pagamentoConfirmadoManual && pedido.formaPagamento) ? ` · ${pedido.tipoEntrega === 'entrega' ? 'na entrega' : 'na retirada'}` : ''}${pedido.troco ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''} ✏️</span>
                     ${botaoPagamentoManualHtml}
                     ${tagStatus}
                 </div>
