@@ -2142,21 +2142,30 @@ function atualizarUrgenciaVisualCard(card) {
     const badge = card.querySelector('.pedido-tempo-etapa');
     if (!badge) return;
 
+    // Quando a loja iniciou manualmente o preparo de uma encomenda, o mesmo cronômetro
+    // já usa preparoIniciadoEm como início real. O texto precisa refletir isso: evita
+    // dizer "desde o pedido" quando, na verdade, estamos medindo tempo de produção.
+    const pedidoId = card.dataset.pedidoId;
+    const pedido = pedidoId ? pedidosParaImpressao[pedidoId] : null;
+    const rotuloTempo = pedido && Number(pedido.preparoIniciadoEm || 0)
+        ? 'em preparo'
+        : 'desde o pedido';
+
     card.classList.remove('urgencia-normal', 'urgencia-atencao', 'urgencia-atrasado');
     badge.classList.remove('tempo-normal', 'tempo-atencao', 'tempo-atrasado');
 
     if (minutos >= URGENCIA_PEDIDOS.atrasadoMinutos) {
         card.classList.add('urgencia-atrasado');
         badge.classList.add('tempo-atrasado');
-        badge.textContent = `🔴 ${minutos} min desde o pedido`;
+        badge.textContent = `🔴 ${minutos} min ${rotuloTempo}`;
     } else if (minutos >= URGENCIA_PEDIDOS.atencaoMinutos) {
         card.classList.add('urgencia-atencao');
         badge.classList.add('tempo-atencao');
-        badge.textContent = `🟠 ${minutos} min desde o pedido`;
+        badge.textContent = `🟠 ${minutos} min ${rotuloTempo}`;
     } else {
         card.classList.add('urgencia-normal');
         badge.classList.add('tempo-normal');
-        badge.textContent = `🟢 ${minutos} min desde o pedido`;
+        badge.textContent = `🟢 ${minutos} min ${rotuloTempo}`;
     }
 }
 
