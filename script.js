@@ -1415,7 +1415,11 @@ function renderizarStatusPedido(pedido) {
         texto.textContent = `🛍️ Seu pedido está pronto! Pode vir buscar na ${LOJA_CONFIG.nome}.`;
     } else if (status === 'entregue') {
         banner.classList.add('status-entregue');
-        texto.textContent = `🎉 Pedido entregue! Seus pontos do Clube ${LOJA_CONFIG.nomeCurto} já foram creditados. Bom apetite!`;
+        const ehEntregaFinal = pedido.tipoEntrega === 'entrega';
+        const substantivoFinal = pedido.dataEncomenda ? 'Encomenda' : 'Pedido';
+        texto.textContent = ehEntregaFinal
+            ? `🎉 ${substantivoFinal} entregue! Seus pontos do Clube ${LOJA_CONFIG.nomeCurto} já foram creditados. Bom apetite!`
+            : `🎉 ${substantivoFinal} retirado! Seus pontos do Clube ${LOJA_CONFIG.nomeCurto} já foram creditados. Bom apetite!`;
     } else if (status === 'recusado') {
         banner.classList.add('status-recusado');
         texto.textContent = '❌ Seu pedido foi recusado. Fale com a gente pelo WhatsApp para mais detalhes.';
@@ -1876,6 +1880,9 @@ const rotulosStatusPedido = {
 };
 
 function rotuloStatusPedidoCliente(pedido) {
+    if (pedido && pedido.status === 'entregue') {
+        return pedido.tipoEntrega === 'entrega' ? '🎉 Entregue' : '🎉 Retirado';
+    }
     if (pedido && pedido.status === 'aceito' && encomendaAindaFutura(pedido)) {
         return '✅ Encomenda confirmada';
     }

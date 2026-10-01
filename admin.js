@@ -2473,7 +2473,9 @@ function montarCardPedido(id, pedido, comAcoes) {
             : '<span class="pedido-tag tag-status-aceito">👩‍🍳 Em preparo</span>',
         em_rota: '<span class="pedido-tag tag-status-em-rota">🛵 Saiu para entrega</span>',
         pronto_retirada: '<span class="pedido-tag tag-status-pronto-retirada">🛍️ Pronto pra retirada</span>',
-        entregue: '<span class="pedido-tag tag-status-entregue">✅ Entregue</span>',
+        entregue: pedido.tipoEntrega === 'entrega'
+            ? '<span class="pedido-tag tag-status-entregue">✅ Entregue</span>'
+            : '<span class="pedido-tag tag-status-entregue">✅ Retirado</span>',
         recusado: '<span class="pedido-tag tag-status-recusado">Recusado</span>'
     }[pedido.status] || '';
 
@@ -2517,8 +2519,9 @@ function montarCardPedido(id, pedido, comAcoes) {
     const dataEncomendaTopoValida = /^\d{4}-\d{2}-\d{2}$/.test(dataEncomendaTopo);
     const preparoEncomendaIniciado = dataEncomendaTopoValida && !!Number(pedido.preparoIniciadoEm || 0);
     const encomendaAgendadaSemContador = dataEncomendaTopoValida && encomendaAguardandoHorarioOperacional(pedido);
+    const encomendaFinalizada = dataEncomendaTopoValida && pedido.status === 'entregue';
     let avisoAgendamentoTopoHtml = '';
-    if (encomendaAgendadaSemContador) {
+    if (encomendaAgendadaSemContador || encomendaFinalizada) {
         const dataBrTopo = dataEncomendaTopo.split('-').reverse().join('/');
         const ehHojeTopo = dataEncomendaTopo === hojeIsoLocal();
         const horaTopo = /^([01]\d|2[0-3]):[0-5]\d$/.test(String(pedido.horaEncomenda || ''))
@@ -2536,23 +2539,38 @@ function montarCardPedido(id, pedido, comAcoes) {
                 hourCycle: 'h23'
             }).format(new Date(prontoEmTopo))
             : '';
+        const finalizadoEmTopo = Number(pedido.finalizadoEm || 0);
+        const horaFinalizadoTopo = finalizadoEmTopo
+            ? new Intl.DateTimeFormat('pt-BR', {
+                timeZone: 'America/Sao_Paulo',
+                hour: '2-digit',
+                minute: '2-digit',
+                hourCycle: 'h23'
+            }).format(new Date(finalizadoEmTopo))
+            : '';
         const tituloAgendaTopo = solicitacaoPendente
             ? 'Solicitação de encomenda'
-            : (encomendaProntaRetirada
-                ? 'Encomenda pronta para retirada'
-                : (preparoEncomendaIniciado ? 'Encomenda em preparo' : 'Encomenda agendada'));
+            : (encomendaFinalizada
+                ? (pedido.tipoEntrega === 'entrega' ? 'Encomenda entregue' : 'Encomenda retirada')
+                : (encomendaProntaRetirada
+                    ? 'Encomenda pronta para retirada'
+                    : (preparoEncomendaIniciado ? 'Encomenda em preparo' : 'Encomenda agendada')));
         const seloAgendaTopo = solicitacaoPendente
             ? 'AGUARDANDO ACEITE'
-            : (encomendaProntaRetirada
-                ? 'PRONTA'
-                : (preparoEncomendaIniciado ? 'EM PREPARO' : (ehHojeTopo ? 'DIA DO EVENTO' : 'AGENDADA')));
+            : (encomendaFinalizada
+                ? 'CONCLUÍDA'
+                : (encomendaProntaRetirada
+                    ? 'PRONTA'
+                    : (preparoEncomendaIniciado ? 'EM PREPARO' : (ehHojeTopo ? 'DIA DO EVENTO' : 'AGENDADA'))));
         const textoAgendaTopo = solicitacaoPendente
             ? 'Aguardando confirmação da loja antes de qualquer cobrança.'
-            : (encomendaProntaRetirada
-                ? `${horaProntoTopo ? `Ficou pronta às ${horaProntoTopo} • ` : ''}retirada prevista para ${horaTopo ? `às ${horaTopo}` : 'o horário combinado'}.`
-                : (preparoEncomendaIniciado
-                    ? `Preparo iniciado • ${pedido.tipoEntrega === 'entrega' ? 'entrega' : 'retirada'} prevista para esse horário.`
-                    : (ehHojeTopo ? 'Evento marcado para hoje • confira os detalhes de entrega ou retirada.' : 'Aguardando a data do evento • detalhes combinados com o cliente.')));
+            : (encomendaFinalizada
+                ? `${pedido.tipoEntrega === 'entrega' ? 'Entrega' : 'Retirada'} concluída${horaFinalizadoTopo ? ` às ${horaFinalizadoTopo}` : ''}.${horaProntoTopo ? ` Ficou pronta às ${horaProntoTopo}.` : ''}`
+                : (encomendaProntaRetirada
+                    ? `${horaProntoTopo ? `Ficou pronta às ${horaProntoTopo} • ` : ''}retirada prevista para ${horaTopo ? `às ${horaTopo}` : 'o horário combinado'}.`
+                    : (preparoEncomendaIniciado
+                        ? `Preparo iniciado • ${pedido.tipoEntrega === 'entrega' ? 'entrega' : 'retirada'} prevista para esse horário.`
+                        : (ehHojeTopo ? 'Evento marcado para hoje • confira os detalhes de entrega ou retirada.' : 'Aguardando a data do evento • detalhes combinados com o cliente.'))));
         avisoAgendamentoTopoHtml = `
             <div class="pedido-agendamento-premium" style="width:100%;box-sizing:border-box;margin:9px 0 10px;padding:11px 12px;border:1px solid rgba(151,105,68,.18);border-radius:14px;background:linear-gradient(145deg,rgba(255,250,243,.99),rgba(255,255,255,.99));box-shadow:0 7px 18px rgba(96,62,39,.07);color:#5a4030;">
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px;">
