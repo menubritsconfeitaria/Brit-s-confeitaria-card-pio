@@ -3400,28 +3400,30 @@ function renderizarProdutos() {
         const introEncomenda = document.createElement('div');
         introEncomenda.classList.add('encomenda-intro');
         introEncomenda.innerHTML = `
-            <div style="border:1px solid rgba(111,78,55,.14);border-radius:20px;padding:18px;background:linear-gradient(145deg,#fffdf9 0%,#fff8ef 100%);box-shadow:0 14px 34px rgba(76,49,32,.08);margin-bottom:18px;">
-                <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:16px;">
-                    <div style="width:42px;height:42px;min-width:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#6f4e37,#a66a3f);color:#fff;font-size:20px;box-shadow:0 8px 18px rgba(111,78,55,.18);">📅</div>
-                    <div style="min-width:0;">
-                        <div style="font-size:12px;font-weight:850;letter-spacing:.08em;text-transform:uppercase;color:#9b6d49;margin-bottom:3px;">Agendamento da encomenda</div>
-                        <div style="font-size:17px;font-weight:850;color:#35271f;line-height:1.25;">Informe a data e o horário do evento</div>
-                        <div style="font-size:12.5px;color:#7b6a60;line-height:1.45;margin-top:5px;">Essas informações ajudam a loja a organizar a produção e combinar a entrega ou retirada com você.</div>
+            <div class="encomenda-agendamento-faixa">
+                <div class="encomenda-agendamento-info">
+                    <div class="encomenda-agendamento-icone" aria-hidden="true">📅</div>
+                    <div class="encomenda-agendamento-textos">
+                        <div class="encomenda-agendamento-kicker">Agendamento da encomenda</div>
+                        <div class="encomenda-agendamento-titulo">Escolha a data e o horário</div>
+                        <div class="encomenda-agendamento-descricao">A loja confere a disponibilidade e organiza a produção para a sua retirada ou entrega.</div>
                     </div>
                 </div>
 
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;">
-                    <label style="display:block;font-size:12px;font-weight:800;color:#5f493b;">
-                        <span style="display:block;margin-bottom:7px;">📆 Data do evento</span>
-                        <input type="date" id="encomendaDataInput" onchange="verificarDisponibilidadeAgenda()" style="width:100%;box-sizing:border-box;border:1px solid #e3d6ca;border-radius:13px;background:#fff;padding:12px 13px;font:inherit;color:#35271f;outline:none;min-height:46px;">
-                    </label>
-                    <label style="display:block;font-size:12px;font-weight:800;color:#5f493b;">
-                        <span style="display:block;margin-bottom:7px;">🕒 Horário do evento</span>
-                        <input type="time" id="encomendaHoraInput" step="900" onchange="atualizarHorarioEncomenda()" oninput="atualizarHorarioEncomenda()" style="width:100%;box-sizing:border-box;border:1px solid #e3d6ca;border-radius:13px;background:#fff;padding:12px 13px;font:inherit;color:#35271f;outline:none;min-height:46px;">
-                    </label>
-                </div>
+                <div class="encomenda-agendamento-controles">
+                    <div class="encomenda-agendamento-campos">
+                        <label class="encomenda-campo-label">
+                            <span>📆 Data do evento</span>
+                            <input type="date" id="encomendaDataInput" onchange="verificarDisponibilidadeAgenda()">
+                        </label>
+                        <label class="encomenda-campo-label">
+                            <span>🕒 Horário do evento</span>
+                            <input type="time" id="encomendaHoraInput" step="900" onchange="atualizarHorarioEncomenda()" oninput="atualizarHorarioEncomenda()">
+                        </label>
+                    </div>
 
-                <div id="encomendaDisponibilidadeMsg" class="dica-encomenda" style="min-height:18px;margin-top:12px;padding:10px 12px;border-radius:12px;background:rgba(111,78,55,.055);color:#6f5c50;font-size:12px;line-height:1.35;">Escolha uma data para conferir a disponibilidade.</div>
+                    <div id="encomendaDisponibilidadeMsg" class="dica-encomenda encomenda-disponibilidade-msg">Escolha uma data para conferir a disponibilidade.</div>
+                </div>
             </div>
         `;
         listaProdutosDiv.appendChild(introEncomenda);
@@ -3433,7 +3435,7 @@ function renderizarProdutos() {
         if (horaEncomendaEscolhida) horaInputEncomenda.value = horaEncomendaEscolhida;
 
         const gridEncomenda = document.createElement('div');
-        gridEncomenda.classList.add('categoria-grid');
+        gridEncomenda.classList.add('categoria-grid', 'encomenda-grid');
         produtosParaEncomenda.forEach(produto => gridEncomenda.appendChild(construirCardProduto(produto)));
         listaProdutosDiv.appendChild(gridEncomenda);
     }
