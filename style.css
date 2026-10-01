@@ -6158,3 +6158,56 @@ body.modo-demo-personalizado .checkout-resumo-icone {
         text-align: left;
     }
 }
+
+/* ============================================================
+   CHECKOUT — MOMENTOS DO CARRINHO + RESUMO DE ENCOMENDA V1
+   ============================================================ */
+#resumoEncomendaCheckout {
+    margin: 14px 18px 16px;
+    padding: 15px 17px;
+    border: 1px solid rgba(166, 90, 50, .16);
+    border-radius: 15px;
+    background: linear-gradient(145deg, #fffaf4, #fffdf9);
+    box-shadow: 0 6px 18px rgba(76, 48, 31, .055);
+}
+
+#resumoEncomendaCheckout .dica-encomenda {
+    margin: 0;
+    color: #614a3b;
+    font-size: .82rem;
+    line-height: 1.62;
+}
+
+.checkout-grupo-itens-titulo {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 12px 0 3px;
+    padding: 8px 9px;
+    border-radius: 10px;
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .01em;
+}
+
+.checkout-grupo-itens-titulo:first-child { margin-top: 0; }
+
+.checkout-grupo-itens-titulo--agora {
+    color: #2f6948;
+    background: #edf8f1;
+    border: 1px solid rgba(48, 133, 84, .14);
+}
+
+.checkout-grupo-itens-titulo--encomenda {
+    color: #825326;
+    background: #fff5e6;
+    border: 1px solid rgba(183, 119, 40, .15);
+}
+
+@media (max-width: 680px) {
+    #resumoEncomendaCheckout {
+        margin: 12px 12px 14px;
+        padding: 13px 14px;
+    }
+}
+

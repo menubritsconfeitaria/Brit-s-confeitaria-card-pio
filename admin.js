@@ -2131,7 +2131,7 @@ function aplicarUrgenciaVisualCard(card, pedido, comAcoes) {
     const dataEncomendaValida = /^\d{4}-\d{2}-\d{2}$/.test(dataEncomenda);
     const aguardandoMomentoAgendado = encomendaAguardandoHorarioOperacional(pedido);
 
-    if (dataEncomendaValida && aguardandoMomentoAgendado && !pedido.preparoIniciadoEm) {
+    if (dataEncomendaValida && aguardandoMomentoAgendado && !pedido.preparoIniciadoEm && pedido.status !== 'pendente') {
         const badge = card.querySelector('.pedido-tempo-etapa');
 
         card.classList.remove(
@@ -2364,17 +2364,23 @@ function montarCardPedido(id, pedido, comAcoes) {
             ? String(pedido.horaEncomenda)
             : '';
         const dataHoraTopo = `${ehHojeTopo ? 'Hoje' : dataBrTopo}${horaTopo ? ` • ${horaTopo}` : ''}`;
+        const solicitacaoPendente = pedido.status === 'pendente';
+        const tituloAgendaTopo = solicitacaoPendente ? 'Solicitação de encomenda' : 'Encomenda agendada';
+        const seloAgendaTopo = solicitacaoPendente ? 'AGUARDANDO ACEITE' : (ehHojeTopo ? 'DIA DO EVENTO' : 'AGENDADA');
+        const textoAgendaTopo = solicitacaoPendente
+            ? 'Aguardando confirmação da loja antes de qualquer cobrança.'
+            : (ehHojeTopo ? 'Evento marcado para hoje • confira os detalhes de entrega ou retirada.' : 'Aguardando a data do evento • detalhes combinados com o cliente.');
         avisoAgendamentoTopoHtml = `
             <div class="pedido-agendamento-premium" style="width:100%;box-sizing:border-box;margin:9px 0 10px;padding:11px 12px;border:1px solid rgba(151,105,68,.18);border-radius:14px;background:linear-gradient(145deg,rgba(255,250,243,.99),rgba(255,255,255,.99));box-shadow:0 7px 18px rgba(96,62,39,.07);color:#5a4030;">
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px;">
                     <span style="display:flex;align-items:center;gap:6px;font-size:9.5px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;color:#9a6844;min-width:0;">
                         <span aria-hidden="true" style="font-size:13px;">📅</span>
-                        <span>Encomenda agendada</span>
+                        <span>${tituloAgendaTopo}</span>
                     </span>
-                    <span style="padding:4px 7px;border-radius:999px;background:${ehHojeTopo ? 'rgba(32,151,87,.10)' : 'rgba(171,119,75,.09)'};font-size:8.8px;font-weight:900;letter-spacing:.04em;white-space:nowrap;color:${ehHojeTopo ? '#237548' : '#8b613f'};">${ehHojeTopo ? 'DIA DO EVENTO' : 'AGENDADA'}</span>
+                    <span style="padding:4px 7px;border-radius:999px;background:${ehHojeTopo ? 'rgba(32,151,87,.10)' : 'rgba(171,119,75,.09)'};font-size:8.8px;font-weight:900;letter-spacing:.04em;white-space:nowrap;color:${ehHojeTopo ? '#237548' : '#8b613f'};">${seloAgendaTopo}</span>
                 </div>
                 <div style="font-size:14px;font-weight:900;line-height:1.2;color:#3d2b21;margin-bottom:4px;">${dataHoraTopo}</div>
-                <div style="font-size:10.5px;line-height:1.35;color:#7d695c;">${ehHojeTopo ? 'Evento marcado para hoje • confira os detalhes de entrega ou retirada.' : 'Aguardando a data do evento • detalhes combinados com o cliente.'}</div>
+                <div style="font-size:10.5px;line-height:1.35;color:#7d695c;">${textoAgendaTopo}</div>
             </div>`;
     }
     // Em encomenda com sinal online obrigatório, o botão genérico "Marcar como pago"

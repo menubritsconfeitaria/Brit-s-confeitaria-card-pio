@@ -184,6 +184,10 @@ let valorPorKmEncomenda = valorPorKmEncomendaPadrao;
 
 // Estado atual do cálculo de frete (retirada é a opção padrão, então começa sem frete)
 let freteAtual = 0;
+// Em carrinho misto, cada momento operacional tem seu próprio frete.
+// freteAtual continua sendo o total exibido, preservando o restante do checkout.
+let freteAgoraAtual = 0;
+let freteEncomendaAtual = 0;
 let dataEncomendaVerificada = null; // guarda a última data checada e se estava disponível, pra não deixar finalizar sem checar
 let dataEncomendaEscolhida = null; // data de encomenda escolhida na aba dedicada, null = pedido normal
 let horaEncomendaEscolhida = null; // horário do evento informado pelo cliente (HH:MM)
@@ -237,6 +241,50 @@ let formaPagamentoAtual = 'Pix';
 // Pix/Cartão continuam em "pagar agora" até o cliente escolher explicitamente pagar ao receber.
 // Isso adiciona a nova opção sem alterar silenciosamente o fluxo já aprovado.
 let momentoPagamentoAtual = 'agora'; // 'agora' | 'recebimento'
+
+// ---------- MOMENTOS DO CARRINHO: PARA AGORA x ENCOMENDA ----------
+// Produto marcado no painel como disponível para encomenda pertence ao momento agendado.
+// Os demais continuam no pedido normal. O carrinho permanece único para o cliente; a
+// separação em dois pedidos reais só acontece ao finalizar um carrinho misto.
+function produtoDoItemCarrinho(item) {
+    if (!item) return null;
+    return item.produtoId
+        ? produtos.find(p => p.id === item.produtoId) || null
+        : produtos.find(p => p.nome === item.nome) || null;
+}
+
+function itemCarrinhoEhEncomenda(item) {
+    const produto = produtoDoItemCarrinho(item);
+    return !!(produto && produto.disponivelParaEncomenda === true);
+}
+
+function obterGruposCarrinhoPorMomento() {
+    const agora = [];
+    const encomenda = [];
+    carrinho.forEach((item, index) => {
+        const entrada = { item, index };
+        if (itemCarrinhoEhEncomenda(item)) encomenda.push(entrada);
+        else agora.push(entrada);
+    });
+    return {
+        agora,
+        encomenda,
+        temAgora: agora.length > 0,
+        temEncomenda: encomenda.length > 0,
+        misto: agora.length > 0 && encomenda.length > 0
+    };
+}
+
+function subtotalEntradasCarrinho(entradas) {
+    return (entradas || []).reduce((soma, entrada) => {
+        const item = entrada && entrada.item ? entrada.item : entrada;
+        return soma + (Number(item && item.preco) || 0) * (Number(item && item.quantidade) || 0);
+    }, 0);
+}
+
+function itensPurosDoGrupo(entradas) {
+    return (entradas || []).map(entrada => entrada && entrada.item ? entrada.item : entrada);
+}
 
 // Guarda a lista de imagens de cada carrossel (preenchido a cada renderizarProdutos())
 let carrosselImagensRegistro = {};
@@ -1807,6 +1855,16 @@ function adicionarAoHistoricoLocal(pedidoId) {
     }
 }
 
+function removerDoHistoricoLocal(pedidoId) {
+    if (!pedidoId) return;
+    try {
+        const historico = JSON.parse(localStorage.getItem('historicoPedidos')) || [];
+        localStorage.setItem('historicoPedidos', JSON.stringify(historico.filter(item => item && item.id !== pedidoId)));
+        const ultimo = JSON.parse(localStorage.getItem('ultimoPedido') || 'null');
+        if (ultimo && ultimo.id === pedidoId) localStorage.removeItem('ultimoPedido');
+    } catch (e) {}
+}
+
 const rotulosStatusPedido = {
     aguardando_pagamento: '💳 Aguardando pagamento',
     pendente: '🕒 Aguardando confirmação',
@@ -2544,6 +2602,8 @@ function selecionarTipoEntrega(tipo) {
 
     if (tipo === 'retirada') {
         freteAtual = 0;
+        freteAgoraAtual = 0;
+        freteEncomendaAtual = 0;
         freteConfirmado = true; // não há entrega, então não há valor "a confirmar"
         infoFreteDiv.style.display = 'none';
     } else if (!cepClienteInput.value) {
@@ -2576,12 +2636,21 @@ function atualizarOpcoesPagamentoCheckout() {
     const rotuloCartao = document.getElementById('rotuloCartaoPagamento');
     const rotuloDinheiro = document.getElementById('rotuloDinheiroPagamento');
     const passoObservacoes = document.getElementById('passoObservacoesNumero');
+    const passoEncomenda = document.getElementById('passoPagamentoEncomendaNumero');
+    const tituloMomento = document.getElementById('tituloMomentoPagamento');
+    const subtituloMomento = document.getElementById('subtituloMomentoPagamento');
 
-    const encomendaComSinal = !!dataEncomendaEscolhida && percentualSinalEncomenda > 0;
-    if (encomendaComSinal) {
+    const grupos = obterGruposCarrinhoPorMomento();
+    const encomendaComSinal = grupos.temEncomenda && !!dataEncomendaEscolhida && percentualSinalEncomenda > 0;
+    const somenteEncomendaComSinal = encomendaComSinal && !grupos.temAgora;
+
+    // Carrinho contendo apenas encomenda mantém exatamente o fluxo já aprovado:
+    // nada é cobrado antes do aceite da loja.
+    if (somenteEncomendaComSinal) {
         if (seletorMomento) seletorMomento.style.display = 'none';
         if (metodos) metodos.style.display = 'none';
         if (avisoEncomenda) avisoEncomenda.style.display = 'block';
+        if (passoEncomenda) passoEncomenda.textContent = '03';
         if (passoObservacoes) passoObservacoes.textContent = '04';
         if (areaTrocoDiv) areaTrocoDiv.style.display = 'none';
         if (botaoFinalizarCompra && !lojaPausadaAtual && (lojaAbertaAtual || dataEncomendaEscolhida)) {
@@ -2590,15 +2659,28 @@ function atualizarOpcoesPagamentoCheckout() {
         return;
     }
 
-    if (avisoEncomenda) avisoEncomenda.style.display = 'none';
-    if (passoObservacoes) passoObservacoes.textContent = '05';
-    if (metodos) metodos.style.display = '';
-    if (seletorMomento) seletorMomento.style.display = '';
+    // Pedido normal ou carrinho misto: a forma de pagamento abaixo vale SOMENTE pros
+    // itens "Para agora". A encomenda, quando existir, ganha seu aviso separado.
+    if (seletorMomento) seletorMomento.style.display = grupos.temAgora ? '' : 'none';
+    if (metodos) metodos.style.display = grupos.temAgora ? '' : 'none';
+    if (avisoEncomenda) avisoEncomenda.style.display = encomendaComSinal ? 'block' : 'none';
 
-    // Sem pagamento online habilitado não existe uma escolha real de "pagar agora".
-    // Mantém a etapa visível (organização Premium do checkout), mas oferece apenas o
-    // caminho presencial que já existia no sistema.
-    if (!pagamentoOnlineAtivo) {
+    if (grupos.misto && encomendaComSinal) {
+        if (passoEncomenda) passoEncomenda.textContent = '05';
+        if (passoObservacoes) passoObservacoes.textContent = '06';
+        if (tituloMomento) tituloMomento.textContent = 'Pagamento dos itens para agora';
+        if (subtituloMomento) subtituloMomento.textContent = `Neste carrinho misto, pague os itens para agora ${rotuloRecebimentoPagamento()}; a encomenda só depois do aceite.`;
+    } else {
+        if (passoEncomenda) passoEncomenda.textContent = '03';
+        if (passoObservacoes) passoObservacoes.textContent = '05';
+        if (tituloMomento) tituloMomento.textContent = 'Quando você quer pagar?';
+        if (subtituloMomento) subtituloMomento.textContent = 'Escolha a opção que deixa sua compra mais confortável.';
+    }
+
+    // Carrinho misto vira dois pedidos reais. Nesta V1 segura, os itens "para agora"
+    // ficam no pagamento ao receber; assim uma encomenda não fica órfã se o cliente
+    // abandonar um checkout online externo antes de concluir o pagamento.
+    if (!pagamentoOnlineAtivo || grupos.misto) {
         momentoPagamentoAtual = 'recebimento';
         if (btnAgora) btnAgora.style.display = 'none';
     } else if (btnAgora) {
@@ -2618,8 +2700,6 @@ function atualizarOpcoesPagamentoCheckout() {
         ? 'Escolha Pix ou cartão para pagar agora.'
         : `Escolha como deseja pagar ${rotuloRecebimento}.`;
 
-    // Dinheiro só faz sentido presencialmente. Se o cliente voltar para "pagar agora"
-    // depois de ter escolhido dinheiro, retorna para Pix sem apagar nenhum outro dado.
     if (pagarAgora && formaPagamentoAtual === 'Dinheiro') formaPagamentoAtual = 'Pix';
     if (btnDinheiro) btnDinheiro.style.display = pagarAgora ? 'none' : '';
 
@@ -2633,7 +2713,11 @@ function atualizarOpcoesPagamentoCheckout() {
 
     if (botaoFinalizarCompra && !lojaPausadaAtual && lojaAbertaAtual) {
         const onlineSelecionado = pagarAgora && (formaPagamentoAtual === 'Pix' || formaPagamentoAtual === 'Cartão');
-        botaoFinalizarCompra.textContent = onlineSelecionado ? '🌐 Pagar Agora' : 'Finalizar Compra';
+        if (grupos.misto) {
+            botaoFinalizarCompra.textContent = onlineSelecionado ? '🌐 Finalizar pedidos e pagar agora' : 'Finalizar os 2 pedidos';
+        } else {
+            botaoFinalizarCompra.textContent = onlineSelecionado ? '🌐 Pagar Agora' : 'Finalizar Compra';
+        }
     }
 }
 
@@ -2682,7 +2766,8 @@ function atualizarResumoEncomendaCheckout() {
 
     if (!resumoDiv || !resumoTexto) return;
 
-    if (!dataEncomendaEscolhida) {
+    const gruposCarrinho = obterGruposCarrinhoPorMomento();
+    if (!dataEncomendaEscolhida || !gruposCarrinho.temEncomenda) {
         resumoDiv.style.display = 'none';
         return;
     }
@@ -2695,7 +2780,7 @@ function atualizarResumoEncomendaCheckout() {
         // O sinal cobre só o valor do produto — o frete NUNCA entra nessa conta, fica
         // sempre separado e avisado à parte, pra não ser injusto cobrar antecipado em
         // cima de um valor de entrega que ainda pode nem estar confirmado
-        const subtotalProdutos = carrinho.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
+        const subtotalProdutos = subtotalEntradasCarrinho(gruposCarrinho.encomenda);
         const descontoAtual = calcularDesconto(subtotalProdutos);
         const baseParaSinal = subtotalProdutos - descontoAtual;
         const valorSinalEstimado = baseParaSinal * (percentualSinalEncomenda / 100);
@@ -2703,14 +2788,15 @@ function atualizarResumoEncomendaCheckout() {
 
         let avisoFrete = '';
         if (tipoEntregaAtual === 'entrega') {
-            if (freteConfirmado && freteAtual > 0) {
-                avisoFrete = ` O frete (R$ ${freteAtual.toFixed(2).replace('.', ',')}) é separado do sinal e fica pra pagar na entrega, junto com o restante.`;
+            const freteResumoEncomenda = gruposCarrinho.misto ? freteEncomendaAtual : freteAtual;
+            if (freteConfirmado && freteResumoEncomenda > 0) {
+                avisoFrete = ` O frete da encomenda (R$ ${freteResumoEncomenda.toFixed(2).replace('.', ',')}) é separado do sinal e fica pra pagar na entrega, junto com o restante.`;
             } else {
                 avisoFrete = ' O frete é separado do sinal, calculado à parte, e fica pra pagar na entrega.';
             }
         }
 
-        resumoTexto.innerHTML = `📅 <strong>Encomenda para ${dataFormatada}${horarioFormatado}</strong> — primeiro a ${LOJA_CONFIG.nome} vai analisar e confirmar a disponibilidade. <strong>Nenhum pagamento é feito antes do aceite.</strong> Depois de aceita, em <strong>Meus Pedidos</strong> você poderá escolher entre pagar um sinal de <strong>${percentualSinalEncomenda}% sobre o valor do produto</strong> (${valorTexto}) ou quitar <strong>100% do pedido</strong>.${avisoFrete} Se escolher o sinal, o restante continuará disponível para pagamento depois. A loja irá entrar em contato pra alinhar os detalhes do evento.`;
+        resumoTexto.innerHTML = `📅 <strong>Encomenda para ${dataFormatada}${horarioFormatado}</strong>. A ${LOJA_CONFIG.nome} confirma a disponibilidade antes de qualquer cobrança. Depois do aceite, em <strong>Meus Pedidos</strong>, escolha o sinal de <strong>${percentualSinalEncomenda}% (${valorTexto})</strong> ou quite <strong>100%</strong>.${avisoFrete}`;
     } else {
         resumoTexto.innerHTML = `📅 <strong>Esse pedido inclui uma encomenda</strong> para <strong>${dataFormatada}${horarioFormatado}</strong> — não é confirmação automática; a loja vai entrar em contato pra alinhar os detalhes.`;
     }
@@ -2775,6 +2861,25 @@ function normalizar(txt) {
     return (txt || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 }
 
+// Recalcula localmente os dois fretes quando o cliente adiciona/remove itens e muda
+// a composição do carrinho. Usa o bairro já confirmado pelo CEP; não faz nova consulta.
+function sincronizarFreteComMomentosDoCarrinho() {
+    if (tipoEntregaAtual !== 'entrega') {
+        freteAgoraAtual = 0;
+        freteEncomendaAtual = 0;
+        freteAtual = 0;
+        return;
+    }
+    if (!freteConfirmado) return;
+    const bairroNormalizado = normalizar(bairroClienteInput.value || '');
+    if (!bairrosEntrega.hasOwnProperty(bairroNormalizado)) return;
+    const km = bairrosEntrega[bairroNormalizado];
+    const grupos = obterGruposCarrinhoPorMomento();
+    freteAgoraAtual = grupos.temAgora ? km * valorPorKm : 0;
+    freteEncomendaAtual = grupos.temEncomenda ? km * valorPorKmEncomenda : 0;
+    freteAtual = freteAgoraAtual + freteEncomendaAtual;
+}
+
 // Consulta o ViaCEP, calcula o valor da entrega pelo bairro e auto-preenche o endereço
 async function calcularFrete() {
     const cep = cepClienteInput.value.replace(/\D/g, '');
@@ -2793,6 +2898,8 @@ async function calcularFrete() {
         if (dados.erro) {
             infoFreteDiv.textContent = 'CEP não encontrado. Confirme o valor da entrega pelo WhatsApp.';
             freteAtual = 0;
+            freteAgoraAtual = 0;
+            freteEncomendaAtual = 0;
             freteConfirmado = false;
         } else {
             // Auto-preenche os campos de endereço com o retorno do ViaCEP
@@ -2807,13 +2914,22 @@ async function calcularFrete() {
             const bairroNormalizado = normalizar(dados.bairro || '');
             if (bairrosEntrega.hasOwnProperty(bairroNormalizado)) {
                 const km = bairrosEntrega[bairroNormalizado];
-                const kmRateAplicavel = dataEncomendaEscolhida ? valorPorKmEncomenda : valorPorKm;
-                freteAtual = km * kmRateAplicavel;
+                const grupos = obterGruposCarrinhoPorMomento();
+                freteAgoraAtual = grupos.temAgora ? km * valorPorKm : 0;
+                freteEncomendaAtual = grupos.temEncomenda ? km * valorPorKmEncomenda : 0;
+                freteAtual = freteAgoraAtual + freteEncomendaAtual;
                 freteConfirmado = true;
-                const rotuloEncomenda = dataEncomendaEscolhida ? ' (taxa de encomenda)' : '';
-                infoFreteDiv.textContent = `Entrega em ${dados.bairro}: R$ ${freteAtual.toFixed(2).replace('.', ',')}${rotuloEncomenda}`;
+                if (grupos.misto) {
+                    infoFreteDiv.textContent = `Entrega em ${dados.bairro}: para agora R$ ${freteAgoraAtual.toFixed(2).replace('.', ',')} · encomenda R$ ${freteEncomendaAtual.toFixed(2).replace('.', ',')}`;
+                } else if (grupos.temEncomenda) {
+                    infoFreteDiv.textContent = `Entrega em ${dados.bairro}: R$ ${freteEncomendaAtual.toFixed(2).replace('.', ',')} (taxa de encomenda)`;
+                } else {
+                    infoFreteDiv.textContent = `Entrega em ${dados.bairro}: R$ ${freteAgoraAtual.toFixed(2).replace('.', ',')}`;
+                }
             } else {
                 freteAtual = 0;
+                freteAgoraAtual = 0;
+                freteEncomendaAtual = 0;
                 freteConfirmado = false;
                 const bairroExisteMasPausado = bairrosEntregaCompletos.hasOwnProperty(bairroNormalizado);
                 infoFreteDiv.textContent = bairroExisteMasPausado
@@ -2823,6 +2939,8 @@ async function calcularFrete() {
         }
     } catch (err) {
         freteAtual = 0;
+        freteAgoraAtual = 0;
+        freteEncomendaAtual = 0;
         freteConfirmado = false;
         infoFreteDiv.textContent = 'Não foi possível calcular automaticamente. O valor da entrega será confirmado pelo WhatsApp.';
     }
@@ -3025,6 +3143,19 @@ function sincronizarQuantidadesCarrinhoComEstoque() {
 // recebe a mesma proteção sem precisar repetir regra em vários pontos do sistema.
 function finalizarAdicaoAoCarrinho(produtoId, nomeProduto, precoEfetivo, quantidade, observacao, adicionaisTexto, adicionaisEscolhidos) {
     const carrinhoEstavaVazio = carrinho.length === 0;
+
+    // Defesa central: qualquer atalho que tente adicionar um produto marcado como
+    // encomenda (oferta, vendedor inteligente, etc.) também precisa de data/hora válida.
+    const produtoCadastro = produtoId
+        ? produtos.find(p => p.id === produtoId)
+        : produtos.find(p => p.nome === nomeProduto);
+    if (produtoCadastro && produtoCadastro.disponivelParaEncomenda === true) {
+        if (!dataEncomendaEscolhida || dataEncomendaVerificada !== dataEncomendaEscolhida || !horaEncomendaEscolhida) {
+            alert('Esse produto é de encomenda. Escolha e confirme a data e o horário na seção "🎂 Encomendas" antes de adicionar.');
+            return { adicionado: false, quantidadeAdicionada: 0, limitada: false, encomendaSemData: true };
+        }
+    }
+
     const limite = calcularQuantidadePermitidaEstoque(produtoId, nomeProduto, quantidade);
 
     if (limite.controlado && limite.quantidadePermitida <= 0) {
@@ -3623,6 +3754,7 @@ document.addEventListener('visibilitychange', () => {
 // Função para atualizar a exibição do carrinho na página
 function atualizarCarrinhoHTML() {
     normalizarRecompensaNoCarrinho();
+    sincronizarFreteComMomentosDoCarrinho();
     carrinhoItensDiv.innerHTML = '';
     atualizarResumoEncomendaCheckout(); // mantém o valor estimado do sinal sempre atualizado
 
@@ -3649,11 +3781,26 @@ function atualizarCarrinhoHTML() {
     }
 
     let totalGeral = 0;
+    const gruposCarrinho = obterGruposCarrinhoPorMomento();
 
     if (carrinho.length === 0) {
         carrinhoItensDiv.innerHTML = '<p>Seu carrinho está vazio.</p>';
     } else {
-        carrinho.forEach((item, index) => {
+        const gruposRender = gruposCarrinho.misto
+            ? [
+                { titulo: '⚡ Para agora', entradas: gruposCarrinho.agora, classe: 'agora' },
+                { titulo: `📅 Encomenda${dataEncomendaEscolhida ? ` · ${dataEncomendaEscolhida.split('-').reverse().join('/')}${horaEncomendaEscolhida ? ` às ${horaEncomendaEscolhida}` : ''}` : ''}`, entradas: gruposCarrinho.encomenda, classe: 'encomenda' }
+              ]
+            : [{ titulo: '', entradas: carrinho.map((item, index) => ({ item, index })), classe: '' }];
+
+        gruposRender.forEach(grupo => {
+            if (grupo.titulo && grupo.entradas.length) {
+                const tituloGrupo = document.createElement('div');
+                tituloGrupo.className = `checkout-grupo-itens-titulo checkout-grupo-itens-titulo--${grupo.classe}`;
+                tituloGrupo.textContent = grupo.titulo;
+                carrinhoItensDiv.appendChild(tituloGrupo);
+            }
+            grupo.entradas.forEach(({ item, index }) => {
             const itemDiv = document.createElement('div');
             itemDiv.classList.add('carrinho-item');
             const produtoDoItem = item.produtoId ? produtos.find(p => p.id === item.produtoId) : null;
@@ -3673,8 +3820,9 @@ function atualizarCarrinhoHTML() {
                     <button type="button" class="btn-remover-item" data-index="${index}" title="Remover">🗑️</button>
                 </div>
             `;
-            carrinhoItensDiv.appendChild(itemDiv);
-            totalGeral += item.preco * item.quantidade;
+                carrinhoItensDiv.appendChild(itemDiv);
+                totalGeral += item.preco * item.quantidade;
+            });
         });
     }
 
@@ -3696,8 +3844,19 @@ function atualizarCarrinhoHTML() {
     const freteGratis = freteGratisCupom || freteGratisPorValor;
 
     if (freteConfirmado) {
-        const freteFinal = freteGratis ? 0 : freteAtual;
-        freteCarrinhoSpan.textContent = freteGratis ? 'Grátis 🎉' : `R$ ${freteAtual.toFixed(2).replace('.', ',')}`;
+        let freteFinal = freteGratis ? 0 : freteAtual;
+        if (gruposCarrinho.misto && tipoEntregaAtual === 'entrega') {
+            // Cada momento vira um pedido real. Frete grátis por valor é avaliado separadamente,
+            // igual ao servidor. Cupom/recompensa ficam bloqueados em carrinho misto nesta V1.
+            const subtotalAgora = subtotalEntradasCarrinho(gruposCarrinho.agora);
+            const subtotalEncomenda = subtotalEntradasCarrinho(gruposCarrinho.encomenda);
+            const gratisAgora = freteGratisAcimaValor > 0 && subtotalAgora >= freteGratisAcimaValor;
+            const gratisEncomenda = freteGratisAcimaValor > 0 && subtotalEncomenda >= freteGratisAcimaValor;
+            freteFinal = (gratisAgora ? 0 : freteAgoraAtual) + (gratisEncomenda ? 0 : freteEncomendaAtual);
+            freteCarrinhoSpan.textContent = `R$ ${freteFinal.toFixed(2).replace('.', ',')} · 2 momentos`;
+        } else {
+            freteCarrinhoSpan.textContent = freteGratis ? 'Grátis 🎉' : `R$ ${freteAtual.toFixed(2).replace('.', ',')}`;
+        }
         totalCarrinhoSpan.textContent = `R$ ${(subtotalComDesconto + freteFinal).toFixed(2).replace('.', ',')}`;
     } else {
         freteCarrinhoSpan.textContent = 'A confirmar';
@@ -3711,6 +3870,9 @@ function atualizarCarrinhoHTML() {
     if (incentivoEl) {
         if (carrinho.length === 0) {
             incentivoEl.style.display = 'none';
+        } else if (gruposCarrinho.misto) {
+            incentivoEl.textContent = '🧾 Itens para agora e encomenda serão registrados como 2 pedidos, cada um no seu momento.';
+            incentivoEl.style.display = 'block';
         } else if (pedidoMinimoAplicavel > 0 && subtotalComDesconto < pedidoMinimoAplicavel) {
             const faltam = (pedidoMinimoAplicavel - subtotalComDesconto).toFixed(2).replace('.', ',');
             incentivoEl.textContent = `🛒 Faltam R$ ${faltam} pro pedido mínimo de R$ ${pedidoMinimoAplicavel.toFixed(2).replace('.', ',')}`;
@@ -4230,6 +4392,332 @@ function repetirUltimoPedido() {
     }
 }
 
+
+// Finalização exclusiva para carrinho misto. Mantém os fluxos antigos intactos para
+// carrinho só "para agora" ou só encomenda. Os dois pedidos são criados separadamente
+// porque terão produção, status, frete e pagamento em momentos diferentes.
+async function finalizarCompraMista(grupos) {
+    if (!grupos || !grupos.misto) return false;
+
+    // Defesa adicional: mesmo com aba antiga/cache ou chamada manual, carrinho misto
+    // nunca inicia checkout online nesta V1. Isso evita deixar a encomenda sem par caso
+    // o pagamento externo do pedido "para agora" seja abandonado.
+    momentoPagamentoAtual = 'recebimento';
+
+    if (!lojaAbertaAtual) {
+        alert('Seu carrinho tem itens para agora e uma encomenda. Como a loja está fechada para pedidos imediatos, finalize esse carrinho quando a loja abrir ou remova os itens para agora.');
+        return true;
+    }
+    if (!dataEncomendaEscolhida || dataEncomendaVerificada !== dataEncomendaEscolhida) {
+        alert('Confirme novamente a data da encomenda antes de finalizar os dois pedidos.');
+        return true;
+    }
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(horaEncomendaEscolhida || ''))) {
+        alert('Informe o horário da encomenda antes de finalizar.');
+        return true;
+    }
+    // Cupons e recompensas mexem em limites/descontos financeiros por pedido. Até haver
+    // uma regra específica de rateio, bloqueamos o carrinho misto em vez de cobrar errado
+    // ou consumir benefício duas vezes.
+    if (cupomAplicado) {
+        alert('Para manter o valor do cupom correto, remova o cupom antes de finalizar um carrinho com itens para agora + encomenda. Nesta primeira versão, o cupom continua funcionando normalmente quando há apenas um momento no carrinho.');
+        return true;
+    }
+    if (recompensaSelecionada) {
+        alert('Para não descontar seus pontos no pedido errado, remova a recompensa do Clube antes de finalizar um carrinho com itens para agora + encomenda.');
+        return true;
+    }
+
+    const nome = nomeClienteInput.value.trim();
+    const telefone = telefoneClienteInput.value.trim();
+    const rua = ruaClienteInput.value.trim();
+    const numero = numeroClienteInput.value.trim();
+    const complemento = complementoClienteInput.value.trim();
+    const bairro = bairroClienteInput.value.trim();
+    const cidade = cidadeClienteInput.value.trim();
+    const estado = estadoClienteInput.value.trim();
+    const cep = cepClienteInput.value.trim();
+    const troco = precisaTrocoAtual ? clienteTrocoInput.value.trim() : 'Sem troco';
+    const obs = clienteObsInput.value.trim();
+
+    if (!nome || !telefone) {
+        alert('Por favor, preencha seu nome e telefone.');
+        return true;
+    }
+    if (tipoEntregaAtual === 'entrega' && (!rua || !numero || !bairro || !cidade || !estado || !cep)) {
+        alert('Por favor, preencha todos os campos obrigatórios de entrega.');
+        return true;
+    }
+    if (tipoEntregaAtual === 'entrega' && !freteConfirmado) {
+        alert('Confirme o endereço e o valor da entrega antes de finalizar.');
+        return true;
+    }
+
+    const itensAgora = itensPurosDoGrupo(grupos.agora);
+    const itensEncomenda = itensPurosDoGrupo(grupos.encomenda);
+    const subtotalAgora = subtotalEntradasCarrinho(grupos.agora);
+    const subtotalEncomenda = subtotalEntradasCarrinho(grupos.encomenda);
+    const pedidoMinimoAplicavel = obterPedidoMinimoAplicavel();
+    if (pedidoMinimoAplicavel > 0) {
+        if (subtotalAgora < pedidoMinimoAplicavel) {
+            alert(`Os itens para agora somam R$ ${subtotalAgora.toFixed(2).replace('.', ',')}. Como eles viram um pedido separado, precisam atingir o pedido mínimo de R$ ${pedidoMinimoAplicavel.toFixed(2).replace('.', ',')}.`);
+            return true;
+        }
+        if (subtotalEncomenda < pedidoMinimoAplicavel) {
+            alert(`A encomenda soma R$ ${subtotalEncomenda.toFixed(2).replace('.', ',')}. Como ela vira um pedido separado, precisa atingir o pedido mínimo de R$ ${pedidoMinimoAplicavel.toFixed(2).replace('.', ',')}.`);
+            return true;
+        }
+    }
+
+    registrarEventoConversaoFront('finalizacao');
+    const textoOriginalBotao = botaoFinalizarCompra.textContent;
+    botaoFinalizarCompra.disabled = true;
+    botaoFinalizarCompra.textContent = 'Organizando os 2 pedidos...';
+
+    const endereco = tipoEntregaAtual === 'entrega'
+        ? { rua, numero, complemento, bairro, cidade, estado, cep }
+        : null;
+    const tokenCliente = obterTokenCliente();
+    const notificacaoToken = localStorage.getItem('notificacoesAtivas') === '1'
+        ? localStorage.getItem('notificacaoToken')
+        : null;
+
+    const mapearItensServidor = itens => itens.map(item => {
+        const produtoAtual = produtos.find(p => p.id === item.produtoId);
+        return {
+            produtoId: item.produtoId || null,
+            fichaTecnicaId: (produtoAtual && produtoAtual.fichaTecnicaId) || null,
+            nome: item.nome,
+            preco: item.preco,
+            quantidade: item.quantidade,
+            recompensaClube: itemEhRecompensaClube(item),
+            observacao: item.observacao || null,
+            adicionaisTexto: item.adicionaisTexto || null,
+            adicionaisEscolhidos: Array.isArray(item.adicionaisEscolhidos) ? item.adicionaisEscolhidos : null
+        };
+    });
+
+    const freteGratisAgora = tipoEntregaAtual === 'entrega' && freteGratisAcimaValor > 0 && subtotalAgora >= freteGratisAcimaValor;
+    const freteGratisEncomenda = tipoEntregaAtual === 'entrega' && freteGratisAcimaValor > 0 && subtotalEncomenda >= freteGratisAcimaValor;
+    const freteAgora = tipoEntregaAtual === 'entrega' ? (freteGratisAgora ? 0 : freteAgoraAtual) : 0;
+    const freteEncomenda = tipoEntregaAtual === 'entrega' ? (freteGratisEncomenda ? 0 : freteEncomendaAtual) : 0;
+    const exigePagamentoAntesAgora = pagamentoOnlineAtivo
+        && momentoPagamentoAtual === 'agora'
+        && (formaPagamentoAtual === 'Pix' || formaPagamentoAtual === 'Cartão');
+
+    let pedidoEncomendaId = null;
+    let pedidoAgoraId = null;
+    try {
+        // 1) Cria primeiro a encomenda. Se o pedido normal falhar depois, ela é removida
+        // pela Function segura de limpeza antes de qualquer pagamento confirmado.
+        const encomendaCriada = await salvarPedidoNoPainel({
+            nome, telefone, tipoEntrega: tipoEntregaAtual, endereco,
+            formaPagamento: percentualSinalEncomenda > 0 ? 'Pix/Cartão' : formaPagamentoAtual,
+            troco: null,
+            observacoes: obs || null,
+            dataEncomenda: dataEncomendaEscolhida,
+            horaEncomenda: horaEncomendaEscolhida,
+            itens: mapearItensServidor(itensEncomenda),
+            subtotal: subtotalEncomenda,
+            cupom: null,
+            desconto: 0,
+            frete: freteEncomenda,
+            total: subtotalEncomenda + freteEncomenda,
+            recompensaResgatada: null,
+            sessaoConversaoId: obterSessaoConversaoId(),
+            tokenCliente,
+            origemVendedorInteligente: false,
+            vendedorInteligenteProdutoId: null,
+            vendedorInteligenteProdutoNome: null,
+            notificacaoToken
+        }, 'pendente');
+
+        if (!encomendaCriada.id) {
+            const mensagem = String(encomendaCriada.erroServidor || '').replace(/^FirebaseError:\s*/i, '').replace(/^functions\/[a-z-]+:\s*/i, '').trim();
+            alert(mensagem || 'Não foi possível registrar a encomenda. Nenhum dos dois pedidos foi concluído.');
+            return true;
+        }
+        pedidoEncomendaId = encomendaCriada.id;
+
+        // 2) Cria o pedido para agora com o pagamento escolhido no checkout.
+        const agoraCriado = await salvarPedidoNoPainel({
+            nome, telefone, tipoEntrega: tipoEntregaAtual, endereco,
+            formaPagamento: formaPagamentoAtual,
+            troco: (formaPagamentoAtual === 'Dinheiro' && troco) ? troco : null,
+            observacoes: obs || null,
+            dataEncomenda: null,
+            horaEncomenda: null,
+            itens: mapearItensServidor(itensAgora),
+            subtotal: subtotalAgora,
+            cupom: null,
+            desconto: 0,
+            frete: freteAgora,
+            total: subtotalAgora + freteAgora,
+            recompensaResgatada: null,
+            sessaoConversaoId: obterSessaoConversaoId(),
+            tokenCliente,
+            origemVendedorInteligente: false,
+            vendedorInteligenteProdutoId: null,
+            vendedorInteligenteProdutoNome: null,
+            notificacaoToken
+        }, exigePagamentoAntesAgora ? 'aguardando_pagamento' : 'pendente');
+
+        if (!agoraCriado.id) {
+            const limparPedido = firebase.functions().httpsCallable('limparPedidoFalhoDeCheckout');
+            const limpeza = await limparPedido({ pedidoId: pedidoEncomendaId, token: tokenCliente }).catch(() => null);
+            const limpou = !!(limpeza && limpeza.data && limpeza.data.ok);
+            if (limpou) removerDoHistoricoLocal(pedidoEncomendaId);
+            pedidoEncomendaId = limpou ? null : pedidoEncomendaId;
+            const mensagem = String(agoraCriado.erroServidor || '').replace(/^FirebaseError:\s*/i, '').replace(/^functions\/[a-z-]+:\s*/i, '').trim();
+            if (!limpou) {
+                alert(`${mensagem || 'Não foi possível registrar os itens para agora.'}\n\nA encomenda provisória pode ter permanecido registrada. Antes de tentar novamente, confira "Meus Pedidos" para evitar duplicidade.`);
+            } else {
+                alert(mensagem || 'Não foi possível registrar os itens para agora. A encomenda provisória foi cancelada e seu carrinho foi mantido.');
+            }
+            return true;
+        }
+        pedidoAgoraId = agoraCriado.id;
+
+        // Os dois IDs ficam no histórico local para "Meus Pedidos" mostrar cada momento.
+        adicionarAoHistoricoLocal(pedidoEncomendaId);
+        adicionarAoHistoricoLocal(pedidoAgoraId);
+        localStorage.setItem('ultimoPedido', JSON.stringify({ id: pedidoAgoraId, criadoEm: Date.now() }));
+        salvarDadosClienteCompleto();
+
+        // Contexto financeiro SOMENTE dos itens para agora. pagamento.js continua intacto.
+        const contextoAgora = {
+            cliente: { nome, telefone, observacoes: obs || null },
+            entrega: {
+                tipo: tipoEntregaAtual,
+                endereco,
+                frete: freteAgora,
+                freteConfirmado,
+                freteGratis: freteGratisAgora,
+                freteTexto: tipoEntregaAtual === 'entrega' ? `R$ ${freteAgora.toFixed(2).replace('.', ',')}` : 'Não se aplica (retirada no local)'
+            },
+            carrinho: { itens: itensAgora, itensTexto: '' },
+            cupom: { aplicado: null, desconto: 0 },
+            pagamento: {
+                forma: formaPagamentoAtual,
+                momento: momentoPagamentoAtual,
+                onlineDisponivel: pagamentoOnlineAtivo,
+                onlineAtivo: pagamentoOnlineAtivo && momentoPagamentoAtual === 'agora',
+                precisaTroco: precisaTrocoAtual,
+                troco
+            },
+            encomenda: {
+                agendamentoAtivo,
+                querAgendar: false,
+                data: null,
+                hora: null,
+                dataVerificada: null,
+                percentualSinal: 0
+            },
+            fidelidade: { recompensaSelecionada: null },
+            totais: {
+                subtotal: subtotalAgora,
+                subtotalTexto: `R$ ${subtotalAgora.toFixed(2).replace('.', ',')}`,
+                desconto: 0,
+                frete: freteAgora,
+                freteTexto: tipoEntregaAtual === 'entrega' ? `R$ ${freteAgora.toFixed(2).replace('.', ',')}` : 'Não se aplica (retirada no local)',
+                total: subtotalAgora + freteAgora,
+                totalTexto: `R$ ${(subtotalAgora + freteAgora).toFixed(2).replace('.', ',')}`
+            },
+            loja: {
+                nome: LOJA_CONFIG.nome,
+                aberta: lojaAbertaAtual,
+                pausada: lojaPausadaAtual,
+                whatsappEfetivo: whatsappPedidosEfetivo || null,
+                whatsappConfigurado: LOJA_CONFIG.whatsappPedidos
+            },
+            pedido: {
+                exigePagamentoAntes: exigePagamentoAntesAgora,
+                statusInicial: exigePagamentoAntesAgora ? 'aguardando_pagamento' : 'pendente',
+                mensagem: ''
+            }
+        };
+
+        const limparAmbos = async () => {
+            const limparPedido = firebase.functions().httpsCallable('limparPedidoFalhoDeCheckout');
+            const [limpezaAgora, limpezaEncomenda] = await Promise.all([
+                pedidoAgoraId ? limparPedido({ pedidoId: pedidoAgoraId, token: tokenCliente }).catch(() => null) : null,
+                pedidoEncomendaId ? limparPedido({ pedidoId: pedidoEncomendaId, token: tokenCliente }).catch(() => null) : null
+            ]);
+            if (limpezaAgora && limpezaAgora.data && limpezaAgora.data.ok) removerDoHistoricoLocal(pedidoAgoraId);
+            if (limpezaEncomenda && limpezaEncomenda.data && limpezaEncomenda.data.ok) removerDoHistoricoLocal(pedidoEncomendaId);
+        };
+
+        const acoesPagamentoCheckout = {
+            avisar: mensagem => alert(mensagem),
+            prepararBotao: texto => { botaoFinalizarCompra.disabled = true; botaoFinalizarCompra.textContent = texto; },
+            restaurarBotao: texto => { botaoFinalizarCompra.disabled = false; botaoFinalizarCompra.textContent = texto; },
+            obterToken: () => tokenCliente,
+            limparPedidoFalho: limparAmbos,
+            concluirCheckout: checkoutUrl => {
+                registrarEventoConversaoFront('checkout');
+                carrinho = [];
+                salvarCarrinho();
+                atualizarCarrinhoHTML();
+                limparFormularioEndereco();
+                window.location.href = checkoutUrl;
+            }
+        };
+
+        const pagamentoProcessado = await processarPagamentoCheckout({
+            contextoCheckout: contextoAgora,
+            pedidoId: pedidoAgoraId,
+            promessaSalvo: agoraCriado.promessaSalvo,
+            acoesPagamentoCheckout
+        });
+        if (pagamentoProcessado) return true;
+
+        // Sem redirecionamento: abre UMA mensagem com os dois pedidos e seus momentos.
+        const numeroAgora = agoraCriado.numero ? `#${agoraCriado.numero}` : '';
+        const numeroEncomenda = encomendaCriada.numero ? `#${encomendaCriada.numero}` : '';
+        const dataBr = dataEncomendaEscolhida.split('-').reverse().join('/');
+        const linhasAgora = itensAgora.map(i => `• ${i.quantidade}x ${i.nome}`).join('\n');
+        const linhasEncomenda = itensEncomenda.map(i => `• ${i.quantidade}x ${i.nome}`).join('\n');
+        const mensagemMista = [
+            `🛒 *Pedido combinado - ${nome}*`,
+            '',
+            `⚡ *PARA AGORA ${numeroAgora}*`,
+            linhasAgora,
+            `Pagamento: ${formaPagamentoAtual}${momentoPagamentoAtual === 'recebimento' ? ` — ${rotuloRecebimentoPagamento()}` : ''}`,
+            '',
+            `📅 *ENCOMENDA ${numeroEncomenda}*`,
+            `${dataBr} às ${horaEncomendaEscolhida}`,
+            linhasEncomenda,
+            `Pagamento da encomenda: após o aceite da ${LOJA_CONFIG.nome}`,
+            '',
+            'Os dois momentos foram registrados separadamente para a loja organizar tudo certinho. 💕'
+        ].join('\n');
+        const numeroWhatsApp = whatsappPedidosEfetivo || LOJA_CONFIG.whatsappPedidos;
+        window.open(`https://api.whatsapp.com/send?phone=${numeroWhatsApp}&text=${encodeURIComponent(mensagemMista)}`, '_blank');
+
+        carrinho = [];
+        salvarCarrinho();
+        atualizarCarrinhoHTML();
+        limparFormularioEndereco();
+        alert(`✅ Pedidos separados com sucesso!\n\nPara agora: ${numeroAgora || 'registrado'}\nEncomenda: ${numeroEncomenda || 'registrada'} para ${dataBr} às ${horaEncomendaEscolhida}.`);
+        return true;
+    } catch (err) {
+        // Se algo inesperado acontecer antes de pagamento confirmado, tenta desfazer os dois.
+        try {
+            const limparPedido = firebase.functions().httpsCallable('limparPedidoFalhoDeCheckout');
+            if (pedidoAgoraId) await limparPedido({ pedidoId: pedidoAgoraId, token: tokenCliente });
+            if (pedidoEncomendaId) await limparPedido({ pedidoId: pedidoEncomendaId, token: tokenCliente });
+        } catch (e) {}
+        alert('Não foi possível concluir os dois momentos do carrinho. Seu carrinho foi mantido para tentar novamente.');
+        return true;
+    } finally {
+        botaoFinalizarCompra.disabled = false;
+        atualizarOpcoesPagamentoCheckout();
+        if (!botaoFinalizarCompra.textContent || botaoFinalizarCompra.textContent === 'Organizando os 2 pedidos...') {
+            botaoFinalizarCompra.textContent = textoOriginalBotao;
+        }
+    }
+}
+
 async function finalizarCompra() {
     // Proteção contra clique duplo — sem isso, clicar 2x rápido (comum no celular)
     // cria 2 pedidos duplicados de verdade, com cobrança/contagem em dobro
@@ -4242,9 +4730,15 @@ async function finalizarCompra() {
         return;
     }
 
+    const gruposMomentoCheckout = obterGruposCarrinhoPorMomento();
+    if (gruposMomentoCheckout.misto) {
+        await finalizarCompraMista(gruposMomentoCheckout);
+        return;
+    }
+
     // Encomenda agendada é pra uma data futura — não faz sentido bloquear só porque a
     // loja está fechada agora, nesse exato momento (diferente de um pedido pro dia)
-    if (!lojaAbertaAtual && !dataEncomendaEscolhida) {
+    if (!lojaAbertaAtual && !gruposMomentoCheckout.temEncomenda) {
         alert('Estamos fechados no momento. Assim que reabrirmos, você já pode finalizar seu pedido!');
         return;
     }
@@ -4290,7 +4784,7 @@ async function finalizarCompra() {
     const cep = cepClienteInput.value.trim();
     const troco = precisaTrocoAtual ? clienteTrocoInput.value.trim() : 'Sem troco';
     const obs = clienteObsInput.value.trim();
-    const querAgendar = agendamentoAtivo && !!dataEncomendaEscolhida;
+    const querAgendar = agendamentoAtivo && obterGruposCarrinhoPorMomento().temEncomenda && !!dataEncomendaEscolhida;
     const dataEncomenda = dataEncomendaEscolhida;
     const horaEncomenda = horaEncomendaEscolhida;
 
