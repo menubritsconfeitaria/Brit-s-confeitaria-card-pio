@@ -2727,7 +2727,7 @@ function atualizarOpcoesPagamentoCheckout() {
         if (passoEncomenda) passoEncomenda.textContent = '05';
         if (passoObservacoes) passoObservacoes.textContent = '06';
         if (tituloMomento) tituloMomento.textContent = 'Pagamento dos itens para agora';
-        if (subtituloMomento) subtituloMomento.textContent = `Neste carrinho misto, pague os itens para agora ${rotuloRecebimentoPagamento()}; a encomenda só depois do aceite.`;
+        if (subtituloMomento) subtituloMomento.textContent = 'Neste carrinho misto, o pagamento abaixo vale somente para os itens para agora; a encomenda só é cobrada depois do aceite.';
     } else {
         if (passoEncomenda) passoEncomenda.textContent = '03';
         if (passoObservacoes) passoObservacoes.textContent = '05';
@@ -2735,10 +2735,10 @@ function atualizarOpcoesPagamentoCheckout() {
         if (subtituloMomento) subtituloMomento.textContent = 'Escolha a opção que deixa sua compra mais confortável.';
     }
 
-    // Carrinho misto vira dois pedidos reais. Nesta V1 segura, os itens "para agora"
-    // ficam no pagamento ao receber; assim uma encomenda não fica órfã se o cliente
-    // abandonar um checkout online externo antes de concluir o pagamento.
-    if (!pagamentoOnlineAtivo || grupos.misto) {
+    // Pedido normal e carrinho misto seguem a mesma escolha de momento para os itens
+    // "Para agora". Se o pagamento online estiver ativo, Pix/Cartão podem ser pagos
+    // agora; a encomenda permanece separada e só entra no fluxo financeiro após o aceite.
+    if (!pagamentoOnlineAtivo) {
         momentoPagamentoAtual = 'recebimento';
         if (btnAgora) btnAgora.style.display = 'none';
     } else if (btnAgora) {
@@ -4527,10 +4527,8 @@ function repetirUltimoPedido() {
 async function finalizarCompraMista(grupos) {
     if (!grupos || !grupos.misto) return false;
 
-    // Defesa adicional: mesmo com aba antiga/cache ou chamada manual, carrinho misto
-    // nunca inicia checkout online nesta V1. Isso evita deixar a encomenda sem par caso
-    // o pagamento externo do pedido "para agora" seja abandonado.
-    momentoPagamentoAtual = 'recebimento';
+    // No carrinho misto, a escolha de pagamento vale SOMENTE para o pedido "Para agora".
+    // A encomenda é registrada separadamente e continua sem cobrança até o aceite da loja.
 
     if (!lojaAbertaAtual) {
         alert('Seu carrinho tem itens para agora e uma encomenda. Como a loja está fechada para pedidos imediatos, finalize esse carrinho quando a loja abrir ou remova os itens para agora.');
