@@ -2392,6 +2392,7 @@ function montarCardPedido(id, pedido, comAcoes) {
     // precise ser substituído visualmente. Pedidos comuns continuam com o contador normal.
     const dataEncomendaTopo = String(pedido.dataEncomenda || '').trim();
     const dataEncomendaTopoValida = /^\d{4}-\d{2}-\d{2}$/.test(dataEncomendaTopo);
+    const preparoEncomendaIniciado = dataEncomendaTopoValida && !!Number(pedido.preparoIniciadoEm || 0);
     const encomendaAgendadaSemContador = dataEncomendaTopoValida && encomendaAguardandoHorarioOperacional(pedido);
     let avisoAgendamentoTopoHtml = '';
     if (encomendaAgendadaSemContador) {
@@ -2402,11 +2403,17 @@ function montarCardPedido(id, pedido, comAcoes) {
             : '';
         const dataHoraTopo = `${ehHojeTopo ? 'Hoje' : dataBrTopo}${horaTopo ? ` • ${horaTopo}` : ''}`;
         const solicitacaoPendente = pedido.status === 'pendente';
-        const tituloAgendaTopo = solicitacaoPendente ? 'Solicitação de encomenda' : 'Encomenda agendada';
-        const seloAgendaTopo = solicitacaoPendente ? 'AGUARDANDO ACEITE' : (ehHojeTopo ? 'DIA DO EVENTO' : 'AGENDADA');
+        const tituloAgendaTopo = solicitacaoPendente
+            ? 'Solicitação de encomenda'
+            : (preparoEncomendaIniciado ? 'Encomenda em preparo' : 'Encomenda agendada');
+        const seloAgendaTopo = solicitacaoPendente
+            ? 'AGUARDANDO ACEITE'
+            : (preparoEncomendaIniciado ? 'EM PREPARO' : (ehHojeTopo ? 'DIA DO EVENTO' : 'AGENDADA'));
         const textoAgendaTopo = solicitacaoPendente
             ? 'Aguardando confirmação da loja antes de qualquer cobrança.'
-            : (ehHojeTopo ? 'Evento marcado para hoje • confira os detalhes de entrega ou retirada.' : 'Aguardando a data do evento • detalhes combinados com o cliente.');
+            : (preparoEncomendaIniciado
+                ? `Preparo iniciado • ${pedido.tipoEntrega === 'entrega' ? 'entrega' : 'retirada'} prevista para esse horário.`
+                : (ehHojeTopo ? 'Evento marcado para hoje • confira os detalhes de entrega ou retirada.' : 'Aguardando a data do evento • detalhes combinados com o cliente.'));
         avisoAgendamentoTopoHtml = `
             <div class="pedido-agendamento-premium" style="width:100%;box-sizing:border-box;margin:9px 0 10px;padding:11px 12px;border:1px solid rgba(151,105,68,.18);border-radius:14px;background:linear-gradient(145deg,rgba(255,250,243,.99),rgba(255,255,255,.99));box-shadow:0 7px 18px rgba(96,62,39,.07);color:#5a4030;">
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px;">
@@ -2420,11 +2427,18 @@ function montarCardPedido(id, pedido, comAcoes) {
                 <div style="font-size:10.5px;line-height:1.35;color:#7d695c;">${textoAgendaTopo}</div>
             </div>`;
     }
-    // Em encomenda com sinal online obrigatório, o botão genérico "Marcar como pago"
-    // não deve aparecer: ele poderia dar a impressão de quitar manualmente sinal/restante.
-    // Pedidos normais continuam exatamente com o comportamento anterior.
-    const botaoPagamentoManualHtml = pagamentoEhSinal ? '' : `
-        <span class="pedido-tag ${pedido.pagamentoConfirmadoManual ? 'tag-status-entregue' : ''}" style="cursor:pointer;" onclick="alternarPagamentoConfirmadoManual('${id}', ${!pedido.pagamentoConfirmadoManual})" title="Clique pra marcar/desmarcar como pago (uso manual, ex: cliente pagou Pix por fora)">${pedido.pagamentoConfirmadoManual ? '✅ Pago' : '☐ Marcar como pago'}</span>`;
+    // Encomenda tem fluxo financeiro próprio (sinal ou 100% depois do aceite).
+    // Por isso o checkbox genérico "Marcar como pago" fica fora de QUALQUER encomenda:
+    // ele não pode virar um atalho que bypassa o fluxo financeiro já validado.
+    // Se existir um registro manual legado, preservamos apenas a leitura visual.
+    const botaoPagamentoManualHtml = dataEncomendaTopoValida
+        ? (pedido.pagamentoConfirmadoManual ? '<span class="pedido-tag tag-status-entregue">✅ Pago (manual)</span>' : '')
+        : (pagamentoEhSinal ? '' : `
+            <span class="pedido-tag ${pedido.pagamentoConfirmadoManual ? 'tag-status-entregue' : ''}" style="cursor:pointer;" onclick="alternarPagamentoConfirmadoManual('${id}', ${!pedido.pagamentoConfirmadoManual})" title="Clique pra marcar/desmarcar como pago (uso manual, ex: cliente pagou Pix por fora)">${pedido.pagamentoConfirmadoManual ? '✅ Pago' : '☐ Marcar como pago'}</span>`);
+    const encomendaAguardandoPagamento = dataEncomendaTopoValida && !pedido.pagamento && !pedido.pagamentoConfirmadoManual;
+    const tagFormaPagamentoHtml = encomendaAguardandoPagamento
+        ? '<span class="pedido-tag tag-pagamento-aguardando">💳 Aguardando pagamento</span>'
+        : `<span class="pedido-tag tag-pagamento" style="cursor:pointer;" onclick="editarFormaPagamentoPedido('${id}', this)" title="Clique pra corrigir a forma de pagamento">💰 ${escaparHtmlSeguro(pedido.formaPagamento || '')}${(!pedido.pagamento && !pedido.pagamentoConfirmadoManual && pedido.formaPagamento) ? ` · ${pedido.tipoEntrega === 'entrega' ? 'na entrega' : 'na retirada'}` : ''}${pedido.troco ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''} ✏️</span>`;
     const pagamentoOnlineHtml = montarTagPagamento(pedido);
     const botaoConfirmarRestanteDinheiroHtml = restanteDinheiroPodeSerConfirmado
         ? `<button type="button" class="btn-entregue" style="margin-top:7px;padding:8px 11px;font-size:11px;" onclick="confirmarRecebimentoRestanteDinheiro('${id}', this, ${restanteOnlineEmAndamento})">✅ Confirmar recebimento do restante</button>`
@@ -2436,7 +2450,7 @@ function montarCardPedido(id, pedido, comAcoes) {
                 <div class="pedido-cliente">${pedido.numero ? `<span class="pedido-numero">🛒Pedido #${escaparHtmlSeguro(String(pedido.numero).padStart(3, '0'))}</span> - ` : ''}${escaparHtmlSeguro(pedido.nome || 'Cliente')}</div>
                 <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;">
                     <span class="pedido-tag ${pedido.tipoEntrega === 'entrega' ? 'tag-entrega' : 'tag-retirada'}">${pedido.tipoEntrega === 'entrega' ? '🛵 Entrega' : '🏠 Retirada'}</span>
-                    <span class="pedido-tag tag-pagamento" style="cursor:pointer;" onclick="editarFormaPagamentoPedido('${id}', this)" title="Clique pra corrigir a forma de pagamento">💰 ${escaparHtmlSeguro(pedido.formaPagamento || '')}${(!pedido.pagamento && !pedido.pagamentoConfirmadoManual && pedido.formaPagamento) ? ` · ${pedido.tipoEntrega === 'entrega' ? 'na entrega' : 'na retirada'}` : ''}${pedido.troco ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''} ✏️</span>
+                    ${tagFormaPagamentoHtml}
                     ${botaoPagamentoManualHtml}
                     ${tagStatus}
                 </div>
