@@ -1987,6 +1987,21 @@ function dataPedidoParaOrdenacao(pedido, meta) {
     return ts;
 }
 
+function formatarHoraClienteSaoPaulo(timestamp) {
+    const valor = Number(timestamp || 0);
+    if (!valor) return '';
+    try {
+        return new Intl.DateTimeFormat('pt-BR', {
+            timeZone: 'America/Sao_Paulo',
+            hour: '2-digit',
+            minute: '2-digit',
+            hourCycle: 'h23'
+        }).format(new Date(valor));
+    } catch (e) {
+        return '';
+    }
+}
+
 
 // Indicador discreto no botão "Meus Pedidos": aparece somente quando existe uma ação
 // financeira pendente do próprio cliente (ex.: finalizar pagamento/sinal ou pagar restante).
@@ -1997,9 +2012,10 @@ function pedidoExigeAcaoCliente(pedido) {
     // Pedido/sinal criado, mas ainda não confirmado pelo pagamento.
     if (pedido.status === 'aguardando_pagamento') return true;
 
-    // Encomenda aceita pela loja, mas o cliente ainda precisa escolher entre pagar
-    // o sinal ou quitar 100%. Também cobre um checkout já aberto e ainda não pago.
-    const ehEncomendaAceita = !!(pedido.dataEncomenda && pedido.horaEncomenda && pedido.status === 'aceito');
+    // Depois do aceite, a ação financeira continua pendente mesmo se a operação
+    // avançar para pronto/rota antes do primeiro pagamento.
+    const statusEncomendaPosAceite = ['aceito', 'pronto_retirada', 'em_rota'].includes(pedido.status);
+    const ehEncomendaAceita = !!(pedido.dataEncomenda && pedido.horaEncomenda && statusEncomendaPosAceite);
     const pagamentoPrincipalPago = pedido.pagamento && pedido.pagamento.status === 'pago';
     if (ehEncomendaAceita && !pagamentoPrincipalPago) return true;
 
@@ -2341,8 +2357,9 @@ async function abrirMeusPedidos() {
             const aguardandoPagamento = pedido.status === 'aguardando_pagamento';
             const pagamentoPrincipalAguardando = pedido.pagamento && pedido.pagamento.status === 'aguardando';
             const ehEncomendaPendente = ehEncomenda && pedido.status === 'pendente';
-            const ehEncomendaAceitaSemPagamento = ehEncomenda && pedido.status === 'aceito' && !pedido.pagamento;
-            const ehEncomendaAceitaComCheckoutPendente = ehEncomenda && pedido.status === 'aceito' && pagamentoPrincipalAguardando;
+            const statusEncomendaPosAceite = ['aceito', 'pronto_retirada', 'em_rota'].includes(pedido.status);
+            const ehEncomendaAceitaSemPagamento = ehEncomenda && statusEncomendaPosAceite && !pedido.pagamento;
+            const ehEncomendaAceitaComCheckoutPendente = ehEncomenda && statusEncomendaPosAceite && pagamentoPrincipalAguardando;
             const checkoutPendente = (aguardandoPagamento || ehEncomendaAceitaComCheckoutPendente) && pedido.pagamento && pedido.pagamento.checkoutUrl
                 ? String(pedido.pagamento.checkoutUrl)
                 : null;
@@ -2375,6 +2392,14 @@ async function abrirMeusPedidos() {
                 : valorRestanteCalculado;
             const valorRestanteTexto = Number.isFinite(valorRestante) ? formatarPrecoTexto(valorRestante) : '';
             const mostrarResumoFinanceiro = sinalPago && Number.isFinite(valorSinal) && Number.isFinite(valorRestante);
+            const horaProntoCliente = pedido.status === 'pronto_retirada'
+                ? formatarHoraClienteSaoPaulo(pedido.prontoEm)
+                : '';
+            const prontoClienteHtml = horaProntoCliente ? `
+                <p class="item-meus-pedidos-meta" style="margin-top:7px;color:#2f7a50;font-weight:750;">
+                    🕒 Ficou pronto às ${horaProntoCliente}
+                </p>
+            ` : '';
 
             const mensagemPagamentoPendenteHtml = (aguardandoPagamento || ehEncomendaAceitaComCheckoutPendente) ? `
                 <div style="margin-top:10px; padding:12px 14px; border-radius:12px; background:rgba(245, 158, 11, 0.10); border:1px solid rgba(245, 158, 11, 0.28);">
@@ -2456,6 +2481,7 @@ async function abrirMeusPedidos() {
                         <span>${statusTexto}</span>
                     </div>
                     <p class="item-meus-pedidos-meta">${resumoMetaPedidoTexto(pedido, dataFormatada)}</p>
+                    ${prontoClienteHtml}
                     <p class="item-meus-pedidos-itens">${itensTexto || 'Itens não informados'}</p>
                     ${sinalPago && mostrarResumoFinanceiro ? '' : `<p class="item-meus-pedidos-total">${totalTexto}</p>`}
                     ${mensagemPagamentoPendenteHtml}

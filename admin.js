@@ -2116,6 +2116,11 @@ function formatarMomentoOperacionalEncomenda(pedido) {
 function obterInicioEtapaPedido(pedido) {
     if (!pedido) return 0;
 
+    // Quando a retirada já está pronta, o cronômetro operacional passa a contar
+    // do instante em que a loja marcou o pedido como pronto.
+    const prontoEm = Number(pedido.prontoEm || 0);
+    if (pedido.status === 'pronto_retirada' && prontoEm) return prontoEm;
+
     // Se a loja iniciou o preparo manualmente, esse é o início real da operação,
     // inclusive quando decidiu começar antes do horário marcado.
     const preparoIniciadoEm = Number(pedido.preparoIniciadoEm || 0);
@@ -2147,9 +2152,15 @@ function atualizarUrgenciaVisualCard(card) {
     // dizer "desde o pedido" quando, na verdade, estamos medindo tempo de produção.
     const pedidoId = card.dataset.pedidoId;
     const pedido = pedidoId ? pedidosParaImpressao[pedidoId] : null;
+    const pedidoProntoRetirada = !!(pedido &&
+        pedido.status === 'pronto_retirada' &&
+        Number(pedido.prontoEm || 0));
     const rotuloTempo = pedido && Number(pedido.preparoIniciadoEm || 0)
         ? 'em preparo'
         : 'desde o pedido';
+    const textoTempo = pedidoProntoRetirada
+        ? `Pronto há ${minutos} min`
+        : `${minutos} min ${rotuloTempo}`;
 
     card.classList.remove('urgencia-normal', 'urgencia-atencao', 'urgencia-atrasado');
     badge.classList.remove('tempo-normal', 'tempo-atencao', 'tempo-atrasado');
@@ -2157,15 +2168,15 @@ function atualizarUrgenciaVisualCard(card) {
     if (minutos >= URGENCIA_PEDIDOS.atrasadoMinutos) {
         card.classList.add('urgencia-atrasado');
         badge.classList.add('tempo-atrasado');
-        badge.textContent = `🔴 ${minutos} min ${rotuloTempo}`;
+        badge.textContent = `🔴 ${textoTempo}`;
     } else if (minutos >= URGENCIA_PEDIDOS.atencaoMinutos) {
         card.classList.add('urgencia-atencao');
         badge.classList.add('tempo-atencao');
-        badge.textContent = `🟠 ${minutos} min ${rotuloTempo}`;
+        badge.textContent = `🟠 ${textoTempo}`;
     } else {
         card.classList.add('urgencia-normal');
         badge.classList.add('tempo-normal');
-        badge.textContent = `🟢 ${minutos} min ${rotuloTempo}`;
+        badge.textContent = `🟢 ${textoTempo}`;
     }
 }
 
@@ -2412,17 +2423,33 @@ function montarCardPedido(id, pedido, comAcoes) {
             : '';
         const dataHoraTopo = `${ehHojeTopo ? 'Hoje' : dataBrTopo}${horaTopo ? ` • ${horaTopo}` : ''}`;
         const solicitacaoPendente = pedido.status === 'pendente';
+        const encomendaProntaRetirada = pedido.status === 'pronto_retirada';
+        const prontoEmTopo = Number(pedido.prontoEm || 0);
+        const horaProntoTopo = prontoEmTopo
+            ? new Intl.DateTimeFormat('pt-BR', {
+                timeZone: 'America/Sao_Paulo',
+                hour: '2-digit',
+                minute: '2-digit',
+                hourCycle: 'h23'
+            }).format(new Date(prontoEmTopo))
+            : '';
         const tituloAgendaTopo = solicitacaoPendente
             ? 'Solicitação de encomenda'
-            : (preparoEncomendaIniciado ? 'Encomenda em preparo' : 'Encomenda agendada');
+            : (encomendaProntaRetirada
+                ? 'Encomenda pronta para retirada'
+                : (preparoEncomendaIniciado ? 'Encomenda em preparo' : 'Encomenda agendada'));
         const seloAgendaTopo = solicitacaoPendente
             ? 'AGUARDANDO ACEITE'
-            : (preparoEncomendaIniciado ? 'EM PREPARO' : (ehHojeTopo ? 'DIA DO EVENTO' : 'AGENDADA'));
+            : (encomendaProntaRetirada
+                ? 'PRONTA'
+                : (preparoEncomendaIniciado ? 'EM PREPARO' : (ehHojeTopo ? 'DIA DO EVENTO' : 'AGENDADA')));
         const textoAgendaTopo = solicitacaoPendente
             ? 'Aguardando confirmação da loja antes de qualquer cobrança.'
-            : (preparoEncomendaIniciado
-                ? `Preparo iniciado • ${pedido.tipoEntrega === 'entrega' ? 'entrega' : 'retirada'} prevista para esse horário.`
-                : (ehHojeTopo ? 'Evento marcado para hoje • confira os detalhes de entrega ou retirada.' : 'Aguardando a data do evento • detalhes combinados com o cliente.'));
+            : (encomendaProntaRetirada
+                ? `${horaProntoTopo ? `Ficou pronta às ${horaProntoTopo} • ` : ''}retirada prevista para ${horaTopo ? `às ${horaTopo}` : 'o horário combinado'}.`
+                : (preparoEncomendaIniciado
+                    ? `Preparo iniciado • ${pedido.tipoEntrega === 'entrega' ? 'entrega' : 'retirada'} prevista para esse horário.`
+                    : (ehHojeTopo ? 'Evento marcado para hoje • confira os detalhes de entrega ou retirada.' : 'Aguardando a data do evento • detalhes combinados com o cliente.')));
         avisoAgendamentoTopoHtml = `
             <div class="pedido-agendamento-premium" style="width:100%;box-sizing:border-box;margin:9px 0 10px;padding:11px 12px;border:1px solid rgba(151,105,68,.18);border-radius:14px;background:linear-gradient(145deg,rgba(255,250,243,.99),rgba(255,255,255,.99));box-shadow:0 7px 18px rgba(96,62,39,.07);color:#5a4030;">
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px;">
