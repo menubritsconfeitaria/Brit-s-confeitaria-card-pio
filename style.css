@@ -6672,3 +6672,48 @@ body.modo-demo-personalizado .checkout-resumo-icone {
     .encomendas-premium .produto-item { width: 100% !important; max-width: 420px; }
     .encomendas-premium .produto-imagem-wrap { aspect-ratio: 16 / 10; }
 }
+
+
+/* ============================================================
+   BRIT'S — ACCORDION ENCOMENDAS PREMIUM V2.2
+   Equilíbrio automático por quantidade de produtos.
+   1–2 itens: conjunto compacto e centralizado.
+   3+ itens: aproveita naturalmente a largura disponível.
+   ============================================================ */
+@media (min-width: 981px) {
+    .encomendas-premium.encomendas-qtd-1 .encomenda-layout {
+        grid-template-columns: minmax(320px, 360px) minmax(280px, 310px);
+        width: min(100%, 760px);
+        max-width: 760px;
+        margin: 22px auto 0;
+        justify-content: center;
+    }
+
+    .encomendas-premium.encomendas-qtd-1 .categoria-grid.encomenda-grid {
+        grid-template-columns: minmax(280px, 310px);
+        width: 310px;
+        max-width: 310px;
+        justify-content: start;
+    }
+
+    .encomendas-premium.encomendas-qtd-2 .encomenda-layout {
+        grid-template-columns: minmax(320px, 360px) minmax(0, 642px);
+        width: min(100%, 1024px);
+        max-width: 1024px;
+        margin: 22px auto 0;
+        justify-content: center;
+    }
+
+    .encomendas-premium.encomendas-qtd-2 .categoria-grid.encomenda-grid {
+        grid-template-columns: repeat(2, minmax(260px, 310px));
+        width: min(100%, 642px);
+        max-width: 642px;
+        justify-content: start;
+    }
+
+    .encomendas-premium.encomendas-qtd-muitos .encomenda-layout {
+        width: 100%;
+        max-width: none;
+        margin: 22px 0 0;
+    }
+}

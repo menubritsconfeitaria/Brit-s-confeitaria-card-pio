@@ -3404,6 +3404,17 @@ function renderizarProdutos() {
         if (agendamentoAtivo && produtosParaEncomenda.length > 0) {
             secaoEncomendasPremium.style.display = '';
 
+            secaoEncomendasPremium.classList.remove(
+                'encomendas-qtd-1',
+                'encomendas-qtd-2',
+                'encomendas-qtd-muitos'
+            );
+            secaoEncomendasPremium.classList.add(
+                produtosParaEncomenda.length === 1
+                    ? 'encomendas-qtd-1'
+                    : (produtosParaEncomenda.length === 2 ? 'encomendas-qtd-2' : 'encomendas-qtd-muitos')
+            );
+
             if (contagemEncomendasPremium) {
                 contagemEncomendasPremium.textContent = produtosParaEncomenda.length === 1
                     ? '1 produto disponível'
@@ -3460,6 +3471,11 @@ function renderizarProdutos() {
             definirEstadoEncomendasPremium(encomendasEstavamAbertas);
         } else {
             secaoEncomendasPremium.style.display = 'none';
+            secaoEncomendasPremium.classList.remove(
+                'encomendas-qtd-1',
+                'encomendas-qtd-2',
+                'encomendas-qtd-muitos'
+            );
             definirEstadoEncomendasPremium(false);
         }
     }
