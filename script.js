@@ -3387,61 +3387,81 @@ function renderizarProdutos() {
         return produtoItemDiv;
     }
 
-    // Seção especial "🎂 Encomendas" — só aparece se o recurso estiver ativado E tiver
-    // pelo menos 1 produto marcado como disponível pra encomenda
+    // Seção especial "🎂 Encomendas" — o atalho continua no topo, mas o conteúdo
+    // agora vive no accordion Premium perto do fim do cardápio. Toda a lógica de
+    // data/hora/disponibilidade é preservada; muda apenas a apresentação e a posição.
     const produtosParaEncomenda = produtosVisiveis.filter(p => p.disponivelParaEncomenda);
-    if (agendamentoAtivo && produtosParaEncomenda.length > 0) {
-        const tituloEncomenda = document.createElement('h3');
-        tituloEncomenda.classList.add('categoria-titulo', 'categoria-titulo-encomenda');
-        tituloEncomenda.id = 'secao-encomendas';
-        tituloEncomenda.textContent = '🎂 Encomendas';
-        listaProdutosDiv.appendChild(tituloEncomenda);
+    const secaoEncomendasPremium = document.getElementById('secao-encomendas');
+    const conteudoEncomendasPremium = document.getElementById('encomendasPremiumConteudo');
+    const contagemEncomendasPremium = document.getElementById('encomendasPremiumContagem');
+    const encomendasEstavamAbertas = !!(
+        secaoEncomendasPremium && secaoEncomendasPremium.classList.contains('aberta')
+    );
 
-        const layoutEncomenda = document.createElement('div');
-        layoutEncomenda.classList.add('encomenda-layout');
-        listaProdutosDiv.appendChild(layoutEncomenda);
+    if (secaoEncomendasPremium && conteudoEncomendasPremium) {
+        conteudoEncomendasPremium.innerHTML = '';
 
-        const introEncomenda = document.createElement('div');
-        introEncomenda.classList.add('encomenda-intro');
-        introEncomenda.innerHTML = `
-            <div class="encomenda-agendamento-faixa">
-                <div class="encomenda-agendamento-info">
-                    <div class="encomenda-agendamento-icone" aria-hidden="true">📅</div>
-                    <div class="encomenda-agendamento-textos">
-                        <div class="encomenda-agendamento-kicker">Agendamento da encomenda</div>
-                        <div class="encomenda-agendamento-titulo">Escolha a data e o horário</div>
-                        <div class="encomenda-agendamento-descricao">A loja confere a disponibilidade e organiza a produção para a sua retirada ou entrega.</div>
+        if (agendamentoAtivo && produtosParaEncomenda.length > 0) {
+            secaoEncomendasPremium.style.display = '';
+
+            if (contagemEncomendasPremium) {
+                contagemEncomendasPremium.textContent = produtosParaEncomenda.length === 1
+                    ? '1 produto disponível'
+                    : `${produtosParaEncomenda.length} produtos disponíveis`;
+            }
+
+            const layoutEncomenda = document.createElement('div');
+            layoutEncomenda.classList.add('encomenda-layout');
+            conteudoEncomendasPremium.appendChild(layoutEncomenda);
+
+            const introEncomenda = document.createElement('div');
+            introEncomenda.classList.add('encomenda-intro');
+            introEncomenda.innerHTML = `
+                <div class="encomenda-agendamento-faixa">
+                    <div class="encomenda-agendamento-info">
+                        <div class="encomenda-agendamento-icone" aria-hidden="true">📅</div>
+                        <div class="encomenda-agendamento-textos">
+                            <div class="encomenda-agendamento-kicker">Agendamento da encomenda</div>
+                            <div class="encomenda-agendamento-titulo">Escolha a data e o horário</div>
+                            <div class="encomenda-agendamento-descricao">A loja confere a disponibilidade e organiza a produção para a sua retirada ou entrega.</div>
+                        </div>
+                    </div>
+
+                    <div class="encomenda-agendamento-controles">
+                        <div class="encomenda-agendamento-campos">
+                            <label class="encomenda-campo-label">
+                                <span>📆 Data do evento</span>
+                                <input type="date" id="encomendaDataInput" onchange="verificarDisponibilidadeAgenda()">
+                            </label>
+                            <label class="encomenda-campo-label">
+                                <span>🕒 Horário do evento</span>
+                                <input type="time" id="encomendaHoraInput" step="900" onchange="atualizarHorarioEncomenda()" oninput="atualizarHorarioEncomenda()">
+                            </label>
+                        </div>
+
+                        <div id="encomendaDisponibilidadeMsg" class="dica-encomenda encomenda-disponibilidade-msg">Escolha uma data para conferir a disponibilidade.</div>
                     </div>
                 </div>
+            `;
+            layoutEncomenda.appendChild(introEncomenda);
 
-                <div class="encomenda-agendamento-controles">
-                    <div class="encomenda-agendamento-campos">
-                        <label class="encomenda-campo-label">
-                            <span>📆 Data do evento</span>
-                            <input type="date" id="encomendaDataInput" onchange="verificarDisponibilidadeAgenda()">
-                        </label>
-                        <label class="encomenda-campo-label">
-                            <span>🕒 Horário do evento</span>
-                            <input type="time" id="encomendaHoraInput" step="900" onchange="atualizarHorarioEncomenda()" oninput="atualizarHorarioEncomenda()">
-                        </label>
-                    </div>
+            // Impede escolher uma data que já passou usando o mesmo fuso operacional da loja.
+            const dataInputEncomenda = document.getElementById('encomendaDataInput');
+            const horaInputEncomenda = document.getElementById('encomendaHoraInput');
+            dataInputEncomenda.min = hojeIsoSaoPaulo();
+            if (dataEncomendaEscolhida) dataInputEncomenda.value = dataEncomendaEscolhida;
+            if (horaEncomendaEscolhida) horaInputEncomenda.value = horaEncomendaEscolhida;
 
-                    <div id="encomendaDisponibilidadeMsg" class="dica-encomenda encomenda-disponibilidade-msg">Escolha uma data para conferir a disponibilidade.</div>
-                </div>
-            </div>
-        `;
-        layoutEncomenda.appendChild(introEncomenda);
-        // Impede escolher uma data que já passou usando o mesmo fuso operacional da loja.
-        const dataInputEncomenda = document.getElementById('encomendaDataInput');
-        const horaInputEncomenda = document.getElementById('encomendaHoraInput');
-        dataInputEncomenda.min = hojeIsoSaoPaulo();
-        if (dataEncomendaEscolhida) dataInputEncomenda.value = dataEncomendaEscolhida;
-        if (horaEncomendaEscolhida) horaInputEncomenda.value = horaEncomendaEscolhida;
+            const gridEncomenda = document.createElement('div');
+            gridEncomenda.classList.add('categoria-grid', 'encomenda-grid');
+            produtosParaEncomenda.forEach(produto => gridEncomenda.appendChild(construirCardProduto(produto)));
+            layoutEncomenda.appendChild(gridEncomenda);
 
-        const gridEncomenda = document.createElement('div');
-        gridEncomenda.classList.add('categoria-grid', 'encomenda-grid');
-        produtosParaEncomenda.forEach(produto => gridEncomenda.appendChild(construirCardProduto(produto)));
-        layoutEncomenda.appendChild(gridEncomenda);
+            definirEstadoEncomendasPremium(encomendasEstavamAbertas);
+        } else {
+            secaoEncomendasPremium.style.display = 'none';
+            definirEstadoEncomendasPremium(false);
+        }
     }
 
     // Seção especial "🔥 Ofertas do Dia" (só aparece se tiver algum produto em oferta disponível)
@@ -3586,7 +3606,7 @@ function renderizarProdutos() {
             // Produto de encomenda exige que a data já tenha sido escolhida e verificada
             // como disponível antes de deixar adicionar ao carrinho
             if (produtoCompleto && produtoCompleto.disponivelParaEncomenda && !dataEncomendaEscolhida) {
-                alert('Escolha e confirme a data do evento, ali em cima na seção "🎂 Encomendas", antes de adicionar esse produto.');
+                alert('Escolha e confirme a data do evento na seção "🎂 Encomendas" antes de adicionar esse produto.');
                 return;
             }
             if (produtoCompleto && produtoCompleto.disponivelParaEncomenda && !horaEncomendaEscolhida) {
@@ -3614,6 +3634,33 @@ function renderizarProdutos() {
     iniciarObservadorCategorias();
 }
 
+// Accordion Premium de Encomendas — apresentação apenas.
+function definirEstadoEncomendasPremium(aberta) {
+    const secao = document.getElementById('secao-encomendas');
+    const conteudo = document.getElementById('encomendasPremiumConteudo');
+    const toggle = document.getElementById('encomendasPremiumToggle');
+    const acao = document.getElementById('encomendasPremiumAcao');
+    if (!secao || !conteudo || !toggle) return;
+
+    const deveAbrir = !!aberta;
+    secao.classList.toggle('aberta', deveAbrir);
+    conteudo.hidden = !deveAbrir;
+    toggle.setAttribute('aria-expanded', deveAbrir ? 'true' : 'false');
+    if (acao) acao.textContent = deveAbrir ? 'Recolher encomendas' : 'Ver encomendas';
+}
+
+function alternarEncomendasPremium() {
+    const secao = document.getElementById('secao-encomendas');
+    if (!secao) return;
+    definirEstadoEncomendasPremium(!secao.classList.contains('aberta'));
+}
+
+function irParaEncomendasPremium() {
+    const secao = document.getElementById('secao-encomendas');
+    if (!secao || secao.style.display === 'none') return;
+    secao.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 // NOVO: Função para renderizar as categorias
 function renderizarCategorias() {
     // Não conta produtos escondidos pra montar as categorias — senão uma categoria que só
@@ -3635,8 +3682,7 @@ function renderizarCategorias() {
         btnEncomenda.addEventListener('click', () => {
             document.querySelectorAll('.categoria-btn').forEach(btn => btn.classList.remove('active'));
             btnEncomenda.classList.add('active');
-            const alvo = document.getElementById('secao-encomendas');
-            if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            irParaEncomendasPremium();
         });
         liEncomenda.appendChild(btnEncomenda);
         categoriasNav.appendChild(liEncomenda);
@@ -3693,7 +3739,7 @@ function iniciarObservadorCategorias() {
     categoriaObserver = new IntersectionObserver((entradas) => {
         entradas.forEach(entrada => {
             if (entrada.isIntersecting) {
-                const nomeCategoria = entrada.target.textContent;
+                const nomeCategoria = entrada.target.dataset.categoriaNome || entrada.target.textContent;
                 document.querySelectorAll('.categoria-btn').forEach(btn => {
                     btn.classList.toggle('active', btn.textContent === nomeCategoria);
                 });
@@ -3701,7 +3747,7 @@ function iniciarObservadorCategorias() {
         });
     }, { rootMargin: '-90px 0px -70% 0px', threshold: 0 });
 
-    document.querySelectorAll('.categoria-titulo').forEach(titulo => categoriaObserver.observe(titulo));
+    document.querySelectorAll('.categoria-titulo, #secao-encomendas[data-categoria-nome]').forEach(titulo => categoriaObserver.observe(titulo));
 }
 
 

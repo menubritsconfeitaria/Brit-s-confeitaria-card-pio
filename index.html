@@ -416,6 +416,27 @@
                 </div>
             </div>
 
+            <section id="secao-encomendas" class="encomendas-premium" style="display:none;" data-categoria-nome="🎂 Encomendas">
+                <button type="button" id="encomendasPremiumToggle" class="encomendas-premium-toggle" aria-expanded="false" aria-controls="encomendasPremiumConteudo" onclick="alternarEncomendasPremium()">
+                    <span class="encomendas-premium-identidade">
+                        <span class="encomendas-premium-icone" aria-hidden="true">🎂</span>
+                        <span class="encomendas-premium-titulos">
+                            <span class="encomendas-premium-kicker">ENCOMENDAS BRIT'S</span>
+                            <strong>Encomendas para uma data especial</strong>
+                            <small>Escolha a data, o horário e veja as opções preparadas para encomenda.</small>
+                        </span>
+                    </span>
+
+                    <span class="encomendas-premium-direita">
+                        <span id="encomendasPremiumContagem" class="encomendas-premium-contagem">0 produtos</span>
+                        <span id="encomendasPremiumAcao" class="encomendas-premium-acao">Ver encomendas</span>
+                        <span class="encomendas-premium-chevron" aria-hidden="true">⌄</span>
+                    </span>
+                </button>
+
+                <div id="encomendasPremiumConteudo" class="encomendas-premium-conteudo" hidden></div>
+            </section>
+
             <section class="personalizar-secao personalizar-conversao">
                 <button type="button" class="personalizar-chamada" onclick="alternarPersonalizarConteudo()" aria-controls="personalizarConteudo">
                     <span class="personalizar-chamada-eyebrow">✨ Seu negócio, sua marca</span>
