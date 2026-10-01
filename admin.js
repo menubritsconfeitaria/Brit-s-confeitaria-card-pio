@@ -1755,6 +1755,109 @@ function alternarPagamentoConfirmadoManual(id, novoValor) {
         .catch(err => alert('Erro ao atualizar: ' + err.message));
 }
 
+async function confirmarRecebimentoPresencialEncomenda(id, botao) {
+    if (!id) return;
+
+    let modal = document.getElementById('modalRecebimentoPresencialEncomenda');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modalRecebimentoPresencialEncomenda';
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.style.cssText = [
+            'position:fixed',
+            'inset:0',
+            'z-index:100002',
+            'display:none',
+            'align-items:center',
+            'justify-content:center',
+            'padding:20px',
+            'background:rgba(0,0,0,.54)'
+        ].join(';');
+        modal.innerHTML = `
+            <div style="width:min(430px,100%);background:#fffaf4;border:1px solid rgba(160,82,45,.18);border-radius:20px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.28);color:#3b2b21;">
+                <div style="font-size:1.12rem;font-weight:850;margin-bottom:7px;">💵 Confirmar recebimento presencial</div>
+                <div style="font-size:.93rem;line-height:1.5;color:#6b584d;margin-bottom:15px;">
+                    Escolha como o cliente pagou. Isso registra o recebimento, mas <strong>não bloqueia</strong> a entrega/retirada.
+                </div>
+                <div style="display:grid;gap:9px;">
+                    <button type="button" data-forma-presencial="Dinheiro" style="padding:13px;border:0;border-radius:13px;background:#fff;border:1px solid rgba(160,82,45,.20);font-weight:800;cursor:pointer;">💵 Dinheiro</button>
+                    <button type="button" data-forma-presencial="Pix" style="padding:13px;border:0;border-radius:13px;background:#fff;border:1px solid rgba(160,82,45,.20);font-weight:800;cursor:pointer;">📱 Pix</button>
+                    <button type="button" data-forma-presencial="Cartão" style="padding:13px;border:0;border-radius:13px;background:#fff;border:1px solid rgba(160,82,45,.20);font-weight:800;cursor:pointer;">💳 Cartão</button>
+                    <button type="button" data-cancelar-presencial style="padding:12px;border:0;background:transparent;color:#7a665b;font-weight:750;cursor:pointer;">Cancelar</button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+
+    const forma = await new Promise(resolve => {
+        let resolvido = false;
+        const finalizar = valor => {
+            if (resolvido) return;
+            resolvido = true;
+            modal.style.display = 'none';
+            modal.onclick = null;
+            modal.querySelectorAll('[data-forma-presencial]').forEach(btn => { btn.onclick = null; });
+            const cancelar = modal.querySelector('[data-cancelar-presencial]');
+            if (cancelar) cancelar.onclick = null;
+            resolve(valor);
+        };
+
+        modal.querySelectorAll('[data-forma-presencial]').forEach(btn => {
+            btn.onclick = () => finalizar(btn.getAttribute('data-forma-presencial'));
+        });
+        const cancelar = modal.querySelector('[data-cancelar-presencial]');
+        if (cancelar) cancelar.onclick = () => finalizar(null);
+        modal.onclick = evento => {
+            if (evento.target === modal) finalizar(null);
+        };
+        modal.style.display = 'flex';
+    });
+
+    if (!forma) return;
+
+    const textoOriginal = botao ? botao.textContent : '';
+    if (botao) {
+        botao.disabled = true;
+        botao.textContent = 'Confirmando...';
+    }
+
+    try {
+        const pedidoRef = db.ref('pedidos/' + id);
+        const snap = await pedidoRef.once('value');
+        const pedidoAtual = snap.val();
+
+        if (!pedidoAtual) throw new Error('Pedido não encontrado.');
+
+        if (!['pronto_retirada', 'em_rota'].includes(pedidoAtual.status)) {
+            throw new Error('Atualize o painel: este pedido não está mais na etapa de entrega/retirada.');
+        }
+
+        if (pedidoAtual.pagamentoConfirmadoManual === true) {
+            if (botao) botao.textContent = '✅ Recebimento já confirmado';
+            return;
+        }
+
+        if (pedidoAtual.pagamento) {
+            throw new Error('Existe um pagamento online iniciado para esta encomenda. Não confirme o presencial por cima dele.');
+        }
+
+        await pedidoRef.update({
+            pagamentoConfirmadoManual: true,
+            pagamentoConfirmadoManualEm: firebase.database.ServerValue.TIMESTAMP,
+            formaPagamento: forma
+        });
+
+        if (botao) botao.textContent = '✅ Recebimento confirmado';
+    } catch (err) {
+        alert(err && err.message ? err.message : 'Não foi possível confirmar o recebimento agora.');
+        if (botao) {
+            botao.disabled = false;
+            botao.textContent = textoOriginal || '💵 Confirmar recebimento';
+        }
+    }
+}
+
 // PASSO 18B — confirma no servidor o recebimento presencial do restante.
 // O cliente não precisa escolher "Dinheiro" no site: no dia agendado, se o sinal já
 // está pago e o restante ainda não foi quitado online, a loja confirma o recebimento aqui.
@@ -2463,12 +2566,22 @@ function montarCardPedido(id, pedido, comAcoes) {
                 <div style="font-size:10.5px;line-height:1.35;color:#7d695c;">${textoAgendaTopo}</div>
             </div>`;
     }
-    // Encomenda tem fluxo financeiro próprio (sinal ou 100% depois do aceite).
-    // Por isso o checkbox genérico "Marcar como pago" fica fora de QUALQUER encomenda:
-    // ele não pode virar um atalho que bypassa o fluxo financeiro já validado.
-    // Se existir um registro manual legado, preservamos apenas a leitura visual.
+    // Encomenda mantém o fluxo online de sinal/100%, mas também pode ser paga presencialmente
+    // na retirada/entrega. O recebimento presencial só aparece quando o pedido já chegou à
+    // etapa de handoff e ainda NÃO existe checkout online: assim evitamos cobrança duplicada.
+    // Importante: isso NÃO bloqueia o botão de marcar como retirado/entregue.
+    const podeConfirmarRecebimentoPresencialEncomenda =
+        dataEncomendaTopoValida &&
+        ['pronto_retirada', 'em_rota'].includes(pedido.status) &&
+        !pedido.pagamento &&
+        !pedido.pagamentoConfirmadoManual;
+
     const botaoPagamentoManualHtml = dataEncomendaTopoValida
-        ? (pedido.pagamentoConfirmadoManual ? '<span class="pedido-tag tag-status-entregue">✅ Pago (manual)</span>' : '')
+        ? (pedido.pagamentoConfirmadoManual
+            ? '<span class="pedido-tag tag-status-entregue">✅ Pago presencial</span>'
+            : (podeConfirmarRecebimentoPresencialEncomenda
+                ? `<button type="button" class="pedido-tag tag-pagamento" style="cursor:pointer;border:0;" onclick="confirmarRecebimentoPresencialEncomenda('${id}', this)" title="Confirmar pagamento recebido presencialmente em dinheiro, Pix ou cartão">💵 Confirmar recebimento</button>`
+                : ''))
         : (pagamentoEhSinal ? '' : `
             <span class="pedido-tag ${pedido.pagamentoConfirmadoManual ? 'tag-status-entregue' : ''}" style="cursor:pointer;" onclick="alternarPagamentoConfirmadoManual('${id}', ${!pedido.pagamentoConfirmadoManual})" title="Clique pra marcar/desmarcar como pago (uso manual, ex: cliente pagou Pix por fora)">${pedido.pagamentoConfirmadoManual ? '✅ Pago' : '☐ Marcar como pago'}</span>`);
     const encomendaAguardandoPagamento = dataEncomendaTopoValida && !pedido.pagamento && !pedido.pagamentoConfirmadoManual;

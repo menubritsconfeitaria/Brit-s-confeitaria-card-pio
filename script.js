@@ -1972,7 +1972,15 @@ function resumoMetaPedidoTexto(pedido, dataPedidoFormatada) {
 
         const partes = [];
         partes.push(dataEncomenda ? `Encomenda para ${dataEncomenda}${horaEncomenda ? ` às ${horaEncomenda}` : ''}` : dataPedidoFormatada);
-        if (formaSinal) partes.push(`${rotuloFormaPagamento}: ${formaSinal}`);
+
+        if (pedido.pagamentoConfirmadoManual === true) {
+            partes.push(`Pagamento: ${pedido.formaPagamento || 'presencial'}`);
+        } else if (!pedido.pagamento) {
+            partes.push('Pagamento: online ou presencial');
+        } else if (formaSinal) {
+            partes.push(`${rotuloFormaPagamento}: ${formaSinal}`);
+        }
+
         return partes.filter(Boolean).join(' • ');
     }
 
@@ -2008,6 +2016,7 @@ function formatarHoraClienteSaoPaulo(timestamp) {
 // Não altera status, notificações, webhook ou fluxo operacional da loja.
 function pedidoExigeAcaoCliente(pedido) {
     if (!pedido || pedido.status === 'recusado' || pedido.canceladoPeloCliente === true) return false;
+    if (pedido.pagamentoConfirmadoManual === true) return false;
 
     // Pedido/sinal criado, mas ainda não confirmado pelo pagamento.
     if (pedido.status === 'aguardando_pagamento') return true;
@@ -2356,10 +2365,11 @@ async function abrirMeusPedidos() {
             const ehEncomenda = !!(pedido.dataEncomenda && pedido.horaEncomenda);
             const aguardandoPagamento = pedido.status === 'aguardando_pagamento';
             const pagamentoPrincipalAguardando = pedido.pagamento && pedido.pagamento.status === 'aguardando';
+            const pagamentoPresencialConfirmado = pedido.pagamentoConfirmadoManual === true;
             const ehEncomendaPendente = ehEncomenda && pedido.status === 'pendente';
             const statusEncomendaPosAceite = ['aceito', 'pronto_retirada', 'em_rota'].includes(pedido.status);
-            const ehEncomendaAceitaSemPagamento = ehEncomenda && statusEncomendaPosAceite && !pedido.pagamento;
-            const ehEncomendaAceitaComCheckoutPendente = ehEncomenda && statusEncomendaPosAceite && pagamentoPrincipalAguardando;
+            const ehEncomendaAceitaSemPagamento = ehEncomenda && statusEncomendaPosAceite && !pedido.pagamento && !pagamentoPresencialConfirmado;
+            const ehEncomendaAceitaComCheckoutPendente = ehEncomenda && statusEncomendaPosAceite && pagamentoPrincipalAguardando && !pagamentoPresencialConfirmado;
             const checkoutPendente = (aguardandoPagamento || ehEncomendaAceitaComCheckoutPendente) && pedido.pagamento && pedido.pagamento.checkoutUrl
                 ? String(pedido.pagamento.checkoutUrl)
                 : null;
@@ -2431,6 +2441,20 @@ async function abrirMeusPedidos() {
                         <button class="btn-pagar-restante-lista" onclick="pagarEncomendaAceita('${id}', 'total', this)">✅ Pagar 100%${Number.isFinite(totalValor) ? ` • ${formatarPrecoTexto(totalValor)}` : ''}</button>
                     </div>
                     <span style="display:block;margin-top:8px;font-size:.82rem;line-height:1.4;color:var(--muted);">Se pagar o sinal, o restante continuará disponível em Meus Pedidos. Se pagar 100%, a encomenda ficará totalmente quitada.</span>
+                    <span style="display:block;margin-top:7px;font-size:.82rem;line-height:1.4;color:var(--muted);">💵 Prefere pagar presencialmente? Também pode pagar em dinheiro, Pix ou cartão na retirada/entrega. Nesse caso, não precisa abrir o pagamento online.</span>
+                </div>
+            ` : '';
+
+            const pagamentoPresencialConfirmadoHtml = pagamentoPresencialConfirmado ? `
+                <div class="item-meus-pedidos-financeiro pagamento-completo">
+                    <div class="item-meus-pedidos-financeiro-topo">
+                        <span>Pagamento da encomenda</span>
+                        <strong>✅ Recebido presencialmente</strong>
+                    </div>
+                    <div class="item-meus-pedidos-financeiro-total">
+                        <span>Forma</span>
+                        <strong>${pedido.formaPagamento || 'Presencial'}</strong>
+                    </div>
                 </div>
             ` : '';
 
@@ -2486,6 +2510,7 @@ async function abrirMeusPedidos() {
                     ${sinalPago && mostrarResumoFinanceiro ? '' : `<p class="item-meus-pedidos-total">${totalTexto}</p>`}
                     ${mensagemPagamentoPendenteHtml}
                     ${opcoesPagamentoEncomendaHtml}
+                    ${pagamentoPresencialConfirmadoHtml}
                     ${pagamentoTotalHtml}
                     ${resumoFinanceiroHtml}
                     ${restanteDinheiroPendente ? `<p class="item-meus-pedidos-meta">💵 Restante${valorRestanteTexto ? ` de ${valorRestanteTexto}` : ''} em dinheiro • aguardando recebimento</p>` : ''}
