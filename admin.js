@@ -1776,7 +1776,7 @@ async function confirmarRecebimentoPresencialEncomenda(id, botao) {
         ].join(';');
         modal.innerHTML = `
             <div style="width:min(430px,100%);background:#fffaf4;border:1px solid rgba(160,82,45,.18);border-radius:20px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.28);color:#3b2b21;">
-                <div style="font-size:1.12rem;font-weight:850;margin-bottom:7px;">💵 Confirmar recebimento presencial</div>
+                <div style="font-size:1.12rem;font-weight:850;margin-bottom:7px;">✅ Marcar como pago</div>
                 <div style="font-size:.93rem;line-height:1.5;color:#6b584d;margin-bottom:15px;">
                     Escolha como o cliente pagou. Isso registra o recebimento, mas <strong>não bloqueia</strong> a entrega/retirada.
                 </div>
@@ -1834,7 +1834,7 @@ async function confirmarRecebimentoPresencialEncomenda(id, botao) {
         }
 
         if (pedidoAtual.pagamentoConfirmadoManual === true) {
-            if (botao) botao.textContent = '✅ Recebimento já confirmado';
+            if (botao) botao.textContent = '✅ Pago';
             return;
         }
 
@@ -1848,12 +1848,12 @@ async function confirmarRecebimentoPresencialEncomenda(id, botao) {
             formaPagamento: forma
         });
 
-        if (botao) botao.textContent = '✅ Recebimento confirmado';
+        if (botao) botao.textContent = '✅ Pago';
     } catch (err) {
         alert(err && err.message ? err.message : 'Não foi possível confirmar o recebimento agora.');
         if (botao) {
             botao.disabled = false;
-            botao.textContent = textoOriginal || '💵 Confirmar recebimento';
+            botao.textContent = textoOriginal || '☐ Marcar como pago';
         }
     }
 }
@@ -1890,7 +1890,7 @@ async function confirmarRecebimentoRestanteDinheiro(id, botao, checkoutOnlineEmA
 
         // O listener em tempo real redesenha o card como "Pagamento completo".
         // O alerta existe só como confirmação imediata para quem está operando o caixa.
-        alert('✅ Recebimento confirmado. O pagamento da encomenda agora está completo.');
+        alert('✅ Pago. O pagamento da encomenda agora está completo.');
     } catch (err) {
         console.log('Não foi possível confirmar o recebimento do restante:', err);
         const mensagem = err && err.message
@@ -2580,7 +2580,7 @@ function montarCardPedido(id, pedido, comAcoes) {
         ? (pedido.pagamentoConfirmadoManual
             ? '<span class="pedido-tag tag-status-entregue">✅ Pago presencial</span>'
             : (podeConfirmarRecebimentoPresencialEncomenda
-                ? `<button type="button" class="pedido-tag tag-pagamento" style="cursor:pointer;border:0;" onclick="confirmarRecebimentoPresencialEncomenda('${id}', this)" title="Confirmar pagamento recebido presencialmente em dinheiro, Pix ou cartão">💵 Confirmar recebimento</button>`
+                ? `<button type="button" class="pedido-tag tag-pagamento" style="cursor:pointer;border:0;" onclick="confirmarRecebimentoPresencialEncomenda('${id}', this)" title="Confirmar pagamento recebido presencialmente em dinheiro, Pix ou cartão">☐ Marcar como pago</button>`
                 : ''))
         : (pagamentoEhSinal ? '' : `
             <span class="pedido-tag ${pedido.pagamentoConfirmadoManual ? 'tag-status-entregue' : ''}" style="cursor:pointer;" onclick="alternarPagamentoConfirmadoManual('${id}', ${!pedido.pagamentoConfirmadoManual})" title="Clique pra marcar/desmarcar como pago (uso manual, ex: cliente pagou Pix por fora)">${pedido.pagamentoConfirmadoManual ? '✅ Pago' : '☐ Marcar como pago'}</span>`);
