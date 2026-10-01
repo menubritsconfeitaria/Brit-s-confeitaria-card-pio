@@ -2032,6 +2032,46 @@ const URGENCIA_PEDIDOS = {
 // A encomenda pode ser aceita antes da data e fica separada na agenda operacional.
 // O horário orienta a produção, mas não bloqueia a loja: ela pode iniciar o preparo
 // ou avançar para pronto/em rota assim que o pedido estiver efetivamente pronto.
+function timestampHorarioSaoPaulo(dataIso, hora = '00:00') {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dataIso || ''))) return null;
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(hora || ''))) return null;
+
+    const [ano, mes, dia] = String(dataIso).split('-').map(Number);
+    const [h, min] = String(hora).split(':').map(Number);
+    const desejadoComoUtc = Date.UTC(ano, mes - 1, dia, h, min, 0, 0);
+    let palpite = desejadoComoUtc;
+
+    // Converte uma data/hora civil de São Paulo para timestamp real sem depender
+    // do fuso configurado no computador/celular que abriu o painel.
+    for (let tentativa = 0; tentativa < 2; tentativa++) {
+        const partes = {};
+        new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/Sao_Paulo',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hourCycle: 'h23'
+        }).formatToParts(new Date(palpite)).forEach(parte => {
+            if (parte.type !== 'literal') partes[parte.type] = parte.value;
+        });
+
+        const representadoComoUtc = Date.UTC(
+            Number(partes.year),
+            Number(partes.month) - 1,
+            Number(partes.day),
+            Number(partes.hour),
+            Number(partes.minute),
+            0,
+            0
+        );
+        palpite += desejadoComoUtc - representadoComoUtc;
+    }
+
+    return Number.isFinite(palpite) ? palpite : null;
+}
+
 function obterDataHoraOperacionalEncomenda(pedido) {
     if (!pedido) return null;
 
@@ -2043,11 +2083,8 @@ function obterDataHoraOperacionalEncomenda(pedido) {
         ? horaInformada
         : '00:00';
 
-    const [ano, mes, dia] = data.split('-').map(Number);
-    const [h, min] = hora.split(':').map(Number);
-    const alvo = new Date(ano, mes - 1, dia, h, min, 0, 0);
-
-    return Number.isNaN(alvo.getTime()) ? null : alvo;
+    const timestamp = timestampHorarioSaoPaulo(data, hora);
+    return timestamp == null ? null : new Date(timestamp);
 }
 
 function encomendaAguardandoHorarioOperacional(pedido, agora = new Date()) {
@@ -2472,16 +2509,28 @@ async function verificarRecompensaDisponivelNoPedido(id, pedido) {
 }
 
 
+function serialDiaEncomenda(dataIso) {
+    const data = String(dataIso || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return null;
+    const [ano, mes, dia] = data.split('-').map(Number);
+    return Math.floor(Date.UTC(ano, mes - 1, dia) / 86400000);
+}
+
+function formatarDataBrEncomenda(dataIso) {
+    const data = String(dataIso || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return '—';
+    const [ano, mes, dia] = data.split('-');
+    return `${dia}/${mes}/${ano}`;
+}
+
 function formatarDataEncomendaGrupo(dataIso) {
     const data = String(dataIso || '').trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return 'Sem data';
-    const hoje = hojeIsoLocal();
-    const hojeDate = dataIsoParaDateLocal(hoje);
-    const alvo = dataIsoParaDateLocal(data);
-    if (!hojeDate || !alvo) return formatarDataIsoBr(data);
+    const serialAlvo = serialDiaEncomenda(data);
+    const serialHoje = serialDiaEncomenda(hojeIsoLocal());
+    if (serialAlvo == null || serialHoje == null) return formatarDataBrEncomenda(data);
 
-    const diff = Math.round((alvo.getTime() - hojeDate.getTime()) / 86400000);
-    const dataBr = formatarDataIsoBr(data);
+    const diff = serialAlvo - serialHoje;
+    const dataBr = formatarDataBrEncomenda(data);
     if (diff === 0) return `Hoje • ${dataBr}`;
     if (diff === 1) return `Amanhã • ${dataBr}`;
     if (diff < 0) return `Atrasadas • ${dataBr}`;
@@ -2493,9 +2542,15 @@ function obterSinalTempoEncomendaAgenda(pedido, agora = new Date()) {
     if (!alvo) return { texto: 'Agendada', classe: 'neutro' };
 
     const diffMin = Math.ceil((alvo.getTime() - agora.getTime()) / 60000);
-    if (diffMin > 1440) {
-        const dias = Math.ceil(diffMin / 1440);
-        return { texto: `Faltam ${dias} dia${dias === 1 ? '' : 's'}`, classe: 'futuro' };
+    // Até 48h, mostra horas para não aparecer "Amanhã" no grupo e "Faltam 2 dias"
+    // no mesmo pedido. Acima disso, mostra dias + horas com precisão operacional.
+    if (diffMin >= 2880) {
+        const dias = Math.floor(diffMin / 1440);
+        const horasRestantes = Math.ceil((diffMin % 1440) / 60);
+        const texto = horasRestantes > 0
+            ? `Faltam ${dias}d ${horasRestantes}h`
+            : `Faltam ${dias} dia${dias === 1 ? '' : 's'}`;
+        return { texto, classe: 'futuro' };
     }
     if (diffMin > 60) {
         const horas = Math.ceil(diffMin / 60);
@@ -2582,6 +2637,8 @@ function renderizarEncomendasConfirmadas(encomendasMap) {
     const contador = document.getElementById('contadorEncomendasConfirmadas');
     if (!lista) return;
 
+    // Ordem operacional é SEMPRE pela data/hora da encomenda, e nunca pela ordem
+    // em que os pedidos chegaram. O compromisso mais próximo fica no topo.
     const itens = [...(encomendasMap || new Map()).entries()]
         .map(([id, pedido]) => ({ id, pedido }))
         .filter(item => pedidoEhEncomendaConfirmadaAguardandoPreparo(item.pedido))
@@ -2590,7 +2647,13 @@ function renderizarEncomendasConfirmadas(encomendasMap) {
             const db = obterDataHoraOperacionalEncomenda(b.pedido);
             const ta = da ? da.getTime() : Number.MAX_SAFE_INTEGER;
             const tb = db ? db.getTime() : Number.MAX_SAFE_INTEGER;
-            return ta - tb || Number(a.pedido.timestamp || 0) - Number(b.pedido.timestamp || 0);
+            if (ta !== tb) return ta - tb;
+
+            // Empate de data/hora: o mais antigo primeiro só como desempate estável.
+            const criadoA = Number(a.pedido.timestamp || 0);
+            const criadoB = Number(b.pedido.timestamp || 0);
+            if (criadoA !== criadoB) return criadoA - criadoB;
+            return String(a.id).localeCompare(String(b.id));
         });
 
     if (contador) contador.textContent = itens.length;
@@ -2608,7 +2671,23 @@ function renderizarEncomendasConfirmadas(encomendasMap) {
         grupos.get(chave).push(item);
     });
 
-    grupos.forEach((grupoItens, dataIso) => {
+    // Também ordena explicitamente os grupos por data. Assim a interface não depende
+    // da ordem de inserção do Map nem da ordem em que o Firebase entregou os eventos.
+    const gruposOrdenados = [...grupos.entries()].sort(([dataA], [dataB]) => {
+        const sa = serialDiaEncomenda(dataA);
+        const sb = serialDiaEncomenda(dataB);
+        return (sa == null ? Number.MAX_SAFE_INTEGER : sa) - (sb == null ? Number.MAX_SAFE_INTEGER : sb);
+    });
+
+    gruposOrdenados.forEach(([dataIso, grupoItens]) => {
+        grupoItens.sort((a, b) => {
+            const da = obterDataHoraOperacionalEncomenda(a.pedido);
+            const db = obterDataHoraOperacionalEncomenda(b.pedido);
+            const ta = da ? da.getTime() : Number.MAX_SAFE_INTEGER;
+            const tb = db ? db.getTime() : Number.MAX_SAFE_INTEGER;
+            return ta - tb || Number(a.pedido.timestamp || 0) - Number(b.pedido.timestamp || 0);
+        });
+
         const grupo = document.createElement('div');
         grupo.className = 'encomenda-agenda-grupo';
 
