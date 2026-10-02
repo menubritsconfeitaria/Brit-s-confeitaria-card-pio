@@ -2594,13 +2594,19 @@ function montarCardPedido(id, pedido, comAcoes) {
         !pedido.pagamento &&
         !pedido.pagamentoConfirmadoManual;
 
+    const pagamentoOnlineNormalConfirmado = !!(
+        pedido.pagamento &&
+        pedido.pagamento.tipoPagamento !== 'sinal' &&
+        pedido.pagamento.status === 'pago'
+    );
+
     const botaoPagamentoManualHtml = dataEncomendaTopoValida
         ? (pedido.pagamentoConfirmadoManual
             ? '<span class="pedido-tag tag-status-entregue">✅ Pago presencial</span>'
             : (podeConfirmarRecebimentoPresencialEncomenda
                 ? `<button type="button" class="pedido-tag tag-pagamento" style="cursor:pointer;border:0;" onclick="confirmarRecebimentoPresencialEncomenda('${id}', this)" title="Confirmar pagamento recebido presencialmente em dinheiro, Pix ou cartão">☐ Marcar como pago</button>`
                 : ''))
-        : (pagamentoEhSinal ? '' : `
+        : ((pagamentoEhSinal || pagamentoOnlineNormalConfirmado) ? '' : `
             <span class="pedido-tag ${pedido.pagamentoConfirmadoManual ? 'tag-status-entregue' : ''}" style="cursor:pointer;" onclick="alternarPagamentoConfirmadoManual('${id}', ${!pedido.pagamentoConfirmadoManual})" title="Clique pra marcar/desmarcar como pago (uso manual, ex: cliente pagou Pix por fora)">${pedido.pagamentoConfirmadoManual ? '✅ Pago' : '☐ Marcar como pago'}</span>`);
     const encomendaAguardandoPagamento = dataEncomendaTopoValida && !pedido.pagamento && !pedido.pagamentoConfirmadoManual;
     const tagFormaPagamentoHtml = encomendaAguardandoPagamento
