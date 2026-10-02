@@ -584,6 +584,23 @@ function calcularAbertoPorHorario(horarios, agora = new Date()) {
 // - antes de abrir: "abre hoje às 09:00"
 // - depois do expediente: "abre amanhã às 09:00"
 // - dia desativado: pula pro próximo dia programado
+function obterHorarioProgramadoHoje(horarios, agora = new Date()) {
+    const { diaSemana, minutosAgora } = obterAgoraHorarioLoja(agora);
+    const diaConfig = obterConfigHorarioDia(horarios, diaSemana);
+
+    if (!diaConfig || !diaConfig.aberto) return null;
+    if (!horarioProgramadoValido(diaConfig.abre) || !horarioProgramadoValido(diaConfig.fecha)) return null;
+
+    return {
+        diaSemana,
+        abre: diaConfig.abre,
+        fecha: diaConfig.fecha,
+        minutosAgora,
+        minutosAbre: horarioParaMinutos(diaConfig.abre),
+        minutosFecha: horarioParaMinutos(diaConfig.fecha)
+    };
+}
+
 function obterProximoHorarioProgramado(horarios, agora = new Date()) {
     const { diaSemana, minutosAgora } = obterAgoraHorarioLoja(agora);
     const hoje = obterConfigHorarioDia(horarios, diaSemana);
@@ -679,7 +696,7 @@ function atualizarStatusLoja(config) {
         lojaPausadaAtual = false;
         banner.classList.remove('loja-fechada', 'loja-pausada');
         banner.classList.add('loja-aberta');
-        texto.textContent = '🟢 Estamos abertos! Pode fazer seu pedido.';
+        texto.textContent = '🟢 Atendimento aberto · Faça seu pedido pelo nosso cardápio';
         if (botaoFinalizarCompra) {
             botaoFinalizarCompra.disabled = false;
             botaoFinalizarCompra.textContent = 'Finalizar Compra';
@@ -697,7 +714,7 @@ function atualizarStatusLoja(config) {
         lojaAbertaAtual = false;
         banner.classList.remove('loja-aberta', 'loja-fechada', 'loja-pausada');
         banner.classList.add('loja-pausada');
-        texto.textContent = '🟡 Pedidos temporariamente pausados. Voltaremos a atender em breve — o cardápio continua disponível para consulta.';
+        texto.textContent = '🟡 Pedidos pausados no momento · Retomaremos o atendimento em breve.';
         if (botaoFinalizarCompra) {
             botaoFinalizarCompra.disabled = true;
             botaoFinalizarCompra.textContent = 'Pedidos temporariamente pausados';
@@ -714,13 +731,20 @@ function atualizarStatusLoja(config) {
     lojaAbertaAtual = aberta;
 
     banner.classList.remove('loja-aberta', 'loja-fechada', 'loja-pausada');
+
+    const horarioHojeProgramado = obterHorarioProgramadoHoje(horarios);
+    const proximaAberturaProgramada = obterProximoHorarioProgramado(horarios);
+
     if (aberta) {
         banner.classList.add('loja-aberta');
 
-        const horarioProgramado = modoAutomatico ? obterProximoHorarioProgramado(horarios) : null;
-        texto.textContent = horarioProgramado && horarioProgramado.tipo === 'fecha'
-            ? `🟢 Estamos abertos! Atendimento até ${horarioProgramado.hora}.`
-            : '🟢 Estamos abertos! Pode fazer seu pedido.';
+        if (modoAutomatico && horarioHojeProgramado) {
+            texto.textContent = `🟢 Estamos atendendo · Pedidos até ${horarioHojeProgramado.fecha}`;
+        } else if (horarioHojeProgramado) {
+            texto.textContent = `🟢 Atendimento aberto agora · Horário programado hoje: ${horarioHojeProgramado.abre}–${horarioHojeProgramado.fecha}`;
+        } else {
+            texto.textContent = '🟢 Atendimento aberto agora · Faça seu pedido pelo nosso cardápio';
+        }
 
         if (botaoFinalizarCompra) {
             botaoFinalizarCompra.disabled = false;
@@ -729,10 +753,18 @@ function atualizarStatusLoja(config) {
     } else {
         banner.classList.add('loja-fechada');
 
-        const proximaAbertura = modoAutomatico ? obterProximoHorarioProgramado(horarios) : null;
-        texto.textContent = proximaAbertura && proximaAbertura.tipo === 'abre'
-            ? `🔴 No momento, estamos fechados. Abrimos ${proximaAbertura.quando} às ${proximaAbertura.hora}. Você pode ver o cardápio à vontade.`
-            : '🔴 No momento, estamos fechados. Consulte nosso horário de atendimento e volte em breve — você pode ver o cardápio à vontade.';
+        if (modoAutomatico && horarioHojeProgramado && horarioHojeProgramado.minutosAgora < horarioHojeProgramado.minutosAbre) {
+            texto.textContent = `🕘 Abrimos hoje às ${horarioHojeProgramado.abre} · Cardápio disponível para consulta`;
+        } else if (proximaAberturaProgramada && proximaAberturaProgramada.tipo === 'abre') {
+            const retorno = proximaAberturaProgramada.quando === 'hoje'
+                ? `Abrimos hoje às ${proximaAberturaProgramada.hora}`
+                : `Retornamos ${proximaAberturaProgramada.quando} às ${proximaAberturaProgramada.hora}`;
+            texto.textContent = `🔴 Atendimento encerrado no momento · ${retorno}`;
+        } else if (horarioHojeProgramado) {
+            texto.textContent = `🔴 Atendimento encerrado no momento · Horário programado hoje: ${horarioHojeProgramado.abre}–${horarioHojeProgramado.fecha}`;
+        } else {
+            texto.textContent = '🔴 Atendimento encerrado no momento · Cardápio disponível para consulta';
+        }
 
         if (botaoFinalizarCompra) {
             // Encomenda agendada é pra uma data futura — não depende da loja estar
