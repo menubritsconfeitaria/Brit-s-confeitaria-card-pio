@@ -738,7 +738,9 @@ function atualizarStatusLoja(config) {
     if (aberta) {
         banner.classList.add('loja-aberta');
 
-        if (horarioHojeProgramado) {
+        if (modoManual === 'aberto') {
+            texto.textContent = '🟢 Atendimento aberto agora · Estamos recebendo pedidos';
+        } else if (horarioHojeProgramado) {
             texto.textContent = `🟢 Estamos atendendo · Pedidos até ${horarioHojeProgramado.fecha}`;
         } else {
             texto.textContent = '🟢 Atendimento aberto agora · Faça seu pedido pelo nosso cardápio';
@@ -751,15 +753,15 @@ function atualizarStatusLoja(config) {
     } else {
         banner.classList.add('loja-fechada');
 
-        if (modoAutomatico && horarioHojeProgramado && horarioHojeProgramado.minutosAgora < horarioHojeProgramado.minutosAbre) {
+        if (modoManual === 'fechado') {
+            texto.textContent = '🔴 Atendimento encerrado no momento · Cardápio disponível para consulta';
+        } else if (modoAutomatico && horarioHojeProgramado && horarioHojeProgramado.minutosAgora < horarioHojeProgramado.minutosAbre) {
             texto.textContent = `🕘 Abrimos hoje às ${horarioHojeProgramado.abre} · Cardápio disponível para consulta`;
-        } else if (proximaAberturaProgramada && proximaAberturaProgramada.tipo === 'abre') {
+        } else if (modoAutomatico && proximaAberturaProgramada && proximaAberturaProgramada.tipo === 'abre') {
             const retorno = proximaAberturaProgramada.quando === 'hoje'
                 ? `Abrimos hoje às ${proximaAberturaProgramada.hora}`
                 : `Retornamos ${proximaAberturaProgramada.quando} às ${proximaAberturaProgramada.hora}`;
             texto.textContent = `🔴 Atendimento encerrado no momento · ${retorno}`;
-        } else if (horarioHojeProgramado) {
-            texto.textContent = `🔴 Atendimento encerrado no momento · Horário programado hoje: ${horarioHojeProgramado.abre}–${horarioHojeProgramado.fecha}`;
         } else {
             texto.textContent = '🔴 Atendimento encerrado no momento · Cardápio disponível para consulta';
         }
