@@ -525,18 +525,97 @@ function horarioParaMinutos(hhmm) {
     return (h || 0) * 60 + (m || 0);
 }
 
-// Calcula se a loja está aberta agora, considerando o horário do dia da semana atual
-function calcularAbertoPorHorario(horarios) {
-    const agora = new Date();
-    const diaSemana = agora.getDay();
-    const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
-    const diaConfig = (horarios && horarios[diaSemana]) || horariosPadrao[diaSemana];
+const FUSO_HORARIO_LOJA = 'America/Sao_Paulo';
+const nomesDiasHorarioLoja = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+
+function horarioProgramadoValido(hhmm) {
+    return /^([01]\d|2[0-3]):[0-5]\d$/.test(String(hhmm || ''));
+}
+
+function obterConfigHorarioDia(horarios, diaSemana) {
+    const configurado = horarios && horarios[diaSemana];
+    return configurado || horariosPadrao[diaSemana] || null;
+}
+
+function obterAgoraHorarioLoja(agora = new Date()) {
+    const partes = {};
+    new Intl.DateTimeFormat('en-CA', {
+        timeZone: FUSO_HORARIO_LOJA,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23'
+    }).formatToParts(agora).forEach(parte => {
+        if (parte.type !== 'literal') partes[parte.type] = parte.value;
+    });
+
+    const ano = Number(partes.year);
+    const mes = Number(partes.month);
+    const dia = Number(partes.day);
+    const hora = Number(partes.hour);
+    const minuto = Number(partes.minute);
+    const diaSemana = new Date(Date.UTC(ano, mes - 1, dia, 12, 0, 0)).getUTCDay();
+
+    return {
+        diaSemana,
+        minutosAgora: hora * 60 + minuto
+    };
+}
+
+// Calcula se a loja está aberta agora usando o fuso operacional da loja,
+// e não o fuso do aparelho do cliente.
+function calcularAbertoPorHorario(horarios, agora = new Date()) {
+    const { diaSemana, minutosAgora } = obterAgoraHorarioLoja(agora);
+    const diaConfig = obterConfigHorarioDia(horarios, diaSemana);
 
     if (!diaConfig || !diaConfig.aberto) return false;
+    if (!horarioProgramadoValido(diaConfig.abre) || !horarioProgramadoValido(diaConfig.fecha)) return false;
 
     const abre = horarioParaMinutos(diaConfig.abre);
     const fecha = horarioParaMinutos(diaConfig.fecha);
     return minutosAgora >= abre && minutosAgora < fecha;
+}
+
+// Retorna a informação útil pro cliente a partir da agenda configurada no painel.
+// Exemplos:
+// - loja aberta: "fecha às 22:00"
+// - antes de abrir: "abre hoje às 09:00"
+// - depois do expediente: "abre amanhã às 09:00"
+// - dia desativado: pula pro próximo dia programado
+function obterProximoHorarioProgramado(horarios, agora = new Date()) {
+    const { diaSemana, minutosAgora } = obterAgoraHorarioLoja(agora);
+    const hoje = obterConfigHorarioDia(horarios, diaSemana);
+
+    if (hoje && hoje.aberto && horarioProgramadoValido(hoje.abre) && horarioProgramadoValido(hoje.fecha)) {
+        const abreHoje = horarioParaMinutos(hoje.abre);
+        const fechaHoje = horarioParaMinutos(hoje.fecha);
+
+        if (minutosAgora < abreHoje) {
+            return { tipo: 'abre', quando: 'hoje', hora: hoje.abre, diaSemana };
+        }
+        if (minutosAgora >= abreHoje && minutosAgora < fechaHoje) {
+            return { tipo: 'fecha', quando: 'hoje', hora: hoje.fecha, diaSemana };
+        }
+    }
+
+    for (let deslocamento = 1; deslocamento <= 7; deslocamento++) {
+        const proximoDia = (diaSemana + deslocamento) % 7;
+        const configDia = obterConfigHorarioDia(horarios, proximoDia);
+
+        if (!configDia || !configDia.aberto) continue;
+        if (!horarioProgramadoValido(configDia.abre)) continue;
+
+        return {
+            tipo: 'abre',
+            quando: deslocamento === 1 ? 'amanhã' : nomesDiasHorarioLoja[proximoDia],
+            hora: configDia.abre,
+            diaSemana: proximoDia
+        };
+    }
+
+    return null;
 }
 
 // Atualiza a faixa de status da loja e bloqueia/libera o botão de finalizar compra
@@ -636,14 +715,24 @@ function atualizarStatusLoja(config) {
     banner.classList.remove('loja-aberta', 'loja-fechada', 'loja-pausada');
     if (aberta) {
         banner.classList.add('loja-aberta');
-        texto.textContent = '🟢 Estamos abertos! Pode fazer seu pedido.';
+
+        const horarioProgramado = modoManual ? null : obterProximoHorarioProgramado(horarios);
+        texto.textContent = horarioProgramado && horarioProgramado.tipo === 'fecha'
+            ? `🟢 Estamos abertos! Atendimento até ${horarioProgramado.hora}.`
+            : '🟢 Estamos abertos! Pode fazer seu pedido.';
+
         if (botaoFinalizarCompra) {
             botaoFinalizarCompra.disabled = false;
             botaoFinalizarCompra.textContent = 'Finalizar Compra';
         }
     } else {
         banner.classList.add('loja-fechada');
-        texto.textContent = '🔴 No momento, estamos fechados. Consulte nosso horário de atendimento e volte em breve — você pode ver o cardápio à vontade.';
+
+        const proximaAbertura = modoManual ? null : obterProximoHorarioProgramado(horarios);
+        texto.textContent = proximaAbertura && proximaAbertura.tipo === 'abre'
+            ? `🔴 No momento, estamos fechados. Abrimos ${proximaAbertura.quando} às ${proximaAbertura.hora}. Você pode ver o cardápio à vontade.`
+            : '🔴 No momento, estamos fechados. Consulte nosso horário de atendimento e volte em breve — você pode ver o cardápio à vontade.';
+
         if (botaoFinalizarCompra) {
             // Encomenda agendada é pra uma data futura — não depende da loja estar
             // aberta agora, então o botão continua liberado nesse caso específico
