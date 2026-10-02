@@ -689,6 +689,7 @@ function atualizarStatusLoja(config) {
 
     const horarios = config && config.horarios;
     const modoManual = config && config.modoManual;
+    const modoAutomatico = modoManual !== 'aberto' && modoManual !== 'fechado';
     const pausada = !!(config && config.pausada);
 
     lojaPausadaAtual = pausada;
@@ -716,7 +717,7 @@ function atualizarStatusLoja(config) {
     if (aberta) {
         banner.classList.add('loja-aberta');
 
-        const horarioProgramado = modoManual ? null : obterProximoHorarioProgramado(horarios);
+        const horarioProgramado = modoAutomatico ? obterProximoHorarioProgramado(horarios) : null;
         texto.textContent = horarioProgramado && horarioProgramado.tipo === 'fecha'
             ? `🟢 Estamos abertos! Atendimento até ${horarioProgramado.hora}.`
             : '🟢 Estamos abertos! Pode fazer seu pedido.';
@@ -728,7 +729,7 @@ function atualizarStatusLoja(config) {
     } else {
         banner.classList.add('loja-fechada');
 
-        const proximaAbertura = modoManual ? null : obterProximoHorarioProgramado(horarios);
+        const proximaAbertura = modoAutomatico ? obterProximoHorarioProgramado(horarios) : null;
         texto.textContent = proximaAbertura && proximaAbertura.tipo === 'abre'
             ? `🔴 No momento, estamos fechados. Abrimos ${proximaAbertura.quando} às ${proximaAbertura.hora}. Você pode ver o cardápio à vontade.`
             : '🔴 No momento, estamos fechados. Consulte nosso horário de atendimento e volte em breve — você pode ver o cardápio à vontade.';
