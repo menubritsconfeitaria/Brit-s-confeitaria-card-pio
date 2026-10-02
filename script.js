@@ -738,10 +738,8 @@ function atualizarStatusLoja(config) {
     if (aberta) {
         banner.classList.add('loja-aberta');
 
-        if (modoAutomatico && horarioHojeProgramado) {
+        if (horarioHojeProgramado) {
             texto.textContent = `🟢 Estamos atendendo · Pedidos até ${horarioHojeProgramado.fecha}`;
-        } else if (horarioHojeProgramado) {
-            texto.textContent = `🟢 Atendimento aberto agora · Horário programado hoje: ${horarioHojeProgramado.abre}–${horarioHojeProgramado.fecha}`;
         } else {
             texto.textContent = '🟢 Atendimento aberto agora · Faça seu pedido pelo nosso cardápio';
         }
