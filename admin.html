@@ -243,10 +243,22 @@
                     <div class="pedidos-operacao-toolbar-grupo">
                         <span class="pedidos-operacao-toolbar-label">🔔 Alertas</span>
                         <select id="selectSomAlerta" aria-label="Som do alerta de novo pedido">
-                            <option value="classico">Clássico (2 bips)</option>
-                            <option value="suave">Suave</option>
-                            <option value="urgente">Urgente (3 bips)</option>
-                            <option value="sino">Sino</option>
+                            <optgroup label="Sons do painel">
+                                <option value="classico">Clássico · 2 bips</option>
+                                <option value="suave">Suave · 2 tons</option>
+                                <option value="urgente">Urgente · 3 bips</option>
+                                <option value="sino">Sino · toque único</option>
+                            </optgroup>
+                            <optgroup label="Relíquias MSN Messenger">
+                                <option value="msn_nova_mensagem">MSN · Nova mensagem</option>
+                                <option value="msn_contato_online">MSN · Contato online</option>
+                                <option value="msn_novo_email">MSN · Novo e-mail</option>
+                                <option value="msn_nudge">MSN · Chamar atenção (Nudge)</option>
+                                <option value="msn_chamada_voz">MSN · Chamada de voz</option>
+                                <option value="msn_clipe_voz_concluido">MSN · Clipe de voz concluído</option>
+                                <option value="msn_s06">MSN · Clássico S06</option>
+                                <option value="msn_s08">MSN · Clássico S08</option>
+                            </optgroup>
                         </select>
                         <button class="btn-secondary" onclick="inicializarAudioContext(); tocarAlerta(document.getElementById('selectSomAlerta').value);">▶ Testar</button>
                         <button class="btn-secondary" onclick="salvarSomAlerta()">💾 Salvar</button>

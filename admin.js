@@ -1615,6 +1615,49 @@ const PRESETS_SOM_ALERTA = {
     sino: [{ freq: 1318, atraso: 0, duracao: 0.9 }]
 };
 
+// Relíquias do MSN Messenger em MP3 verdadeiro. Os nomes de arquivo ficam sem
+// acentos/espaços para evitar diferença entre Windows, GitHub e servidor web.
+const ARQUIVOS_SOM_ALERTA = {
+    msn_nova_mensagem: 'msn-nova-mensagem.mp3',
+    msn_contato_online: 'msn-contato-online.mp3',
+    msn_novo_email: 'msn-novo-email.mp3',
+    msn_nudge: 'msn-nudge.mp3',
+    msn_chamada_voz: 'msn-chamada-voz.mp3',
+    msn_clipe_voz_concluido: 'msn-clipe-voz-concluido.mp3',
+    msn_s06: 'msn-s06.mp3',
+    msn_s08: 'msn-s08.mp3'
+};
+const cacheAudiosSomAlerta = {};
+
+function tocarArquivoSomAlerta(chave) {
+    const arquivo = ARQUIVOS_SOM_ALERTA[chave];
+    if (!arquivo) return false;
+
+    try {
+        let audio = cacheAudiosSomAlerta[chave];
+        if (!audio) {
+            audio = new Audio(arquivo);
+            audio.preload = 'auto';
+            cacheAudiosSomAlerta[chave] = audio;
+        }
+
+        audio.pause();
+        audio.currentTime = 0;
+        audio.volume = 1;
+        const tentativa = audio.play();
+        if (tentativa && typeof tentativa.catch === 'function') {
+            tentativa.catch(err => {
+                console.log('Não foi possível tocar o MP3 de alerta:', err);
+                tocarAlertaSintetico('classico');
+            });
+        }
+        return true;
+    } catch (e) {
+        console.log('Não foi possível preparar o MP3 de alerta:', e);
+        return false;
+    }
+}
+
 // Aviso flutuante de "sinal/restante confirmado" — mesma informação que o alert()
 // antigo mostrava, mas sem travar o navegador. alert() é bloqueante: pausa até o
 // código que faz o pedido aparecer na tela, então o pedido só "terminava de aparecer"
@@ -1653,12 +1696,12 @@ if (!document.getElementById('estiloAvisoFlutuantePagamento')) {
     document.head.appendChild(estilo);
 }
 
-function tocarAlerta(presetForcado) {
+function tocarAlertaSintetico(preset) {
     if (!audioCtxGlobal) inicializarAudioContext();
     if (!audioCtxGlobal) return;
     if (audioCtxGlobal.state === 'suspended') audioCtxGlobal.resume();
 
-    const notas = PRESETS_SOM_ALERTA[presetForcado || configAlertaSonoro] || PRESETS_SOM_ALERTA.classico;
+    const notas = PRESETS_SOM_ALERTA[preset] || PRESETS_SOM_ALERTA.classico;
     try {
         notas.forEach(nota => {
             setTimeout(() => {
@@ -1678,6 +1721,16 @@ function tocarAlerta(presetForcado) {
     } catch (e) {
         console.log('Não foi possível tocar o alerta sonoro:', e);
     }
+}
+
+function tocarAlerta(presetForcado) {
+    const preset = presetForcado || configAlertaSonoro;
+
+    // MP3 do MSN: usa o arquivo real. Se o navegador não conseguir tocar o arquivo,
+    // cai no Clássico do painel para o lojista não ficar sem alerta.
+    if (ARQUIVOS_SOM_ALERTA[preset] && tocarArquivoSomAlerta(preset)) return;
+
+    tocarAlertaSintetico(PRESETS_SOM_ALERTA[preset] ? preset : 'classico');
 }
 
 function escutarConfigSomAlerta() {
