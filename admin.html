@@ -1996,12 +1996,12 @@
                                 </select>
                             </div>
                             <div class="campo-com-label bases-field">
-                                <label class="campo-label">Rendimento</label>
+                                <label class="campo-label">Rendimento real (usado no custo)</label>
                                 <input type="text" inputmode="decimal" id="baseRendimento" placeholder="Ex: 850">
                             </div>
                             <div class="campo-com-label bases-field">
                                 <label class="campo-label">Unidade do rendimento</label>
-                                <select id="baseUnidadeRendimento">
+                                <select id="baseUnidadeRendimento" onchange="atualizarRendimentoEstimadoBase()">
                                     <option value="g">g</option><option value="ml">ml</option><option value="un">un</option>
                                 </select>
                             </div>
@@ -2051,6 +2051,17 @@
                         </div>
 
                         <div id="listaComponentesBase" class="bases-componentes"></div>
+
+                        <div class="bases-cost-summary" aria-live="polite">
+                            <div>
+                                <span class="bases-kicker">RENDIMENTO ESTIMADO</span>
+                                <small id="rendimentoEstimadoBaseNota">Adicione os componentes para calcular uma estimativa sem alterar o rendimento real.</small>
+                            </div>
+                            <div style="display:flex; align-items:center; justify-content:flex-end; gap:10px; flex-wrap:wrap;">
+                                <strong id="rendimentoEstimadoBaseTemp">—</strong>
+                                <button type="button" id="btnUsarRendimentoEstimadoBase" class="btn-secondary" onclick="usarRendimentoEstimadoBase()" disabled>Usar estimado</button>
+                            </div>
+                        </div>
 
                         <div class="bases-cost-summary">
                             <div>

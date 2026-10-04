@@ -4632,6 +4632,120 @@ function calcularBase(base, visitados) {
     return { custoTotal, custoPorUnidade };
 }
 
+
+// Rendimento estimado da BASE — apenas ajuda visual no cadastro.
+// Não altera o rendimento salvo nem o cálculo de custo automaticamente: o valor real
+// continua sendo o campo baseRendimento. Isso evita distorcer o custo quando existe
+// perda no preparo (evaporação, descarte, redução etc.).
+function unidadeComponenteBaseParaRendimento(c) {
+    const baseId = idBaseComponente(c);
+    if (baseId) {
+        const b = getBase(baseId);
+        return b ? String(b.unidadeRendimento || b.unidade || '').toLowerCase() : '';
+    }
+    const ing = ingredientes.find(i => i.id === idIngredienteComponente(c));
+    return ing ? String(ing.unidade || '').toLowerCase() : '';
+}
+
+function calcularRendimentoEstimadoBase(unidadeAlvo) {
+    const unidade = String(unidadeAlvo || '').toLowerCase();
+    const ignorados = {};
+    let valor = 0;
+    let componentesConsiderados = 0;
+    let componentesSemUnidade = 0;
+
+    // "un" não pode ser inferido somando ingredientes: 2 ovos + 1 embalagem não
+    // significam que a receita rende 3 unidades. Nesse caso o rendimento é manual.
+    if (unidade === 'un') {
+        return { disponivel: false, valor: 0, unidade, componentesConsiderados: 0, ignorados, componentesSemUnidade: 0, motivo: 'unidade' };
+    }
+
+    (tempBaseComponentes || []).forEach(c => {
+        const quantidade = Number(c && c.quantidade) || 0;
+        if (quantidade <= 0) return;
+
+        const unidadeComponente = unidadeComponenteBaseParaRendimento(c);
+        if (!unidadeComponente) {
+            componentesSemUnidade++;
+            return;
+        }
+
+        // Não converte g <-> ml silenciosamente: densidade varia de ingrediente para
+        // ingrediente. Só soma o que já está na mesma unidade escolhida para a base.
+        if (unidadeComponente === unidade) {
+            valor += quantidade;
+            componentesConsiderados++;
+        } else {
+            ignorados[unidadeComponente] = (ignorados[unidadeComponente] || 0) + quantidade;
+        }
+    });
+
+    valor = Math.round((valor + Number.EPSILON) * 100) / 100;
+    return {
+        disponivel: componentesConsiderados > 0 && valor > 0,
+        valor,
+        unidade,
+        componentesConsiderados,
+        ignorados,
+        componentesSemUnidade,
+        motivo: componentesConsiderados > 0 ? '' : 'sem-componentes-compativeis'
+    };
+}
+
+function formatarQuantidadeRendimentoBase(valor) {
+    return Number(valor || 0).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+}
+
+function atualizarRendimentoEstimadoBase() {
+    const valorEl = document.getElementById('rendimentoEstimadoBaseTemp');
+    const notaEl = document.getElementById('rendimentoEstimadoBaseNota');
+    const btnEl = document.getElementById('btnUsarRendimentoEstimadoBase');
+    const unidadeEl = document.getElementById('baseUnidadeRendimento');
+    if (!valorEl || !notaEl || !btnEl || !unidadeEl) return;
+
+    const resultado = calcularRendimentoEstimadoBase(unidadeEl.value);
+    btnEl.disabled = !resultado.disponivel;
+
+    if (resultado.motivo === 'unidade') {
+        valorEl.textContent = '—';
+        notaEl.textContent = 'Para rendimento em unidades, informe quantas unidades o preparo realmente produz.';
+        return;
+    }
+
+    if (!resultado.disponivel) {
+        valorEl.textContent = '—';
+        notaEl.textContent = `Adicione componentes em ${resultado.unidade || 'uma unidade compatível'} para gerar uma estimativa.`;
+        return;
+    }
+
+    valorEl.textContent = `${formatarQuantidadeRendimentoBase(resultado.valor)} ${resultado.unidade}`;
+
+    const fora = Object.entries(resultado.ignorados)
+        .filter(([, qtd]) => qtd > 0)
+        .map(([unidade, qtd]) => `${formatarQuantidadeRendimentoBase(qtd)} ${unidade}`);
+    if (resultado.componentesSemUnidade > 0) fora.push(`${resultado.componentesSemUnidade} item(ns) sem unidade identificada`);
+
+    if (fora.length) {
+        notaEl.textContent = `Estimativa parcial: soma somente componentes em ${resultado.unidade}. Fora do cálculo: ${fora.join(' + ')}. Confirme o rendimento real após o preparo.`;
+    } else {
+        notaEl.textContent = `Soma dos componentes em ${resultado.unidade}. Confirme o rendimento real após o preparo, pois pode haver perdas.`;
+    }
+}
+
+function usarRendimentoEstimadoBase() {
+    const unidadeEl = document.getElementById('baseUnidadeRendimento');
+    const rendimentoEl = document.getElementById('baseRendimento');
+    if (!unidadeEl || !rendimentoEl) return;
+
+    const resultado = calcularRendimentoEstimadoBase(unidadeEl.value);
+    if (!resultado.disponivel) return;
+
+    // O input usa parseFloat com vírgula->ponto; gravamos sem separador de milhar para
+    // evitar que "2.345" seja interpretado como 2,345 em vez de 2345.
+    rendimentoEl.value = String(resultado.valor).replace('.', ',');
+    rendimentoEl.focus();
+}
+
 function escaparHtmlBaseComponente(valor) {
     return String(valor ?? '')
         .replace(/&/g, '&amp;')
@@ -4963,6 +5077,7 @@ function renderTempBaseComponentes() {
     });
 
     document.getElementById('custoTotalBaseTemp').textContent = formatarPreco(total);
+    atualizarRendimentoEstimadoBase();
 }
 
 function salvarBase() {
