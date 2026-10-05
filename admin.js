@@ -2027,6 +2027,76 @@ function subtotalExibicaoPedido(pedido) {
     return pedido.itens.reduce((soma, item) => soma + valorItemExibicaoPedido(item), 0);
 }
 
+// Centraliza a leitura OPERACIONAL da forma/status de pagamento.
+// pedido.formaPagamento guarda a escolha feita antes do checkout; quando um pagamento
+// online é confirmado, pedido.pagamento.metodo é o resultado real do gateway e passa a
+// ser a fonte mais confiável para exibição. Isso evita mostrar, por exemplo, "Pix" no
+// topo e "Pago (Cartão de Crédito)" logo abaixo para o mesmo pedido.
+function obterFormaPagamentoOperacional(pedido) {
+    if (!pedido) return 'Não informado';
+
+    const formaOriginal = String(pedido.formaPagamento || '').trim();
+    const pagamento = pedido.pagamento || null;
+    const metodoOnline = pagamento
+        ? String(pagamento.metodo || pagamento.forma || '').trim()
+        : '';
+    const pagamentoOnlineConfirmado = !!(pagamento && pagamento.status === 'pago');
+    const ehSinal = !!(pagamento && pagamento.tipoPagamento === 'sinal');
+
+    if (pagamentoOnlineConfirmado) {
+        const metodoReal = metodoOnline || formaOriginal || 'Pagamento online';
+        return ehSinal ? `${metodoReal} · sinal online` : `${metodoReal} · online`;
+    }
+
+    // Checkout online ainda aguardando confirmação: a escolha inicial pode ser Pix/Cartão,
+    // mas o método definitivo só deve ser tratado como real depois da confirmação.
+    if (pagamento && !pedido.pagamentoConfirmadoManual) {
+        const formaAguardando = formaOriginal || metodoOnline || 'Pagamento online';
+        return `${formaAguardando} · online`;
+    }
+
+    if (pedido.pagamentoConfirmadoManual) {
+        return `${formaOriginal || 'Pagamento presencial'} · recebido presencialmente`;
+    }
+
+    if (formaOriginal) {
+        return `${formaOriginal} · ${pedido.tipoEntrega === 'entrega' ? 'na entrega' : 'na retirada'}`;
+    }
+
+    return 'Não informado';
+}
+
+function obterStatusPagamentoOperacional(pedido) {
+    if (!pedido) return 'Não informado';
+    if (pedido.pagamentoConfirmadoManual) return 'PAGO — confirmado manualmente';
+
+    const pagamento = pedido.pagamento || null;
+    if (!pagamento) {
+        if (!pedido.formaPagamento) return 'Não informado';
+        return pedido.tipoEntrega === 'entrega' ? 'A RECEBER NA ENTREGA' : 'A RECEBER NA RETIRADA';
+    }
+
+    const ehSinal = pagamento.tipoPagamento === 'sinal';
+    const restante = pedido.pagamentoRestante || null;
+
+    if (ehSinal && pagamento.status === 'pago') {
+        if (restante && restante.status === 'pago') return 'PAGO — sinal e restante confirmados';
+        if (restante && restante.status === 'aguardando_recebimento') {
+            return pedido.tipoEntrega === 'entrega'
+                ? 'SINAL PAGO — restante a receber na entrega'
+                : 'SINAL PAGO — restante a receber na retirada';
+        }
+        return 'SINAL PAGO — restante pendente';
+    }
+
+    const status = String(pagamento.status || '').toLowerCase();
+    if (status === 'pago') return 'PAGO — confirmado online';
+    if (status === 'divergente') return 'VALOR DIVERGENTE — conferir';
+    if (status === 'aguardando' || status === 'aguardando_pagamento') return 'AGUARDANDO CONFIRMAÇÃO ONLINE';
+
+    return pagamento.status ? String(pagamento.status) : 'Aguardando confirmação';
+}
+
 // Monta um "ticket" simples e limpo de um pedido, pronto pra imprimir (ex: pra levar pra cozinha)
 function montarHtmlTicketImpressao(pedido, numeroPedido) {
     const tipoLabel = pedido.tipoEntrega === 'entrega' ? '🛵 Delivery' : '🏠 Retirada no local';
@@ -2059,7 +2129,8 @@ function montarHtmlTicketImpressao(pedido, numeroPedido) {
         <h3>Itens do pedido</h3>
         ${itensHtml}
         <hr>
-        <p><strong>Forma de pagamento:</strong> ${escaparHtmlSeguro(pedido.formaPagamento || 'Não informado')}</p>
+        <p><strong>Forma de pagamento:</strong> ${escaparHtmlSeguro(obterFormaPagamentoOperacional(pedido))}</p>
+        <p><strong>Status do pagamento:</strong> ${escaparHtmlSeguro(obterStatusPagamentoOperacional(pedido))}</p>
         ${pedido.troco ? `<p><strong>${escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido)))}</strong></p>` : ''}
         ${pedido.observacoes ? `<p><strong>Observações:</strong> ${escaparHtmlSeguro(pedido.observacoes)}</p>` : ''}
         ${pedido.recompensaResgatada ? `<p><strong>🎁 RESGATE DO CLUBE:</strong> ${escaparHtmlSeguro(pedido.recompensaResgatada.descricao)}</p>` : ''}
@@ -2662,9 +2733,13 @@ function montarCardPedido(id, pedido, comAcoes) {
         : ((pagamentoEhSinal || pagamentoOnlineNormalConfirmado) ? '' : `
             <span class="pedido-tag ${pedido.pagamentoConfirmadoManual ? 'tag-status-entregue' : ''}" style="cursor:pointer;" onclick="alternarPagamentoConfirmadoManual('${id}', ${!pedido.pagamentoConfirmadoManual})" title="Clique pra marcar/desmarcar como pago (uso manual, ex: cliente pagou Pix por fora)">${pedido.pagamentoConfirmadoManual ? '✅ Pago' : '☐ Marcar como pago'}</span>`);
     const encomendaAguardandoPagamento = dataEncomendaTopoValida && !pedido.pagamento && !pedido.pagamentoConfirmadoManual;
+    const formaPagamentoOperacional = obterFormaPagamentoOperacional(pedido);
+    const pagamentoOnlineComMetodoConfirmado = !!(pedido.pagamento && pedido.pagamento.status === 'pago');
     const tagFormaPagamentoHtml = encomendaAguardandoPagamento
         ? '<span class="pedido-tag tag-pagamento-aguardando">💳 Aguardando pagamento</span>'
-        : `<span class="pedido-tag tag-pagamento" style="cursor:pointer;" onclick="editarFormaPagamentoPedido('${id}', this)" title="Clique pra corrigir a forma de pagamento">💰 ${escaparHtmlSeguro(pedido.formaPagamento || '')}${(!pedido.pagamento && !pedido.pagamentoConfirmadoManual && pedido.formaPagamento) ? ` · ${pedido.tipoEntrega === 'entrega' ? 'na entrega' : 'na retirada'}` : ''}${pedido.troco ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''} ✏️</span>`;
+        : (pagamentoOnlineComMetodoConfirmado
+            ? `<span class="pedido-tag tag-pagamento" title="Forma confirmada pelo pagamento online">💰 ${escaparHtmlSeguro(formaPagamentoOperacional)}${pedido.troco ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''}</span>`
+            : `<span class="pedido-tag tag-pagamento" style="cursor:pointer;" onclick="editarFormaPagamentoPedido('${id}', this)" title="Clique pra corrigir a forma de pagamento">💰 ${escaparHtmlSeguro(formaPagamentoOperacional)}${pedido.troco ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''} ✏️</span>`);
     const pagamentoOnlineHtml = montarTagPagamento(pedido);
     const botaoConfirmarRestanteDinheiroHtml = restanteDinheiroPodeSerConfirmado
         ? `<button type="button" class="btn-entregue" style="margin-top:7px;padding:8px 11px;font-size:11px;" onclick="confirmarRecebimentoRestanteDinheiro('${id}', this, ${restanteOnlineEmAndamento})">✅ Confirmar recebimento do restante</button>`
@@ -11132,13 +11207,8 @@ function montarTextoPedido(p) {
     texto += `Desconto: ${formatarPreco(p.desconto || 0)}\n`;
     texto += `Frete: ${formatarPreco(p.frete || 0)}\n`;
     texto += `Total: ${formatarPreco(totalDoPedido(p))}\n\n`;
-    texto += `Forma de pagamento: ${p.formaPagamento || 'Não informado'}\n`;
-    if (p.pagamentoConfirmadoManual) {
-        texto += `Status do pagamento: PAGO (confirmado manualmente)\n`;
-    } else if (p.pagamento) {
-        const statusPagamentoLabel = { aguardando: 'Aguardando pagamento', pago: 'PAGO', divergente: 'VALOR DIVERGENTE - conferir' }[p.pagamento.status] || p.pagamento.status;
-        texto += `Status do pagamento: ${statusPagamentoLabel}${p.pagamento.metodo ? ' (' + p.pagamento.metodo + ')' : ''}\n`;
-    }
+    texto += `Forma de pagamento: ${obterFormaPagamentoOperacional(p)}\n`;
+    texto += `Status do pagamento: ${obterStatusPagamentoOperacional(p)}\n`;
     if (p.observacoes) texto += `\nObservação: ${p.observacoes}\n`;
     if (p.tipoEntrega === 'entrega') texto += `\nEndereço: ${formatarEnderecoResumo(p.endereco)}\n`;
     return texto;
