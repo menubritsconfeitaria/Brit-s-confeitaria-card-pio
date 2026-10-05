@@ -2821,7 +2821,7 @@ function montarCardPedido(id, pedido, comAcoes) {
         ${avisoAgendamentoTopoHtml}
         ${resgateHtml}
         ${encomendaHtml}
-        ${montarTelefoneWhatsAppPedidoHtml(pedido.telefone)}
+        <div>📞 ${escaparHtmlSeguro(pedido.telefone || '')}</div>
         <ul class="pedido-itens">${itensHtml}</ul>
         <div class="pedido-total-linha"><span>Subtotal</span><span>${formatarPreco(subtotalExibicaoPedido(pedido))}</span></div>
         ${cupomLinha}
@@ -6852,17 +6852,6 @@ function formatarTelefoneWhatsAppGestao(telefone) {
     if (digits.length === 10 || digits.length === 11) digits = '55' + digits;
     if (digits.length < 12) return null;
     return digits;
-}
-
-function montarTelefoneWhatsAppPedidoHtml(telefone) {
-    const texto = String(telefone || '').trim();
-    if (!texto) return '';
-
-    const telefoneSeguro = escaparHtmlSeguro(texto);
-    const numero = formatarTelefoneWhatsAppGestao(texto);
-    if (!numero) return `<div>📞 ${telefoneSeguro}</div>`;
-
-    return `<div><a href="https://api.whatsapp.com/send?phone=${numero}" target="_blank" rel="noopener noreferrer" title="Abrir conversa no WhatsApp" style="color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">📞 ${telefoneSeguro} <span style="font-size:11px;font-weight:800;color:#1f8b4c;">💬 WhatsApp</span></a></div>`;
 }
 
 function gerarTextoPedidoWhatsAppGestao(pedido, paraCliente) {
