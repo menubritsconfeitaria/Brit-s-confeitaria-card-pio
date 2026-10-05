@@ -6862,7 +6862,9 @@ function montarTelefoneWhatsAppPedidoHtml(telefone) {
     const numero = formatarTelefoneWhatsAppGestao(texto);
     if (!numero) return `<div>📞 ${telefoneSeguro}</div>`;
 
-    return `<div><a href="https://api.whatsapp.com/send?phone=${numero}" target="_blank" rel="noopener noreferrer" title="Abrir conversa no WhatsApp" style="color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">📞 ${telefoneSeguro} <span style="font-size:11px;font-weight:800;color:#1f8b4c;">💬 WhatsApp</span></a></div>`;
+    const nomeLoja = (typeof LOJA_CONFIG !== 'undefined' && LOJA_CONFIG.nome) ? LOJA_CONFIG.nome : 'Brit’s Confeitaria';
+    const mensagem = encodeURIComponent(`Olá! 👋 Somos da ${nomeLoja}. Estamos com uma entrega para você e já estamos no endereço informado, mas não conseguimos localizar sua casa. Pode nos orientar, por favor? 😊`);
+    return `<div><a href="https://api.whatsapp.com/send?phone=${numero}&text=${mensagem}" target="_blank" rel="noopener noreferrer" title="Abrir conversa no WhatsApp" style="color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">📞 ${telefoneSeguro} <span style="font-size:11px;font-weight:800;color:#1f8b4c;">💬 WhatsApp</span></a></div>`;
 }
 
 function gerarTextoPedidoWhatsAppGestao(pedido, paraCliente) {
