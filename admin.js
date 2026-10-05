@@ -1968,14 +1968,25 @@ function editarFormaPagamentoPedido(id, elemento) {
         select.appendChild(option);
     });
 
-    db.ref('pedidos/' + id + '/formaPagamento').once('value').then(snap => {
-        const valorAtual = snap.val() || '';
+    // Em pagamento online já confirmado, a forma REAL paga fica preservada em
+    // pedido.pagamento.metodo. A edição abaixo altera somente a forma operacional do
+    // pedido e grava um marcador de ajuste manual; nunca sobrescreve pedido.pagamento.
+    db.ref('pedidos/' + id).once('value').then(snap => {
+        const pedidoAtual = snap.val() || {};
+        const pagamento = pedidoAtual.pagamento || null;
+        const onlinePago = !!(pagamento && pagamento.status === 'pago' && pagamento.tipoPagamento !== 'sinal');
+        const jaAjustada = !!pedidoAtual.formaPagamentoEditadaEm;
+        const valorAtual = onlinePago && !jaAjustada
+            ? (pagamento.metodo || pagamento.forma || pedidoAtual.formaPagamento || '')
+            : (pedidoAtual.formaPagamento || '');
         [...select.options].forEach(opt => { opt.selected = (opt.value === valorAtual); });
-    });
+    }).catch(() => {});
 
     select.onchange = () => {
-        db.ref('pedidos/' + id + '/formaPagamento').set(select.value)
-            .catch(err => alert('Erro ao atualizar: ' + err.message));
+        db.ref('pedidos/' + id).update({
+            formaPagamento: select.value,
+            formaPagamentoEditadaEm: firebase.database.ServerValue.TIMESTAMP
+        }).catch(err => alert('Erro ao atualizar: ' + err.message));
     };
     select.onblur = () => { if (select.parentNode) select.parentNode.replaceChild(elemento, select); };
 
@@ -2032,6 +2043,28 @@ function subtotalExibicaoPedido(pedido) {
 // online é confirmado, pedido.pagamento.metodo é o resultado real do gateway e passa a
 // ser a fonte mais confiável para exibição. Isso evita mostrar, por exemplo, "Pix" no
 // topo e "Pago (Cartão de Crédito)" logo abaixo para o mesmo pedido.
+function normalizarFormaPagamentoComparacao(valor) {
+    return String(valor || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase();
+}
+
+function obterMetodoPagamentoOnlineConfirmado(pedido) {
+    const pagamento = pedido && pedido.pagamento;
+    if (!pagamento || pagamento.status !== 'pago') return '';
+    return String(pagamento.metodo || pagamento.forma || '').trim();
+}
+
+function formaPagamentoFoiAjustadaDepois(pedido) {
+    if (!pedido || !pedido.formaPagamentoEditadaEm) return false;
+    const ajustada = String(pedido.formaPagamento || '').trim();
+    const confirmada = obterMetodoPagamentoOnlineConfirmado(pedido);
+    if (!ajustada || !confirmada) return false;
+    return normalizarFormaPagamentoComparacao(ajustada) !== normalizarFormaPagamentoComparacao(confirmada);
+}
+
 function obterFormaPagamentoOperacional(pedido) {
     if (!pedido) return 'Não informado';
 
@@ -2045,6 +2078,9 @@ function obterFormaPagamentoOperacional(pedido) {
 
     if (pagamentoOnlineConfirmado) {
         const metodoReal = metodoOnline || formaOriginal || 'Pagamento online';
+        if (!ehSinal && formaPagamentoFoiAjustadaDepois(pedido)) {
+            return `${formaOriginal} · ajuste manual`;
+        }
         return ehSinal ? `${metodoReal} · sinal online` : `${metodoReal} · online`;
     }
 
@@ -2064,6 +2100,21 @@ function obterFormaPagamentoOperacional(pedido) {
     }
 
     return 'Não informado';
+}
+
+function montarLinhasPagamentoTicket(pedido) {
+    const metodoConfirmado = obterMetodoPagamentoOnlineConfirmado(pedido);
+    const ehSinal = !!(pedido && pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal');
+    const ajustadaDepois = !ehSinal && formaPagamentoFoiAjustadaDepois(pedido);
+
+    if (metodoConfirmado && ajustadaDepois) {
+        return `
+            <p><strong>Pagamento confirmado:</strong> ${escaparHtmlSeguro(metodoConfirmado + ' · online')}</p>
+            <p><strong>Forma ajustada no painel:</strong> ${escaparHtmlSeguro(String(pedido.formaPagamento || 'Não informado'))}</p>
+        `;
+    }
+
+    return `<p><strong>Forma de pagamento:</strong> ${escaparHtmlSeguro(obterFormaPagamentoOperacional(pedido))}</p>`;
 }
 
 function obterStatusPagamentoOperacional(pedido) {
@@ -2129,7 +2180,7 @@ function montarHtmlTicketImpressao(pedido, numeroPedido) {
         <h3>Itens do pedido</h3>
         ${itensHtml}
         <hr>
-        <p><strong>Forma de pagamento:</strong> ${escaparHtmlSeguro(obterFormaPagamentoOperacional(pedido))}</p>
+        ${montarLinhasPagamentoTicket(pedido)}
         <p><strong>Status do pagamento:</strong> ${escaparHtmlSeguro(obterStatusPagamentoOperacional(pedido))}</p>
         ${pedido.troco ? `<p><strong>${escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido)))}</strong></p>` : ''}
         ${pedido.observacoes ? `<p><strong>Observações:</strong> ${escaparHtmlSeguro(pedido.observacoes)}</p>` : ''}
@@ -2735,11 +2786,15 @@ function montarCardPedido(id, pedido, comAcoes) {
     const encomendaAguardandoPagamento = dataEncomendaTopoValida && !pedido.pagamento && !pedido.pagamentoConfirmadoManual;
     const formaPagamentoOperacional = obterFormaPagamentoOperacional(pedido);
     const pagamentoOnlineComMetodoConfirmado = !!(pedido.pagamento && pedido.pagamento.status === 'pago');
+    const podeEditarFormaPagamento = !encomendaAguardandoPagamento && !(pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal');
+    const tituloFormaPagamento = pagamentoOnlineComMetodoConfirmado
+        ? 'Pagamento online preservado no histórico. Clique para registrar um ajuste operacional sem apagar o método confirmado.'
+        : 'Clique pra corrigir a forma de pagamento';
     const tagFormaPagamentoHtml = encomendaAguardandoPagamento
         ? '<span class="pedido-tag tag-pagamento-aguardando">💳 Aguardando pagamento</span>'
-        : (pagamentoOnlineComMetodoConfirmado
-            ? `<span class="pedido-tag tag-pagamento" title="Forma confirmada pelo pagamento online">💰 ${escaparHtmlSeguro(formaPagamentoOperacional)}${pedido.troco ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''}</span>`
-            : `<span class="pedido-tag tag-pagamento" style="cursor:pointer;" onclick="editarFormaPagamentoPedido('${id}', this)" title="Clique pra corrigir a forma de pagamento">💰 ${escaparHtmlSeguro(formaPagamentoOperacional)}${pedido.troco ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''} ✏️</span>`);
+        : (podeEditarFormaPagamento
+            ? `<span class="pedido-tag tag-pagamento" style="cursor:pointer;" onclick="editarFormaPagamentoPedido('${id}', this)" title="${tituloFormaPagamento}">💰 ${escaparHtmlSeguro(formaPagamentoOperacional)}${pedido.troco ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''} ✏️</span>`
+            : `<span class="pedido-tag tag-pagamento" title="Forma confirmada pelo pagamento online">💰 ${escaparHtmlSeguro(formaPagamentoOperacional)}${pedido.troco ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''}</span>`);
     const pagamentoOnlineHtml = montarTagPagamento(pedido);
     const botaoConfirmarRestanteDinheiroHtml = restanteDinheiroPodeSerConfirmado
         ? `<button type="button" class="btn-entregue" style="margin-top:7px;padding:8px 11px;font-size:11px;" onclick="confirmarRecebimentoRestanteDinheiro('${id}', this, ${restanteOnlineEmAndamento})">✅ Confirmar recebimento do restante</button>`
@@ -11207,7 +11262,13 @@ function montarTextoPedido(p) {
     texto += `Desconto: ${formatarPreco(p.desconto || 0)}\n`;
     texto += `Frete: ${formatarPreco(p.frete || 0)}\n`;
     texto += `Total: ${formatarPreco(totalDoPedido(p))}\n\n`;
-    texto += `Forma de pagamento: ${obterFormaPagamentoOperacional(p)}\n`;
+    const metodoConfirmadoTexto = obterMetodoPagamentoOnlineConfirmado(p);
+    if (metodoConfirmadoTexto && formaPagamentoFoiAjustadaDepois(p) && !(p.pagamento && p.pagamento.tipoPagamento === 'sinal')) {
+        texto += `Pagamento confirmado: ${metodoConfirmadoTexto} · online\n`;
+        texto += `Forma ajustada no painel: ${p.formaPagamento || 'Não informado'}\n`;
+    } else {
+        texto += `Forma de pagamento: ${obterFormaPagamentoOperacional(p)}\n`;
+    }
     texto += `Status do pagamento: ${obterStatusPagamentoOperacional(p)}\n`;
     if (p.observacoes) texto += `\nObservação: ${p.observacoes}\n`;
     if (p.tipoEntrega === 'entrega') texto += `\nEndereço: ${formatarEnderecoResumo(p.endereco)}\n`;
