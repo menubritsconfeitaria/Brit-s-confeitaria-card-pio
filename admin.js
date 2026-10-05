@@ -2793,7 +2793,7 @@ function montarCardPedido(id, pedido, comAcoes) {
     const tagFormaPagamentoHtml = encomendaAguardandoPagamento
         ? '<span class="pedido-tag tag-pagamento-aguardando">💳 Aguardando pagamento</span>'
         : (podeEditarFormaPagamento
-            ? `<span class="pedido-tag tag-pagamento" style="cursor:pointer;" onclick="editarFormaPagamentoPedido('${id}', this)" title="${tituloFormaPagamento}">💰 ${escaparHtmlSeguro(formaPagamentoOperacional)}${pedido.troco ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''} ✏️</span>`
+            ? `<span class="pedido-tag tag-pagamento" style="cursor:pointer;white-space:nowrap;" onclick="editarFormaPagamentoPedido('${id}', this)" title="${tituloFormaPagamento}">💰 ${escaparHtmlSeguro(formaPagamentoOperacional)}${pedido.troco ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''} ✏️</span>`
             : `<span class="pedido-tag tag-pagamento" title="Forma confirmada pelo pagamento online">💰 ${escaparHtmlSeguro(formaPagamentoOperacional)}${pedido.troco ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''}</span>`);
     const pagamentoOnlineHtml = montarTagPagamento(pedido);
     const botaoConfirmarRestanteDinheiroHtml = restanteDinheiroPodeSerConfirmado
