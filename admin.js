@@ -2150,6 +2150,9 @@ function obterStatusPagamentoOperacional(pedido) {
 
 // Monta um "ticket" simples e limpo de um pedido, pronto pra imprimir (ex: pra levar pra cozinha)
 function montarHtmlTicketImpressao(pedido, numeroPedido) {
+    const formaPagamentoTicket = obterFormaPagamentoOperacional(pedido);
+    const exibirTrocoTicket = !!pedido.troco &&
+        normalizarFormaPagamentoComparacao(formaPagamentoTicket).startsWith('dinheiro');
     const tipoLabel = pedido.tipoEntrega === 'entrega' ? '🛵 Delivery' : '🏠 Retirada no local';
     const enderecoLinha = pedido.tipoEntrega === 'entrega'
         ? `<p><strong>Endereço:</strong> ${escaparHtmlSeguro(formatarEnderecoResumo(pedido.endereco))}</p>`
@@ -2182,7 +2185,7 @@ function montarHtmlTicketImpressao(pedido, numeroPedido) {
         <hr>
         ${montarLinhasPagamentoTicket(pedido)}
         <p><strong>Status do pagamento:</strong> ${escaparHtmlSeguro(obterStatusPagamentoOperacional(pedido))}</p>
-        ${pedido.troco ? `<p><strong>${escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido)))}</strong></p>` : ''}
+        ${exibirTrocoTicket ? `<p><strong>${escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido)))}</strong></p>` : ''}
         ${pedido.observacoes ? `<p><strong>Observações:</strong> ${escaparHtmlSeguro(pedido.observacoes)}</p>` : ''}
         ${pedido.recompensaResgatada ? `<p><strong>🎁 RESGATE DO CLUBE:</strong> ${escaparHtmlSeguro(pedido.recompensaResgatada.descricao)}</p>` : ''}
         ${pedido.dataEncomenda ? `<p><strong>📅 ENCOMENDA:</strong> ${escaparHtmlSeguro(pedido.dataEncomenda.split('-').reverse().join('/'))}${pedido.horaEncomenda ? ` às ${escaparHtmlSeguro(pedido.horaEncomenda)}` : ''}</p>` : ''}
@@ -2433,12 +2436,12 @@ function atualizarUrgenciaVisualCard(card) {
     const pedidoProntoRetirada = !!(pedido &&
         pedido.status === 'pronto_retirada' &&
         Number(pedido.prontoEm || 0));
-    const rotuloTempo = pedido && Number(pedido.preparoIniciadoEm || 0)
-        ? 'em preparo'
-        : 'desde o pedido';
+    const pedidoEmPreparo = !!(pedido && pedido.status === 'aceito');
     const textoTempo = pedidoProntoRetirada
         ? `Pronto há ${minutos} min`
-        : `${minutos} min ${rotuloTempo}`;
+        : pedidoEmPreparo
+            ? `Em preparo há ${minutos} min`
+            : `${minutos} min desde o pedido`;
 
     card.classList.remove('urgencia-normal', 'urgencia-atencao', 'urgencia-atrasado');
     badge.classList.remove('tempo-normal', 'tempo-atencao', 'tempo-atrasado');
@@ -2785,6 +2788,8 @@ function montarCardPedido(id, pedido, comAcoes) {
             <span class="pedido-tag ${pedido.pagamentoConfirmadoManual ? 'tag-status-entregue' : ''}" style="cursor:pointer;" onclick="alternarPagamentoConfirmadoManual('${id}', ${!pedido.pagamentoConfirmadoManual})" title="Clique pra marcar/desmarcar como pago (uso manual, ex: cliente pagou Pix por fora)">${pedido.pagamentoConfirmadoManual ? '✅ Pago' : '☐ Marcar como pago'}</span>`);
     const encomendaAguardandoPagamento = dataEncomendaTopoValida && !pedido.pagamento && !pedido.pagamentoConfirmadoManual;
     const formaPagamentoOperacional = obterFormaPagamentoOperacional(pedido);
+    const exibirTrocoOperacional = !!pedido.troco &&
+        normalizarFormaPagamentoComparacao(formaPagamentoOperacional).startsWith('dinheiro');
     const pagamentoOnlineComMetodoConfirmado = !!(pedido.pagamento && pedido.pagamento.status === 'pago');
     const podeEditarFormaPagamento = !encomendaAguardandoPagamento && !(pedido.pagamento && pedido.pagamento.tipoPagamento === 'sinal');
     const tituloFormaPagamento = pagamentoOnlineComMetodoConfirmado
@@ -2793,8 +2798,8 @@ function montarCardPedido(id, pedido, comAcoes) {
     const tagFormaPagamentoHtml = encomendaAguardandoPagamento
         ? '<span class="pedido-tag tag-pagamento-aguardando">💳 Aguardando pagamento</span>'
         : (podeEditarFormaPagamento
-            ? `<span class="pedido-tag tag-pagamento" style="cursor:pointer;white-space:nowrap;" onclick="editarFormaPagamentoPedido('${id}', this)" title="${tituloFormaPagamento}">💰 ${escaparHtmlSeguro(formaPagamentoOperacional)}${pedido.troco ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''} ✏️</span>`
-            : `<span class="pedido-tag tag-pagamento" title="Forma confirmada pelo pagamento online">💰 ${escaparHtmlSeguro(formaPagamentoOperacional)}${pedido.troco ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''}</span>`);
+            ? `<span class="pedido-tag tag-pagamento" style="cursor:pointer;white-space:nowrap;" onclick="editarFormaPagamentoPedido('${id}', this)" title="${tituloFormaPagamento}">💰 ${escaparHtmlSeguro(formaPagamentoOperacional)}${exibirTrocoOperacional ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''} ✏️</span>`
+            : `<span class="pedido-tag tag-pagamento" title="Forma confirmada pelo pagamento online">💰 ${escaparHtmlSeguro(formaPagamentoOperacional)}${exibirTrocoOperacional ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''}</span>`);
     const pagamentoOnlineHtml = montarTagPagamento(pedido);
     const botaoConfirmarRestanteDinheiroHtml = restanteDinheiroPodeSerConfirmado
         ? `<button type="button" class="btn-entregue" style="margin-top:7px;padding:8px 11px;font-size:11px;" onclick="confirmarRecebimentoRestanteDinheiro('${id}', this, ${restanteOnlineEmAndamento})">✅ Confirmar recebimento do restante</button>`
