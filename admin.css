@@ -1486,6 +1486,22 @@ body.ocultar-campo-ficha-tecnica .campo-vincular-ficha-tecnica { display: none; 
     align-items: flex-end;
     gap: 5px;
 }
+
+/* No kanban, reserva a largura real do relógio e deixa o nome do cliente quebrar
+   dentro do espaço restante, evitando o badge ultrapassar a borda do card. */
+.kanban-lista .pedido-topo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    align-items: start;
+}
+.kanban-lista .pedido-topo > div:first-child {
+    min-width: 0;
+}
+.kanban-lista .pedido-hora-bloco {
+    min-width: 0;
+    max-width: 100%;
+}
+
 .pedido-tempo-etapa {
     display: inline-flex;
     align-items: center;
