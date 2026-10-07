@@ -2795,11 +2795,52 @@ function montarCardPedido(id, pedido, comAcoes) {
     const tituloFormaPagamento = pagamentoOnlineComMetodoConfirmado
         ? 'Pagamento online preservado no histórico. Clique para registrar um ajuste operacional sem apagar o método confirmado.'
         : 'Clique pra corrigir a forma de pagamento';
+
+    const formaPagamentoNormalizadaCard = normalizarFormaPagamentoComparacao(formaPagamentoOperacional);
+    const dinheiroNoCard = formaPagamentoNormalizadaCard.startsWith('dinheiro');
+    const localPagamentoDinheiro = pedido.tipoEntrega === 'entrega' ? 'na entrega' : 'na retirada';
+    const tituloPagamentoCard = dinheiroNoCard
+        ? `Dinheiro ${pedido.pagamentoConfirmadoManual ? 'recebido ' : ''}${localPagamentoDinheiro}`
+        : formaPagamentoOperacional;
+
+    let trocoPagamentoCard = '';
+    if (dinheiroNoCard && exibirTrocoOperacional) {
+        const trocoTexto = String(pedido.troco || '').trim();
+        const trocoNormalizado = trocoTexto.toLowerCase();
+        const semTroco = ['sem troco', 'não preciso', 'nao preciso', 'não precisa', 'nao precisa', 'não', 'nao'].includes(trocoNormalizado);
+        if (semTroco) {
+            trocoPagamentoCard = 'Sem troco';
+        } else {
+            const matchTroco = trocoTexto.match(/^R?\$?\s*(\d{1,6}(?:[.,]\d{1,2})?)$/i);
+            if (matchTroco) {
+                const valorTroco = parseFloat(matchTroco[1].replace(',', '.'));
+                if (Number.isFinite(valorTroco)) {
+                    const totalPedidoCard = totalDoPedido(pedido);
+                    const valorTrocoFormatado = formatarPreco(valorTroco);
+                    if (valorTroco > totalPedidoCard) {
+                        trocoPagamentoCard = `Troco para ${valorTrocoFormatado} (Devolver ${formatarPreco(arred(valorTroco - totalPedidoCard))})`;
+                    } else {
+                        trocoPagamentoCard = `Troco para ${valorTrocoFormatado}`;
+                    }
+                }
+            }
+            if (!trocoPagamentoCard) {
+                trocoPagamentoCard = `Troco para ${trocoTexto}`;
+            }
+        }
+    }
+
     const tagFormaPagamentoHtml = encomendaAguardandoPagamento
-        ? '<span class="pedido-tag tag-pagamento-aguardando">💳 Aguardando pagamento</span>'
+        ? '<div class="pedido-pagamento-premium pedido-pagamento-aguardando">💳 <strong>Aguardando pagamento</strong></div>'
         : (podeEditarFormaPagamento
-            ? `<span class="pedido-tag tag-pagamento tag-pagamento-forma" style="cursor:pointer;" onclick="editarFormaPagamentoPedido('${id}', this)" title="${tituloFormaPagamento}">💰 ${escaparHtmlSeguro(formaPagamentoOperacional)}${exibirTrocoOperacional ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''} ✏️</span>`
-            : `<span class="pedido-tag tag-pagamento tag-pagamento-forma" title="Forma confirmada pelo pagamento online">💰 ${escaparHtmlSeguro(formaPagamentoOperacional)}${exibirTrocoOperacional ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''}</span>`);
+            ? `<div class="pedido-pagamento-premium" style="cursor:pointer;" onclick="editarFormaPagamentoPedido('${id}', this)" title="${tituloFormaPagamento}">
+                    <div class="pedido-pagamento-titulo">💰 ${escaparHtmlSeguro(tituloPagamentoCard)} <span class="pedido-pagamento-editar">✏️</span></div>
+                    ${trocoPagamentoCard ? `<div class="pedido-pagamento-detalhe">${escaparHtmlSeguro(trocoPagamentoCard)}</div>` : ''}
+               </div>`
+            : `<div class="pedido-pagamento-premium" title="Forma confirmada pelo pagamento online">
+                    <div class="pedido-pagamento-titulo">💰 ${escaparHtmlSeguro(tituloPagamentoCard)}</div>
+                    ${trocoPagamentoCard ? `<div class="pedido-pagamento-detalhe">${escaparHtmlSeguro(trocoPagamentoCard)}</div>` : ''}
+               </div>`);
     const pagamentoOnlineHtml = montarTagPagamento(pedido);
     const botaoConfirmarRestanteDinheiroHtml = restanteDinheiroPodeSerConfirmado
         ? `<button type="button" class="btn-entregue" style="margin-top:7px;padding:8px 11px;font-size:11px;" onclick="confirmarRecebimentoRestanteDinheiro('${id}', this, ${restanteOnlineEmAndamento})">✅ Confirmar recebimento do restante</button>`
@@ -2811,10 +2852,10 @@ function montarCardPedido(id, pedido, comAcoes) {
                 <div class="pedido-cliente">${pedido.numero ? `<span class="pedido-numero">🛒Pedido #${escaparHtmlSeguro(String(pedido.numero).padStart(3, '0'))}</span> - ` : ''}${escaparHtmlSeguro(pedido.nome || 'Cliente')}</div>
                 <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;">
                     <span class="pedido-tag ${pedido.tipoEntrega === 'entrega' ? 'tag-entrega' : 'tag-retirada'}">${pedido.tipoEntrega === 'entrega' ? '🛵 Entrega' : '🏠 Retirada'}</span>
-                    ${tagFormaPagamentoHtml}
                     ${botaoPagamentoManualHtml}
                     ${tagStatus}
                 </div>
+                ${tagFormaPagamentoHtml ? `<div class="pedido-pagamento-premium-wrap">${tagFormaPagamentoHtml}</div>` : ''}
                 ${pagamentoOnlineHtml ? `<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:6px;">${pagamentoOnlineHtml}</div>` : ''}
                 ${botaoConfirmarRestanteDinheiroHtml ? `<div>${botaoConfirmarRestanteDinheiroHtml}</div>` : ''}
             </div>
