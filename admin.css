@@ -383,6 +383,18 @@ body {
     margin-left: auto;
     opacity: 0.78;
 }
+.pedido-pagamento-editar-inline {
+    display: inline-block;
+    margin-left: 5px;
+    opacity: 0.78;
+}
+.pedido-status-operacional {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    align-items: center;
+    margin-top: 5px;
+}
 .pedido-pagamento-aguardando {
     background: #fff8df;
     border-color: #f0dda2;
