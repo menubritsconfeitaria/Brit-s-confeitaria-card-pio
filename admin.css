@@ -338,6 +338,17 @@ body {
 .tag-entrega { background: #fdecd8; color: #a0522d; }
 .tag-retirada { background: #e6f4ea; color: #2d7a41; }
 .tag-pagamento { background: #eee7fb; color: #6a4bb5; }
+/* Layout responsivo da forma de pagamento no card: textos longos (ex.: troco)
+   podem quebrar linha sem ultrapassar a borda. Não altera nenhuma lógica. */
+.tag-pagamento-forma {
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.25;
+    vertical-align: top;
+}
 .tag-status-pendente { background: #fff3cd; color: #8a6300; }
 .tag-status-aceito { background: #d4edda; color: #1e6b34; }
 .tag-status-em-rota { background: #d6e9fb; color: #1a5a96; }
