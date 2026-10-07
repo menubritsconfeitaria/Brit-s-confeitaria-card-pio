@@ -2798,8 +2798,8 @@ function montarCardPedido(id, pedido, comAcoes) {
     const tagFormaPagamentoHtml = encomendaAguardandoPagamento
         ? '<span class="pedido-tag tag-pagamento-aguardando">💳 Aguardando pagamento</span>'
         : (podeEditarFormaPagamento
-            ? `<span class="pedido-tag tag-pagamento" style="cursor:pointer;white-space:nowrap;" onclick="editarFormaPagamentoPedido('${id}', this)" title="${tituloFormaPagamento}">💰 ${escaparHtmlSeguro(formaPagamentoOperacional)}${exibirTrocoOperacional ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''} ✏️</span>`
-            : `<span class="pedido-tag tag-pagamento" title="Forma confirmada pelo pagamento online">💰 ${escaparHtmlSeguro(formaPagamentoOperacional)}${exibirTrocoOperacional ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''}</span>`);
+            ? `<span class="pedido-tag tag-pagamento tag-pagamento-forma" style="cursor:pointer;" onclick="editarFormaPagamentoPedido('${id}', this)" title="${tituloFormaPagamento}">💰 ${escaparHtmlSeguro(formaPagamentoOperacional)}${exibirTrocoOperacional ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''} ✏️</span>`
+            : `<span class="pedido-tag tag-pagamento tag-pagamento-forma" title="Forma confirmada pelo pagamento online">💰 ${escaparHtmlSeguro(formaPagamentoOperacional)}${exibirTrocoOperacional ? ' (' + escaparHtmlSeguro(formatarTrocoLabel(pedido.troco, totalDoPedido(pedido))) + ')' : ''}</span>`);
     const pagamentoOnlineHtml = montarTagPagamento(pedido);
     const botaoConfirmarRestanteDinheiroHtml = restanteDinheiroPodeSerConfirmado
         ? `<button type="button" class="btn-entregue" style="margin-top:7px;padding:8px 11px;font-size:11px;" onclick="confirmarRecebimentoRestanteDinheiro('${id}', this, ${restanteOnlineEmAndamento})">✅ Confirmar recebimento do restante</button>`
