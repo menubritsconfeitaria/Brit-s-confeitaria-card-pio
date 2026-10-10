@@ -1167,14 +1167,19 @@ function salvarBairroMestre() {
     if (!nome) { msgEl.textContent = 'Digita o nome do bairro.'; return; }
     if (isNaN(km) || km < 0) { msgEl.textContent = 'Digita uma distância válida (em km).'; return; }
 
-    const nomeCodificado = encodeURIComponent(nome);
+    const bairrosAtuais = configFreteMestreAtual.bairros || {};
+    const chaveExistente = encontrarChaveBairroEquivalente(bairrosAtuais, nome);
+    const nomeCodificado = chaveExistente || encodeURIComponent(nome);
+
     registro.db.ref('configuracao/frete/bairros/' + nomeCodificado).set(km)
         .then(() => {
             if (!configFreteMestreAtual.bairros) configFreteMestreAtual.bairros = {};
             configFreteMestreAtual.bairros[nomeCodificado] = km;
             document.getElementById('novoBairroNomeMestre').value = '';
             document.getElementById('novoBairroKmMestre').value = '';
-            msgEl.textContent = 'Bairro salvo!';
+            msgEl.textContent = chaveExistente
+                ? 'Bairro já cadastrado com grafia equivalente — distância atualizada sem duplicar.'
+                : 'Bairro salvo!';
             renderizarListaBairrosMestre();
         })
         .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
@@ -1206,6 +1211,18 @@ function formatarNomeBairroExibicao(nome) {
             return minusculo.charAt(0).toLocaleUpperCase('pt-BR') + minusculo.slice(1);
         })
         .join(' ');
+}
+
+function encontrarChaveBairroEquivalente(bairros, nomeDigitado) {
+    const alvo = normalizarTexto(nomeDigitado || '');
+    if (!alvo) return null;
+
+    for (const chave of Object.keys(bairros || {})) {
+        let nomeExistente = chave;
+        try { nomeExistente = decodeURIComponent(chave); } catch (e) { /* chave já legível */ }
+        if (normalizarTexto(nomeExistente) === alvo) return chave;
+    }
+    return null;
 }
 
 function renderizarListaBairrosMestre() {
@@ -3841,9 +3858,15 @@ function salvarBairro() {
     if (!nome) { msgEl.textContent = 'Digita o nome do bairro.'; return; }
     if (isNaN(km) || km < 0) { msgEl.textContent = 'Digita uma distância válida (em km).'; return; }
 
-    db.ref('configuracao/frete/bairros/' + encodeURIComponent(nome)).set(km)
+    const bairrosAtuais = configFreteAtual && configFreteAtual.bairros || {};
+    const chaveExistente = encontrarChaveBairroEquivalente(bairrosAtuais, nome);
+    const chaveDestino = chaveExistente || encodeURIComponent(nome);
+
+    db.ref('configuracao/frete/bairros/' + chaveDestino).set(km)
         .then(() => {
-            msgEl.textContent = 'Bairro salvo!';
+            msgEl.textContent = chaveExistente
+                ? 'Bairro já cadastrado com grafia equivalente — distância atualizada sem duplicar.'
+                : 'Bairro salvo!';
             document.getElementById('novoBairroNome').value = '';
             document.getElementById('novoBairroKm').value = '';
         })

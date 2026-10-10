@@ -859,19 +859,13 @@ function escutarConfigFrete() {
     firebase.database().ref('configuracao/frete').on('value', snap => {
         const config = snap.val();
         if (config && config.bairros && Object.keys(config.bairros).length > 0) {
-            // As chaves foram salvas com encodeURIComponent (pra virarem chaves seguras
-            // no Firebase) — precisa decodificar de volta aqui, senão um bairro composto
-            // (ex: "vila nova" -> "vila%20nova") nunca bate com o nome vindo do ViaCEP
-            bairrosEntrega = {};
-            Object.entries(config.bairros).forEach(([chaveCodificada, km]) => {
-                try {
-                    bairrosEntrega[decodeURIComponent(chaveCodificada)] = km;
-                } catch (e) {
-                    bairrosEntrega[chaveCodificada] = km; // chave já não-codificada, usa direto
-                }
-            });
+            const resultadoBairros = construirMapaBairrosNormalizado(config.bairros);
+            bairrosEntrega = resultadoBairros.mapa;
+            if (resultadoBairros.conflitos.length > 0) {
+                console.warn('[PedeAki] Bairros equivalentes com distâncias conflitantes foram bloqueados:', resultadoBairros.conflitos);
+            }
         } else {
-            bairrosEntrega = bairrosEntregaPadrao;
+            bairrosEntrega = construirMapaBairrosNormalizado(bairrosEntregaPadrao).mapa;
         }
         valorPorKm = (config && config.valorPorKm) || valorPorKmPadrao;
         valorPorKmEncomenda = (config && config.valorPorKmEncomenda) || valorPorKmEncomendaPadrao;
@@ -883,14 +877,18 @@ function escutarConfigFrete() {
         // outros do banco — só filtra quais entram no "bairrosEntrega" que a checagem usa.
         // "bairrosEntregaCompletos" guarda a lista sem filtro, pra avisar o cliente
         // direito quando o bairro existe mas só está pausado por hoje.
-        bairrosEntregaCompletos = bairrosEntrega;
+        bairrosEntregaCompletos = { ...bairrosEntrega };
         if (config && config.modoRestritoAtivo && config.bairrosAtivos) {
             const bairrosFiltrados = {};
             Object.keys(config.bairrosAtivos).forEach(codificado => {
                 let nome;
                 try { nome = decodeURIComponent(codificado); }
                 catch (e) { nome = codificado; }
-                if (bairrosEntrega[nome] != null) bairrosFiltrados[nome] = bairrosEntrega[nome];
+
+                const chaveNormalizada = normalizar(nome);
+                if (bairrosEntrega[chaveNormalizada] != null) {
+                    bairrosFiltrados[chaveNormalizada] = bairrosEntrega[chaveNormalizada];
+                }
             });
             bairrosEntrega = bairrosFiltrados;
         }
@@ -3041,6 +3039,49 @@ function normalizar(txt) {
     return (txt || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 }
 
+function construirMapaBairrosNormalizado(bairros) {
+    const mapa = {};
+    const conflitos = new Set();
+
+    Object.entries(bairros || {}).forEach(([chaveOriginal, kmRaw]) => {
+        let nome = chaveOriginal;
+        try { nome = decodeURIComponent(chaveOriginal); } catch (e) { /* chave já legível */ }
+
+        const chave = normalizar(nome);
+        const km = Number(kmRaw);
+        if (!chave || !Number.isFinite(km) || km < 0 || conflitos.has(chave)) return;
+
+        if (Object.prototype.hasOwnProperty.call(mapa, chave)) {
+            if (Number(mapa[chave]) !== km) {
+                delete mapa[chave];
+                conflitos.add(chave);
+            }
+            return;
+        }
+
+        mapa[chave] = km;
+    });
+
+    return { mapa, conflitos: Array.from(conflitos) };
+}
+
+function atualizarTextoFreteConfirmado(bairroExibicao, grupos) {
+    if (!infoFreteDiv || tipoEntregaAtual !== 'entrega' || !freteConfirmado) return;
+
+    const bairro = bairroExibicao || (bairroClienteInput && bairroClienteInput.value) || 'informado';
+    infoFreteDiv.style.display = 'block';
+
+    if (grupos.misto) {
+        infoFreteDiv.textContent = `Entrega em ${bairro}: para agora R$ ${freteAgoraAtual.toFixed(2).replace('.', ',')} · encomenda R$ ${freteEncomendaAtual.toFixed(2).replace('.', ',')}`;
+    } else if (grupos.temEncomenda) {
+        infoFreteDiv.textContent = `Entrega em ${bairro}: R$ ${freteEncomendaAtual.toFixed(2).replace('.', ',')} (taxa de encomenda)`;
+    } else if (grupos.temAgora) {
+        infoFreteDiv.textContent = `Entrega em ${bairro}: R$ ${freteAgoraAtual.toFixed(2).replace('.', ',')}`;
+    } else {
+        infoFreteDiv.textContent = `Entrega em ${bairro}: adicione um item ao carrinho para calcular a taxa.`;
+    }
+}
+
 // Recalcula localmente os dois fretes quando o cliente adiciona/remove itens e muda
 // a composição do carrinho. Usa o bairro já confirmado pelo CEP; não faz nova consulta.
 function sincronizarFreteComMomentosDoCarrinho() {
@@ -3058,6 +3099,7 @@ function sincronizarFreteComMomentosDoCarrinho() {
     freteAgoraAtual = grupos.temAgora ? km * valorPorKm : 0;
     freteEncomendaAtual = grupos.temEncomenda ? km * valorPorKmEncomenda : 0;
     freteAtual = freteAgoraAtual + freteEncomendaAtual;
+    atualizarTextoFreteConfirmado(bairroClienteInput.value || '', grupos);
 }
 
 // Consulta o ViaCEP, calcula o valor da entrega pelo bairro e auto-preenche o endereço
@@ -3099,13 +3141,7 @@ async function calcularFrete() {
                 freteEncomendaAtual = grupos.temEncomenda ? km * valorPorKmEncomenda : 0;
                 freteAtual = freteAgoraAtual + freteEncomendaAtual;
                 freteConfirmado = true;
-                if (grupos.misto) {
-                    infoFreteDiv.textContent = `Entrega em ${dados.bairro}: para agora R$ ${freteAgoraAtual.toFixed(2).replace('.', ',')} · encomenda R$ ${freteEncomendaAtual.toFixed(2).replace('.', ',')}`;
-                } else if (grupos.temEncomenda) {
-                    infoFreteDiv.textContent = `Entrega em ${dados.bairro}: R$ ${freteEncomendaAtual.toFixed(2).replace('.', ',')} (taxa de encomenda)`;
-                } else {
-                    infoFreteDiv.textContent = `Entrega em ${dados.bairro}: R$ ${freteAgoraAtual.toFixed(2).replace('.', ',')}`;
-                }
+                atualizarTextoFreteConfirmado(dados.bairro || '', grupos);
             } else {
                 freteAtual = 0;
                 freteAgoraAtual = 0;
