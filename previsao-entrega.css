@@ -5,31 +5,110 @@
 .pedeaki-previsao-cliente .pedeaki-previsao-copia {min-width:0;display:grid;gap:3px;text-align:left;}
 .pedeaki-previsao-cliente strong {font-size:13px;line-height:1.5;font-weight:700;color:var(--primary-dark, var(--primary));}
 .pedeaki-previsao-cliente small {font-size:11px;line-height:1.55;color:var(--muted);}
-/* Faixa premium existente: itens mais próximos, sem criar um segundo cartão. */
+/* Faixa premium Brit's: régua proporcional, leve e responsiva. */
 main > .container:first-of-type .destaques {
-  grid-template-columns: repeat(3, minmax(0, 215px));
+  box-sizing: border-box;
+  width: min(100%, 1120px);
+  max-width: 1120px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   justify-content: center;
-  gap: 5px;
+  gap: 0;
+  padding: 6px 8px;
+  margin-left: auto;
+  margin-right: auto;
 }
 main > .container:first-of-type .destaques.pedeaki-previsao-ativa {
-  grid-template-columns: repeat(4, minmax(0, 215px));
+  grid-template-columns: 1.34fr .95fr 1.18fr 1.13fr;
+}
+main > .container:first-of-type .destaques > .destaque-item {
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+  min-height: 70px;
+  padding: 7px 13px;
+  gap: 9px;
+}
+main > .container:first-of-type .destaques > .destaque-item .txt {
+  font-size: .75rem;
+  line-height: 1.3;
+}
+main > .container:first-of-type .destaques > .destaque-item:not(:last-child)::after {
+  right: 0;
+  top: 13px;
+  bottom: 13px;
 }
 main > .container:first-of-type .destaques #pedeakiPrevisaoVitrine {
   width: auto;
   max-width: none;
   margin: 0;
 }
-@media (max-width: 900px) {
+main > .container:first-of-type .destaques #pedeakiPrevisaoVitrine .txt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  line-height: 1.28;
+}
+main > .container:first-of-type .destaques .pedeaki-prazo-rotulo {
+  font-size: .75rem;
+  font-weight: 650;
+  color: #675041;
+}
+main > .container:first-of-type .destaques #pedeakiPrevisaoVitrineTempo {
+  font-size: 1.02rem;
+  line-height: 1.15;
+  color: #944b2a;
+  font-weight: 750;
+  white-space: nowrap;
+}
+main > .container:first-of-type .destaques .pedeaki-prazo-observacao {
+  font-size: .65rem;
+  font-weight: 500;
+  color: #826d60;
+  line-height: 1.35;
+  text-wrap: pretty;
+}
+@media (max-width: 920px) {
   main > .container:first-of-type .destaques,
   main > .container:first-of-type .destaques.pedeaki-previsao-ativa {
-    grid-template-columns: repeat(2, minmax(0, 220px));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: min(100%, 700px);
+  }
+  main > .container:first-of-type .destaques > .destaque-item {
+    min-height: 60px;
+    padding: 8px 9px;
+  }
+  main > .container:first-of-type .destaques > .destaque-item::after {
+    display: none !important;
   }
   main > .container:first-of-type .destaques:not(.pedeaki-previsao-ativa) > .destaque-item:last-child {
     grid-column: 1 / -1;
     justify-self: center;
     width: 100%;
-    max-width: 220px;
+    max-width: 310px;
   }
+}
+@media (max-width: 480px) {
+  main > .container:first-of-type .destaques { padding: 6px; }
+  main > .container:first-of-type .destaques > .destaque-item {
+    min-height: 77px;
+    padding: 7px 6px;
+    gap: 6px;
+    justify-content: flex-start;
+  }
+  main > .container:first-of-type .destaques > .destaque-item .txt { font-size: .70rem; }
+  main > .container:first-of-type .destaques .pedeaki-prazo-rotulo { font-size: .72rem; }
+  main > .container:first-of-type .destaques .pedeaki-prazo-observacao { font-size: .61rem; }
+  main > .container:first-of-type .destaques #pedeakiPrevisaoVitrineTempo { font-size: .95rem; }
+}
+@media (max-width: 340px) {
+  main > .container:first-of-type .destaques,
+  main > .container:first-of-type .destaques.pedeaki-previsao-ativa {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  main > .container:first-of-type .destaques > .destaque-item { justify-content: center; }
 }
 
 #pedeakiPrevisaoCheckout {width:100%;margin:10px 0 14px;}
