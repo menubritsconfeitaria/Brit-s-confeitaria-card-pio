@@ -5,6 +5,32 @@
 .pedeaki-previsao-cliente .pedeaki-previsao-copia {min-width:0;display:grid;gap:3px;text-align:left;}
 .pedeaki-previsao-cliente strong {font-size:13px;line-height:1.5;font-weight:700;color:var(--primary-dark, var(--primary));}
 .pedeaki-previsao-cliente small {font-size:11px;line-height:1.55;color:var(--muted);}
-#pedeakiPrevisaoVitrine {width:min(90%, 1200px);margin:10px auto 5px;}
+/* Faixa premium existente: itens mais próximos, sem criar um segundo cartão. */
+main > .container:first-of-type .destaques {
+  grid-template-columns: repeat(3, minmax(0, 215px));
+  justify-content: center;
+  gap: 5px;
+}
+main > .container:first-of-type .destaques.pedeaki-previsao-ativa {
+  grid-template-columns: repeat(4, minmax(0, 215px));
+}
+main > .container:first-of-type .destaques #pedeakiPrevisaoVitrine {
+  width: auto;
+  max-width: none;
+  margin: 0;
+}
+@media (max-width: 900px) {
+  main > .container:first-of-type .destaques,
+  main > .container:first-of-type .destaques.pedeaki-previsao-ativa {
+    grid-template-columns: repeat(2, minmax(0, 220px));
+  }
+  main > .container:first-of-type .destaques:not(.pedeaki-previsao-ativa) > .destaque-item:last-child {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: 100%;
+    max-width: 220px;
+  }
+}
+
 #pedeakiPrevisaoCheckout {width:100%;margin:10px 0 14px;}
 @media (max-width:480px) { .pedeaki-previsao-cliente {padding:10px 12px;gap:9px;} .pedeaki-previsao-cliente strong {font-size:12.5px;} }
