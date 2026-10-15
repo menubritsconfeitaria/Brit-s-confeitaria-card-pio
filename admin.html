@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="previsao-entrega-admin.css">
     <link rel="icon" type="image/png" href="logopng.png">
 </head>
 <body>
@@ -511,6 +512,33 @@
                                         <div id="listaBairrosCadastrados" class="loja-scroll-list"></div>
                                     </div>
                                 </div>
+                            </div>
+                        </section>
+
+                        <section class="loja-status-card loja-premium-card" id="pedeakiPrevisaoCard" aria-label="Previsão aproximada de entrega">
+                            <div class="loja-premium-card-head">
+                                <div><span class="loja-premium-kicker">03 · LOGÍSTICA</span><h3>🛵 Previsão de Entrega</h3>
+                                  <p class="dica-secao">Mostre um prazo aproximado, sem precisar atualizar produto por produto. Os valores valem somente para pedidos de entrega imediata.</p></div>
+                                <span class="loja-card-badge">Controle do lojista</span>
+                            </div>
+                            <div class="pedeaki-prazo-layout">
+                                <form id="pedeakiPrazoFormulario" class="pedeaki-prazo-formulario" autocomplete="off">
+                                    <label class="pedeaki-prazo-ativacao"><input type="checkbox" id="pedeakiPrazoAtivo" disabled><span>Exibir previsão no cardápio</span></label>
+                                    <div class="pedeaki-prazo-campos">
+                                        <label class="pedeaki-prazo-campo">Tempo mínimo (min)<input type="number" id="pedeakiPrazoMin" inputmode="numeric" min="5" max="360" step="1" value="30" required disabled></label>
+                                        <label class="pedeaki-prazo-campo">Tempo máximo (min)<input type="number" id="pedeakiPrazoMax" inputmode="numeric" min="5" max="360" step="1" value="60" required disabled></label>
+                                    </div>
+                                    <div class="pedeaki-prazo-acao">
+                                        <button type="submit" id="pedeakiPrazoSalvar" class="btn-salvar-ordem" disabled>💾 Salvar previsão</button>
+                                        <button type="button" id="pedeakiPrazoRecarregar">↻ Recarregar</button>
+                                    </div>
+                                    <p id="pedeakiPrazoMensagem" role="status" aria-live="polite">Aguardando configuração...</p>
+                                </form>
+                                <aside class="pedeaki-prazo-preview" aria-live="polite">
+                                    <small>Prévia do cliente</small>
+                                    <strong id="pedeakiPrazoPrevia">Aviso desativado no cardápio</strong>
+                                    <p>Prazo aproximado. Pode variar conforme a demanda e a região de entrega.</p>
+                                </aside>
                             </div>
                         </section>
 
@@ -3158,5 +3186,6 @@
     <script src="loja-config.js"></script>
     <script src="firebase-config.js"></script>
     <script src="admin.js"></script>
+    <script src="previsao-entrega-admin.js"></script>
 </body>
 </html>

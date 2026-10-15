@@ -1,0 +1,10 @@
+/* PedeAki — cartão público compacto; respeita a identidade de cada loja. */
+#pedeakiPrevisaoVitrine[hidden], #pedeakiPrevisaoCheckout[hidden] {display:none !important;}
+.pedeaki-previsao-cliente {box-sizing:border-box;display:flex;align-items:flex-start;gap:11px;padding:12px 14px;background:#fffaf6;border:1px solid var(--border);border-left:3px solid var(--primary);border-radius:13px;color:var(--text);font-family:inherit;max-width:100%;}
+.pedeaki-previsao-cliente .pedeaki-previsao-icone {font-size:21px;line-height:1.3;flex:0 0 auto;}
+.pedeaki-previsao-cliente .pedeaki-previsao-copia {min-width:0;display:grid;gap:3px;text-align:left;}
+.pedeaki-previsao-cliente strong {font-size:13px;line-height:1.5;font-weight:700;color:var(--primary-dark, var(--primary));}
+.pedeaki-previsao-cliente small {font-size:11px;line-height:1.55;color:var(--muted);}
+#pedeakiPrevisaoVitrine {width:min(90%, 1200px);margin:10px auto 5px;}
+#pedeakiPrevisaoCheckout {width:100%;margin:10px 0 14px;}
+@media (max-width:480px) { .pedeaki-previsao-cliente {padding:10px 12px;gap:9px;} .pedeaki-previsao-cliente strong {font-size:12.5px;} }

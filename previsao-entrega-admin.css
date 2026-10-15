@@ -1,0 +1,21 @@
+/* PedeAki — configuração isolada do prazo aproximado */
+#pedeakiPrevisaoCard { scroll-margin-top: 110px; }
+#pedeakiPrevisaoCard .pedeaki-prazo-layout { display:grid;grid-template-columns:minmax(0,1.25fr) minmax(230px,.75fr);gap:16px;align-items:start;margin-top:12px; }
+#pedeakiPrevisaoCard .pedeaki-prazo-formulario { display:grid;gap:14px; }
+#pedeakiPrevisaoCard .pedeaki-prazo-ativacao { display:flex;gap:10px;align-items:center;padding:12px 14px;border:1px solid var(--border);background:var(--bg);border-radius:12px;cursor:pointer;font-size:13px;font-weight:600; }
+#pedeakiPrevisaoCard .pedeaki-prazo-ativacao input { width:18px;height:18px;accent-color:var(--primary); }
+#pedeakiPrevisaoCard .pedeaki-prazo-campos { display:grid;grid-template-columns:1fr 1fr;gap:12px; }
+#pedeakiPrevisaoCard .pedeaki-prazo-campo { display:flex;flex-direction:column;gap:6px;min-width:0;font-size:12px;font-weight:600; }
+#pedeakiPrevisaoCard .pedeaki-prazo-campo input { width:100%;min-width:0;padding:12px;border:1px solid var(--border);border-radius:10px;font:inherit;font-size:15px;background:#fff;color:var(--text); }
+#pedeakiPrevisaoCard .pedeaki-prazo-acao { display:flex;gap:10px;flex-wrap:wrap;align-items:center; }
+#pedeakiPrevisaoCard .pedeaki-prazo-acao button { min-height:42px; }
+#pedeakiPrevisaoCard #pedeakiPrazoRecarregar { padding:10px 14px;border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--text);cursor:pointer;font:inherit;font-size:12px;font-weight:600; }
+#pedeakiPrevisaoCard #pedeakiPrazoSalvar:disabled { opacity:.6;cursor:not-allowed; }
+#pedeakiPrevisaoCard #pedeakiPrazoMensagem { min-height:18px;margin:0;font-size:12px; }
+#pedeakiPrevisaoCard #pedeakiPrazoMensagem[data-estado="erro"] { color:#a43333; }
+#pedeakiPrevisaoCard .pedeaki-prazo-preview { padding:17px;border-radius:15px;background:var(--bg);border:1px solid var(--border); }
+#pedeakiPrevisaoCard .pedeaki-prazo-preview small { display:block;color:var(--muted);font-size:11px;letter-spacing:.04em;text-transform:uppercase; }
+#pedeakiPrevisaoCard .pedeaki-prazo-preview strong { display:block;margin:9px 0;font-size:16px;line-height:1.4;color:var(--primary); }
+#pedeakiPrevisaoCard .pedeaki-prazo-preview p { margin:0;color:var(--muted);font-size:12px;line-height:1.55; }
+@media (max-width:720px) { #pedeakiPrevisaoCard .pedeaki-prazo-layout {grid-template-columns:1fr;} }
+@media (max-width:380px) { #pedeakiPrevisaoCard .pedeaki-prazo-campos {grid-template-columns:1fr;} }
