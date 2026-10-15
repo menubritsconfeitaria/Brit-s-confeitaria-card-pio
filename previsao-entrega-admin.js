@@ -12,9 +12,33 @@
   let conflito = false;
   let salvando = false;
 
-  const igual = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+  // Firebase pode devolver os mesmos campos em outra ordem. Comparar estrutura,
+  // não a ordem das chaves serializadas, sem perder a detecção de conflitos.
+  function igual(a, b) {
+    if (a === b || (a == null && b == null)) return true;
+    if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return false;
+    if (Array.isArray(a) !== Array.isArray(b)) return false;
+    const chavesA = Object.keys(a).sort();
+    const chavesB = Object.keys(b).sort();
+    return chavesA.length === chavesB.length &&
+      chavesA.every((chave, i) => chave === chavesB[i] && igual(a[chave], b[chave]));
+  }
   const intervaloValido = (min, max) => Number.isSafeInteger(min) && Number.isSafeInteger(max)
     && min >= 5 && max >= min && max <= LIMITE;
+  // Só expõe categorias técnicas conhecidas; nunca credenciais, IDs ou detalhes internos.
+  function diagnosticarErro(erro, operacao) {
+    const raw = typeof erro?.code === 'string' ? erro.code.toLowerCase() : '';
+    const codigo = raw.replace(/^[a-z]+\//, '').replace(/-/g, '_');
+    if (codigo === 'permission_denied')
+      return `Firebase negou permissão (${operacao}: PERMISSION_DENIED). Nenhum salvamento confirmado; confira Auth e Rules com segurança.`;
+    if (['disconnected', 'network_error', 'unavailable', 'timeout'].includes(codigo))
+      return `Conexão indisponível (${operacao}: ${codigo.toUpperCase()}). Nenhum salvamento confirmado; tente recarregar quando a conexão voltar.`;
+    return `Falha na ${operacao} (causa não identificada). Nenhum salvamento confirmado; não altere as Rules sem diagnóstico.`;
+  }
+  function previaPendente(estado) {
+    const elemento = $('pedeakiPrazoPreviaEstado');
+    if (elemento) elemento.textContent = estado ? 'PRÉVIA LOCAL — NÃO SALVA' : 'PRÉVIA DO CLIENTE';
+  }
   function informar(texto, erro = false) {
     const el = $('pedeakiPrazoMensagem');
     if (el) { el.textContent = texto; el.dataset.estado = erro ? 'erro' : 'ok'; }
@@ -66,13 +90,15 @@
       carregado = true;
       camposHabilitados(true);
       preencher(valor);
+      previaPendente(false);
       informar('Configuração carregada. Salve somente quando quiser atualizar o cardápio.');
     }
   }
-  function falhouLeitura() {
+  function falhouLeitura(erro) {
     carregado = false;
     camposHabilitados(false);
-    informar('Não foi possível ler a configuração. Nenhuma alteração será realizada.', true);
+    previaPendente(true);
+    informar(diagnosticarErro(erro, 'leitura'), true);
   }
   function desvincular() {
     if (ref) ref.off('value', receber);
@@ -105,7 +131,7 @@
     }
     salvando = true;
     $('pedeakiPrazoSalvar').disabled = true;
-    informar('Salvando somente a previsão de entrega...');
+    informar('Tentando salvar apenas a previsão; aguarde confirmação do Firebase...');
     try {
       // Transação apenas no nó deste recurso; aborta se outra sessão alterou o estado.
       const resultado = await ref.transaction(atual => {
@@ -128,9 +154,11 @@
       editando = false;
       conflito = false;
       preencher(persistido);
+      previaPendente(false);
       informar('Previsão salva e confirmada! O aviso é atualizado no cardápio.');
-    } catch (_) {
-      informar('Não foi possível salvar. Verifique a permissão do painel e a conexão.', true);
+    } catch (erro) {
+      previaPendente(true);
+      informar(diagnosticarErro(erro, 'gravação'), true);
     } finally {
       salvando = false;
       $('pedeakiPrazoSalvar').disabled = !carregado || conflito;
@@ -151,8 +179,8 @@
     });
     for (const id of ['pedeakiPrazoAtivo','pedeakiPrazoMin','pedeakiPrazoMax']) {
       const el = $(id);
-      el.addEventListener('input', () => { editando = true; atualizarPrevia(); });
-      el.addEventListener('change', () => { editando = true; atualizarPrevia(); });
+      el.addEventListener('input', () => { editando = true; previaPendente(true); atualizarPrevia(); });
+      el.addEventListener('change', () => { editando = true; previaPendente(true); atualizarPrevia(); });
     }
     if (typeof firebase === 'undefined' || !firebase.apps?.length || !firebase.auth) {
       informar('Firebase indisponível. Nenhuma gravação será realizada.', true);
