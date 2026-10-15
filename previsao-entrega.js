@@ -22,14 +22,17 @@
     if (!vitrine || !checkout) return;
     const disponivel = Boolean(intervalo && lojaAtendendo());
     const agendado = typeof dataEncomendaEscolhida !== 'undefined' && !!dataEncomendaEscolhida;
-    vitrine.hidden = !disponivel || agendado;
+    const mostrarNaFaixa = disponivel && !agendado;
+    vitrine.hidden = !mostrarNaFaixa;
+    const faixa = vitrine.closest('.destaques');
+    if (faixa) faixa.classList.toggle('pedeaki-previsao-ativa', mostrarNaFaixa);
     const area = $('areaEntrega');
     const entregaEscolhida = area && area.style.display !== 'none'
       && (typeof tipoEntregaAtual === 'undefined' || tipoEntregaAtual === 'entrega');
     checkout.hidden = !(disponivel && entregaEscolhida && !agendado);
     if (intervalo) {
       const frase = `${intervalo.min} a ${intervalo.max} minutos`;
-      $('pedeakiPrevisaoVitrineTempo').textContent = frase;
+      $('pedeakiPrevisaoVitrineTempo').textContent = `${intervalo.min} a ${intervalo.max} min`;
       $('pedeakiPrevisaoCheckoutTempo').textContent = frase;
     }
   }
