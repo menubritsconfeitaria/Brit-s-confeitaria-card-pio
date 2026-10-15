@@ -12,7 +12,17 @@
   let conflito = false;
   let salvando = false;
 
-  const igual = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+  // Firebase pode devolver os mesmos campos em outra ordem. Comparar estrutura,
+  // não a ordem das chaves serializadas, sem perder a detecção de conflitos.
+  function igual(a, b) {
+    if (a === b || (a == null && b == null)) return true;
+    if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return false;
+    if (Array.isArray(a) !== Array.isArray(b)) return false;
+    const chavesA = Object.keys(a).sort();
+    const chavesB = Object.keys(b).sort();
+    return chavesA.length === chavesB.length &&
+      chavesA.every((chave, i) => chave === chavesB[i] && igual(a[chave], b[chave]));
+  }
   const intervaloValido = (min, max) => Number.isSafeInteger(min) && Number.isSafeInteger(max)
     && min >= 5 && max >= min && max <= LIMITE;
   // Só expõe categorias técnicas conhecidas; nunca credenciais, IDs ou detalhes internos.
