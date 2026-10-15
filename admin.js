@@ -2676,7 +2676,10 @@ function montarCardPedido(id, pedido, comAcoes) {
 
     let freteLinha = '';
     if (pedido.tipoEntrega === 'entrega') {
-        freteLinha = `<div class="pedido-total-linha"><span>Entrega</span><span>${pedido.frete != null ? formatarPreco(pedido.frete) : 'A confirmar'}</span></div>`;
+        const freteTexto = pedido.frete == null || String(pedido.frete).trim() === ''
+            ? 'A confirmar'
+            : (Number(pedido.frete) === 0 ? 'Grátis 🎉' : formatarPreco(pedido.frete));
+        freteLinha = `<div class="pedido-total-linha"><span>Entrega</span><span>${freteTexto}</span></div>`;
     }
 
     // Mostra no card operacional o mesmo resumo de cupom que o cliente recebe no
