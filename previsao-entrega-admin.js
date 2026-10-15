@@ -29,7 +29,6 @@
     const elemento = $('pedeakiPrazoPreviaEstado');
     if (elemento) elemento.textContent = estado ? 'PRÉVIA LOCAL — NÃO SALVA' : 'PRÉVIA DO CLIENTE';
   }
-
   function informar(texto, erro = false) {
     const el = $('pedeakiPrazoMensagem');
     if (el) { el.textContent = texto; el.dataset.estado = erro ? 'erro' : 'ok'; }
