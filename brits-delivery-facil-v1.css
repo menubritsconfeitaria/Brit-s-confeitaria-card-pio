@@ -223,3 +223,47 @@
     flex-basis: 100%;
   }
 }
+
+/* Brit's Delivery Fácil — candidata de primeira tela MOBILE.
+   Apenas apresentação da região anterior aos produtos. Sem alterar fluxos,
+   avisos, contratos, checkout, status, banners ou comportamento do JS.
+   NÃO PUBLICADO: trabalho local para validação antes de autorização. */
+@media (max-width: 760px) {
+  header { padding: 8px 0 7px; }
+  header .container { grid-template-columns: 46px minmax(0, 1fr); gap: 8px; }
+  header .logo { width: 46px; max-width: 46px; max-height: 46px; }
+  header h1 { font-size: 1rem; line-height: 1.13; }
+  header p:not(.header-cidade) { margin-top: 2px; font-size: .65rem; line-height: 1.25; }
+  .status-loja-banner { min-height: 31px; margin-top: 4px; padding: 5px 12px; }
+  main > .container:first-of-type { padding-top: 5px; padding-bottom: 2px; }
+  main > .container:first-of-type .destaques {
+    gap: 4px; padding: 4px; margin-bottom: 4px; border-radius: 12px;
+  }
+  main > .container:first-of-type .destaque-item {
+    min-height: 32px; padding: 4px 6px; gap: 5px;
+  }
+  main > .container:first-of-type .destaque-item .emoji {
+    flex: 0 0 22px; width: 22px; height: 22px; font-size: 12px;
+  }
+  main > .container:first-of-type .destaque-item .txt {
+    font-size: .65rem; line-height: 1.18;
+  }
+  .carrossel-destaques.container {
+    margin-top: 4px; margin-bottom: 10px; border-radius: 15px;
+  }
+  .carrossel-slide { height: 178px; }
+  .carrossel-slide-info { width: 64%; padding: 12px 12px 26px; gap: 4px; }
+  .carrossel-slide-info strong { font-size: 1rem; line-height: 1.1; }
+  .carrossel-kicker { min-height: 18px; padding: 2px 6px; font-size: .54rem; }
+  .carrossel-preco { font-size: .98rem; }
+  .carrossel-cta { min-height: 44px; padding: 7px 10px; font-size: .72rem; }
+  #produtos-destaque { padding-top: 3px; }
+  #produtos-destaque > h2 { margin-bottom: 8px; font-size: 1.3rem; }
+  #produtos-destaque .categorias { margin-bottom: 13px; padding: 7px; }
+  #produtos-destaque .categoria-titulo { margin-top: 17px; margin-bottom: 10px; }
+}
+@media (max-width: 390px) {
+  .carrossel-slide-info { padding-left: 10px; padding-right: 8px; }
+  .carrossel-slide-info strong { font-size: .94rem; }
+  .carrossel-cta { font-size: .68rem; }
+}
