@@ -267,3 +267,81 @@
   .carrossel-slide-info strong { font-size: .94rem; }
   .carrossel-cta { font-size: .68rem; }
 }
+
+/* Brit's Delivery Fácil — refinamento consolidado da primeira tela.
+   CANDIDATA LOCAL, SEM DEPLOY. Somente responsividade do topo e carrossel.
+   Preserva previsão, informações, carrossel, fotos, checkout e demais ações. */
+@media (max-width: 760px) {
+  /* A folha de previsão de entrega carrega depois do CSS principal; usar
+     seletores mais específicos para reduzir a linha de benefícios sem escondê-los. */
+  main > .container:first-of-type .destaques > .destaque-item:not(#pedeakiPrevisaoVitrine) {
+    min-height: 49px;
+    padding: 5px 6px;
+    gap: 5px;
+  }
+  main > .container:first-of-type .destaques > #pedeakiPrevisaoVitrine {
+    min-height: 65px;
+    padding: 5px 6px;
+    gap: 5px;
+  }
+  main > .container:first-of-type .destaques #pedeakiPrevisaoVitrine .txt {
+    gap: 1px;
+  }
+  main > .container:first-of-type .destaques .pedeaki-prazo-observacao {
+    line-height: 1.18;
+  }
+
+  /* Título extenso: reservar fluxo próprio para preço e CTA, sem sobreposição. */
+  .carrossel-slide:not(.carrossel-slide-banner) { height: 192px; }
+  .carrossel-slide:not(.carrossel-slide-banner) .carrossel-slide-info {
+    justify-content: flex-start;
+    width: 66%;
+    padding: 11px 10px 22px;
+    gap: 3px;
+    min-width: 0;
+  }
+  .carrossel-slide-info .carrossel-kicker,
+  .carrossel-slide-info .carrossel-preco,
+  .carrossel-slide-info .carrossel-cta { flex-shrink: 0; }
+  .carrossel-slide-info strong {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    font-size: .95rem;
+    line-height: 1.12;
+    flex-shrink: 0;
+  }
+  .carrossel-slide-info .carrossel-cta {
+    min-height: 44px;
+    margin-top: 1px;
+    padding: 7px 10px;
+    white-space: normal;
+    text-align: center;
+    font-size: .70rem;
+  }
+  /* Tirar as setas da zona de leitura do título/preço. */
+  .carrossel-destaques .carrossel-destaque-seta {
+    top: 9px;
+    bottom: auto;
+    width: 32px;
+    height: 32px;
+    transform: none;
+  }
+  .carrossel-destaques .carrossel-destaque-anterior { left: auto; right: 49px; }
+  .carrossel-destaques .carrossel-destaque-proximo { right: 9px; }
+  .carrossel-destaques .carrossel-destaque-seta:hover { transform: none; }
+  /* Indicadores ficam abaixo do botão, sem avançar sobre a ação. */
+  .carrossel-destaques .carrossel-bolinhas {
+    left: auto;
+    right: 10px;
+    bottom: 6px;
+    transform: none;
+  }
+}
+@media (max-width: 390px) {
+  .carrossel-slide:not(.carrossel-slide-banner) .carrossel-slide-info { width: 68%; }
+  .carrossel-slide-info strong { font-size: .88rem; }
+  .carrossel-slide-info .carrossel-cta { font-size: .67rem; }
+}
