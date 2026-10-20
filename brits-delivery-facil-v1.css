@@ -1,0 +1,184 @@
+/* BRIT'S — DELIVERY FÁCIL / REFINO DE CARDS
+   Candidata local, NÃO publicada. Escopo: somente #produtos-destaque.
+   O cardápio oficial, checkout, estoque, pagamentos, notificações e push não são alterados.
+*/
+#produtos-destaque .categoria-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  justify-content: stretch;
+  gap: 14px;
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+#produtos-destaque .produto-item {
+  width: 100% !important;
+  max-width: none;
+  min-width: 0;
+  padding-bottom: 8px;
+}
+#produtos-destaque .produto-imagem-wrap {
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+}
+#produtos-destaque .produto-imagem-wrap img {
+  width: 100%;
+  height: 100% !important;
+  object-fit: cover;
+}
+#produtos-destaque .produto-item h3 {
+  margin: 9px 10px 5px;
+  min-height: 2.55em;
+  font-size: .88rem;
+  line-height: 1.27;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 2;
+}
+#produtos-destaque .produto-item .descricao {
+  flex-grow: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  min-height: 2.65em;
+  margin: 0 10px 6px;
+  font-size: .73rem;
+  line-height: 1.32;
+}
+#produtos-destaque .produto-item .preco {
+  min-height: 0;
+  margin: auto 10px 6px;
+  font-size: 1.08rem;
+  line-height: 1.2;
+  font-weight: 800;
+}
+#produtos-destaque .variantes-lista {
+  margin: 0 8px 6px;
+}
+#produtos-destaque .produto-quantidade-stepper {
+  gap: 9px;
+  min-height: 36px;
+  margin: 0 auto 6px;
+  padding: 2px 5px;
+}
+#produtos-destaque .qtd-btn {
+  width: 32px;
+  height: 32px;
+}
+#produtos-destaque .produto-item .adicionar-carrinho {
+  width: calc(100% - 18px);
+  max-width: calc(100% - 18px);
+  min-height: 40px;
+  margin: 0 9px;
+  padding: 8px 6px;
+  border-radius: 10px;
+  font-size: .77rem;
+  line-height: 1.15;
+  white-space: normal;
+}
+#produtos-destaque .btn-copiar-link-produto {
+  display: block;
+  width: calc(100% - 18px);
+  max-width: calc(100% - 18px);
+  align-self: center;
+  margin: 5px 9px 0;
+  padding: 4px 2px;
+  font-size: .60rem;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 1180px) {
+  #produtos-destaque .categoria-grid {grid-template-columns: repeat(3, minmax(0, 1fr));}
+}
+@media (max-width: 760px) {
+  #produtos-destaque .categoria-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    max-width: none;
+  }
+  #produtos-destaque .produto-item {max-width: none; border-radius: 16px;}
+  #produtos-destaque .produto-imagem-wrap {aspect-ratio: 4 / 3;}
+  #produtos-destaque .produto-item h3 {
+    margin: 8px 8px 4px;
+    min-height: 2.55em;
+    font-size: .79rem;
+    line-height: 1.25;
+  }
+  #produtos-destaque .produto-item .descricao {
+    margin: 0 8px 5px;
+    min-height: 2.55em;
+    font-size: .69rem;
+    line-height: 1.28;
+    -webkit-line-clamp: 2;
+  }
+  #produtos-destaque .produto-item .preco {
+    margin: auto 8px 5px;
+    font-size: 1.01rem;
+  }
+  #produtos-destaque .variantes-lista {margin: 0 7px 6px;}
+  #produtos-destaque .produto-item .adicionar-carrinho {
+    width: calc(100% - 14px);
+    max-width: calc(100% - 14px);
+    margin: 0 7px;
+    min-height: 40px;
+    padding: 7px 4px;
+    font-size: .70rem;
+  }
+  #produtos-destaque .btn-copiar-link-produto {
+    width: calc(100% - 14px);
+    max-width: calc(100% - 14px);
+    margin: 4px 7px 0;
+    font-size: .60rem;
+  }
+}
+@media (max-width: 359px) {
+  #produtos-destaque .categoria-grid {
+    grid-template-columns: 1fr;
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  #produtos-destaque .produto-imagem-wrap {aspect-ratio: 16 / 10;}
+  #produtos-destaque .produto-item h3 {font-size: .92rem;}
+  #produtos-destaque .produto-item .descricao {font-size: .76rem;}
+}
+
+/* BRIT'S — CANDIDATA VISUAL ISOLADA: cupom responsivo.
+   Escopo: apenas apresentação do campo/botão de cupom no checkout.
+   Sem alteração de regras comerciais, eventos, validações ou pagamentos. */
+#carrinho.checkout-premium .checkout-cupom-card {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+#carrinho.checkout-premium .checkout-cupom-card .cupom-area {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+#carrinho.checkout-premium .checkout-cupom-card .cupom-area input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+#carrinho.checkout-premium .checkout-cupom-card .cupom-area button {
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+@media (max-width: 359px) {
+  #carrinho.checkout-premium .checkout-cupom-card .cupom-area {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #carrinho.checkout-premium .checkout-cupom-card .cupom-area button {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+  }
+}
