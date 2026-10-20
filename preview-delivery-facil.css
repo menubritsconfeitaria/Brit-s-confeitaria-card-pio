@@ -145,3 +145,40 @@
   #produtos-destaque .produto-item h3 {font-size: .92rem;}
   #produtos-destaque .produto-item .descricao {font-size: .76rem;}
 }
+
+/* BRIT'S — CANDIDATA VISUAL ISOLADA: cupom responsivo.
+   Escopo: apenas apresentação do campo/botão de cupom no checkout.
+   Sem alteração de regras comerciais, eventos, validações ou pagamentos. */
+#carrinho.checkout-premium .checkout-cupom-card {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+#carrinho.checkout-premium .checkout-cupom-card .cupom-area {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+#carrinho.checkout-premium .checkout-cupom-card .cupom-area input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+#carrinho.checkout-premium .checkout-cupom-card .cupom-area button {
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+@media (max-width: 359px) {
+  #carrinho.checkout-premium .checkout-cupom-card .cupom-area {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #carrinho.checkout-premium .checkout-cupom-card .cupom-area button {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+  }
+}
