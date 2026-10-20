@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- ⚠️ TROQUE AQUI PRA UM CLIENTE NOVO — essas linhas não conseguem ser preenchidas
+         automaticamente pelo loja-config.js, porque o navegador as lê ANTES do JavaScript
+         carregar. Troque manualmente pelo nome, descrição e endereço do site do cliente. -->
+    <title>PRÉVIA VISUAL — Brit's Confeitaria em Colatina, ES | Bolos, Doces e Delivery</title>
+    <meta name="description" content="Brit's Confeitaria em Colatina, ES: bolos, doces, tortas, brownies e salgados com delivery. Consulte o cardápio online e faça seu pedido.">
+    <meta name="robots" content="index,follow,max-image-preview:large">
+    <link rel="canonical" href="https://britsconfeitaria.com.br/">
+
+    <!-- Compartilhamento bonito (WhatsApp, Instagram, etc.) -->
+    <meta property="og:title" content="Brit's Confeitaria em Colatina, ES | Bolos, Doces e Delivery">
+    <meta property="og:description" content="Bolos, doces, tortas, brownies e salgados em Colatina, ES. Consulte o cardápio online e peça para entrega.">
+    <meta property="og:image" content="https://britsconfeitaria.com.br/logopng.png">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://britsconfeitaria.com.br/">
+    <meta property="og:locale" content="pt_BR">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Brit's Confeitaria em Colatina, ES">
+    <meta name="twitter:description" content="Bolos, doces, tortas, brownies e salgados com delivery em Colatina, ES.">
+    <meta name="twitter:image" content="https://britsconfeitaria.com.br/logopng.png">
+    <meta name="theme-color" content="#a0522d">
+
+    <!-- Dados estruturados para mecanismos de busca: negócio local por área atendida.
+         Não publicamos endereço residencial; a cobertura informada é Colatina/ES. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Bakery",
+      "@id": "https://britsconfeitaria.com.br/#negocio",
+      "name": "Brit's Confeitaria",
+      "alternateName": ["Brits", "Brits Confeitaria"],
+      "url": "https://britsconfeitaria.com.br/",
+      "logo": "https://britsconfeitaria.com.br/logopng.png",
+      "image": "https://britsconfeitaria.com.br/logopng.png",
+      "telephone": "+55 27 99763-3871",
+      "description": "Confeitaria em Colatina, ES, com bolos, doces, tortas, brownies, salgados e delivery.",
+      "areaServed": {
+        "@type": "City",
+        "name": "Colatina",
+        "containedInPlace": {
+          "@type": "State",
+          "name": "Espírito Santo"
+        }
+      },
+      "sameAs": [
+        "https://www.instagram.com/brites.doces/"
+      ],
+      "servesCuisine": [
+        "Confeitaria",
+        "Bolos",
+        "Doces",
+        "Tortas",
+        "Brownies",
+        "Salgados"
+      ],
+      "potentialAction": {
+        "@type": "OrderAction",
+        "target": "https://britsconfeitaria.com.br/"
+      }
+    }
+    </script>
+    <!-- fim do trecho pra trocar manualmente -->
+
+    <!-- PWA (app instalável) -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="logopng.png">
+    <link rel="apple-touch-icon" href="logopng.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="preview-delivery-facil.css">
+    <link rel="stylesheet" href="previsao-entrega.css">
+
+    <style>
+        /* Vendedor Inteligente — sugestão discreta antes do carrinho */
+        .vendedor-inteligente {
+            position: fixed;
+            left: 16px;
+            bottom: 18px;
+            width: min(390px, calc(100vw - 32px));
+            z-index: 1190;
+            background: #fffaf5;
+            border: 1px solid rgba(160,82,45,.22);
+            border-radius: 18px;
+            box-shadow: 0 16px 45px rgba(62,35,20,.22);
+            padding: 14px;
+            gap: 12px;
+            align-items: center;
+            transform: translateY(22px);
+            opacity: 0;
+            transition: opacity .25s ease, transform .25s ease;
+        }
+        .vendedor-inteligente.mostrar { opacity: 1; transform: translateY(0); }
+        .vendedor-inteligente-foto { width: 86px; height: 86px; border-radius: 14px; object-fit: cover; flex: 0 0 86px; background: #f1e7df; }
+        .vendedor-inteligente-conteudo { min-width: 0; flex: 1; }
+        .vendedor-inteligente-kicker { display:block; font-size:.78rem; font-weight:700; color:#a0522d; margin-bottom:3px; }
+        .vendedor-inteligente-nome { display:block; color:#3f261b; font-size:1rem; line-height:1.2; margin-right:22px; }
+        .vendedor-inteligente-texto { margin:5px 0 7px; font-size:.82rem; line-height:1.35; color:#6f574b; }
+        .vendedor-inteligente-preco { display:inline-block; margin-right:8px; font-weight:800; color:#6f3a24; }
+        .vendedor-inteligente-preco-original { font-size:.78rem; color:#8d827d; text-decoration:line-through; margin-right:4px; }
+        .vendedor-inteligente-acao { border:0; border-radius:10px; padding:8px 11px; font:inherit; font-weight:700; cursor:pointer; background:#a0522d; color:white; }
+        .vendedor-inteligente-fechar { position:absolute; top:7px; right:8px; border:0; background:transparent; color:#806d64; font-size:1rem; cursor:pointer; padding:5px; }
+        @media (max-width: 560px) {
+            .vendedor-inteligente { left:12px; bottom:12px; width:calc(100vw - 24px); padding:12px; }
+            .vendedor-inteligente-foto { width:76px; height:76px; flex-basis:76px; }
+        }
+    </style>
+
+</head>
+<body>
+    <div id="telaBoasVindas" class="tela-boas-vindas" style="display:none;">
+        <div class="boas-vindas-luz boas-vindas-luz--um" aria-hidden="true"></div>
+        <div class="boas-vindas-luz boas-vindas-luz--dois" aria-hidden="true"></div>
+        <div class="boas-vindas-assinatura boas-vindas-assinatura--esquerda" aria-hidden="true">
+            <span>MAIS QUE DOCES</span>
+            <strong>MOMENTOS ESPECIAIS</strong>
+        </div>
+        <div class="boas-vindas-assinatura boas-vindas-assinatura--direita" aria-hidden="true">
+            <span>Feitos com</span>
+            <strong>carinho</strong>
+        </div>
+        <div class="boas-vindas-conteudo" role="dialog" aria-modal="true" aria-labelledby="boasVindasTitulo">
+            <div class="boas-vindas-kicker">BEM-VINDO</div>
+            <div class="boas-vindas-logo-wrap">
+                <img id="boasVindasLogo" src="logopng.png" alt="Logo da loja" class="boas-vindas-logo">
+            </div>
+            <h2 id="boasVindasTitulo">Bem-vindo à Brit's Confeitaria! 🎂</h2>
+            <div class="boas-vindas-divisor" aria-hidden="true"><span>♥</span></div>
+            <p class="boas-vindas-subtitulo">Bolos, doces e salgados fresquinhos, feitos com carinho.</p>
+            <button class="boas-vindas-cta" onclick="fecharBoasVindas()">
+                <span>Ver Cardápio</span>
+                <span class="boas-vindas-seta" aria-hidden="true">→</span>
+            </button>
+            <div class="boas-vindas-valores" aria-hidden="true">
+                <span>Sabor</span><i>•</i><span>Qualidade</span><i>•</i><span>Afeto</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="bannerModoDemo" class="banner-modo-demo" style="display:none;">
+        <span>🎨 Você está vendo uma prévia personalizada!</span>
+        <button id="btnVoltarBannerDemo" onclick="restaurarCardapioOriginal()">🔄 Voltar pro cardápio da Brit's</button>
+    </div>
+
+    <header>
+        <button id="btnAtivarNotificacoesSino" class="sino-notificacoes" style="display:none;" title="Notificações ativadas" aria-label="Notificações já ativadas" disabled>🔔</button>
+        <div class="container">
+            <img src="logopng.png" alt="Logo Brit's Confeitaria" class="logo">
+            <h1>Bem-vindo à Brit's Confeitaria!</h1>
+            <p>Seu cardápio diário de delícias frescas.</p>
+            <p id="headerCidade" class="header-cidade"></p>
+        </div>
+    </header>
+
+    <div id="statusLojaBanner" class="status-loja-banner">
+        <span id="statusLojaTexto">Verificando o horário de funcionamento...</span>
+    </div>
+
+    <div id="ofertaBanner" class="oferta-banner" style="display:none;">
+        <span onclick="irParaOfertas()">🔥 Temos produtos em oferta hoje! Toque aqui pra ver.</span>
+        <button onclick="fecharAvisoOferta()">✕</button>
+    </div>
+
+    <div id="statusPedidoBanner" class="status-pedido-banner" style="display:none;">
+        <span id="statusPedidoTexto"></span>
+        <button id="btnPagarRestante" style="display:none;" onclick="pagarRestanteEncomenda(null, this)">💳 Pagar o restante</button>
+        <button id="statusPedidoFechar" onclick="fecharStatusPedido()">✕</button>
+    </div>
+
+    <main>
+        <div class="container">
+            <div class="destaques">
+                <div id="pedeakiPrevisaoVitrine" class="destaque-item pedeaki-previsao-faixa" hidden aria-live="polite" title="Prazo aproximado. Pode variar conforme a demanda e a região de entrega.">
+                    <div class="emoji" aria-hidden="true">🛵</div>
+                    <div class="txt">
+                        <span class="pedeaki-prazo-rotulo">Entrega estimada</span>
+                        <strong id="pedeakiPrevisaoVitrineTempo"></strong>
+                        <small class="pedeaki-prazo-observacao">Pode variar conforme a demanda do dia.</small>
+                    </div>
+                </div>
+                <div class="destaque-item"><div class="emoji">🧁</div><div class="txt">Feito com carinho</div></div>
+                <div class="destaque-item"><div class="emoji">🌿</div><div class="txt">Ingredientes selecionados</div></div>
+                <div class="destaque-item"><div class="emoji">💳</div><div class="txt">Pix, cartão ou dinheiro</div></div>
+            </div>
+
+            <button id="btnAtivarNotificacoesGrande" class="btn-notificacoes" onclick="ativarNotificacoes()">🔔 Ativar notificações de ofertas e novidades</button>
+        </div>
+
+        <div id="conviteNotificacoes" class="convite-notificacoes" style="display:none;" role="dialog" aria-live="polite" aria-labelledby="conviteNotificacoesTitulo">
+            <button type="button" class="convite-notificacoes-fechar" onclick="adiarConviteNotificacoes()" aria-label="Fechar">✕</button>
+            <div class="convite-notificacoes-icone">🔔</div>
+            <div class="convite-notificacoes-conteudo">
+                <strong id="conviteNotificacoesTitulo">Quer saber primeiro quando sair uma delícia nova? 😍</strong>
+                <p>Ative as notificações e receba avisos de produtos fresquinhos, promoções e novidades da Brit's.</p>
+                <div class="convite-notificacoes-acoes">
+                    <button type="button" class="convite-notificacoes-aceitar" onclick="aceitarConviteNotificacoes()">Quero receber 😍</button>
+                    <button type="button" class="convite-notificacoes-agora-nao" onclick="adiarConviteNotificacoes()">Agora não</button>
+                </div>
+            </div>
+        </div>
+
+
+        <div id="vendedorInteligente" class="vendedor-inteligente" style="display:none;" aria-live="polite">
+            <button type="button" class="vendedor-inteligente-fechar" onclick="fecharVendedorInteligente()" aria-label="Fechar sugestão">✕</button>
+            <img id="vendedorInteligenteFoto" class="vendedor-inteligente-foto" src="" alt="" style="display:none;">
+            <div class="vendedor-inteligente-conteudo">
+                <span id="vendedorInteligenteKicker" class="vendedor-inteligente-kicker">😍 Uma sugestão pra você</span>
+                <strong id="vendedorInteligenteNome" class="vendedor-inteligente-nome"></strong>
+                <p id="vendedorInteligenteTexto" class="vendedor-inteligente-texto"></p>
+                <div>
+                    <span id="vendedorInteligentePrecoOriginal" class="vendedor-inteligente-preco-original" style="display:none;"></span>
+                    <span id="vendedorInteligentePreco" class="vendedor-inteligente-preco"></span>
+                    <button type="button" id="vendedorInteligenteAcao" class="vendedor-inteligente-acao">Adicionar ao carrinho</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="carrosselDestaques" class="carrossel-destaques container" style="display:none;">
+            <div id="carrosselTrilho" class="carrossel-trilho"></div>
+            <button type="button" class="carrossel-destaque-seta carrossel-destaque-anterior" onclick="mudarSlideCarrossel(-1)" aria-label="Destaque anterior">‹</button>
+            <button type="button" class="carrossel-destaque-seta carrossel-destaque-proximo" onclick="mudarSlideCarrossel(1)" aria-label="Próximo destaque">›</button>
+            <div id="carrosselBolinhas" class="carrossel-bolinhas"></div>
+        </div>
+
+        <section id="produtos-destaque" class="container">
+            <h2>Nossas Delícias do Dia</h2>
+            <!-- NOVO: Navegação de Categorias -->
+            <nav class="categorias">
+                <ul id="categorias-nav">
+                    <!-- As categorias serão carregadas aqui pelo JavaScript -->
+                </ul>
+            </nav>
+            <div class="lista-produtos">
+                <!-- Os produtos serão carregados aqui pelo JavaScript -->
+            </div>
+        </section>
+
+        <button id="carrinhoFlutuante" class="carrinho-flutuante" style="display:none;" onclick="document.getElementById('carrinho').scrollIntoView({behavior:'smooth', block:'start'});">
+            🛒 <span id="carrinhoFlutuanteQtd">0</span> item(ns) — <span id="carrinhoFlutuanteTotal">R$ 0,00</span>
+            <span class="carrinho-flutuante-seta">Ver carrinho ↑</span>
+        </button>
+
+        <div id="lembreteCarrinhoBanner" class="lembrete-carrinho-banner" style="display:none;">
+            <span>🛒 Seu pedido ainda está aqui 😊 Quer finalizar?</span>
+            <div id="lembreteCarrinhoSugestao" class="sugestao-produto-carrinho" style="display:none; margin-top:8px;"></div>
+            <div class="lembrete-carrinho-botoes">
+                <button type="button" onclick="document.getElementById('carrinho').scrollIntoView({behavior:'smooth', block:'start'}); fecharLembreteCarrinho();">Ver carrinho</button>
+                <button type="button" class="lembrete-carrinho-fechar" onclick="fecharLembreteCarrinho()">✕</button>
+            </div>
+        </div>
+
+        <section id="carrinho" class="container checkout-premium">
+            <div class="checkout-premium-cabecalho">
+                <span class="checkout-premium-eyebrow">Finalização do pedido</span>
+                <h2>Seu Carrinho</h2>
+                <p>Preencha seus dados com tranquilidade, escolha como deseja receber e revise o pedido antes de finalizar.</p>
+            </div>
+
+            <div class="checkout-premium-grid">
+                <div class="checkout-premium-formulario">
+                    <div class="endereco-form card-secao checkout-card-principal">
+                        <div class="checkout-bloco checkout-bloco-dados">
+                            <div class="checkout-bloco-titulo">
+                                <span class="checkout-passo">01</span>
+                                <div>
+                                    <strong>Seus dados</strong>
+                                    <small>Informe quem receberá o pedido.</small>
+                                </div>
+                            </div>
+                            <div class="checkout-campos-duplos">
+                                <input type="text" id="nomeCliente" placeholder="Seu Nome Completo" required>
+                                <input type="tel" id="telefoneCliente" placeholder="Telefone (WhatsApp)" required>
+                            </div>
+                        </div>
+
+                        <div class="checkout-bloco checkout-bloco-entrega">
+                            <div class="checkout-bloco-titulo">
+                                <span class="checkout-passo">02</span>
+                                <div>
+                                    <strong>Entrega ou retirada</strong>
+                                    <small>Escolha a opção mais conveniente para você.</small>
+                                </div>
+                            </div>
+                            <div class="opcoes-radio checkout-opcoes-entrega">
+                                <div class="opcao-btn selecionado" id="btnRetirada" onclick="selecionarTipoEntrega('retirada')">🏠 Retirar no local</div>
+                                <div class="opcao-btn" id="btnEntrega" onclick="selecionarTipoEntrega('entrega')">🛵 Entrega</div>
+                            </div>
+
+                            <div id="areaEntrega" style="display:none;">
+                                <div id="pedeakiPrevisaoCheckout" class="pedeaki-previsao-cliente" hidden aria-live="polite">
+                                    <span class="pedeaki-previsao-icone" aria-hidden="true">🛵</span>
+                                    <div class="pedeaki-previsao-copia"><strong>Entrega estimada: <span id="pedeakiPrevisaoCheckoutTempo"></span></strong>
+                                      <small>Prazo aproximado. Pode variar conforme a demanda e a região de entrega.</small></div>
+                                </div>
+                                <div class="checkout-endereco-grid">
+                                    <label class="label-cep checkout-endereco-label">Endereço para entrega</label>
+                                    <input type="text" id="cepCliente" placeholder="CEP (Ex: 00000-000)" maxlength="9" onblur="calcularFrete()">
+                                    <div id="infoFrete" class="info-frete" style="display:none;"></div>
+                                    <input type="text" id="ruaCliente" placeholder="Rua">
+                                    <input type="text" id="numeroCliente" placeholder="Número">
+                                    <input type="text" id="complementoCliente" placeholder="Complemento (apto, bloco, etc.)">
+                                    <input type="text" id="bairroCliente" placeholder="Bairro">
+                                    <input type="text" id="cidadeCliente" placeholder="Cidade">
+                                    <input type="text" id="estadoCliente" placeholder="UF" maxlength="2">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="checkout-bloco checkout-bloco-pagamento" id="seletorMomentoPagamento">
+                            <div class="checkout-bloco-titulo">
+                                <span class="checkout-passo">03</span>
+                                <div>
+                                    <strong id="tituloMomentoPagamento">Quando você quer pagar?</strong>
+                                    <small id="subtituloMomentoPagamento">Escolha a opção que deixa sua compra mais confortável.</small>
+                                </div>
+                            </div>
+                            <div class="opcoes-radio checkout-opcoes-pagamento">
+                                <div class="opcao-btn selecionado" id="btnPagamentoAgora" onclick="selecionarMomentoPagamento('agora')">💳 Pagar agora <span>Pix ou cartão</span></div>
+                                <div class="opcao-btn" id="btnPagamentoRecebimento" onclick="selecionarMomentoPagamento('recebimento')">🏠 Pagar ao receber <span id="rotuloMomentoRecebimento">na retirada</span></div>
+                            </div>
+                        </div>
+
+                        <div class="checkout-bloco checkout-bloco-pagamento" id="metodosPagamentoCheckout">
+                            <div class="checkout-bloco-titulo">
+                                <span class="checkout-passo">04</span>
+                                <div>
+                                    <strong>Forma de pagamento</strong>
+                                    <small id="textoAjudaFormaPagamento">Escolha Pix ou cartão para pagar agora.</small>
+                                </div>
+                            </div>
+                            <div class="opcoes-radio checkout-opcoes-pagamento">
+                                <div class="opcao-btn selecionado" id="btnPix" onclick="selecionarPagamento('Pix')">💠 Pix <span id="rotuloPixPagamento">pagar agora</span></div>
+                                <div class="opcao-btn" id="btnCartao" onclick="selecionarPagamento('Cartão')">💳 Cartão <span id="rotuloCartaoPagamento">pagar agora</span></div>
+                                <div class="opcao-btn" id="btnDinheiro" onclick="selecionarPagamento('Dinheiro')" style="display:none;">💵 Dinheiro <span id="rotuloDinheiroPagamento">na retirada</span></div>
+                            </div>
+
+                            <div id="areaTroco" style="display:none;">
+                                <label>Precisa de troco?</label>
+                                <div class="toggle-sim-nao">
+                                    <button type="button" id="btnTrocoSim" class="toggle-opcao" onclick="definirPrecisaTroco(true)">Sim</button>
+                                    <button type="button" id="btnTrocoNao" class="toggle-opcao selecionado" onclick="definirPrecisaTroco(false)">Não</button>
+                                </div>
+                                <div id="campoValorTroco" style="display:none; margin-top:8px;">
+                                    <label>Troco para quanto?</label>
+                                    <input type="text" id="clienteTroco" placeholder="Ex: R$ 50,00">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="avisoPagamentoEncomendaCheckout" class="checkout-bloco checkout-bloco-pagamento" style="display:none;">
+                            <div class="checkout-bloco-titulo">
+                                <span class="checkout-passo" id="passoPagamentoEncomendaNumero">03</span>
+                                <div>
+                                    <strong>Pagamento da encomenda</strong>
+                                    <small>A loja confirma a disponibilidade antes de qualquer cobrança.</small>
+                                </div>
+                            </div>
+                            <p class="dica-encomenda" style="margin:0;">Depois do aceite da Brit's, você poderá escolher em <strong>Meus Pedidos</strong> entre pagar o sinal configurado ou quitar 100% da encomenda.</p>
+                        </div>
+
+                        <div id="resumoEncomendaCheckout" style="display:none;">
+                            <p class="dica-encomenda" id="resumoTextoEncomenda"></p>
+                        </div>
+
+                        <div class="checkout-bloco checkout-bloco-observacoes">
+                            <div class="checkout-bloco-titulo checkout-bloco-titulo-menor">
+                                <span class="checkout-passo" id="passoObservacoesNumero">05</span>
+                                <div>
+                                    <strong>Observações</strong>
+                                    <small>Opcional — informe algum detalhe importante do pedido.</small>
+                                </div>
+                            </div>
+                            <textarea id="clienteObs" rows="2" placeholder="Ex: sem lactose, para uma festa, etc."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="checkout-premium-resumo" aria-label="Resumo do pedido">
+                    <div class="checkout-resumo-cabecalho">
+                        <div>
+                            <span class="checkout-resumo-eyebrow">Resumo do pedido</span>
+                            <h3>Revise antes de finalizar</h3>
+                        </div>
+                        <span class="checkout-resumo-icone">🛍️</span>
+                    </div>
+
+                    <div class="carrinho-itens">
+                        <p>Seu carrinho está vazio.</p>
+                    </div>
+
+                    <div class="checkout-cupom-card">
+                        <label for="cupomInput">Tem um cupom?</label>
+                        <div class="cupom-area">
+                            <input type="text" id="cupomInput" placeholder="Digite seu cupom">
+                            <button onclick="aplicarCupom()">Aplicar</button>
+                        </div>
+                        <p id="cupomMensagem" class="cupom-mensagem"></p>
+                        <p id="incentivoCarrinhoMsg" class="cupom-mensagem" style="display:none;"></p>
+                        <div id="sugestaoProdutoCarrinho" class="sugestao-produto-carrinho" style="display:none;"></div>
+                    </div>
+
+                    <div class="carrinho-total">
+                        <p><span>Subtotal</span><strong id="subtotal-carrinho">R$ 0,00</strong></p>
+                        <p id="linhaDesconto" style="display:none;"><span>Desconto</span><strong id="desconto-carrinho">- R$ 0,00</strong></p>
+                        <p><span>Entrega</span><strong id="frete-carrinho">R$ 0,00</strong></p>
+                        <p class="total-final"><span>Total</span><strong id="total-carrinho">R$ 0,00</strong></p>
+                    </div>
+
+                    <button class="finalizar-compra">Finalizar Compra</button>
+                    <p class="checkout-final-ajuda">Confira seus dados e o resumo do pedido antes de finalizar.</p>
+
+                    <div class="compra-segura-box">
+                        <p class="compra-segura-titulo">🔒 Compra segura e protegida</p>
+                        <p class="compra-segura-texto">Seus dados são protegidos e os pagamentos online são processados em ambiente seguro.</p>
+                        <div class="compra-segura-grade">
+                            <div class="compra-segura-item"><span class="compra-segura-icone">🔒</span>Conexão protegida</div>
+                            <div class="compra-segura-item"><span class="compra-segura-icone">💳</span>Pagamento seguro</div>
+                            <div class="compra-segura-item"><span class="compra-segura-icone">🛡️</span>Dados protegidos</div>
+                            <div class="compra-segura-item"><span class="compra-segura-icone">💬</span>Suporte no WhatsApp</div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </section>
+
+        <div class="container">
+            <div id="clubeFidelidadeCard" class="clube-fidelidade-card" style="display:none;">
+                <div id="clubeNaoIdentificado">
+                    <h3 id="clubeTitulo">⭐ Clube Brit's</h3>
+                    <p>Compre, acumule pontos e ganhe benefícios!</p>
+                    <button type="button" onclick="abrirFormClube()">Entrar no Clube</button>
+                </div>
+
+                <div id="clubeFormIdentificacao" style="display:none;">
+                    <input type="text" id="clubeNomeInput" placeholder="Seu nome">
+                    <input type="tel" id="clubeTelefoneInput" placeholder="Seu WhatsApp">
+                    <button type="button" onclick="entrarNoClube()">Confirmar</button>
+                </div>
+
+                <div id="clubePerfil" style="display:none;">
+                    <p class="clube-saudacao">Olá, <span id="clubeNomeExibido"></span>! 👋 <span id="clubeNivelEmoji"></span> <span id="clubeNivelNome"></span> — <strong id="clubePontosExibido">0</strong> pts</p>
+                    <div class="clube-barra-fundo"><div id="clubeBarraProgresso" class="clube-barra-preenchida" style="width:0%;"></div></div>
+                    <p id="clubeProgressoTexto" class="note"></p>
+                    <div id="clubeRecompensas"></div>
+                    <button type="button" onclick="sairDoClube()" class="link-sair-clube">Sair / trocar de conta</button>
+                </div>
+            </div>
+
+            <div class="contato-redes-sociais">
+                <p class="contato-mensagem">💛 Nos siga nas redes sociais e no WhatsApp!</p>
+                <div class="redes-sociais-header">
+                    <a id="linkInstagramLoja" href="https://www.instagram.com/brites.doces/" target="_blank" rel="noopener noreferrer" class="rede-social-btn rede-instagram" aria-label="Instagram da loja">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 2.2c3.2 0 3.6 0 4.9.07 1.2.06 2.2.27 2.7.46a5.4 5.4 0 0 1 2 1.3 5.4 5.4 0 0 1 1.3 2c.2.5.4 1.5.5 2.7.1 1.3.1 1.7.1 4.9s0 3.6-.1 4.9c-.1 1.2-.3 2.2-.5 2.7a5.4 5.4 0 0 1-1.3 2 5.4 5.4 0 0 1-2 1.3c-.5.2-1.5.4-2.7.5-1.3.1-1.7.1-4.9.1s-3.6 0-4.9-.1c-1.2-.1-2.2-.3-2.7-.5a5.4 5.4 0 0 1-2-1.3 5.4 5.4 0 0 1-1.3-2c-.2-.5-.4-1.5-.5-2.7C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.9c.1-1.2.3-2.2.5-2.7a5.4 5.4 0 0 1 1.3-2 5.4 5.4 0 0 1 2-1.3c.5-.2 1.5-.4 2.7-.5C8.4 2.2 8.8 2.2 12 2.2Zm0 1.8c-3.1 0-3.5 0-4.8.07-1 .05-1.6.2-2 .35a3.6 3.6 0 0 0-1.3.86 3.6 3.6 0 0 0-.86 1.3c-.15.4-.3 1-.35 2C2.6 8.5 2.6 8.9 2.6 12s0 3.5.07 4.8c.05 1 .2 1.6.35 2 .16.5.4.9.86 1.3.4.4.8.7 1.3.86.4.15 1 .3 2 .35 1.3.06 1.7.07 4.8.07s3.5 0 4.8-.07c1-.05 1.6-.2 2-.35a3.6 3.6 0 0 0 1.3-.86 3.6 3.6 0 0 0 .86-1.3c.15-.4.3-1 .35-2 .06-1.3.07-1.7.07-4.8s0-3.5-.07-4.8c-.05-1-.2-1.6-.35-2a3.6 3.6 0 0 0-.86-1.3 3.6 3.6 0 0 0-1.3-.86c-.4-.15-1-.3-2-.35C15.5 4 15.1 4 12 4Zm0 3.4a4.6 4.6 0 1 1 0 9.2 4.6 4.6 0 0 1 0-9.2Zm0 1.8a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6Zm4.8-2a1.08 1.08 0 1 1 0 2.16 1.08 1.08 0 0 1 0-2.16Z"/></svg>
+                    </a>
+                    <a id="linkWhatsappLoja" href="https://wa.me/5527997633871" target="_blank" rel="noopener noreferrer" class="rede-social-btn rede-whatsapp" aria-label="WhatsApp da loja">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.7.44 3.35 1.29 4.8L2 22l5.42-1.4a9.9 9.9 0 0 0 4.62 1.17h.01c5.46 0 9.9-4.45 9.9-9.91C21.96 6.4 17.5 2 12.04 2Zm5.8 14a2.7 2.7 0 0 1-1.87 1.35c-.5.1-1.14.19-3.32-.7-2.78-1.15-4.58-3.98-4.72-4.16-.14-.19-1.13-1.5-1.13-2.87s.7-2.03.95-2.31c.24-.28.53-.35.71-.35h.5c.16 0 .38-.06.6.45.24.57.8 1.97.87 2.11.07.14.12.31.02.5-.1.19-.15.31-.29.48-.14.17-.3.38-.43.51-.14.14-.29.29-.13.57.17.28.75 1.24 1.61 2 1.11.99 2.04 1.3 2.32 1.44.28.14.44.12.6-.07.17-.19.72-.84.91-1.13.19-.28.38-.24.64-.14.26.09 1.65.78 1.93.92.28.14.47.21.54.33.07.12.07.68-.16 1.34Z"/></svg>
+                    </a>
+                </div>
+                <button type="button" id="btnMeusPedidos" class="btn-meus-pedidos" onclick="abrirMeusPedidos()">📋 Meus Pedidos</button>
+                <button type="button" id="btnRepetirPedido" class="btn-notificacoes" style="display:none;" onclick="repetirUltimoPedido()">🔄 Repetir último pedido</button>
+            </div>
+
+            <div id="modalMeusPedidos" class="modal-overlay" style="display:none;" onclick="if(event.target === this) fecharMeusPedidos()">
+                <div class="modal-meus-pedidos">
+                    <div class="modal-meus-pedidos-topo">
+                        <h3>📋 Meus Pedidos</h3>
+                        <button type="button" onclick="fecharMeusPedidos()" class="btn-fechar-modal">✕</button>
+                    </div>
+                    <p class="dica-encomenda">Veja seus pedidos recentes e acompanhe o status.</p>
+                    <div id="listaMeusPedidos"></div>
+                </div>
+            </div>
+
+            <section id="secao-encomendas" class="encomendas-premium" style="display:none;" data-categoria-nome="🎂 Encomendas">
+                <button type="button" id="encomendasPremiumToggle" class="encomendas-premium-toggle" aria-expanded="false" aria-controls="encomendasPremiumConteudo" onclick="alternarEncomendasPremium()">
+                    <span class="encomendas-premium-identidade">
+                        <span class="encomendas-premium-icone" aria-hidden="true">🎂</span>
+                        <span class="encomendas-premium-titulos">
+                            <span class="encomendas-premium-kicker">ENCOMENDAS BRIT'S</span>
+                            <strong>Encomendas para uma data especial</strong>
+                            <small>Escolha a data, o horário e veja as opções preparadas para encomenda.</small>
+                        </span>
+                    </span>
+
+                    <span class="encomendas-premium-direita">
+                        <span id="encomendasPremiumContagem" class="encomendas-premium-contagem">0 produtos</span>
+
+                        <span class="encomendas-premium-cta">
+                            <span class="encomendas-premium-dica encomendas-premium-dica-fechada">Clique aqui para abrir</span>
+                            <span class="encomendas-premium-dica encomendas-premium-dica-aberta">Clique aqui para recolher</span>
+                            <span id="encomendasPremiumAcao" class="encomendas-premium-acao">Ver encomendas</span>
+                        </span>
+                    </span>
+                </button>
+
+                <div id="encomendasPremiumConteudo" class="encomendas-premium-conteudo" hidden></div>
+            </section>
+
+            <section class="personalizar-secao personalizar-conversao">
+                <button type="button" class="personalizar-chamada" onclick="alternarPersonalizarConteudo()" aria-controls="personalizarConteudo">
+                    <span class="personalizar-chamada-eyebrow">✨ Seu negócio, sua marca</span>
+                    <span class="personalizar-chamada-titulo">Tenha seu cardápio digital personalizado</span>
+                    <span class="personalizar-chamada-texto">Monte uma prévia com o nome, a logo e a cor da sua empresa e veja o resultado na hora.</span>
+                    <span class="personalizar-chamada-cta">Criar minha prévia <span aria-hidden="true">→</span></span>
+                </button>
+
+                <div id="personalizarConteudo" class="personalizar-conteudo" style="display:none;">
+                    <div class="personalizar-intro">
+                        <div>
+                            <span class="personalizar-intro-kicker">PRÉVIA PERSONALIZADA</span>
+                            <h3>Veja sua marca dentro de uma experiência profissional de pedidos</h3>
+                            <p>Preencha os dados principais. A prévia ao lado acompanha sua personalização em tempo real.</p>
+                        </div>
+                        <div class="personalizar-intro-selos" aria-label="Destaques da prévia">
+                            <span>⚡ Atualização em tempo real</span>
+                            <span>🎨 Sua identidade visual</span>
+                            <span>📱 Pronto para celular</span>
+                        </div>
+                    </div>
+
+                    <div class="personalizar-grid">
+                        <div class="personalizar-form personalizar-form-card">
+                            <div class="personalizar-bloco-topo">
+                                <div class="personalizar-passo">01</div>
+                                <div>
+                                    <span class="personalizar-bloco-kicker">SUA EMPRESA</span>
+                                    <h4>Conte um pouco sobre o seu negócio</h4>
+                                    <p>Os campos marcados como essenciais são os únicos necessários para solicitar contato.</p>
+                                </div>
+                            </div>
+
+                            <div class="personalizar-campos-grid">
+                                <div class="personalizar-campo">
+                                    <label for="pcNome">Seu nome <span class="campo-essencial">Essencial</span></label>
+                                    <input type="text" id="pcNome" placeholder="Ex: Maria" maxlength="40" autocomplete="name">
+                                </div>
+
+                                <div class="personalizar-campo">
+                                    <label for="pcNomeLoja">Nome da sua loja <span class="campo-essencial">Essencial</span></label>
+                                    <input type="text" id="pcNomeLoja" placeholder="Ex: Doces da Maria" maxlength="40" autocomplete="organization">
+                                </div>
+
+                                <div class="personalizar-campo">
+                                    <label for="pcWhatsapp">Seu WhatsApp <span class="campo-essencial">Essencial</span></label>
+                                    <input type="text" id="pcWhatsapp" placeholder="Ex: 27 99999-8888" inputmode="tel" autocomplete="tel">
+                                </div>
+
+                                <div class="personalizar-campo">
+                                    <label for="pcEmail">Seu e-mail <span class="campo-opcional">Opcional</span></label>
+                                    <input type="email" id="pcEmail" placeholder="Ex: maria@email.com" autocomplete="email">
+                                </div>
+
+                                <div class="personalizar-campo">
+                                    <label for="pcTipoNegocio">Tipo de negócio <span class="campo-opcional">Opcional</span></label>
+                                    <input type="text" id="pcTipoNegocio" placeholder="Ex: Confeitaria, hamburgueria, açaiteria...">
+                                </div>
+
+                                <div class="personalizar-campo">
+                                    <label for="pcCidade">Sua cidade <span class="campo-opcional">Opcional</span></label>
+                                    <input type="text" id="pcCidade" placeholder="Ex: Colatina/ES" autocomplete="address-level2">
+                                </div>
+                            </div>
+
+                            <div class="personalizar-divisor"><span>Personalize a aparência</span></div>
+
+                            <div class="personalizar-identidade-grid">
+                                <div class="personalizar-campo personalizar-campo-logo">
+                                    <label for="pcLogoInput">Sua logo <span class="campo-opcional">Opcional</span></label>
+                                    <div class="personalizar-upload">
+                                        <span class="personalizar-upload-icone">🖼️</span>
+                                        <div>
+                                            <strong>Escolher imagem</strong>
+                                            <small>Imagens quadradas ficam melhores na prévia.</small>
+                                        </div>
+                                        <input type="file" id="pcLogoInput" accept="image/*">
+                                    </div>
+                                </div>
+
+                                <div class="personalizar-campo">
+                                    <label for="pcInstagram">Seu Instagram <span class="campo-opcional">Opcional</span></label>
+                                    <input type="text" id="pcInstagram" placeholder="Ex: @doces.damaria">
+                                </div>
+
+                                <div class="personalizar-campo personalizar-cor-campo">
+                                    <label>Cores principais da sua marca</label>
+                                    <div class="personalizar-cores-linha" aria-label="Escolha as duas cores principais da marca">
+                                        <label class="personalizar-cor-opcao" for="pcCorPrincipal">
+                                            <input type="color" id="pcCorPrincipal" value="#a0522d" aria-label="Escolher cor principal da marca">
+                                            <span><strong>Principal</strong><small>Botões e títulos</small></span>
+                                        </label>
+                                        <label class="personalizar-cor-opcao" for="pcCorDestaque">
+                                            <input type="color" id="pcCorDestaque" value="#c9974c" aria-label="Escolher cor de destaque da marca">
+                                            <span><strong>Destaque</strong><small>Detalhes e realces</small></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="personalizar-acoes">
+                                <button type="button" class="btn-ver-previa" onclick="ativarModoDemoCompleto()">👀 Ver meu cardápio no site inteiro</button>
+                                <button type="button" class="btn-interesse-personalizado" onclick="enviarInteressePersonalizado()">📲 Quero meu cardápio assim <span aria-hidden="true">→</span></button>
+                            </div>
+                            <p class="personalizar-acao-nota">Ao continuar, abriremos o WhatsApp com os dados preenchidos para você falar com a equipe.</p>
+                            <p id="pcMsgEnvio" class="dica-encomenda personalizar-msg-envio"></p>
+                        </div>
+
+                        <aside class="personalizar-preview">
+                            <div class="personalizar-preview-topo">
+                                <div>
+                                    <span class="personalizar-bloco-kicker">02 · SUA PRÉVIA</span>
+                                    <h4>Veja sua identidade aplicada</h4>
+                                </div>
+                                <span class="preview-ao-vivo"><i></i> Ao vivo</span>
+                            </div>
+
+                            <div class="preview-browser">
+                                <div class="preview-browser-barra" aria-hidden="true">
+                                    <span></span><span></span><span></span>
+                                    <div>seucardapio.com.br</div>
+                                </div>
+                                <div class="preview-mini-cardapio" id="pcPreviewCaixa">
+                                    <span class="preview-mini-etiqueta">Seu cardápio digital</span>
+                                    <img id="pcPreviewLogo" src="logopng.png" alt="Prévia da sua logo">
+                                    <h3 id="pcPreviewNome">Bem-vindo à Sua Loja!</h3>
+                                    <p>Seu próximo cliente já está no celular. Agora falta dar a ele um jeito fácil de comprar de você.</p>
+                                    <div class="preview-mini-produtos" aria-hidden="true">
+                                        <span></span><span></span><span></span>
+                                    </div>
+                                    <div class="preview-botao-exemplo" id="pcPreviewBotao">Fazer pedido</div>
+                                </div>
+                            </div>
+
+                            <div class="preview-legenda">
+                                <span>✓ Nome da loja</span>
+                                <span>✓ Logo</span>
+                                <span>✓ 2 cores da marca</span>
+                            </div>
+                            <p class="personalizar-preview-nota">Altere os campos ao lado e acompanhe a prévia. Depois, use “Ver meu cardápio no site inteiro” para experimentar a identidade na página.</p>
+                        </aside>
+                    </div>
+
+                    <div class="personalizar-beneficios-topo">
+                        <span class="personalizar-intro-kicker">MAIS QUE UM CARDÁPIO</span>
+                        <h3>Uma estrutura pensada para organizar pedidos e ajudar seu negócio a vender melhor</h3>
+                    </div>
+                    <ul class="personalizar-beneficios">
+                        <li><span class="beneficio-icone">📦</span><div><strong>Pedidos organizados</strong><span>Acompanhe os pedidos em tempo real sem depender de conversa perdida no WhatsApp.</span></div></li>
+                        <li><span class="beneficio-icone">🔄</span><div><strong>Cardápio sempre atualizado</strong><span>Altere produtos, preços e disponibilidade sem precisar reimprimir nada.</span></div></li>
+                        <li><span class="beneficio-icone">🎟️</span><div><strong>Recorrência e fidelização</strong><span>Use cupons, clube de fidelidade e notificações para manter o relacionamento com clientes.</span></div></li>
+                        <li><span class="beneficio-icone">📊</span><div><strong>Gestão em um só lugar</strong><span>Tenha uma visão mais organizada da operação e informações importantes do dia.</span></div></li>
+                        <li><span class="beneficio-icone">📱</span><div><strong>Experiência profissional</strong><span>Seu cliente acessa um cardápio moderno pelo celular, com a identidade da sua empresa.</span></div></li>
+                        <li><span class="beneficio-icone">✨</span><div><strong>Feito para ser simples</strong><span>Uma experiência visual e direta para usar no dia a dia sem complicação.</span></div></li>
+                    </ul>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-seguranca">
+                <p class="footer-seguranca-titulo">Segurança e confiança</p>
+                <p class="footer-seguranca-links">
+                    <a href="politica-privacidade.html">Política de Privacidade</a> ·
+                    <a href="termos-uso.html">Termos de Uso</a> ·
+                    <a href="#" onclick="document.getElementById('carrinho').scrollIntoView({behavior:'smooth'}); return false;">Formas de Pagamento</a> ·
+                    <a href="https://wa.me/5527997633871" target="_blank" rel="noopener noreferrer">Contato</a>
+                </p>
+            </div>
+            <p id="footerCopyright">&copy; 2026 Brit's Confeitaria. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
+    <!-- Visualizador de foto em tela cheia -->
+    <div id="lightboxImagem" class="lightbox" style="display:none;">
+        <button type="button" class="lightbox-fechar" onclick="fecharLightbox()">✕</button>
+        <button type="button" class="lightbox-seta lightbox-anterior" onclick="lightboxNavegar(-1)">‹</button>
+        <img id="lightboxImg" src="" alt="Foto ampliada do produto">
+        <button type="button" class="lightbox-seta lightbox-proximo" onclick="lightboxNavegar(1)">›</button>
+    </div>
+
+    <!-- Modal de escolha de adicionais (recheio, extras, etc.) -->
+    <div id="modalAdicionais" class="modal-adicionais-fundo" style="display:none;">
+        <div class="modal-adicionais-cartao">
+            <button type="button" class="modal-adicionais-fechar" onclick="fecharModalAdicionais()">✕</button>
+            <h3 id="modalAdicionaisNomeProduto"></h3>
+            <div id="modalAdicionaisGrupos"></div>
+            <button type="button" id="modalAdicionaisBtnConfirmar" class="modal-adicionais-confirmar" onclick="confirmarAdicionaisEAdicionar()">Adicionar</button>
+        </div>
+    </div>
+
+    <div id="toastNotificacao" class="toast-notificacao" style="display:none;">
+        <span id="toastNotificacaoTitulo"></span>
+        <span id="toastNotificacaoCorpo"></span>
+    </div>
+
+    <!-- Firebase (para salvar os pedidos no painel da loja) -->
+    <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-messaging-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-functions-compat.js"></script>
+    <script src="loja-config.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="pagamento.js"></script>
+    <script src="script.js"></script>
+    <script src="previsao-entrega.js"></script>
+</body>
+</html>
