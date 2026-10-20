@@ -182,3 +182,44 @@
     min-height: 44px;
   }
 }
+
+/* BRIT'S — DELIVERY FÁCIL: centralização responsiva por quantidade.
+   CANDIDATA LOCAL, SEM COMMIT / SEM DEPLOY.
+   Escopo: somente os cards da vitrine em #produtos-destaque.
+   Preserve fotos, clique, quantidade, preços, promoções e checkout. */
+#produtos-destaque .categoria-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: 14px;
+}
+#produtos-destaque .categoria-grid > .produto-item {
+  box-sizing: border-box;
+  flex: 0 0 calc((100% - 42px) / 4);
+  min-width: 0;
+  max-width: none;
+}
+@media (max-width: 1180px) {
+  #produtos-destaque .categoria-grid > .produto-item {
+    flex-basis: calc((100% - 28px) / 3);
+  }
+}
+@media (max-width: 760px) {
+  #produtos-destaque .categoria-grid {
+    gap: 10px;
+  }
+  #produtos-destaque .categoria-grid > .produto-item {
+    flex-basis: calc((100% - 10px) / 2);
+  }
+  /* Quando há apenas um produto, destaque proporcional, sem ficar enorme. */
+  #produtos-destaque .categoria-grid > .produto-item:only-child {
+    flex-basis: min(78%, 320px);
+  }
+}
+@media (max-width: 359px) {
+  #produtos-destaque .categoria-grid > .produto-item,
+  #produtos-destaque .categoria-grid > .produto-item:only-child {
+    flex-basis: 100%;
+  }
+}
