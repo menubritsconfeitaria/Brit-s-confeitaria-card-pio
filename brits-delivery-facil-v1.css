@@ -345,3 +345,84 @@
   .carrossel-slide-info strong { font-size: .88rem; }
   .carrossel-slide-info .carrossel-cta { font-size: .67rem; }
 }
+
+/* Brit’s Delivery Fácil: confirmação Premium de compra (feedback visual apenas). */
+.feedback-carrinho-premium {
+  position: fixed;
+  z-index: 165;
+  bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translate(-50%, 12px);
+  width: min(420px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 13px;
+  background: linear-gradient(110deg, #fffdf9 0%, #fff4e9 100%);
+  color: #512f20;
+  border: 1px solid #d8bda3;
+  border-left: 3px solid #a2522b;
+  border-radius: 18px;
+  box-shadow: 0 12px 32px rgba(66, 37, 20, .19), 0 3px 7px rgba(66, 37, 20, .07);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease, visibility .2s ease;
+}
+.feedback-carrinho-premium.visivel {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+}
+.feedback-carrinho-premium-icone {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  background: #e5f3e4;
+  color: #28743b;
+  border: 1px solid #c7e1c4;
+  border-radius: 13px;
+  font: 800 23px/1 system-ui, sans-serif;
+}
+.feedback-carrinho-premium-textos { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.feedback-carrinho-premium-textos strong {
+  color: #673b2a;
+  font-size: .88rem;
+  line-height: 1.25;
+  font-weight: 800;
+}
+.feedback-carrinho-premium-produto {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+  color: #80685b;
+  font-size: .76rem;
+  line-height: 1.25;
+}
+.feedback-carrinho-premium-contagem {
+  align-self: center;
+  min-width: 34px;
+  padding: 6px 7px;
+  border-radius: 11px;
+  background: #a2522b;
+  color: #fff;
+  text-align: center;
+  font-size: .8rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 359px) {
+  .feedback-carrinho-premium { padding: 9px; gap: 8px; grid-template-columns: 36px minmax(0,1fr) auto; }
+  .feedback-carrinho-premium-icone { width: 36px; height: 36px; }
+  .feedback-carrinho-premium-textos strong { font-size: .81rem; }
+  .feedback-carrinho-premium-produto { font-size: .71rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .feedback-carrinho-premium { transition: none; }
+}
