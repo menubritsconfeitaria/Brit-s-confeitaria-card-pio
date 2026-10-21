@@ -2843,6 +2843,8 @@ function atualizarOpcoesPagamentoCheckout() {
         if (passoEncomenda) passoEncomenda.textContent = '03';
         if (passoObservacoes) passoObservacoes.textContent = '04';
         if (areaTrocoDiv) areaTrocoDiv.style.display = 'none';
+        const avisoPagamentoClaro = document.getElementById('checkoutPagamentoClaro');
+        if (avisoPagamentoClaro) avisoPagamentoClaro.hidden = true;
         if (botaoFinalizarCompra && !lojaPausadaAtual && (lojaAbertaAtual || dataEncomendaEscolhida)) {
             botaoFinalizarCompra.textContent = '📅 Enviar solicitação de encomenda';
         }
@@ -2901,14 +2903,89 @@ function atualizarOpcoesPagamentoCheckout() {
         areaTrocoDiv.style.display = (!pagarAgora && formaPagamentoAtual === 'Dinheiro') ? 'block' : 'none';
     }
 
+    // BRIT'S PREMIUM — comunicação, não lógica financeira ou criação do pedido.
+    const avisoPagamentoClaro = document.getElementById('checkoutPagamentoClaro');
+    if (avisoPagamentoClaro) {
+        avisoPagamentoClaro.hidden = !grupos.temAgora;
+        if (grupos.temAgora) {
+            const titulo = document.getElementById('checkoutPagamentoClaroTitulo');
+            const texto = document.getElementById('checkoutPagamentoClaroTexto');
+            const rodape = document.getElementById('checkoutPagamentoClaroRodape');
+            const icone = document.getElementById('checkoutPagamentoClaroIcone');
+            const local = rotuloRecebimentoPagamento();
+            const forma = formaPagamentoAtual;
+            if (icone) icone.textContent = pagarAgora ? '🔒' : '🤎';
+            if (titulo) titulo.textContent = pagarAgora ? `${forma} online — pagar agora` : `${forma} ${local} — pagar depois`;
+            if (texto) texto.textContent = pagarAgora
+                ? 'Você seguirá para o pagamento seguro após enviar os dados do pedido. O pagamento só será confirmado após a aprovação.'
+                : `Seu pedido será registrado agora, mas nenhum pagamento será feito no site. O valor será pago por ${forma} ${local}.`;
+            if (rodape) rodape.textContent = grupos.misto
+                ? 'Esta escolha vale apenas para os itens para agora. A encomenda segue separada e aguarda o aceite da loja.'
+                : (pagarAgora ? 'O pedido só segue como pago após confirmação do pagamento.' : 'A Brit’s ainda precisa confirmar o atendimento do pedido.');
+        }
+    }
+
     if (botaoFinalizarCompra && !lojaPausadaAtual && lojaAbertaAtual) {
         const onlineSelecionado = pagarAgora && (formaPagamentoAtual === 'Pix' || formaPagamentoAtual === 'Cartão');
         if (grupos.misto) {
-            botaoFinalizarCompra.textContent = onlineSelecionado ? '🌐 Finalizar pedidos e pagar agora' : 'Finalizar os 2 pedidos';
+            botaoFinalizarCompra.textContent = onlineSelecionado
+                ? '🔒 Enviar pedidos e ir para pagamento'
+                : `🛍️ Enviar 2 pedidos • pagar ${rotuloRecebimentoPagamento()}`;
         } else {
-            botaoFinalizarCompra.textContent = onlineSelecionado ? '🌐 Pagar Agora' : 'Finalizar Compra';
+            botaoFinalizarCompra.textContent = onlineSelecionado
+                ? '🔒 Continuar para pagamento seguro'
+                : `🛍️ Enviar pedido • pagar ${rotuloRecebimentoPagamento()}`;
         }
     }
+}
+
+// BRIT'S PREMIUM — confirmação VISUAL do pedido que já foi registrado.
+// Nunca apresenta um pedido presencial como quitado nem altera o status no Firebase.
+function exibirConfirmacaoPedidoPresencialPremium(numeroPedido) {
+    let camada = document.getElementById('britsConfirmacaoPresencialPremium');
+    if (!camada) {
+        camada = document.createElement('div');
+        camada.id = 'britsConfirmacaoPresencialPremium';
+        camada.className = 'brits-confirmacao-premium';
+        camada.hidden = true;
+        camada.innerHTML = `
+          <section class="brits-confirmacao-premium-card" role="dialog" aria-modal="true" aria-labelledby="britsConfirmacaoPremiumTitulo" aria-describedby="britsConfirmacaoPremiumTexto">
+            <div class="brits-confirmacao-premium-marca">BRIT'S CONFEITARIA <span>· SEU PEDIDO</span></div>
+            <div class="brits-confirmacao-premium-selo" aria-hidden="true">✓</div>
+            <span class="brits-confirmacao-premium-etiqueta" id="britsConfirmacaoPremiumNumero"></span>
+            <h2 id="britsConfirmacaoPremiumTitulo">Pedido registrado com sucesso!</h2>
+            <p id="britsConfirmacaoPremiumTexto"></p>
+            <div class="brits-confirmacao-premium-etapas">
+              <div><span>01</span><p><strong>Pedido enviado</strong><small>Registrado no sistema da Brit's</small></p></div>
+              <div><span>02</span><p><strong>Aguardar a loja</strong><small>A Brit's confirma o atendimento</small></p></div>
+              <div><span>03</span><p><strong id="britsConfirmacaoPremiumEtapaPagamento">Pagar ao receber</strong><small id="britsConfirmacaoPremiumFormaPagamento">Pagamento ainda não realizado</small></p></div>
+            </div>
+            <button type="button" class="brits-confirmacao-premium-fechar">Entendi, acompanhar meu pedido</button>
+            <small class="brits-confirmacao-premium-nota">Você pode acompanhar o status do pedido aqui no site. O resumo também foi preparado para o WhatsApp.</small>
+          </section>`;
+        document.body.appendChild(camada);
+        const fechar = () => { camada.hidden = true; };
+        camada.querySelector('.brits-confirmacao-premium-fechar').addEventListener('click', () => {
+            fechar();
+            const faixaStatus = document.getElementById('statusPedidoBanner');
+            if (faixaStatus && faixaStatus.style.display !== 'none') {
+                faixaStatus.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+        camada.addEventListener('click', evento => { if (evento.target === camada) fechar(); });
+        camada.addEventListener('keydown', evento => { if (evento.key === 'Escape') fechar(); });
+    }
+    const numero = Number(numeroPedido);
+    const local = rotuloRecebimentoPagamento();
+    const forma = formaPagamentoAtual;
+    const etiqueta = camada.querySelector('#britsConfirmacaoPremiumNumero');
+    etiqueta.textContent = Number.isFinite(numero) && numero > 0 ? `PEDIDO #${numero}` : 'PEDIDO REGISTRADO';
+    camada.querySelector('#britsConfirmacaoPremiumTexto').textContent =
+        `A Brit's recebeu seu pedido e ainda vai confirmar o atendimento. Você escolheu ${forma} ${local}. Nenhum pagamento foi feito pelo site.`;
+    camada.querySelector('#britsConfirmacaoPremiumEtapaPagamento').textContent = `Pagar ${local}`;
+    camada.querySelector('#britsConfirmacaoPremiumFormaPagamento').textContent = `${forma} · pagamento ainda não realizado`;
+    camada.hidden = false;
+    camada.querySelector('.brits-confirmacao-premium-fechar').focus();
 }
 
 function selecionarMomentoPagamento(momento) {
@@ -5535,6 +5612,12 @@ async function finalizarCompra() {
 
     // Abre o WhatsApp em uma nova aba
     window.open(linkWhatsApp, '_blank');
+
+    // Comunicação premium pós-registro; nenhuma decisão financeira é alterada.
+    // Online e encomendas seguem seus caminhos já aprovados, sem esse aviso.
+    if (!querAgendar && momentoPagamentoAtual === 'recebimento') {
+        exibirConfirmacaoPedidoPresencialPremium(numeroPedido);
+    }
 
     // Se foi marcado como encomenda com data, mostra um aviso extra de que
     // não é confirmação automática — a loja ainda precisa confirmar por fora
