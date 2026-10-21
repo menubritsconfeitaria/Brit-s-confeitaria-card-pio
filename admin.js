@@ -1232,7 +1232,7 @@ function formatarFretePedidoPainel(pedido) {
     if (bruto === null || bruto === undefined || String(bruto).trim() === '') return 'A confirmar';
     const valor = Number(bruto);
     if (!Number.isFinite(valor) || valor < 0) return 'A confirmar';
-    if (valor === 0 && pedido.tipoEntrega === 'entrega') return 'Grátis';
+    if (valor === 0 && pedido.tipoEntrega === 'entrega') return 'Grátis 🎉';
     return formatarPreco(valor);
 }
 
@@ -1255,7 +1255,7 @@ function renderizarListaBairrosMestre() {
 
     container.innerHTML = entradas.map((b, i) => `
         <div class="loja-status-card" style="margin-bottom:6px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center;">
-            <span>${formatarNomeBairroExibicao(b.nome)} <span class="dica-secao">(${Number(b.km) === 0 ? 'Frete grátis' : `${b.km} km`})</span></span>
+            <span>${formatarNomeBairroExibicao(b.nome)} <span class="dica-secao">(${Number(b.km) === 0 ? 'Frete grátis 🎉' : `${b.km} km`})</span></span>
             <button class="btn-secondary btn-remover-bairro-mestre" data-indice="${i}">Remover</button>
         </div>
     `).join('');
@@ -4030,7 +4030,7 @@ function renderizarListaBairros() {
     }
     container.innerHTML = entradas.map(b => `
         <div class="loja-status-card" style="margin-bottom:6px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center;">
-            <span>${formatarNomeBairroExibicao(b.nome)} <span class="dica-secao">(${Number(b.km) === 0 ? 'Frete grátis' : `${b.km} km`})</span></span>
+            <span>${formatarNomeBairroExibicao(b.nome)} <span class="dica-secao">(${Number(b.km) === 0 ? 'Frete grátis 🎉' : `${b.km} km`})</span></span>
             <button class="btn-secondary" onclick="removerBairro('${b.nomeCodificado}')">Remover</button>
         </div>
     `).join('');
