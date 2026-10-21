@@ -1225,6 +1225,17 @@ function encontrarChaveBairroEquivalente(bairros, nomeDigitado) {
     return null;
 }
 
+// Somente exibição: não modifica o frete armazenado, a cobrança ou os relatórios financeiros.
+function formatarFretePedidoPainel(pedido) {
+    if (pedido && pedido.tipoEntrega === 'retirada') return 'Não se aplica';
+    const bruto = pedido && pedido.frete;
+    if (bruto === null || bruto === undefined || String(bruto).trim() === '') return 'A confirmar';
+    const valor = Number(bruto);
+    if (!Number.isFinite(valor) || valor < 0) return 'A confirmar';
+    if (valor === 0 && pedido.tipoEntrega === 'entrega') return 'Grátis';
+    return formatarPreco(valor);
+}
+
 function renderizarListaBairrosMestre() {
     const container = document.getElementById('listaBairrosMestre');
     if (!container) return;
@@ -1244,7 +1255,7 @@ function renderizarListaBairrosMestre() {
 
     container.innerHTML = entradas.map((b, i) => `
         <div class="loja-status-card" style="margin-bottom:6px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center;">
-            <span>${formatarNomeBairroExibicao(b.nome)} <span class="dica-secao">(${b.km} km)</span></span>
+            <span>${formatarNomeBairroExibicao(b.nome)} <span class="dica-secao">(${Number(b.km) === 0 ? 'Frete grátis' : `${b.km} km`})</span></span>
             <button class="btn-secondary btn-remover-bairro-mestre" data-indice="${i}">Remover</button>
         </div>
     `).join('');
@@ -4019,7 +4030,7 @@ function renderizarListaBairros() {
     }
     container.innerHTML = entradas.map(b => `
         <div class="loja-status-card" style="margin-bottom:6px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center;">
-            <span>${formatarNomeBairroExibicao(b.nome)} <span class="dica-secao">(${b.km} km)</span></span>
+            <span>${formatarNomeBairroExibicao(b.nome)} <span class="dica-secao">(${Number(b.km) === 0 ? 'Frete grátis' : `${b.km} km`})</span></span>
             <button class="btn-secondary" onclick="removerBairro('${b.nomeCodificado}')">Remover</button>
         </div>
     `).join('');
@@ -6959,6 +6970,7 @@ function gerarTextoPedidoWhatsAppGestao(pedido, paraCliente) {
     texto += `*Itens:*\n${linhas}\n\n`;
     if (pedido.desconto > 0) texto += `*Desconto:* -${formatarPreco(pedido.desconto)}\n`;
     if (pedido.frete > 0) texto += `*Taxa de entrega:* ${formatarPreco(pedido.frete)}\n`;
+    else if (pedido.tipoEntrega === 'entrega' && pedido.frete === 0) texto += '*Taxa de entrega:* Grátis\n';
     texto += `*Total: ${formatarPreco(pedido.total || 0)}*\n`;
     texto += `*Forma de Pagamento:* ${pedido.formaPagamento || '-'}\n`;
     if (pedido.observacoes) texto += `\n*Observações:* ${pedido.observacoes}\n`;
@@ -7002,7 +7014,7 @@ function imprimirPedidoGestao(id) {
             <tbody>${linhas}</tbody>
         </table>
         ${p.desconto > 0 ? `<p style="text-align:right;"><strong>Desconto:</strong> -${formatarPreco(p.desconto)}</p>` : ''}
-        ${p.frete > 0 ? `<p style="text-align:right;"><strong>Taxa de entrega:</strong> ${formatarPreco(p.frete)}</p>` : ''}
+        ${p.frete > 0 ? `<p style="text-align:right;"><strong>Taxa de entrega:</strong> ${formatarPreco(p.frete)}</p>` : (p.tipoEntrega === 'entrega' && p.frete === 0 ? '<p style="text-align:right;"><strong>Taxa de entrega:</strong> Grátis</p>' : '')}
         <p style="text-align:right; font-size:1.2em;"><strong>Total: ${formatarPreco(p.total || 0)}</strong></p>
         <p><strong>Forma de Pagamento:</strong> ${p.formaPagamento || '-'}</p>
         ${p.observacoes ? `<p>Obs: ${p.observacoes}</p>` : ''}
@@ -11321,7 +11333,7 @@ function montarCardPedidoFechamento(p) {
             <div class="fechamento-valores-grade">
                 <div><span>Subtotal</span><strong>${formatarPreco(p.subtotal || 0)}</strong></div>
                 <div><span>Desconto</span><strong>${formatarPreco(p.desconto || 0)}</strong></div>
-                <div><span>Frete</span><strong>${formatarPreco(p.frete || 0)}</strong></div>
+                <div><span>Frete</span><strong>${formatarFretePedidoPainel(p)}</strong></div>
                 <div class="total"><span>Total</span><strong>${total}</strong></div>
             </div>
             ${p.pagamento ? `<div class="fechamento-info-box"><strong>Status do pagamento</strong><span>${montarTagPagamento(p)}</span></div>` : ''}
@@ -11347,7 +11359,7 @@ function montarTextoPedido(p) {
     (p.itens || []).forEach(item => { texto += `${item.quantidade}x ${item.nome}${item.adicionaisTexto ? ' (' + item.adicionaisTexto + ')' : ''}\n`; });
     texto += `\nSubtotal: ${formatarPreco(p.subtotal || 0)}\n`;
     texto += `Desconto: ${formatarPreco(p.desconto || 0)}\n`;
-    texto += `Frete: ${formatarPreco(p.frete || 0)}\n`;
+    texto += `Frete: ${formatarFretePedidoPainel(p)}\n`;
     texto += `Total: ${formatarPreco(totalDoPedido(p))}\n\n`;
     const metodoConfirmadoTexto = obterMetodoPagamentoOnlineConfirmado(p);
     if (metodoConfirmadoTexto && formaPagamentoFoiAjustadaDepois(p) && !(p.pagamento && p.pagamento.tipoPagamento === 'sinal')) {
