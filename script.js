@@ -3357,6 +3357,56 @@ function sincronizarQuantidadesCarrinhoComEstoque() {
 // adicionais) quanto pelo modal de adicionais, depois que a pessoa confirma as escolhas.
 // A checagem de estoque fica AQUI de propósito: qualquer atalho que chame esta função
 // recebe a mesma proteção sem precisar repetir regra em vários pontos do sistema.
+// Brit’s Delivery Fácil — confirmação premium não bloqueante, somente SUCESSO.
+// Avisos de estoque limitado, indisponibilidade, variantes e encomendas permanecem originais.
+let temporizadorFeedbackCarrinhoPremium = null;
+function mostrarFeedbackCarrinhoPremium(quantidade, nomeProduto) {
+    const lembrete = document.getElementById('lembreteCarrinhoBanner');
+    if (lembrete && getComputedStyle(lembrete).display !== 'none') {
+        const anterior = document.getElementById('feedbackCarrinhoPremium');
+        if (anterior) anterior.classList.remove('visivel');
+        return;
+    }
+
+    let aviso = document.getElementById('feedbackCarrinhoPremium');
+    if (!aviso) {
+        aviso = document.createElement('div');
+        aviso.id = 'feedbackCarrinhoPremium';
+        aviso.className = 'feedback-carrinho-premium';
+        aviso.setAttribute('role', 'status');
+        aviso.setAttribute('aria-live', 'polite');
+        aviso.setAttribute('aria-atomic', 'true');
+
+        const icone = document.createElement('span');
+        icone.className = 'feedback-carrinho-premium-icone';
+        icone.textContent = '✓';
+        icone.setAttribute('aria-hidden', 'true');
+        const textos = document.createElement('div');
+        textos.className = 'feedback-carrinho-premium-textos';
+        const titulo = document.createElement('strong');
+        titulo.textContent = 'Adicionado ao carrinho!';
+        const produto = document.createElement('span');
+        produto.className = 'feedback-carrinho-premium-produto';
+        textos.appendChild(titulo);
+        textos.appendChild(produto);
+        const contagem = document.createElement('span');
+        contagem.className = 'feedback-carrinho-premium-contagem';
+        aviso.appendChild(icone);
+        aviso.appendChild(textos);
+        aviso.appendChild(contagem);
+        document.body.appendChild(aviso);
+    }
+
+    const qtd = Math.max(1, Math.floor(Number(quantidade) || 1));
+    aviso.querySelector('.feedback-carrinho-premium-produto').textContent = String(nomeProduto || 'Produto');
+    aviso.querySelector('.feedback-carrinho-premium-contagem').textContent = `+${qtd}`;
+    clearTimeout(temporizadorFeedbackCarrinhoPremium);
+    aviso.classList.add('visivel');
+    temporizadorFeedbackCarrinhoPremium = setTimeout(() => {
+        aviso.classList.remove('visivel');
+    }, 2800);
+}
+
 function finalizarAdicaoAoCarrinho(produtoId, nomeProduto, precoEfetivo, quantidade, observacao, adicionaisTexto, adicionaisEscolhidos) {
     const carrinhoEstavaVazio = carrinho.length === 0;
 
@@ -3414,13 +3464,12 @@ function finalizarAdicaoAoCarrinho(produtoId, nomeProduto, precoEfetivo, quantid
             ? ` Você já tinha ${limite.noCarrinho} no carrinho.`
             : '';
         alert(`Temos apenas ${limite.estoqueTotal} unidade${limite.estoqueTotal === 1 ? '' : 's'} em estoque de ${nomeProduto}.${jaNoCarrinho} ${quantidade === 1 ? 'Será adicionada apenas 1 unidade' : `Serão adicionadas apenas ${quantidade} unidades`} ao carrinho.`);
-    } else {
-        alert(`${quantidade}x ${nomeProduto} adicionado ao carrinho!`);
     }
 
     console.log('Carrinho atual:', carrinho);
     salvarCarrinho();
     atualizarCarrinhoHTML();
+    if (!limite.limitada) mostrarFeedbackCarrinhoPremium(quantidade, nomeProduto);
     if (carrinhoEstavaVazio && carrinho.length > 0) registrarEventoConversaoFront('carrinho');
     return { adicionado: true, quantidadeAdicionada: quantidade, limitada: limite.limitada, estoque: limite };
 }
@@ -4016,6 +4065,7 @@ function mostrarLembreteCarrinho() {
         sugestaoNoLembrete.style.display = 'none';
     }
 
+    document.getElementById('feedbackCarrinhoPremium')?.classList.remove('visivel');
     banner.style.display = 'flex';
     lembreteCarrinhoJaMostradoNessaSessao = true; // só incomoda uma vez por visita
 }
