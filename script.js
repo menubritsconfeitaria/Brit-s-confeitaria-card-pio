@@ -3083,7 +3083,7 @@ function formatarFreteConfirmadoVisual(valor) {
     if (valor === null || valor === undefined || String(valor).trim() === '') return 'A confirmar';
     const numero = Number(valor);
     if (!Number.isFinite(numero) || numero < 0) return 'A confirmar';
-    return numero === 0 ? 'Grátis' : `R$ ${numero.toFixed(2).replace('.', ',')}`;
+    return numero === 0 ? 'Grátis 🎉' : `R$ ${numero.toFixed(2).replace('.', ',')}`;
 }
 
 function atualizarTextoFreteConfirmado(bairroExibicao, grupos) {
@@ -4222,7 +4222,7 @@ function atualizarCarrinhoHTML() {
                 : 'Não se aplica';
             // Se o frete já foi zerado por promoção/cupom, não exibir a tarifa original como valor a pagar.
             if (tipoEntregaAtual === 'entrega' && freteFinal === 0 && freteAtual > 0 && infoFreteDiv) {
-                infoFreteDiv.textContent = `Entrega em ${bairroClienteInput.value || 'informado'}: Grátis (benefício aplicado)`;
+                infoFreteDiv.textContent = `Entrega em ${bairroClienteInput.value || 'informado'}: Grátis 🎉 (benefício aplicado)`;
             }
         }
         totalCarrinhoSpan.textContent = `R$ ${(subtotalComDesconto + freteFinal).toFixed(2).replace('.', ',')}`;
