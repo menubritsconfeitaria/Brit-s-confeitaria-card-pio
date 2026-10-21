@@ -2751,6 +2751,18 @@ function carregarDadosClienteSalvos() {
         if (dados.cidade) cidadeClienteInput.value = dados.cidade;
         if (dados.estado) estadoClienteInput.value = dados.estado;
         if (dados.cep) cepClienteInput.value = dados.cep;
+        // Apenas orientação de leitura: nunca pula validação nem esconde campos.
+        const blocoDados = document.querySelector('#carrinho .checkout-bloco-dados');
+        if (blocoDados) {
+            let aviso = document.getElementById('checkoutDadosSalvosAviso');
+            if (!aviso && dados.nome && dados.telefone) {
+                aviso = document.createElement('p');
+                aviso.id = 'checkoutDadosSalvosAviso';
+                aviso.className = 'checkout-dados-salvos-aviso';
+                aviso.textContent = '✓ Seus dados já estão preenchidos. Confira antes de finalizar.';
+                blocoDados.appendChild(aviso);
+            }
+        }
         if (dados.tipoEntrega === 'entrega') {
             selecionarTipoEntrega('entrega');
             if (dados.cep) calcularFrete(); // recalcula o frete, o valor pode ter mudado
@@ -4199,6 +4211,12 @@ function atualizarCarrinhoHTML() {
         totalCarrinhoSpan.textContent = `R$ ${subtotalComDesconto.toFixed(2).replace('.', ',')} + entrega`;
     }
 
+    // A mensagem de frete grátis é somente promocional. Não oferecer benefício que
+    // já existe no bairro, nem prometer frete em retirada ou frete não confirmado.
+    // Esse flag NÃO altera freteAtual, cálculos, cupons nem validações de pedido.
+    const podeOferecerFreteGratis = tipoEntregaAtual === 'entrega'
+        && freteConfirmado && freteAtual > 0 && !gruposCarrinho.misto;
+
     // Mensagem de incentivo: avisa quanto falta pro pedido mínimo, ou pro frete grátis
     // (só mostra uma de cada vez — pedido mínimo primeiro, por ser mais importante)
     const incentivoEl = document.getElementById('incentivoCarrinhoMsg');
@@ -4213,11 +4231,11 @@ function atualizarCarrinhoHTML() {
             const faltam = (pedidoMinimoAplicavel - subtotalComDesconto).toFixed(2).replace('.', ',');
             incentivoEl.textContent = `🛒 Faltam R$ ${faltam} pro pedido mínimo de R$ ${pedidoMinimoAplicavel.toFixed(2).replace('.', ',')}`;
             incentivoEl.style.display = 'block';
-        } else if (!freteGratis && freteGratisAcimaValor > 0 && subtotalComDesconto < freteGratisAcimaValor) {
+        } else if (podeOferecerFreteGratis && !freteGratis && freteGratisAcimaValor > 0 && subtotalComDesconto < freteGratisAcimaValor) {
             const faltam = (freteGratisAcimaValor - subtotalComDesconto).toFixed(2).replace('.', ',');
             incentivoEl.textContent = `🚚 Faltam R$ ${faltam} pra ganhar frete grátis!`;
             incentivoEl.style.display = 'block';
-        } else if (freteGratisPorValor) {
+        } else if (podeOferecerFreteGratis && freteGratisPorValor) {
             incentivoEl.textContent = `🎉 Você ganhou frete grátis!`;
             incentivoEl.style.display = 'block';
         } else {
@@ -4233,7 +4251,7 @@ function atualizarCarrinhoHTML() {
     const sugestaoEl = document.getElementById('sugestaoProdutoCarrinho');
     if (sugestaoEl) {
         const pedidoMinimoAindaFaltando = pedidoMinimoAplicavel > 0 && subtotalComDesconto < pedidoMinimoAplicavel;
-        const sugestoes = avaliarOfertasCarrinho(subtotalComDesconto, freteGratis, pedidoMinimoAindaFaltando);
+        const sugestoes = avaliarOfertasCarrinho(subtotalComDesconto, freteGratis || !podeOferecerFreteGratis, pedidoMinimoAindaFaltando);
         if (sugestoes.length > 0) {
             sugestaoEl.innerHTML = sugestoes.map(s => `
                 <div class="sugestao-produto-linha">
@@ -5052,6 +5070,30 @@ async function finalizarCompraMista(grupos) {
     }
 }
 
+// Brit's Delivery Fácil — orientação visual de campos obrigatórios.
+// Não altera a validação, formas de pagamento, frete nem envio do pedido.
+function orientarPrimeiroCampoPendenteCheckout(ids) {
+    const campo = ids
+        .map(id => document.getElementById(id))
+        .find(el => el && !String(el.value || '').trim());
+    if (!campo) return false;
+
+    campo.classList.add('checkout-campo-pendente');
+    campo.addEventListener('input', () => {
+        campo.classList.remove('checkout-campo-pendente');
+    }, { once: true });
+
+    const mostrarCampo = () => {
+        if (!campo.isConnected || !campo.getClientRects().length) return;
+        campo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        try { campo.focus({ preventScroll: true }); }
+        catch (_) { campo.focus(); }
+    };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(mostrarCampo);
+    else mostrarCampo();
+    return true;
+}
+
 async function finalizarCompra() {
     // Proteção contra clique duplo — sem isso, clicar 2x rápido (comum no celular)
     // cria 2 pedidos duplicados de verdade, com cobrança/contagem em dobro
@@ -5136,10 +5178,12 @@ async function finalizarCompra() {
     // Validação simples dos campos obrigatórios
     if (!nome || !telefone) {
         alert('Por favor, preencha seu nome e telefone.');
+        orientarPrimeiroCampoPendenteCheckout(['nomeCliente', 'telefoneCliente']);
         return;
     }
     if (tipoEntregaAtual === 'entrega' && (!rua || !numero || !bairro || !cidade || !estado || !cep)) {
         alert('Por favor, preencha todos os campos obrigatórios de entrega.');
+        orientarPrimeiroCampoPendenteCheckout(['cepCliente', 'ruaCliente', 'numeroCliente', 'bairroCliente', 'cidadeCliente', 'estadoCliente']);
         return;
     }
 
