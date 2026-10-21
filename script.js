@@ -3077,6 +3077,15 @@ function construirMapaBairrosNormalizado(bairros) {
     return { mapa, conflitos: Array.from(conflitos) };
 }
 
+// Exibição de frete confirmado: zero significa entrega gratuita, não altera o valor numérico.
+// Chamar somente para informação de entrega; retirada e frete não confirmado têm tratamento próprio.
+function formatarFreteConfirmadoVisual(valor) {
+    if (valor === null || valor === undefined || String(valor).trim() === '') return 'A confirmar';
+    const numero = Number(valor);
+    if (!Number.isFinite(numero) || numero < 0) return 'A confirmar';
+    return numero === 0 ? 'Grátis' : `R$ ${numero.toFixed(2).replace('.', ',')}`;
+}
+
 function atualizarTextoFreteConfirmado(bairroExibicao, grupos) {
     if (!infoFreteDiv || tipoEntregaAtual !== 'entrega' || !freteConfirmado) return;
 
@@ -3084,11 +3093,11 @@ function atualizarTextoFreteConfirmado(bairroExibicao, grupos) {
     infoFreteDiv.style.display = 'block';
 
     if (grupos.misto) {
-        infoFreteDiv.textContent = `Entrega em ${bairro}: para agora R$ ${freteAgoraAtual.toFixed(2).replace('.', ',')} · encomenda R$ ${freteEncomendaAtual.toFixed(2).replace('.', ',')}`;
+        infoFreteDiv.textContent = `Entrega em ${bairro}: para agora ${formatarFreteConfirmadoVisual(freteAgoraAtual)} · encomenda ${formatarFreteConfirmadoVisual(freteEncomendaAtual)}`;
     } else if (grupos.temEncomenda) {
-        infoFreteDiv.textContent = `Entrega em ${bairro}: R$ ${freteEncomendaAtual.toFixed(2).replace('.', ',')} (taxa de encomenda)`;
+        infoFreteDiv.textContent = `Entrega em ${bairro}: ${formatarFreteConfirmadoVisual(freteEncomendaAtual)}${freteEncomendaAtual > 0 ? ' (taxa de encomenda)' : ''}`;
     } else if (grupos.temAgora) {
-        infoFreteDiv.textContent = `Entrega em ${bairro}: R$ ${freteAgoraAtual.toFixed(2).replace('.', ',')}`;
+        infoFreteDiv.textContent = `Entrega em ${bairro}: ${formatarFreteConfirmadoVisual(freteAgoraAtual)}`;
     } else {
         infoFreteDiv.textContent = `Entrega em ${bairro}: adicione um item ao carrinho para calcular a taxa.`;
     }
@@ -4201,9 +4210,20 @@ function atualizarCarrinhoHTML() {
             const gratisAgora = freteGratisAcimaValor > 0 && subtotalAgora >= freteGratisAcimaValor;
             const gratisEncomenda = freteGratisAcimaValor > 0 && subtotalEncomenda >= freteGratisAcimaValor;
             freteFinal = (gratisAgora ? 0 : freteAgoraAtual) + (gratisEncomenda ? 0 : freteEncomendaAtual);
-            freteCarrinhoSpan.textContent = `R$ ${freteFinal.toFixed(2).replace('.', ',')} · 2 momentos`;
+            freteCarrinhoSpan.textContent = `${formatarFreteConfirmadoVisual(freteFinal)} · 2 momentos`;
+            // Somente apresentação: mostrar os fretes EFETIVOS dos dois momentos.
+            if (infoFreteDiv) {
+                const bairroExibicao = bairroClienteInput.value || 'informado';
+                infoFreteDiv.textContent = `Entrega em ${bairroExibicao}: para agora ${formatarFreteConfirmadoVisual(gratisAgora ? 0 : freteAgoraAtual)} · encomenda ${formatarFreteConfirmadoVisual(gratisEncomenda ? 0 : freteEncomendaAtual)}`;
+            }
         } else {
-            freteCarrinhoSpan.textContent = freteGratis ? 'Grátis 🎉' : `R$ ${freteAtual.toFixed(2).replace('.', ',')}`;
+            freteCarrinhoSpan.textContent = tipoEntregaAtual === 'entrega'
+                ? (freteGratis ? 'Grátis 🎉' : formatarFreteConfirmadoVisual(freteFinal))
+                : 'Não se aplica';
+            // Se o frete já foi zerado por promoção/cupom, não exibir a tarifa original como valor a pagar.
+            if (tipoEntregaAtual === 'entrega' && freteFinal === 0 && freteAtual > 0 && infoFreteDiv) {
+                infoFreteDiv.textContent = `Entrega em ${bairroClienteInput.value || 'informado'}: Grátis (benefício aplicado)`;
+            }
         }
         totalCarrinhoSpan.textContent = `R$ ${(subtotalComDesconto + freteFinal).toFixed(2).replace('.', ',')}`;
     } else {
@@ -5207,7 +5227,7 @@ async function finalizarCompra() {
     const subtotalTexto = `R$ ${subtotalPedido.toFixed(2).replace('.', ',')}`;
     const frete = (tipoEntregaAtual === 'entrega' && !freteGratis) ? freteAtual : 0;
     const freteTexto = tipoEntregaAtual === 'entrega'
-        ? (freteGratis ? 'Grátis' : (freteConfirmado ? `R$ ${frete.toFixed(2).replace('.', ',')}` : 'A confirmar pelo WhatsApp'))
+        ? (freteGratis ? 'Grátis' : (freteConfirmado ? formatarFreteConfirmadoVisual(frete) : 'A confirmar pelo WhatsApp'))
         : 'Não se aplica (retirada no local)';
     const totalPedido = (tipoEntregaAtual === 'retirada' || freteConfirmado)
         ? `R$ ${(subtotalPedido - desconto + frete).toFixed(2).replace('.', ',')}`
