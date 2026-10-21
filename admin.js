@@ -4005,7 +4005,7 @@ async function executarFreteBairroR3(operacao, dados, registro = null) {
     if (freteBairrosEmAndamento) throw Error('Aguarde a operação anterior.');
     freteBairrosEmAndamento = true;
     try {
-        const fn = registro ? registro.app.functions('us-central1') : firebase.functions('us-central1');
+        const fn = registro ? registro.app.functions('us-central1') : firebase.app().functions('us-central1');
         const callable = fn.httpsCallable('gerenciarFreteBairrosV1');
         const resp = await callable({operacao, ...dados});
         if (!resp || !resp.data || resp.data.ok !== true) throw Error('Confirmação do servidor não recebida.');
