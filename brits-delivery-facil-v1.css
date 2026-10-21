@@ -426,3 +426,28 @@
 @media (prefers-reduced-motion: reduce) {
   .feedback-carrinho-premium { transition: none; }
 }
+
+/* Brit's — foco visual somente em campo obrigatório já reprovado pelo checkout. */
+#carrinho input.checkout-campo-pendente {
+  outline: 2px solid #a2522b;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px rgba(162, 82, 43, .13);
+}
+
+/* Feedback discreto para cliente que já tem dados armazenados neste navegador. */
+#carrinho .checkout-dados-salvos-aviso {
+  margin: 9px 0 0;
+  padding: 8px 11px;
+  border-radius: 12px;
+  background: #f5f9f3;
+  color: #347046;
+  border: 1px solid #d5e5d0;
+  font-size: .82rem;
+  line-height: 1.4;
+}
+#carrinho input.checkout-campo-pendente:focus {
+  outline: 2px solid #a2522b;
+}
+@media (prefers-reduced-motion: reduce) {
+  #carrinho input.checkout-campo-pendente { scroll-behavior: auto; }
+}
