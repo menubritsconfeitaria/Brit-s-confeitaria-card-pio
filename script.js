@@ -748,7 +748,8 @@ function atualizarStatusLoja(config) {
 
         if (botaoFinalizarCompra) {
             botaoFinalizarCompra.disabled = false;
-            botaoFinalizarCompra.textContent = 'Finalizar Compra';
+            // Mantém a ação coerente com Pix/Cartão online ou pagamento ao receber.
+            atualizarOpcoesPagamentoCheckout();
         }
     } else {
         banner.classList.add('loja-fechada');
@@ -2941,7 +2942,7 @@ function atualizarOpcoesPagamentoCheckout() {
 
 // BRIT'S PREMIUM — confirmação VISUAL do pedido que já foi registrado.
 // Nunca apresenta um pedido presencial como quitado nem altera o status no Firebase.
-function exibirConfirmacaoPedidoPresencialPremium(numeroPedido) {
+function exibirConfirmacaoPedidoPresencialPremium(numeroPedido, pedidoId) {
     let camada = document.getElementById('britsConfirmacaoPresencialPremium');
     if (!camada) {
         camada = document.createElement('div');
@@ -2957,7 +2958,7 @@ function exibirConfirmacaoPedidoPresencialPremium(numeroPedido) {
             <p id="britsConfirmacaoPremiumTexto"></p>
             <div class="brits-confirmacao-premium-etapas">
               <div><span>01</span><p><strong>Pedido enviado</strong><small>Registrado no sistema da Brit's</small></p></div>
-              <div><span>02</span><p><strong>Aguardar a loja</strong><small>A Brit's confirma o atendimento</small></p></div>
+              <div><span>02</span><p><strong id="britsConfirmacaoPremiumEtapaStatus">Aguardar a loja</strong><small id="britsConfirmacaoPremiumDetalheStatus">A Brit's confirma o atendimento</small></p></div>
               <div><span>03</span><p><strong id="britsConfirmacaoPremiumEtapaPagamento">Pagar ao receber</strong><small id="britsConfirmacaoPremiumFormaPagamento">Pagamento ainda não realizado</small></p></div>
             </div>
             <button type="button" class="brits-confirmacao-premium-fechar">Entendi, acompanhar meu pedido</button>
@@ -2965,11 +2966,42 @@ function exibirConfirmacaoPedidoPresencialPremium(numeroPedido) {
           </section>`;
         document.body.appendChild(camada);
         const fechar = () => { camada.hidden = true; };
-        camada.querySelector('.brits-confirmacao-premium-fechar').addEventListener('click', () => {
-            fechar();
-            const faixaStatus = document.getElementById('statusPedidoBanner');
-            if (faixaStatus && faixaStatus.style.display !== 'none') {
-                faixaStatus.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const botaoAcompanhar = camada.querySelector('.brits-confirmacao-premium-fechar');
+        botaoAcompanhar.addEventListener('click', async () => {
+            if (camada.dataset.modo === 'acompanhamento') {
+                fechar();
+                return;
+            }
+            // O histórico "Meus Pedidos" pode exigir liberação posterior. Para o pedido
+            // recém-criado usamos a consulta por ID e token já autorizada ao comprador.
+            const idAtual = camada.dataset.pedidoId;
+            if (!idAtual || botaoAcompanhar.disabled) return;
+            botaoAcompanhar.disabled = true;
+            const titulo = camada.querySelector('#britsConfirmacaoPremiumTitulo');
+            const texto = camada.querySelector('#britsConfirmacaoPremiumTexto');
+            const etapa = camada.querySelector('#britsConfirmacaoPremiumEtapaStatus');
+            const detalhe = camada.querySelector('#britsConfirmacaoPremiumDetalheStatus');
+            const nota = camada.querySelector('.brits-confirmacao-premium-nota');
+            titulo.textContent = 'Acompanhamento do pedido';
+            texto.textContent = 'Consultando o status atualizado do seu pedido...';
+            try {
+                const pedido = await consultarStatusPedidoSeguro(idAtual);
+                // Se o cliente fechou ou iniciou outro pedido, não sobrescrever o modal.
+                if (camada.hidden || camada.dataset.pedidoId !== idAtual) return;
+                if (!pedido || !pedido.status) throw Error('STATUS_INDISPONIVEL');
+                const statusAtual = rotuloStatusPedidoCliente(pedido);
+                etapa.textContent = statusAtual;
+                detalhe.textContent = "Status consultado agora no sistema da Brit's";
+                texto.textContent = `Status atual: ${statusAtual}. Continue acompanhando o aviso de status do pedido no site para novas atualizações.`;
+                nota.textContent = 'O pagamento ao receber continua conforme sua escolha. O status não significa que o pagamento já foi realizado.';
+                camada.dataset.modo = 'acompanhamento';
+                botaoAcompanhar.textContent = 'Entendi, fechar acompanhamento';
+            } catch (erro) {
+                if (camada.hidden || camada.dataset.pedidoId !== idAtual) return;
+                texto.textContent = 'Seu pedido foi registrado. Não foi possível consultar o status agora. Toque para tentar novamente.';
+                botaoAcompanhar.textContent = 'Tentar consultar status';
+            } finally {
+                if (camada.dataset.pedidoId === idAtual) botaoAcompanhar.disabled = false;
             }
         });
         camada.addEventListener('click', evento => { if (evento.target === camada) fechar(); });
@@ -2984,8 +3016,18 @@ function exibirConfirmacaoPedidoPresencialPremium(numeroPedido) {
         `A Brit's recebeu seu pedido e ainda vai confirmar o atendimento. Você escolheu ${forma} ${local}. Nenhum pagamento foi feito pelo site.`;
     camada.querySelector('#britsConfirmacaoPremiumEtapaPagamento').textContent = `Pagar ${local}`;
     camada.querySelector('#britsConfirmacaoPremiumFormaPagamento').textContent = `${forma} · pagamento ainda não realizado`;
+    // Reinicia a janela para cada novo pedido, sem exibir status do anterior.
+    camada.dataset.pedidoId = String(pedidoId || '');
+    camada.dataset.modo = 'confirmacao';
+    camada.querySelector('#britsConfirmacaoPremiumTitulo').textContent = 'Pedido registrado com sucesso!';
+    camada.querySelector('#britsConfirmacaoPremiumEtapaStatus').textContent = 'Aguardar a loja';
+    camada.querySelector('#britsConfirmacaoPremiumDetalheStatus').textContent = "A Brit's confirma o atendimento";
+    camada.querySelector('.brits-confirmacao-premium-nota').textContent = 'Você pode acompanhar o status do pedido aqui no site. O resumo também foi preparado para o WhatsApp.';
     camada.hidden = false;
-    camada.querySelector('.brits-confirmacao-premium-fechar').focus();
+    const botao = camada.querySelector('.brits-confirmacao-premium-fechar');
+    botao.disabled = false;
+    botao.textContent = 'Entendi, acompanhar meu pedido';
+    botao.focus();
 }
 
 function selecionarMomentoPagamento(momento) {
@@ -5616,7 +5658,7 @@ async function finalizarCompra() {
     // Comunicação premium pós-registro; nenhuma decisão financeira é alterada.
     // Online e encomendas seguem seus caminhos já aprovados, sem esse aviso.
     if (!querAgendar && momentoPagamentoAtual === 'recebimento') {
-        exibirConfirmacaoPedidoPresencialPremium(numeroPedido);
+        exibirConfirmacaoPedidoPresencialPremium(numeroPedido, pedidoId);
     }
 
     // Se foi marcado como encomenda com data, mostra um aviso extra de que
