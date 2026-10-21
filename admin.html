@@ -458,7 +458,7 @@
                                 </div>
                                 <div id="pedidoMinimoBairrosExcecoes" class="loja-minimo-bairros-lista"></div>
                                 <p id="pedidoMinimoBairroMsg" class="ordem-categorias-msg loja-minimo-bairro-msg"></p>
-                                <p class="dica-secao">Bairros não listados aqui continuam usando o valor mínimo padrão. Deixe o valor vazio para não exigir pedido mínimo naquele bairro.</p>
+                                <p class="dica-secao">Bairros não listados aqui continuam usando o valor mínimo padrão. Deixe o valor vazio para não exigir pedido mínimo naquele bairro. <strong>Isto não ativa frete grátis.</strong> Para entrega gratuita, use a seleção em Áreas de Entrega.</p>
                             </div>
 
                             <div class="loja-card-actions"><button class="btn-salvar-ordem" onclick="salvarPedidoMinimoEFreteGratis()">💾 Salvar regras comerciais</button><p id="pedidoMinimoMsg" class="ordem-categorias-msg"></p></div>
@@ -508,6 +508,7 @@
                                     </div>
                                     <div class="loja-entrega-subcard loja-bairros-lista-card">
                                         <div class="loja-bloco-label"><span>Bairros cadastrados</span><small>Carteira de entrega</small></div>
+                                         <p class="dica-secao">Selecione <strong>🎁 Frete grátis</strong> ao lado de qualquer bairro. A distância anterior será preservada quando possível. Pedido mínimo é uma configuração separada.</p>
                                         <input type="text" id="buscaBairro" placeholder="🔍 Pesquisar bairro..." oninput="renderizarListaBairros()">
                                         <div id="listaBairrosCadastrados" class="loja-scroll-list"></div>
                                     </div>

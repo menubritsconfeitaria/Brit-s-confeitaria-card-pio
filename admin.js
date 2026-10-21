@@ -1157,45 +1157,32 @@ function salvarValoresFreteMestre() {
         .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
 }
 
-function salvarBairroMestre() {
-    const registro = appsClientesMestre[nomeAppClienteMestre(clienteMestreSelecionadoIndice)];
-    const msgEl = document.getElementById('msgBairroMestre');
-    if (!registro || !registro.autenticado) { msgEl.textContent = 'Faz login nesse cliente primeiro.'; return; }
-
-    const nome = document.getElementById('novoBairroNomeMestre').value.trim().toLowerCase();
-    const km = parseFloat(String(document.getElementById('novoBairroKmMestre').value).replace(',', '.'));
-    if (!nome) { msgEl.textContent = 'Digita o nome do bairro.'; return; }
-    if (isNaN(km) || km < 0) { msgEl.textContent = 'Digita uma distância válida (em km).'; return; }
-
-    const bairrosAtuais = configFreteMestreAtual.bairros || {};
-    const chaveExistente = encontrarChaveBairroEquivalente(bairrosAtuais, nome);
-    const nomeCodificado = chaveExistente || encodeURIComponent(nome);
-
-    registro.db.ref('configuracao/frete/bairros/' + nomeCodificado).set(km)
-        .then(() => {
-            if (!configFreteMestreAtual.bairros) configFreteMestreAtual.bairros = {};
-            configFreteMestreAtual.bairros[nomeCodificado] = km;
-            document.getElementById('novoBairroNomeMestre').value = '';
-            document.getElementById('novoBairroKmMestre').value = '';
-            msgEl.textContent = chaveExistente
-                ? 'Bairro já cadastrado com grafia equivalente — distância atualizada sem duplicar.'
-                : 'Bairro salvo!';
-            renderizarListaBairrosMestre();
-        })
-        .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+async function salvarBairroMestre() {
+    const registro=appsClientesMestre[nomeAppClienteMestre(clienteMestreSelecionadoIndice)];
+    const msgEl=document.getElementById('msgBairroMestre');
+    if (!registro||!registro.autenticado) {msgEl.textContent='Faça login neste cliente.';return;}
+    const nome=document.getElementById('novoBairroNomeMestre').value.trim().toLowerCase();
+    const strKm=String(document.getElementById('novoBairroKmMestre').value);
+    const km=Number(strKm.replace(',','.'));
+    if (!nome||!strKm.trim()||!Number.isFinite(km)||km<0||km>9999) {msgEl.textContent='Informe bairro e distância válida.';return;}
+    const chave=encontrarChaveBairroEquivalente(configFreteMestreAtual.bairros||{},nome)||encodeURIComponent(nome);
+    try {
+        await executarFreteBairroR3('salvar',{chave,nome,km,esperado:freteEsperadoAtual(configFreteMestreAtual,chave)},registro);
+        await carregarFreteClienteMestre(registro);
+        document.getElementById('novoBairroNomeMestre').value='';
+        document.getElementById('novoBairroKmMestre').value='';
+        msgEl.textContent='Bairro salvo.';
+    } catch(e) {msgEl.textContent=mensagemFreteErro(e);}
 }
 
-function removerBairroMestre(nomeCodificado) {
-    const registro = appsClientesMestre[nomeAppClienteMestre(clienteMestreSelecionadoIndice)];
-    if (!registro || !registro.autenticado) return;
-    if (!confirm('Remover esse bairro da lista de entrega desse cliente?')) return;
-
-    registro.db.ref('configuracao/frete/bairros/' + nomeCodificado).remove()
-        .then(() => {
-            if (configFreteMestreAtual.bairros) delete configFreteMestreAtual.bairros[nomeCodificado];
-            renderizarListaBairrosMestre();
-        })
-        .catch(err => alert('Erro ao remover: ' + err.message));
+async function removerBairroMestre(chave) {
+    const registro=appsClientesMestre[nomeAppClienteMestre(clienteMestreSelecionadoIndice)];
+    if (!registro||!registro.autenticado) return;
+    if (!confirm('Remover este bairro da lista de entrega deste cliente?')) return;
+    try {
+        await executarFreteBairroR3('remover',{chave,esperado:freteEsperadoAtual(configFreteMestreAtual,chave)},registro);
+        await carregarFreteClienteMestre(registro);
+    } catch(e) {alert(mensagemFreteErro(e));}
 }
 
 // Formata SOMENTE a exibição do nome do bairro no painel.
@@ -1237,32 +1224,34 @@ function formatarFretePedidoPainel(pedido) {
 }
 
 function renderizarListaBairrosMestre() {
-    const container = document.getElementById('listaBairrosMestre');
-    if (!container) return;
-
-    const campoBusca = document.getElementById('buscaBairroMestre');
-    const busca = normalizarTexto(campoBusca ? campoBusca.value : '');
-    const bairros = configFreteMestreAtual.bairros || {};
-    const entradas = Object.entries(bairros)
-        .map(([nomeCodificado, km]) => ({ nomeCodificado, nome: decodeURIComponent(nomeCodificado), km }))
-        .filter(b => normalizarTexto(b.nome).includes(busca))
-        .sort((a, b) => a.nome.localeCompare(b.nome));
-
-    if (entradas.length === 0) {
-        container.innerHTML = '<p class="dica-secao">Nenhum bairro encontrado.</p>';
-        return;
-    }
-
-    container.innerHTML = entradas.map((b, i) => `
-        <div class="loja-status-card" style="margin-bottom:6px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center;">
-            <span>${formatarNomeBairroExibicao(b.nome)} <span class="dica-secao">(${Number(b.km) === 0 ? 'Frete grátis 🎉' : `${b.km} km`})</span></span>
-            <button class="btn-secondary btn-remover-bairro-mestre" data-indice="${i}">Remover</button>
-        </div>
-    `).join('');
-
-    container.querySelectorAll('.btn-remover-bairro-mestre').forEach(btn => {
-        const item = entradas[Number(btn.dataset.indice)];
-        if (item) btn.addEventListener('click', () => removerBairroMestre(item.nomeCodificado));
+    const container=document.getElementById('listaBairrosMestre');
+    if(!container)return;
+    const campoBusca=document.getElementById('buscaBairroMestre');
+    const busca=normalizarTexto(campoBusca?campoBusca.value:'');
+    const bairros=configFreteMestreAtual.bairros||{};
+    const backups=configFreteMestreAtual.bairrosKmOriginalFreteGratis||{};
+    const entradas=Object.entries(bairros)
+       .map(([nomeCodificado,km])=>({nomeCodificado,nome:decodeURIComponent(nomeCodificado),km}))
+       .filter(b=>normalizarTexto(b.nome).includes(busca))
+       .sort((a,b)=>a.nome.localeCompare(b.nome));
+    if (!entradas.length) {container.innerHTML='<p class="dica-secao">Nenhum bairro encontrado.</p>';return;}
+    container.innerHTML=entradas.map((b,i)=>{
+        const gratis=Number(b.km)===0;
+        const comBackup=Object.prototype.hasOwnProperty.call(backups,b.nomeCodificado)&&Number(backups[b.nomeCodificado])>0;
+        const acao=gratis?(comBackup?'↩ Restaurar frete':'✎ Informar km'):'🎁 Frete grátis';
+        return `<div class="loja-status-card" style="margin-bottom:6px;padding:8px 12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between;align-items:center;">
+          <span>${formatarNomeBairroExibicao(b.nome)} <span class="dica-secao">(${gratis?'Frete grátis 🎉':`${b.km} km`})</span></span>
+          <span style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button type="button" class="btn-secondary frete-mestre-acao" data-indice="${i}">${acao}</button>
+          <button type="button" class="btn-secondary frete-mestre-remover" data-indice="${i}">Remover</button></span>
+        </div>`;
+    }).join('');
+    container.querySelectorAll('.frete-mestre-acao').forEach(btn=>{
+      const b=entradas[Number(btn.dataset.indice)];
+      if(b)btn.addEventListener('click',()=>alternarFreteGratisBairroMestre(b.nomeCodificado,Number(b.km)!==0));
+    });
+    container.querySelectorAll('.frete-mestre-remover').forEach(btn=>{
+      const b=entradas[Number(btn.dataset.indice)];if(b)btn.addEventListener('click',()=>removerBairroMestre(b.nomeCodificado));
     });
 }
 
@@ -3865,49 +3854,31 @@ function salvarValorPorKm() {
 
 // Salva (ou edita, se já existir com esse nome) um bairro — nome sempre guardado em
 // minúsculo, pra bater com a busca que o cardápio já faz na hora de calcular o frete
-function salvarBairro() {
-    const nome = document.getElementById('novoBairroNome').value.trim().toLowerCase();
-    const km = parseFloat(String(document.getElementById('novoBairroKm').value).replace(',', '.'));
-    const msgEl = document.getElementById('bairroMsg');
-    if (!nome) { msgEl.textContent = 'Digita o nome do bairro.'; return; }
-    if (isNaN(km) || km < 0) { msgEl.textContent = 'Digita uma distância válida (em km).'; return; }
-
-    const bairrosAtuais = configFreteAtual && configFreteAtual.bairros || {};
-    const chaveExistente = encontrarChaveBairroEquivalente(bairrosAtuais, nome);
-    const chaveDestino = chaveExistente || encodeURIComponent(nome);
-
-    db.ref('configuracao/frete/bairros/' + chaveDestino).set(km)
-        .then(() => {
-            msgEl.textContent = chaveExistente
-                ? 'Bairro já cadastrado com grafia equivalente — distância atualizada sem duplicar.'
-                : 'Bairro salvo!';
-            document.getElementById('novoBairroNome').value = '';
-            document.getElementById('novoBairroKm').value = '';
-        })
-        .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+async function salvarBairro() {
+    const nome=document.getElementById('novoBairroNome').value.trim().toLowerCase();
+    const km=Number(String(document.getElementById('novoBairroKm').value).replace(',','.'));
+    const msgEl=document.getElementById('bairroMsg');
+    if (!nome || !String(document.getElementById('novoBairroKm').value).trim() || !Number.isFinite(km) || km<0 || km>9999) {msgEl.textContent='Informe bairro e distância válida.';return;}
+    const bairros=configFreteAtual.bairros||{};
+    const chave=encontrarChaveBairroEquivalente(bairros,nome)||encodeURIComponent(nome);
+    try {
+        await executarFreteBairroR3('salvar',{chave,nome,km,esperado:freteEsperadoAtual(configFreteAtual,chave)});
+        document.getElementById('novoBairroNome').value='';
+        document.getElementById('novoBairroKm').value='';
+        msgEl.textContent='Bairro salvo.';
+    } catch(e) {msgEl.textContent=mensagemFreteErro(e);}
 }
 
-function removerBairro(nomeCodificado) {
-    if (!recursosPlanoProdutosCarregados) {
-        alert('Aguarde carregar as permissões do plano antes de remover um bairro.');
-        return;
+async function removerBairro(chave) {
+    if (!recursosPlanoProdutosCarregados) {alert('Aguarde carregar as permissões.');return;}
+    const podeEditarMinimo=recursosPlanoProdutos==null||recursosPlanoProdutos.pedidoMinimo===true;
+    if (!podeEditarMinimo && Object.prototype.hasOwnProperty.call(configFreteAtual.pedidoMinimoBairros||{},chave)) {
+       alert('Bairro com exceção de pedido mínimo protegida pelo plano.');return;
     }
-    const podeEditarMinimo = recursosPlanoProdutos == null || recursosPlanoProdutos.pedidoMinimo === true;
-    const excecoes = configFreteAtual && configFreteAtual.pedidoMinimoBairros || {};
-    const temExcecao = Object.prototype.hasOwnProperty.call(excecoes, nomeCodificado);
-    if (!podeEditarMinimo && temExcecao) {
-        alert('Este bairro tem uma exceção antiga de pedido mínimo. Peça ao administrador para liberar a limpeza dessa exceção antes de removê-lo; nenhum dado foi apagado.');
-        return;
-    }
-    if (!confirm('Remover esse bairro da lista de entrega?')) return;
-    const atualizacoes = {};
-    atualizacoes['configuracao/frete/bairros/' + nomeCodificado] = null;
-    if (podeEditarMinimo) {
-        // Com permissão ativa, remove também a exceção para evitar configuração órfã.
-        atualizacoes['configuracao/frete/pedidoMinimoBairros/' + nomeCodificado] = null;
-    }
-    db.ref().update(atualizacoes)
-        .catch(err => alert('Erro ao remover: ' + err.message));
+    if (!confirm('Remover este bairro da lista de entrega?')) return;
+    try {
+        await executarFreteBairroR3('remover',{chave,esperado:freteEsperadoAtual(configFreteAtual,chave)});
+    } catch(e) {alert(mensagemFreteErro(e));}
 }
 
 function encontrarBairroConfiguradoPedidoMinimo(nomeDigitado) {
@@ -4014,11 +3985,82 @@ function removerPedidoMinimoBairro(nomeCodificado) {
 }
 
 // Mostra a lista de bairros já cadastrados, filtrando pela busca (se tiver algo digitado)
+// BRITS R3 — controle de bairros por Callable transacional, sem escritas diretas em /bairros.
+let freteBairrosEmAndamento = false;
+function freteEsperadoAtual(config, chave) {
+    const bairros = config && config.bairros || {};
+    const backups = config && config.bairrosKmOriginalFreteGratis || {};
+    return {
+        km: Object.prototype.hasOwnProperty.call(bairros,chave) ? bairros[chave] : null,
+        backup: Object.prototype.hasOwnProperty.call(backups,chave) ? backups[chave] : null
+    };
+}
+function mensagemFreteErro(error) {
+    const codigo = String(error && error.message || '').split(' ').pop();
+    if (/CONFLITO|PRECONDICAO|BACKUP|KM_ATUAL/i.test(codigo)) return 'O bairro mudou em outro painel. Atualize a lista antes de tentar novamente.';
+    if (error && /permission-denied|unauthenticated/.test(String(error.code||''))) return 'Acesso ao frete não autorizado para esta conta ou plano.';
+    return 'Não foi possível salvar o bairro: ' + String(error && error.message || 'erro inesperado').slice(0,160);
+}
+async function executarFreteBairroR3(operacao, dados, registro = null) {
+    if (freteBairrosEmAndamento) throw Error('Aguarde a operação anterior.');
+    freteBairrosEmAndamento = true;
+    try {
+        const fn = registro ? registro.app.functions('us-central1') : firebase.functions('us-central1');
+        const callable = fn.httpsCallable('gerenciarFreteBairrosV1');
+        const resp = await callable({operacao, ...dados});
+        if (!resp || !resp.data || resp.data.ok !== true) throw Error('Confirmação do servidor não recebida.');
+        return resp.data;
+    } finally { freteBairrosEmAndamento = false; }
+}
+function focarKmBairroLegado(chave) {
+    const nome = decodeURIComponent(chave);
+    const campoNome = document.getElementById('novoBairroNome');
+    const campoKm = document.getElementById('novoBairroKm');
+    if (campoNome) { campoNome.value = nome; campoNome.scrollIntoView({block:'center',behavior:'smooth'}); }
+    if (campoKm) { campoKm.value = ''; campoKm.focus(); }
+}
+async function alternarFreteGratisBairro(chave,ativar) {
+    const aviso=document.getElementById('bairroMsg');
+    const esperado=freteEsperadoAtual(configFreteAtual,chave);
+    const nome=decodeURIComponent(chave);
+    if (ativar===false && esperado.km===0 && esperado.backup===null) {
+        focarKmBairroLegado(chave);
+        if (aviso) aviso.textContent='Bairro originalmente gratuito: informe km para voltar a cobrar.';
+        return;
+    }
+    if (!confirm(ativar ? `Ativar frete grátis em ${nome}? A distância será preservada.` : `Restaurar a distância anterior de ${nome}?`)) return;
+    try {
+        await executarFreteBairroR3(ativar?'ativar':'restaurar',{chave,esperado});
+        if (aviso) aviso.textContent=ativar?'Frete grátis ativado!':'Distância anterior restaurada!';
+    } catch(e) { if(aviso) aviso.textContent=mensagemFreteErro(e); }
+}
+async function alternarFreteGratisBairroMestre(chave, ativar) {
+    const registro=appsClientesMestre[nomeAppClienteMestre(clienteMestreSelecionadoIndice)];
+    const aviso=document.getElementById('msgBairroMestre');
+    if (!registro || !registro.autenticado) {if(aviso) aviso.textContent='Entre na conta deste cliente.';return;}
+    const esperado=freteEsperadoAtual(configFreteMestreAtual,chave);
+    if (!ativar && esperado.km===0 && esperado.backup===null) {
+        const campoNome=document.getElementById('novoBairroNomeMestre');
+        const campoKm=document.getElementById('novoBairroKmMestre');
+        if(campoNome) campoNome.value=decodeURIComponent(chave);
+        if(campoKm) {campoKm.value='';campoKm.focus();}
+        if(aviso) aviso.textContent='Bairro originalmente gratuito: informe km para voltar a cobrar.';
+        return;
+    }
+    if (!confirm(ativar?`Ativar frete grátis em ${decodeURIComponent(chave)}?`:`Restaurar distância de ${decodeURIComponent(chave)}?`)) return;
+    try {
+        await executarFreteBairroR3(ativar?'ativar':'restaurar',{chave,esperado},registro);
+        await carregarFreteClienteMestre(registro);
+        if(aviso) aviso.textContent=ativar?'Frete grátis ativado!':'Distância restaurada!';
+    } catch(e){if(aviso) aviso.textContent=mensagemFreteErro(e);}
+}
+
 function renderizarListaBairros() {
     const container = document.getElementById('listaBairrosCadastrados');
     if (!container) return;
     const busca = normalizarTexto(document.getElementById('buscaBairro').value || '');
     const bairros = configFreteAtual.bairros || {};
+    const backups = configFreteAtual.bairrosKmOriginalFreteGratis || {};
     const entradas = Object.entries(bairros)
         .map(([nomeCodificado, km]) => ({ nomeCodificado, nome: decodeURIComponent(nomeCodificado), km }))
         .filter(b => normalizarTexto(b.nome).includes(busca))
@@ -4028,30 +4070,40 @@ function renderizarListaBairros() {
         container.innerHTML = '<p class="dica-secao">Nenhum bairro encontrado.</p>';
         return;
     }
-    container.innerHTML = entradas.map(b => `
-        <div class="loja-status-card" style="margin-bottom:6px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center;">
-            <span>${formatarNomeBairroExibicao(b.nome)} <span class="dica-secao">(${Number(b.km) === 0 ? 'Frete grátis 🎉' : `${b.km} km`})</span></span>
-            <button class="btn-secondary" onclick="removerBairro('${b.nomeCodificado}')">Remover</button>
-        </div>
-    `).join('');
+    container.innerHTML = entradas.map((b, indice) => {
+        const gratis = Number(b.km) === 0;
+        const temBackupValido = Object.prototype.hasOwnProperty.call(backups,b.nomeCodificado)
+            && Number.isFinite(Number(backups[b.nomeCodificado])) && Number(backups[b.nomeCodificado]) > 0;
+        const textoAcao = !gratis ? '🎁 Frete grátis' : (temBackupValido ? '↩ Restaurar frete' : '✎ Informar km');
+        return `
+        <div class="loja-status-card" style="margin-bottom:6px; padding:8px 12px; display:flex; gap:8px; flex-wrap:wrap; justify-content:space-between; align-items:center;">
+            <span>${formatarNomeBairroExibicao(b.nome)} <span class="dica-secao">(${gratis ? 'Frete grátis 🎉' : `${b.km} km`})</span></span>
+            <span style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button type="button" class="btn-secondary bairro-frete-gratis-acao" data-indice="${indice}">${textoAcao}</button>
+                <button type="button" class="btn-secondary bairro-remover-acao" data-indice="${indice}">Remover</button>
+            </span>
+        </div>`;
+    }).join('');
+    container.querySelectorAll('.bairro-frete-gratis-acao').forEach(btn => {
+        const b = entradas[Number(btn.dataset.indice)];
+        if (b) btn.addEventListener('click', () => alternarFreteGratisBairro(b.nomeCodificado, Number(b.km) !== 0));
+    });
+    container.querySelectorAll('.bairro-remover-acao').forEach(btn => {
+        const b = entradas[Number(btn.dataset.indice)];
+        if (b) btn.addEventListener('click', () => removerBairro(b.nomeCodificado));
+    });
 }
 
 // Traz a lista antiga (que estava fixa no código) pro painel de uma vez só — não some
 // nada do que a loja já tinha, só passa a poder editar por aqui daqui pra frente
-function importarBairrosAntigos() {
-    const quantidade = Object.keys(BAIRROS_ANTIGOS_PARA_IMPORTAR).length;
-    if (quantidade === 0) {
-        alert('Não há nenhuma lista antiga pra importar — cadastra os bairros direto no formulário abaixo.');
-        return;
-    }
-    if (!confirm(`Importar ${quantidade} bairros pro painel?`)) return;
-    const atualizacoes = {};
-    Object.entries(BAIRROS_ANTIGOS_PARA_IMPORTAR).forEach(([nome, km]) => {
-        atualizacoes['configuracao/frete/bairros/' + encodeURIComponent(nome)] = km;
-    });
-    db.ref().update(atualizacoes)
-        .then(() => alert('Bairros importados com sucesso!'))
-        .catch(err => alert('Erro ao importar: ' + err.message));
+async function importarBairrosAntigos() {
+    const entradas=Object.entries(BAIRROS_ANTIGOS_PARA_IMPORTAR).map(([nome,km])=>({nome,km}));
+    if (!entradas.length) {alert('Lista de importação vazia.');return;}
+    if (!confirm(`Importar até ${entradas.length} bairros que ainda não existem? Bairros cadastrados NÃO serão sobrescritos.`)) return;
+    try {
+        const resultado=await executarFreteBairroR3('importar',{entradas});
+        alert(`Importação concluída: ${resultado.inseridos||0} novos; ${resultado.ignorados||0} existentes preservados.`);
+    } catch(e) {alert(mensagemFreteErro(e));}
 }
 
 function salvarPedidoMinimoEFreteGratis() {
