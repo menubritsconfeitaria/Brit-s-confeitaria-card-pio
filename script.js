@@ -3002,6 +3002,8 @@ function exibirConfirmacaoPedidoPresencialPremium(numeroPedido, pedidoId) {
         botaoAcompanhar.addEventListener('click', async () => {
             if (camada.dataset.modo === 'acompanhamento') {
                 fechar();
+                // Ao fechar o acompanhamento, retorna ao início do cardápio e ao aviso do pedido.
+                window.scrollTo({ top: 0, behavior: 'smooth' });
                 return;
             }
             // O histórico "Meus Pedidos" pode exigir liberação posterior. Para o pedido
