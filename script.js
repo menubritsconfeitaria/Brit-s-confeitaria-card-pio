@@ -1586,7 +1586,12 @@ function mostrarStatusPedido(pedidoId) {
     const atualizar = async () => {
         try {
             const pedido = await consultarStatusPedidoSeguro(pedidoId);
-            if (pedido) renderizarStatusPedido(pedido);
+            if (pedido) {
+                renderizarStatusPedido(pedido);
+                // Reaproveita a mesma consulta segura do status para manter a janela
+                // Premium sincronizada; não consulta o Firebase uma segunda vez.
+                atualizarAcompanhamentoPremiumSeVisivel(pedidoId, pedido);
+            }
         } catch (err) {
             console.log('Não foi possível atualizar o status do pedido agora:', err);
         }
@@ -2940,6 +2945,33 @@ function atualizarOpcoesPagamentoCheckout() {
     }
 }
 
+// BRIT'S PREMIUM — espelho visual do status seguro que já é consultado a cada 3,5 s.
+// Confere o ID para não mostrar atualizações de outro pedido na janela.
+function atualizarAcompanhamentoPremiumSeVisivel(pedidoId, pedido) {
+    const camada = document.getElementById('britsConfirmacaoPresencialPremium');
+    if (!camada || camada.hidden || camada.dataset.modo !== 'acompanhamento'
+        || camada.dataset.pedidoId !== String(pedidoId || '')
+        || !pedido || !pedido.status) return false;
+
+    // No painel o status aceito já é exibido como "Em preparo" para pedidos comuns.
+    // Preserva a exceção de encomendas futuras já implementada no status do cliente.
+    const statusAtual = pedido.status === 'aceito' && !encomendaAindaFutura(pedido)
+        ? '👩‍🍳 Em preparo' : rotuloStatusPedidoCliente(pedido);
+    const titulo = camada.querySelector('#britsConfirmacaoPremiumTitulo');
+    const texto = camada.querySelector('#britsConfirmacaoPremiumTexto');
+    const etapa = camada.querySelector('#britsConfirmacaoPremiumEtapaStatus');
+    const detalhe = camada.querySelector('#britsConfirmacaoPremiumDetalheStatus');
+    const nota = camada.querySelector('.brits-confirmacao-premium-nota');
+    if (!titulo || !texto || !etapa || !detalhe || !nota) return false;
+
+    titulo.textContent = 'Acompanhamento do pedido';
+    etapa.textContent = statusAtual;
+    detalhe.textContent = "Atualizado pelo acompanhamento seguro da Brit's";
+    texto.textContent = `Status atual: ${statusAtual}. Acompanhamento atualizado automaticamente enquanto a página estiver aberta.`;
+    nota.textContent = 'O pagamento ao receber continua conforme sua escolha. O status do pedido não confirma que o pagamento foi realizado.';
+    return true;
+}
+
 // BRIT'S PREMIUM — confirmação VISUAL do pedido que já foi registrado.
 // Nunca apresenta um pedido presencial como quitado nem altera o status no Firebase.
 function exibirConfirmacaoPedidoPresencialPremium(numeroPedido, pedidoId) {
@@ -2979,9 +3011,6 @@ function exibirConfirmacaoPedidoPresencialPremium(numeroPedido, pedidoId) {
             botaoAcompanhar.disabled = true;
             const titulo = camada.querySelector('#britsConfirmacaoPremiumTitulo');
             const texto = camada.querySelector('#britsConfirmacaoPremiumTexto');
-            const etapa = camada.querySelector('#britsConfirmacaoPremiumEtapaStatus');
-            const detalhe = camada.querySelector('#britsConfirmacaoPremiumDetalheStatus');
-            const nota = camada.querySelector('.brits-confirmacao-premium-nota');
             titulo.textContent = 'Acompanhamento do pedido';
             texto.textContent = 'Consultando o status atualizado do seu pedido...';
             try {
@@ -2989,15 +3018,14 @@ function exibirConfirmacaoPedidoPresencialPremium(numeroPedido, pedidoId) {
                 // Se o cliente fechou ou iniciou outro pedido, não sobrescrever o modal.
                 if (camada.hidden || camada.dataset.pedidoId !== idAtual) return;
                 if (!pedido || !pedido.status) throw Error('STATUS_INDISPONIVEL');
-                const statusAtual = rotuloStatusPedidoCliente(pedido);
-                etapa.textContent = statusAtual;
-                detalhe.textContent = "Status consultado agora no sistema da Brit's";
-                texto.textContent = `Status atual: ${statusAtual}. Continue acompanhando o aviso de status do pedido no site para novas atualizações.`;
-                nota.textContent = 'O pagamento ao receber continua conforme sua escolha. O status não significa que o pagamento já foi realizado.';
                 camada.dataset.modo = 'acompanhamento';
+                if (!atualizarAcompanhamentoPremiumSeVisivel(idAtual, pedido)) {
+                    throw Error('STATUS_INDISPONIVEL');
+                }
                 botaoAcompanhar.textContent = 'Entendi, fechar acompanhamento';
             } catch (erro) {
                 if (camada.hidden || camada.dataset.pedidoId !== idAtual) return;
+                camada.dataset.modo = 'confirmacao';
                 texto.textContent = 'Seu pedido foi registrado. Não foi possível consultar o status agora. Toque para tentar novamente.';
                 botaoAcompanhar.textContent = 'Tentar consultar status';
             } finally {
