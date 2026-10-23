@@ -1,16 +1,207 @@
-/* Agenda Premium • Até três períodos diários (painel + Central Mestre). */
-.horario-premium-instrucao {font-size:.82rem;line-height:1.5;color:#8a7665;margin:4px 0 12px;}
-.linha-horario.horario-premium-linha {display:grid;grid-template-columns:minmax(110px,170px) 1fr;gap:12px;align-items:start;padding:12px 10px;border:1px solid #e8dfd2;border-radius:14px;background:#fff;box-shadow:0 2px 8px rgba(74,47,29,.035);margin-bottom:7px;}
-.horario-premium-linha .horario-premium-dia {display:flex;align-items:center;gap:8px;min-height:42px;margin:0;font-weight:750;color:#45332b;}
-.horario-premium-linha .horario-premium-periodos {display:grid;gap:8px;min-width:0;}
-.horario-premium-linha .horario-premium-faixa {display:grid;grid-template-columns:minmax(125px,1fr) minmax(230px,1.65fr);gap:10px;align-items:center;border:1px solid #ede5dc;padding:7px 10px;border-radius:11px;background:#fffdfb;}
-.horario-premium-linha .horario-premium-etiqueta {display:flex;gap:6px;align-items:center;font-size:.76rem;font-weight:700;color:#806350;margin:0;white-space:nowrap;}
-.horario-premium-linha .horario-premium-campos {display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px;min-width:0;}
-.horario-premium-linha .horario-premium-campos input[type="time"] {display:block;box-sizing:border-box;width:100%;min-width:0;max-width:none;margin:0;padding:9px 7px;border:1px solid #e5d7c7;border-radius:10px;background:#fff;min-height:40px;color:#4b3224;}
-.horario-premium-linha input[type="time"]:disabled {background:#f5f2ee;color:#9e9186;opacity:.7;}
-.horario-premium-linha .horario-premium-campos span {font-size:.72rem;color:#9e8d80;white-space:nowrap;}
-@media (max-width:850px) {
- .linha-horario.horario-premium-linha{grid-template-columns:1fr;gap:6px;padding:10px;}
- .horario-premium-linha .horario-premium-faixa{grid-template-columns:1fr;gap:7px;}
- .horario-premium-linha .horario-premium-campos input[type="time"]{padding:8px 5px;}
+/* BRIT'S / PEDEAKI - HORARIOS PREMIUM | CORRECAO VISUAL CANDIDATA
+ * Escopo: somente CSS do editor de horarios; painel Brit's e Central Mestre.
+ * Sem alteracoes em JS, HTML, banco, operacao, notificacoes, estoque, financeiro.
+ * A origem publicada possui seletores antigos MAIS ESPECIFICOS em admin.css:
+ *  .loja-premium-v2 .loja-horarios-lista .linha-horario
+ *  .administracao-mestre-premium #listaHorariosMestre .linha-horario
+ * Por isso os seletores abaixo prevalecem explicitamente, sem !important.
+ */
+
+/* Largura e comportamento das listas em cada painel */
+.loja-premium-v2 #listaHorarios.loja-horarios-lista {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 9px;
+    min-width: 0;
+}
+.administracao-mestre-premium #listaHorariosMestre {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 470px), 1fr));
+    gap: 12px;
+    min-width: 0;
+}
+.horario-premium-instrucao {
+    font-size: .81rem;
+    line-height: 1.5;
+    color: #786454;
+    margin: 6px 0 14px;
+}
+
+/* Uma ficha limpa por dia, sem o grid legado de quatro colunas */
+.loja-premium-v2 #listaHorarios .linha-horario.horario-premium-linha,
+.administracao-mestre-premium #listaHorariosMestre .linha-horario.horario-premium-linha {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    align-content: start;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 13px 14px;
+    margin: 0;
+    border: 1px solid #e8dcd0;
+    border-radius: 13px;
+    background: #fff;
+    box-shadow: 0 3px 12px rgba(75, 43, 20, .045);
+    font-size: .85rem;
+    container-type: inline-size;
+}
+
+/* Dia + controle: cabeçalho próprio, sempre legível */
+.loja-premium-v2 #listaHorarios .horario-premium-dia,
+.administracao-mestre-premium #listaHorariosMestre .horario-premium-dia {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 25px;
+    min-width: 0;
+    margin: 0;
+    font-size: .89rem;
+    font-weight: 750;
+    line-height: 1.25;
+    color: #463026;
+    cursor: pointer;
+}
+.horario-premium-linha .horario-premium-dia input[type="checkbox"] {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: #a3542f;
+}
+
+/* Período principal em destaque; opcionais discretos, lado a lado */
+.horario-premium-linha .horario-premium-periodos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    width: 100%;
+    min-width: 0;
+}
+.horario-premium-linha .horario-premium-faixa {
+    display: grid;
+    grid-template-columns: minmax(122px, .8fr) minmax(0, 1.5fr);
+    gap: 10px;
+    align-items: center;
+    min-width: 0;
+    padding: 9px 11px;
+    border: 1px solid #eee5dc;
+    border-radius: 10px;
+    background: #fcfaf8;
+    box-sizing: border-box;
+}
+.horario-premium-linha .horario-premium-faixa:first-child,
+.horario-premium-linha .horario-premium-faixa:not(:first-child):has(.horario-premium-etiqueta input:checked) {
+    grid-column: 1 / -1;
+}
+.horario-premium-linha .horario-premium-faixa:first-child {
+    background: #fff9f4;
+    border-color: #e9d2c1;
+}
+.horario-premium-linha .horario-premium-etiqueta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    min-width: 0;
+    font-size: .77rem;
+    line-height: 1.3;
+    font-weight: 700;
+    color: #705443;
+    white-space: normal;
+    cursor: pointer;
+}
+.horario-premium-linha .horario-premium-etiqueta input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 auto;
+    margin: 0;
+    accent-color: #a3542f;
+}
+.horario-premium-linha .horario-premium-campos {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 8px;
+    align-items: center;
+    min-width: 0;
+}
+.loja-premium-v2 #listaHorarios .horario-premium-linha .horario-premium-campos input[type="time"],
+.administracao-mestre-premium #listaHorariosMestre .horario-premium-linha .horario-premium-campos input[type="time"] {
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: 40px;
+    min-height: 40px;
+    margin: 0;
+    padding: 7px 8px;
+    border: 1px solid #dbcabc;
+    border-radius: 9px;
+    background: #fff;
+    color: #493228;
+    font-family: inherit;
+    font-size: .82rem;
+    font-weight: 600;
+    line-height: normal;
+}
+.horario-premium-linha .horario-premium-campos span {
+    color: #907767;
+    font-size: .76rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.horario-premium-linha input[type="time"]:disabled {
+    background: #f2efeb !important;
+    color: #948a84 !important;
+    opacity: .72;
+}
+
+/* Períodos desmarcados continuam visíveis como botões de opção,
+   sem exibir os horários desativados que poluíam cada cartão. */
+.horario-premium-linha .horario-premium-faixa:not(:first-child):has(.horario-premium-etiqueta input:not(:checked)) {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 9px 10px;
+    background: #fff;
+    border-style: dashed;
+    border-color: #e9dfd6;
+}
+.horario-premium-linha .horario-premium-faixa:not(:first-child):has(.horario-premium-etiqueta input:not(:checked)) .horario-premium-campos {
+    display: none;
+}
+.horario-premium-linha .horario-premium-faixa:not(:first-child):has(.horario-premium-etiqueta input:not(:checked)) .horario-premium-etiqueta {
+    color: #856c5b;
+    font-size: .74rem;
+}
+
+/* Responsividade pela largura REAL do cartão, não pelo viewport.
+   Evita o erro do painel: viewport grande mas coluna de horários estreita. */
+@container (max-width: 470px) {
+    .horario-premium-linha .horario-premium-faixa,
+    .horario-premium-linha .horario-premium-faixa:not(:first-child):has(.horario-premium-etiqueta input:checked) {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 7px;
+    }
+}
+@container (max-width: 260px) {
+    .horario-premium-linha .horario-premium-periodos {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .horario-premium-linha .horario-premium-faixa:first-child,
+    .horario-premium-linha .horario-premium-faixa:not(:first-child) {
+        grid-column: 1 / -1;
+    }
+    .horario-premium-linha .horario-premium-campos {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 4px;
+    }
+    .horario-premium-linha .horario-premium-campos span {
+        text-align: center;
+    }
+}
+@media (max-width: 600px) {
+    .loja-premium-v2 #listaHorarios .linha-horario.horario-premium-linha,
+    .administracao-mestre-premium #listaHorariosMestre .linha-horario.horario-premium-linha {
+        padding: 11px;
+    }
 }
