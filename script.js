@@ -614,6 +614,20 @@ function obterProximoHorarioProgramado(horarios, agora = new Date()) {
     return null;
 }
 
+// Diferencia a pausa programada do encerramento do expediente.
+// Retorna a proxima abertura somente quando um periodo ja terminou hoje
+// e existe outro periodo configurado para o mesmo dia.
+function obterRetornoPausaEntrePeriodos(horarios, agora = new Date()) {
+    const { diaSemana, minutosAgora } = obterAgoraHorarioLoja(agora);
+    const diaConfig = obterConfigHorarioDia(horarios, diaSemana);
+    const periodos = PedeAkiHorarios.periodosDoDia(diaConfig);
+    if (periodos.length < 2 || PedeAkiHorarios.intervaloAtual(diaConfig, minutosAgora)) return null;
+    const proximo = PedeAkiHorarios.proximoIntervalo(diaConfig, minutosAgora);
+    if (!proximo) return null;
+    const jaAtendeuHoje = periodos.some(p => horarioParaMinutos(p.fecha) <= minutosAgora);
+    return jaAtendeuHoje ? proximo.abre : null;
+}
+
 // Atualiza a faixa de status da loja e bloqueia/libera o botão de finalizar compra
 function atualizarStatusLoja(config) {
     const banner = document.getElementById('statusLojaBanner');
@@ -731,9 +745,12 @@ function atualizarStatusLoja(config) {
             atualizarOpcoesPagamentoCheckout();
         }
     } else {
-        banner.classList.add('loja-fechada');
+        const retornoPausa = modoAutomatico ? obterRetornoPausaEntrePeriodos(horarios) : null;
+        banner.classList.add(retornoPausa ? 'loja-pausada' : 'loja-fechada');
 
-        if (modoManual === 'fechado') {
+        if (retornoPausa) {
+            texto.textContent = `☕ Estamos em uma breve pausa! Voltamos a atender às ${retornoPausa.replace(':', 'h')}. Enquanto isso, fique à vontade para conferir nossas delícias! 🤎`;
+        } else if (modoManual === 'fechado') {
             texto.textContent = '🔴 Atendimento encerrado no momento · Cardápio disponível para consulta';
         } else if (modoAutomatico && horarioHojeProgramado && horarioHojeProgramado.minutosAgora < horarioHojeProgramado.minutosAbre) {
             texto.textContent = `🕘 Abrimos hoje às ${horarioHojeProgramado.abre} · Cardápio disponível para consulta`;
@@ -754,7 +771,9 @@ function atualizarStatusLoja(config) {
                 botaoFinalizarCompra.textContent = 'Finalizar Compra';
             } else {
                 botaoFinalizarCompra.disabled = true;
-                botaoFinalizarCompra.textContent = 'No momento, estamos fechados';
+                botaoFinalizarCompra.textContent = retornoPausa
+                    ? `Retomamos os pedidos às ${retornoPausa.replace(':', 'h')}`
+                    : 'No momento, estamos fechados';
             }
         }
     }
@@ -5231,7 +5250,14 @@ async function finalizarCompra() {
     // Encomenda agendada é pra uma data futura — não faz sentido bloquear só porque a
     // loja está fechada agora, nesse exato momento (diferente de um pedido pro dia)
     if (!lojaAbertaAtual && !gruposMomentoCheckout.temEncomenda) {
-        alert('Estamos fechados no momento. Assim que reabrirmos, você já pode finalizar seu pedido!');
+        const configReal = ultimaConfigLojaReal || {};
+        const retornoPausa = !configReal.pausada
+            && configReal.modoManual !== 'aberto'
+            && configReal.modoManual !== 'fechado'
+            ? obterRetornoPausaEntrePeriodos(configReal.horarios) : null;
+        alert(retornoPausa
+            ? `Estamos em uma breve pausa! ☕ Voltamos a atender às ${retornoPausa.replace(':', 'h')}. Você poderá finalizar seu pedido quando retomarmos. 🤎`
+            : 'Estamos fechados no momento. Assim que reabrirmos, você já pode finalizar seu pedido!');
         return;
     }
     if (carrinho.length === 0) {
