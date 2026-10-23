@@ -398,7 +398,8 @@
                                     </div>
                                 </div>
                                 <div class="loja-horarios-bloco">
-                                    <div class="loja-bloco-label"><span>🕒 Horário de funcionamento</span><small>Semana</small></div>
+                                    <div class="loja-bloco-label"><span>🕒 Horário de funcionamento</span><small>Até 3 períodos por dia</small></div>
+                                    <p class="horario-premium-instrucao">Configure um expediente único ou ative o 2º e 3º períodos para pausas entre almoço, tarde e jantar. Períodos adicionais são opcionais.</p>
                                     <div id="listaHorarios" class="lista-horarios loja-horarios-lista"></div>
                                     <div class="loja-card-actions">
                                         <button class="btn-salvar-horarios" onclick="salvarHorarios()">💾 Salvar horários</button>
@@ -1776,6 +1777,7 @@
 
                         <div class="adm-step-card adm-step-horarios">
                             <div class="adm-step-head"><span class="adm-step-index">06</span><div><span class="adm-mestre-kicker">FUNCIONAMENTO</span><h3>🕐 Horário de funcionamento</h3><p>Defina a rotina semanal usada para abrir e fechar a loja automaticamente.</p></div></div>
+                        <p class="horario-premium-instrucao">Até 3 períodos diários, sem alterar pagamentos ou notificações. Horários sem períodos extras continuam iguais.</p>
                         <div id="listaHorariosMestre"></div>
                         <button class="btn-salvar-ordem" style="margin-top:10px;" onclick="salvarHorariosMestre()">💾 Salvar horários</button>
                         <p id="msgHorariosMestre" class="ordem-categorias-msg"></p>
@@ -3184,8 +3186,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="horarios-multiperiodos.css">
     <script src="loja-config.js"></script>
     <script src="firebase-config.js"></script>
+    <script src="horarios-multiperiodos.js"></script>
     <script src="admin.js"></script>
     <script src="previsao-entrega-admin.js"></script>
 </body>

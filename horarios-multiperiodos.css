@@ -1,0 +1,16 @@
+/* Agenda Premium • Até três períodos diários (painel + Central Mestre). */
+.horario-premium-instrucao {font-size:.82rem;line-height:1.5;color:#8a7665;margin:4px 0 12px;}
+.linha-horario.horario-premium-linha {display:grid;grid-template-columns:minmax(110px,170px) 1fr;gap:12px;align-items:start;padding:12px 10px;border:1px solid #e8dfd2;border-radius:14px;background:#fff;box-shadow:0 2px 8px rgba(74,47,29,.035);margin-bottom:7px;}
+.horario-premium-linha .horario-premium-dia {display:flex;align-items:center;gap:8px;min-height:42px;margin:0;font-weight:750;color:#45332b;}
+.horario-premium-linha .horario-premium-periodos {display:grid;gap:8px;min-width:0;}
+.horario-premium-linha .horario-premium-faixa {display:grid;grid-template-columns:minmax(125px,1fr) minmax(230px,1.65fr);gap:10px;align-items:center;border:1px solid #ede5dc;padding:7px 10px;border-radius:11px;background:#fffdfb;}
+.horario-premium-linha .horario-premium-etiqueta {display:flex;gap:6px;align-items:center;font-size:.76rem;font-weight:700;color:#806350;margin:0;white-space:nowrap;}
+.horario-premium-linha .horario-premium-campos {display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px;min-width:0;}
+.horario-premium-linha .horario-premium-campos input[type="time"] {display:block;box-sizing:border-box;width:100%;min-width:0;max-width:none;margin:0;padding:9px 7px;border:1px solid #e5d7c7;border-radius:10px;background:#fff;min-height:40px;color:#4b3224;}
+.horario-premium-linha input[type="time"]:disabled {background:#f5f2ee;color:#9e9186;opacity:.7;}
+.horario-premium-linha .horario-premium-campos span {font-size:.72rem;color:#9e8d80;white-space:nowrap;}
+@media (max-width:850px) {
+ .linha-horario.horario-premium-linha{grid-template-columns:1fr;gap:6px;padding:10px;}
+ .horario-premium-linha .horario-premium-faixa{grid-template-columns:1fr;gap:7px;}
+ .horario-premium-linha .horario-premium-campos input[type="time"]{padding:8px 5px;}
+}

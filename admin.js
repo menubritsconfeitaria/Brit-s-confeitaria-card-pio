@@ -1079,38 +1079,19 @@ async function salvarIdentidadeClienteMestre() {
 // editor normal (horariosPadraoAdmin/diasSemana), só com sufixo "Mestre" nos IDs
 // pra não colidir com os campos do painel normal do cliente.
 function montarLinhasHorarioMestre(horarios) {
-    const container = document.getElementById('listaHorariosMestre');
-    if (!container) return;
-    container.innerHTML = '';
-    diasSemana.forEach((nomeDia, i) => {
-        const dia = (horarios && horarios[i]) || horariosPadraoAdmin[i];
-        const linha = document.createElement('div');
-        linha.classList.add('linha-horario');
-        linha.innerHTML = `
-            <label class="dia-checkbox">
-                <input type="checkbox" id="diaAbertoMestre${i}" ${dia.aberto ? 'checked' : ''}> ${nomeDia}
-            </label>
-            <input type="time" id="diaAbreMestre${i}" value="${dia.abre}">
-            <span>até</span>
-            <input type="time" id="diaFechaMestre${i}" value="${dia.fecha}">
-        `;
-        container.appendChild(linha);
-    });
+    montarEditorHorariosPeriodo('listaHorariosMestre', horarios, 'Mestre');
 }
 
 function salvarHorariosMestre() {
     const registro = appsClientesMestre[nomeAppClienteMestre(clienteMestreSelecionadoIndice)];
     const msgEl = document.getElementById('msgHorariosMestre');
     if (!registro || !registro.autenticado) { msgEl.textContent = 'Faz login nesse cliente primeiro.'; return; }
-
-    const horarios = diasSemana.map((_, i) => ({
-        aberto: document.getElementById('diaAbertoMestre' + i).checked,
-        abre: document.getElementById('diaAbreMestre' + i).value || '08:00',
-        fecha: document.getElementById('diaFechaMestre' + i).value || '18:00'
-    }));
+    let horarios;
+    try { horarios = lerHorariosPremiumFormulario('Mestre'); }
+    catch (err) { msgEl.textContent = '⚠️ ' + err.message; return; }
     msgEl.textContent = 'Salvando...';
     registro.db.ref('configuracao/loja/horarios').set(horarios)
-        .then(() => { msgEl.textContent = 'Horários salvos!'; })
+        .then(() => { msgEl.textContent = '✅ Horários salvos!'; })
         .catch(err => { msgEl.textContent = 'Erro ao salvar: ' + err.message; });
 }
 
@@ -3338,12 +3319,22 @@ function timestampHorarioOperacao(dataIso, horario) {
 
 function aberturaAutomaticaOperacao(dataIso, horarios) {
     const cfg = obterDiaConfigOperacao(dataIso, horarios);
-    return cfg && cfg.aberto ? timestampHorarioOperacao(dataIso, cfg.abre) : null;
+    if (!cfg || !cfg.aberto) return null;
+    const hojeInicio = inicioDiaOperacaoLoja(dataIso);
+    const minutosAgora = Math.max(0, Math.min(1440,
+        Math.floor((agoraOperacaoLoja() - hojeInicio) / 60000)));
+    const p = PedeAkiHorarios.ultimaAbertura(cfg, minutosAgora);
+    return p ? timestampHorarioOperacao(dataIso, p) : null;
 }
 
 function fechamentoAutomaticoOperacao(dataIso, horarios) {
     const cfg = obterDiaConfigOperacao(dataIso, horarios);
-    return cfg && cfg.aberto ? timestampHorarioOperacao(dataIso, cfg.fecha) : null;
+    if (!cfg || !cfg.aberto) return null;
+    const hojeInicio = inicioDiaOperacaoLoja(dataIso);
+    const minutosAgora = Math.max(0, Math.min(1440,
+        Math.floor((agoraOperacaoLoja() - hojeInicio) / 60000)));
+    const p = PedeAkiHorarios.ultimoFechamento(cfg, minutosAgora);
+    return p ? timestampHorarioOperacao(dataIso, p) : null;
 }
 
 function calcularEstadoEfetivoLoja(config) {
@@ -3501,6 +3492,40 @@ async function sincronizarTempoOperacaoLoja(abertaEfetiva, modo) {
         const estadoSnap = await db.ref('configuracao/operacaoLoja/estadoAtual').once('value');
         let estado = estadoSnap.val() || null;
 
+        // R1/retomada: o painel pode dormir durante o intervalo entre períodos.
+        // Reconcilia SOMENTE sessões automáticas com horários válidos, sem tocar em
+        // força aberto/fechado, pausas, notificações ou outros recursos.
+        if (estado && estado.aberta && estado.modo === 'auto'
+                && (modo || 'auto') === 'auto' && operacaoLojaConfigAtual) {
+            const diaSessao = estado.data;
+            const cfgSessao = obterDiaConfigOperacao(diaSessao, operacaoLojaConfigAtual.horarios);
+            const periodosSessao = PedeAkiHorarios.periodosDoDia(cfgSessao).map(p => ({
+                inicio: timestampHorarioOperacao(diaSessao, p.abre),
+                fim: timestampHorarioOperacao(diaSessao, p.fecha)
+            }));
+            const inicioAtual = Number(estado.abriuEm);
+            const periodoAnterior = periodosSessao.find(p =>
+                inicioAtual >= p.inicio && inicioAtual < p.fim);
+            if (periodoAnterior && agora >= periodoAnterior.fim) {
+                // Fechamento atômico já existente protege contra dupla contagem.
+                if (!await fecharSessaoOperacaoLoja(estado, periodoAnterior.fim)) return;
+                // Recupera períodos inteiros perdidos quando o painel ficou dormindo.
+                // A sessão em andamento (se houver) será criada pelo fluxo original.
+                for (const p of periodosSessao) {
+                    if (p.inicio <= periodoAnterior.inicio || p.fim > agora) continue;
+                    if (!await abrirSessaoOperacaoLoja('auto', p.inicio)) return;
+                    const snapRecuperado = await db.ref('configuracao/operacaoLoja/estadoAtual').once('value');
+                    const sessaoRecuperada = snapRecuperado.val();
+                    if (!sessaoRecuperada || !sessaoRecuperada.aberta
+                            || Number(sessaoRecuperada.abriuEm) !== p.inicio
+                            || sessaoRecuperada.modo !== 'auto') return;
+                    if (!await fecharSessaoOperacaoLoja(sessaoRecuperada, p.fim)) return;
+                }
+                const estadoAtualizadoSnap = await db.ref('configuracao/operacaoLoja/estadoAtual').once('value');
+                estado = estadoAtualizadoSnap.val() || null;
+            }
+        }
+
         // Se uma sessão atravessou a meia-noite, fecha o dia anterior sem deixar o relógio
         // correr indefinidamente. No automático, respeita primeiro o fechamento programado.
         if (estado && estado.aberta && estado.data && estado.data !== hoje) {
@@ -3613,31 +3638,104 @@ const horariosPadraoAdmin = [
     { aberto: true, abre: '09:00', fecha: '16:00' }  // Sábado
 ];
 
-function montarLinhasHorario(horarios) {
-    const container = document.getElementById('listaHorarios');
+// Editor Premium de até 3 períodos/dia, comum ao painel e à Central Mestre.
+function montarEditorHorariosPeriodo(containerId, horarios, sufixo) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
     container.innerHTML = '';
     diasSemana.forEach((nomeDia, i) => {
         const dia = (horarios && horarios[i]) || horariosPadraoAdmin[i];
+        const ativos = PedeAkiHorarios.periodosDoDia({ ...dia, aberto: true });
+        const periodos = ativos.length ? ativos : [{ abre: dia.abre || '08:00', fecha: dia.fecha || '18:00' }];
+        const id = sufixo + i;
         const linha = document.createElement('div');
-        linha.classList.add('linha-horario');
+        linha.className = 'linha-horario horario-premium-linha';
         linha.innerHTML = `
-            <label class="dia-checkbox">
-                <input type="checkbox" id="diaAberto${i}" ${dia.aberto ? 'checked' : ''}> ${nomeDia}
-            </label>
-            <input type="time" id="diaAbre${i}" value="${dia.abre}">
-            <span>até</span>
-            <input type="time" id="diaFecha${i}" value="${dia.fecha}">
-        `;
+            <label class="dia-checkbox horario-premium-dia"><input type="checkbox" id="diaAberto${id}" ${dia.aberto ? 'checked' : ''} onchange="atualizarCamposHorarioPeriodo('${sufixo}',${i})"> ${nomeDia}</label>
+            <div class="horario-premium-periodos">
+                ${[0, 1, 2].map(n => {
+                    const p = periodos[n] || {};
+                    const extra = n > 0;
+                    const marcado = !!periodos[n];
+                    return `<div class="horario-premium-faixa">
+                        <label class="horario-premium-etiqueta" ${extra ? '' : `for="diaAbre${id}"`}>
+                            ${extra ? `<input type="checkbox" id="diaPeriodo${n + 1}${id}" ${marcado ? 'checked' : ''} onchange="alternarPeriodoHorario('${sufixo}',${i},${n + 1})">` : ''}
+                            ${n === 0 ? 'Período 1' : `Período ${n + 1} · opcional`}
+                        </label>
+                        <div class="horario-premium-campos">
+                            <input type="time" id="${n === 0 ? 'diaAbre' : 'diaAbre' + (n + 1)}${id}" value="${p.abre || ''}" aria-label="${nomeDia}, abertura período ${n + 1}">
+                            <span>até</span>
+                            <input type="time" id="${n === 0 ? 'diaFecha' : 'diaFecha' + (n + 1)}${id}" value="${p.fecha || ''}" aria-label="${nomeDia}, fechamento período ${n + 1}">
+                        </div>
+                    </div>`;
+                }).join('')}
+            </div>`;
         container.appendChild(linha);
+        atualizarCamposHorarioPeriodo(sufixo, i);
     });
 }
 
+function atualizarCamposHorarioPeriodo(sufixo, i) {
+    const id = sufixo + i;
+    const aberto = document.getElementById('diaAberto' + id).checked;
+    for (let n = 1; n <= 3; n++) {
+        const extra = n > 1;
+        const marcado = !extra || document.getElementById('diaPeriodo' + n + id).checked;
+        const ativo = aberto && marcado;
+        const abertura = document.getElementById((n === 1 ? 'diaAbre' : 'diaAbre' + n) + id);
+        const fechamento = document.getElementById((n === 1 ? 'diaFecha' : 'diaFecha' + n) + id);
+        abertura.disabled = !ativo;
+        fechamento.disabled = !ativo;
+    }
+}
+
+function alternarPeriodoHorario(sufixo, i, numero) {
+    const id = sufixo + i;
+    const extra2 = document.getElementById('diaPeriodo2' + id);
+    const extra3 = document.getElementById('diaPeriodo3' + id);
+    if (numero === 2 && !extra2.checked) extra3.checked = false;
+    if (numero === 3 && extra3.checked) extra2.checked = true;
+    atualizarCamposHorarioPeriodo(sufixo, i);
+}
+
+function lerHorariosPremiumFormulario(sufixo) {
+    return diasSemana.map((nomeDia, i) => {
+        const id = sufixo + i;
+        const aberto = document.getElementById('diaAberto' + id).checked;
+        const periodos = [{
+            abre: document.getElementById('diaAbre' + id).value,
+            fecha: document.getElementById('diaFecha' + id).value
+        }];
+        if (document.getElementById('diaPeriodo2' + id).checked) {
+            periodos.push({
+                abre: document.getElementById('diaAbre2' + id).value,
+                fecha: document.getElementById('diaFecha2' + id).value
+            });
+        }
+        if (document.getElementById('diaPeriodo3' + id).checked) {
+            periodos.push({
+                abre: document.getElementById('diaAbre3' + id).value,
+                fecha: document.getElementById('diaFecha3' + id).value
+            });
+        }
+        try {
+            return PedeAkiHorarios.horarioParaSalvar(aberto, periodos);
+        } catch (erro) { throw Error(`${nomeDia}: ${erro.message}`); }
+    });
+}
+
+function montarLinhasHorario(horarios) {
+    montarEditorHorariosPeriodo('listaHorarios', horarios, '');
+}
+
 function salvarHorarios() {
-    const horarios = diasSemana.map((_, i) => ({
-        aberto: document.getElementById('diaAberto' + i).checked,
-        abre: document.getElementById('diaAbre' + i).value || '08:00',
-        fecha: document.getElementById('diaFecha' + i).value || '18:00'
-    }));
+    let horarios;
+    try { horarios = lerHorariosPremiumFormulario(''); }
+    catch (err) {
+        const msg = document.getElementById('horariosSalvosMsg');
+        if (msg) msg.textContent = '⚠️ ' + err.message;
+        return;
+    }
     db.ref('configuracao/loja/horarios').set(horarios)
         .then(() => {
             const msg = document.getElementById('horariosSalvosMsg');
@@ -4216,10 +4314,7 @@ function calcularAbertoPorHorarioAdmin(horarios) {
     const diaSemana = agora.getDay();
     const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
     const diaConfig = (horarios && horarios[diaSemana]) || horariosPadraoAdmin[diaSemana];
-    if (!diaConfig || !diaConfig.aberto) return false;
-    const [ha, ma] = diaConfig.abre.split(':').map(Number);
-    const [hf, mf] = diaConfig.fecha.split(':').map(Number);
-    return minutosAgora >= (ha * 60 + ma) && minutosAgora < (hf * 60 + mf);
+    return !!PedeAkiHorarios.intervaloAtual(diaConfig, minutosAgora);
 }
 
 // Mesmos limites de pontos usados no cardápio (Bronze/Prata/Ouro/VIP), pra manter o painel

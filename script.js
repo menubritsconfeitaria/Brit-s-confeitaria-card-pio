@@ -568,14 +568,7 @@ function obterAgoraHorarioLoja(agora = new Date()) {
 // e não o fuso do aparelho do cliente.
 function calcularAbertoPorHorario(horarios, agora = new Date()) {
     const { diaSemana, minutosAgora } = obterAgoraHorarioLoja(agora);
-    const diaConfig = obterConfigHorarioDia(horarios, diaSemana);
-
-    if (!diaConfig || !diaConfig.aberto) return false;
-    if (!horarioProgramadoValido(diaConfig.abre) || !horarioProgramadoValido(diaConfig.fecha)) return false;
-
-    const abre = horarioParaMinutos(diaConfig.abre);
-    const fecha = horarioParaMinutos(diaConfig.fecha);
-    return minutosAgora >= abre && minutosAgora < fecha;
+    return !!PedeAkiHorarios.intervaloAtual(obterConfigHorarioDia(horarios, diaSemana), minutosAgora);
 }
 
 // Retorna a informação útil pro cliente a partir da agenda configurada no painel.
@@ -587,51 +580,37 @@ function calcularAbertoPorHorario(horarios, agora = new Date()) {
 function obterHorarioProgramadoHoje(horarios, agora = new Date()) {
     const { diaSemana, minutosAgora } = obterAgoraHorarioLoja(agora);
     const diaConfig = obterConfigHorarioDia(horarios, diaSemana);
-
-    if (!diaConfig || !diaConfig.aberto) return null;
-    if (!horarioProgramadoValido(diaConfig.abre) || !horarioProgramadoValido(diaConfig.fecha)) return null;
-
+    const periodo = PedeAkiHorarios.intervaloAtual(diaConfig, minutosAgora)
+        || PedeAkiHorarios.proximoIntervalo(diaConfig, minutosAgora);
+    if (!periodo) return null;
     return {
         diaSemana,
-        abre: diaConfig.abre,
-        fecha: diaConfig.fecha,
+        abre: periodo.abre, fecha: periodo.fecha,
         minutosAgora,
-        minutosAbre: horarioParaMinutos(diaConfig.abre),
-        minutosFecha: horarioParaMinutos(diaConfig.fecha)
+        minutosAbre: horarioParaMinutos(periodo.abre),
+        minutosFecha: horarioParaMinutos(periodo.fecha)
     };
 }
 
 function obterProximoHorarioProgramado(horarios, agora = new Date()) {
     const { diaSemana, minutosAgora } = obterAgoraHorarioLoja(agora);
     const hoje = obterConfigHorarioDia(horarios, diaSemana);
-
-    if (hoje && hoje.aberto && horarioProgramadoValido(hoje.abre) && horarioProgramadoValido(hoje.fecha)) {
-        const abreHoje = horarioParaMinutos(hoje.abre);
-        const fechaHoje = horarioParaMinutos(hoje.fecha);
-
-        if (minutosAgora < abreHoje) {
-            return { tipo: 'abre', quando: 'hoje', hora: hoje.abre, diaSemana };
-        }
-        if (minutosAgora >= abreHoje && minutosAgora < fechaHoje) {
-            return { tipo: 'fecha', quando: 'hoje', hora: hoje.fecha, diaSemana };
-        }
-    }
+    const emCurso = PedeAkiHorarios.intervaloAtual(hoje, minutosAgora);
+    if (emCurso) return { tipo: 'fecha', quando: 'hoje', hora: emCurso.fecha, diaSemana };
+    const proximoHoje = PedeAkiHorarios.proximoIntervalo(hoje, minutosAgora);
+    if (proximoHoje) return { tipo: 'abre', quando: 'hoje', hora: proximoHoje.abre, diaSemana };
 
     for (let deslocamento = 1; deslocamento <= 7; deslocamento++) {
         const proximoDia = (diaSemana + deslocamento) % 7;
         const configDia = obterConfigHorarioDia(horarios, proximoDia);
-
-        if (!configDia || !configDia.aberto) continue;
-        if (!horarioProgramadoValido(configDia.abre)) continue;
-
+        const periodos = PedeAkiHorarios.periodosDoDia(configDia);
+        if (!periodos.length) continue;
         return {
             tipo: 'abre',
             quando: deslocamento === 1 ? 'amanhã' : nomesDiasHorarioLoja[proximoDia],
-            hora: configDia.abre,
-            diaSemana: proximoDia
+            hora: periodos[0].abre, diaSemana: proximoDia
         };
     }
-
     return null;
 }
 
