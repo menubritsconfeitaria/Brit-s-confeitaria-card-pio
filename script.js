@@ -734,7 +734,13 @@ function atualizarStatusLoja(config) {
         if (modoManual === 'aberto') {
             texto.textContent = '🟢 Atendimento aberto agora · Estamos recebendo pedidos';
         } else if (horarioHojeProgramado) {
-            texto.textContent = `🟢 Estamos atendendo · Pedidos até ${horarioHojeProgramado.fecha}`;
+            const periodosHoje = PedeAkiHorarios.periodosDoDia(
+                obterConfigHorarioDia(horarios, horarioHojeProgramado.diaSemana)
+            );
+            const fechamentoFinalHoje = periodosHoje.length
+                ? periodosHoje[periodosHoje.length - 1].fecha
+                : horarioHojeProgramado.fecha;
+            texto.textContent = `🟢 Estamos atendendo · Pedidos até ${fechamentoFinalHoje}`;
         } else {
             texto.textContent = '🟢 Atendimento aberto agora · Faça seu pedido pelo nosso cardápio';
         }
