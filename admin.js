@@ -4404,24 +4404,113 @@ function excluirModeloNotificacao(index) {
         .catch(err => alert('Erro ao excluir: ' + err.message));
 }
 
-function salvarModeloAtualComoNovo() {
+// Protege contra cliques repetidos enquanto o Firebase confirma o salvamento.
+let salvamentoModeloNotificacaoEmAndamento = false;
+
+function normalizarIdentidadeModeloNotificacao(texto) {
+    return String(texto || '').trim().normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').toLocaleLowerCase('pt-BR');
+}
+
+async function salvarModeloAtualComoNovo() {
+    if (salvamentoModeloNotificacaoEmAndamento) return;
+
     const titulo = document.getElementById('notifPersonalizadaTitulo').value.trim();
     const mensagem = document.getElementById('notifPersonalizadaCorpo').value.trim();
     const msgEl = document.getElementById('msgModelosNotificacao');
-    if (!titulo || !mensagem) { if (msgEl) msgEl.textContent = 'Escreve o título e a mensagem primeiro.'; return; }
+    const botao = document.querySelector('button[onclick="salvarModeloAtualComoNovo()"]');
+    const mostrar = (mensagemUsuario, tipo) => {
+        if (!msgEl) return;
+        msgEl.textContent = mensagemUsuario;
+        msgEl.style.color = tipo === 'erro' ? '#b42318' : tipo === 'aviso' ? '#98541f' : '#247746';
+        msgEl.setAttribute('role', 'status');
+        msgEl.setAttribute('aria-live', 'polite');
+    };
 
-    const novaLista = [...modelosNotificacaoAtuais];
-    if (modeloEmEdicaoIndex !== null) {
-        novaLista[modeloEmEdicaoIndex] = { titulo, mensagem }; // atualiza o modelo que estava sendo editado
-    } else {
-        novaLista.push({ titulo, mensagem }); // cria um modelo novo
+    if (!titulo || !mensagem) {
+        mostrar('Preencha o título e a mensagem para salvar o modelo.', 'aviso');
+        return;
     }
 
-    db.ref('configuracao/modelosNotificacao').set(novaLista)
-        .then(() => { if (msgEl) msgEl.textContent = modeloEmEdicaoIndex !== null ? 'Modelo atualizado!' : 'Modelo novo salvo!'; })
-        .catch(err => { if (msgEl) msgEl.textContent = 'Erro ao salvar: ' + err.message; });
+    const indiceEdicao = modeloEmEdicaoIndex;
+    const original = indiceEdicao === null ? null : modelosNotificacaoAtuais[indiceEdicao];
+    if (indiceEdicao !== null && !original) {
+        mostrar('Este modelo foi alterado em outra sessão. Atualize a lista antes de editar.', 'aviso');
+        return;
+    }
+    const identidade = normalizarIdentidadeModeloNotificacao;
+    const nome = identidade(titulo);
+    const conteudo = identidade(mensagem);
+    let motivoBloqueio = '';
+    const rotuloBotao = botao ? botao.textContent : null;
+    salvamentoModeloNotificacaoEmAndamento = true;
+    if (botao) {
+        botao.disabled = true;
+        botao.textContent = '⏳ Salvando modelo...';
+    }
+    mostrar('Conferindo modelos existentes...', 'aviso');
 
-    modeloEmEdicaoIndex = null;
+    try {
+        // Transação read-first: outra aba não pode adicionar o mesmo título entre a
+        // conferência e a gravação. Também não sobrescreve edições alheias.
+        const resultado = await db.ref('configuracao/modelosNotificacao').transaction(atual => {
+            motivoBloqueio = '';
+            const lista = Array.isArray(atual) && atual.length > 0
+                ? atual : MODELOS_NOTIFICACAO_PADRAO;
+            let posicaoEditada = -1;
+
+            if (indiceEdicao !== null) {
+                const candidato = lista[indiceEdicao];
+                if (candidato && identidade(candidato.titulo) === identidade(original.titulo)
+                    && identidade(candidato.mensagem) === identidade(original.mensagem)) {
+                    posicaoEditada = indiceEdicao;
+                } else {
+                    motivoBloqueio = 'Este modelo foi alterado em outra sessão. Atualize a lista antes de editar.';
+                    return;
+                }
+            }
+
+            const existente = lista.findIndex((modelo, indice) => modelo && indice !== posicaoEditada
+                && identidade(modelo.titulo) === nome);
+            if (existente !== -1) {
+                const igual = identidade(lista[existente].mensagem) === conteudo;
+                motivoBloqueio = igual
+                    ? 'Este modelo já está salvo. Nenhuma cópia foi criada.'
+                    : 'Já existe um modelo com esse título. Use ✏️ para editá-lo ou escolha outro título.';
+                return;
+            }
+
+            if (posicaoEditada !== -1) {
+                if (identidade(lista[posicaoEditada].titulo) === nome
+                    && identidade(lista[posicaoEditada].mensagem) === conteudo) {
+                    motivoBloqueio = 'Este modelo já está atualizado. Nenhuma alteração necessária.';
+                    return;
+                }
+                const novaLista = lista.slice();
+                novaLista[posicaoEditada] = { ...lista[posicaoEditada], titulo, mensagem };
+                return novaLista;
+            }
+            return [...lista, { titulo, mensagem }];
+        }, undefined, false);
+
+        if (resultado.committed) {
+            if (modeloEmEdicaoIndex === indiceEdicao) modeloEmEdicaoIndex = null;
+            mostrar(indiceEdicao === null
+                ? 'Modelo salvo com sucesso! Disponível em Modelos prontos.'
+                : 'Modelo atualizado com sucesso!', 'sucesso');
+        } else {
+            mostrar(motivoBloqueio || 'Não foi possível confirmar o modelo. Tente novamente.', 'aviso');
+        }
+    } catch (erro) {
+        console.error('Falha ao salvar modelo de notificação:', erro && erro.code ? erro.code : 'erro');
+        mostrar('Não foi possível salvar o modelo. Confira a conexão e tente novamente.', 'erro');
+    } finally {
+        salvamentoModeloNotificacaoEmAndamento = false;
+        if (botao) {
+            botao.disabled = false;
+            botao.textContent = rotuloBotao;
+        }
+    }
 }
 
 // Mostra, em tempo real, quantos aparelhos estão prontos pra receber notificação —
