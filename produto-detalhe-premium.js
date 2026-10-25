@@ -65,7 +65,7 @@
             <span class="pdp-r1-sobretitulo">ESCOLHA DO SEU JEITO</span>
             <h2 id="pdpR1_nome"></h2>
             <p id="pdpR1_descricao" class="pdp-r1-descricao"></p>
-            <div class="pdp-r1-preco-base">A partir de <strong id="pdpR1_precoBase"></strong></div>
+            <div class="pdp-r1-preco-base"><span id="pdpR1_precoEtiqueta"></span><strong id="pdpR1_precoBase"></strong></div>
             <div id="pdpR1_avisoDisponibilidade" class="pdp-r1-aviso" hidden></div>
             <div id="pdpR1_campos" class="pdp-r1-campos">
               <div id="pdpR1_variantes"></div>
@@ -215,6 +215,12 @@
     fotoIndice = 0; sucesso = false;
     id('nome').textContent = escapar(produto.nome);
     id('descricao').textContent = escapar(produto.descricao || 'Feito com carinho, especialmente para você.');
+    // Somente produtos com escolhas reais de adicionais exibem 'A partir de'.
+    // Sem adicionais (ou com o recurso desativado), o preco cadastrado e fixo.
+    const temAdicionaisParaEscolher = typeof adicionaisAtivo !== 'undefined' && adicionaisAtivo === true &&
+      Array.isArray(produto.grupoAdicionais) && produto.grupoAdicionais.some(grupo =>
+        grupo && Array.isArray(grupo.opcoes) && grupo.opcoes.length > 0);
+    id('precoEtiqueta').textContent = temAdicionaisParaEscolher ? 'A partir de ' : '';
     id('precoBase').textContent = dinheiro(produto.preco);
     id('obs').value = '';
     id('erro').textContent = '';
