@@ -2158,13 +2158,25 @@ function montarHtmlTicketImpressao(pedido, numeroPedido) {
     const numeroHtml = numeroPedido
         ? `<p class="ticket-numero">🛒 Pedido #${escaparHtmlSeguro(String(numeroPedido).padStart(3, '0'))}</p>`
         : '';
-    const itensHtml = (pedido.itens || []).map(item => `
+    const itensHtml = (pedido.itens || []).map(item => {
+        // O preço já inclui adicionais: usar o valor operacional da linha, sem recalcular.
+        const precoPresente = item && item.preco !== null && item.preco !== undefined &&
+            String(item.preco).trim() !== '' && Number.isFinite(Number(item.preco));
+        const precoLinha = precoPresente || itemEhRecompensaClubeAdmin(item)
+            ? formatarPreco(valorItemExibicaoPedido(item))
+            : 'A conferir';
+        return `
         <div class="ticket-item">
-            <strong>${escaparHtmlSeguro(item.quantidade)}x ${escaparHtmlSeguro(item.nome)}</strong>
+            <div class="ticket-produto-linha">
+                <strong class="ticket-produto-nome">${escaparHtmlSeguro(item.quantidade)}x ${escaparHtmlSeguro(item.nome)}</strong>
+                <span class="ticket-produto-pontos" aria-hidden="true"></span>
+                <strong class="ticket-produto-preco">${precoLinha}</strong>
+            </div>
             ${item.observacao ? `<div class="ticket-obs">↳ ${escaparHtmlSeguro(item.observacao)}</div>` : ''}
             ${item.adicionaisTexto ? `<div class="ticket-obs">↳ ${escaparHtmlSeguro(item.adicionaisTexto)}</div>` : ''}
         </div>
-    `).join('');
+    `;
+    }).join('');
 
     return `
         <div class="ticket-cabecalho">

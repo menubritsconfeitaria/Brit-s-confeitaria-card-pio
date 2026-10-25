@@ -1122,6 +1122,10 @@ body {
 #areaImpressaoPedido h3 { margin: 0 0 8px; }
 #areaImpressaoPedido .ticket-item { margin-bottom: 8px; font-size: 1.05em; }
 #areaImpressaoPedido .ticket-obs { color: #555; font-size: 0.9em; margin-left: 12px; }
+#areaImpressaoPedido .ticket-produto-linha { display: flex; align-items: flex-end; gap: 3px; min-width: 0; }
+#areaImpressaoPedido .ticket-produto-nome { flex: 0 1 auto; min-width: 0; overflow-wrap: break-word; line-height: 1.27; }
+#areaImpressaoPedido .ticket-produto-pontos { flex: 1 1 auto; min-width: 16px; border-bottom: 2px dotted #000; margin-bottom: 2px; align-self: flex-end; }
+#areaImpressaoPedido .ticket-produto-preco { flex: 0 0 auto; white-space: nowrap; text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
 #areaImpressaoPedido .ticket-total { font-size: 1.2em; text-align: right; }
 /* Final do cupom térmico: depois do Total, avança 5 mm e só então imprime
    uma linha real. Essa linha força o driver a considerar o fim físico do ticket. */
