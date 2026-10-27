@@ -27,7 +27,7 @@
    <div class="bpv-campos"><label>Cliente cadastrado (opcional)<input id="bpvBuscaCliente" type="search" autocomplete="off" placeholder="🔍 Nome ou telefone" aria-controls="bpvResultadosCliente" aria-expanded="false"><div id="bpvResultadosCliente" class="bpv-menu" hidden></div></label><label>Forma de pagamento<select id="bpvPagamento"><option value="">Selecionar</option><option>Dinheiro</option><option>Pix</option><option>Cartão de Crédito</option><option>Cartão de Débito</option><option>Transferência Bancária</option><option>Outros</option></select></label></div>
    <div class="bpv-clientes-acao"><button type="button" class="bpv-outline" id="bpvCadAbrir">+ Cadastrar cliente na hora</button><span id="bpvClienteSelecionado">Cliente balcão · sem cadastro</span></div>
    <div class="bpv-cadastro" id="bpvCadastro" hidden><div class="bpv-campos"><label>Nome *<input id="bpvCadNome" maxlength="100" autocomplete="off"></label><label>Telefone com DDD *<input id="bpvCadTel" inputmode="tel" maxlength="20" placeholder="(27) 99999-9999"></label></div><label>Endereço (opcional para balcão)<input id="bpvCadEnd" maxlength="240" placeholder="Rua, número, bairro"></label><div class="bpv-clientes-acao"><button type="button" class="bpv-main" id="bpvCadSalvar">Cadastrar e selecionar</button><button type="button" class="bpv-outline" id="bpvCadFechar">Cancelar</button></div><p id="bpvCadMsg" role="status"></p></div>
-   <div class="bpv-separador"></div><div class="bpv-titulo"><span>02</span><div><strong>Adicionar produtos</strong><small>Preço de venda oficial do cardápio; Ficha Técnica preservada para custos.</small></div></div>
+   <div class="bpv-separador"></div><div class="bpv-titulo"><span>02</span><div><strong>Adicionar produtos</strong><small>Produtos e preços oficiais do cardápio; Ficha Técnica opcional para custos.</small></div></div>
    <input id="bpvBuscaProduto" class="bpv-pesquisa" type="search" placeholder="🔎 Buscar produto..."><div class="bpv-categorias" id="bpvCategorias"></div><div class="bpv-produtos" id="bpvProdutos"></div>
    <div class="bpv-separador"></div><div class="bpv-titulo"><span>03</span><div><strong>Observação geral</strong><small>Preferências, retirada ou orientações da venda.</small></div></div><textarea id="bpvObs" rows="3" placeholder="Observações (opcional)"></textarea>
    <p class="bpv-nota">Encomendas com sinal e edição de pedidos existentes permanecem disponíveis no modo clássico.</p>
@@ -69,85 +69,125 @@
     }catch(e){msg.textContent='Não foi possível cadastrar: '+(e.message||'verifique o CRM.');}
     finally{trava=false;$('bpvCadSalvar').disabled=false;}
   });
-  function catalogo(){return typeof fichaTecnica!=='undefined'&&Array.isArray(fichaTecnica)?fichaTecnica:[];}
-  // Preço do CARDÁPIO (produtos), nunca preço sugerido pela Ficha Técnica.
-  // O vínculo explícito tem prioridade; o nome serve apenas como fallback EXATO e único.
-  function resolverPrecoCardapio(ficha) {
-    if (!ficha || ficha.id == null || typeof ultimoValProdutosAdmin === 'undefined' || ultimoValProdutosAdmin == null ||
-        typeof ultimoValProdutosAdmin !== 'object' || Array.isArray(ultimoValProdutosAdmin))
-      return {ok:false,motivo:'Aguardando os produtos do cardápio.'};
-    const todos=Object.entries(ultimoValProdutosAdmin).filter(([id,p])=>id && p && typeof p==='object');
-    const vinculados=todos.filter(([,p])=>p.fichaTecnicaId != null && String(p.fichaTecnicaId)===String(ficha.id));
-    if (vinculados.length>1) return {ok:false,motivo:'Mais de um produto do cardápio usa esta Ficha Técnica. Confira o vínculo.'};
-    let candidatos=vinculados;
-    if (!candidatos.length) {
-      const nome=norm(ficha.nome);
-      if (!nome) return {ok:false,motivo:'Ficha Técnica sem nome válido.'};
-      // Jamais assumir outra ficha por coincidência de nome.
-      candidatos=todos.filter(([,p])=>!p.fichaTecnicaId && norm(p.nome)===nome);
-      if(candidatos.length>1) return {ok:false,motivo:'Nome duplicado no cardápio. Vincule a Ficha Técnica ao produto correto.'};
-    }
-    if(candidatos.length!==1) return {ok:false,motivo:'Sem vínculo único com o cardápio. Ajuste a Ficha Técnica no cadastro do produto.'};
-    const [produtoId,produto]=candidatos[0];
-    if (produto.escondido===true || produto.disponivel===false)
-      return {ok:false,motivo:'Produto indisponível no cardápio. Confira antes de vender.'};
-    const preco=Number(produto.preco);
-    if(produto.preco==null || produto.preco==='' || !Number.isFinite(preco) || preco<=0 ||
-       !Number.isSafeInteger(Math.round(preco*100)) || Math.abs(preco*100-Math.round(preco*100))>0.001)
-      return {ok:false,motivo:'Preço de venda inválido no cardápio. Confira o produto.'};
-    return {ok:true,produtoId,preco:Math.round(preco*100)/100};
+  // Fonte da venda: nó /produtos JÁ carregado pelo painel. Nunca exige Ficha Técnica.
+  // Não modifica a forma original de gravar pedidos nem integra funções de estoque.
+  function catalogo(){
+    if(typeof ultimoValProdutosAdmin==='undefined'||!ultimoValProdutosAdmin||
+       typeof ultimoValProdutosAdmin!=='object'||Array.isArray(ultimoValProdutosAdmin))return [];
+    return Object.entries(ultimoValProdutosAdmin).filter(([id,p])=>id&&p&&typeof p==='object'&&String(p.nome||'').trim())
+      .map(([id,p])=>({...p,id}));
   }
-  // Identifica cada item recém-adicionado sem alterar o formato legado gravado em /pedidos.
-  const precosPorItem = new WeakMap();
-  function filtros(){const cats=['Todos',...new Set(catalogo().map(p=>p.categoria).filter(Boolean))].slice(0,12);if(!cats.includes(categoria))categoria='Todos';$('bpvCategorias').replaceChildren();cats.forEach(c=>{const b=element('button','bpv-chip'+(categoria===c?' ativo':''),c);b.type='button';b.addEventListener('click',()=>{categoria=c;filtros();produtos();});$('bpvCategorias').append(b)});}
-  function produtos(){const l=$('bpvProdutos');l.replaceChildren();const found=catalogo().filter(p=>(categoria==='Todos'||p.categoria===categoria)&&norm(p.nome).includes(norm(termo))).slice(0,80);if(!found.length){l.append(element('p','bpv-vazio','Nenhuma Ficha Técnica encontrada.'));return;}found.forEach(p=>{const b=element('button','bpv-produto');b.type='button';const a=element('span','',p.nome);const r=resolverPrecoCardapio(p);
-  const v=element('strong','',r.ok?moeda(r.preco):'Preço não vinculado');b.append(a,v);if(!r.ok){b.disabled=true;b.title=r.motivo;b.setAttribute('aria-label',(p.nome||'Produto')+': '+r.motivo);}else{b.addEventListener('click',()=>adicionar(p));}l.append(b);});}
+  function produtoAtual(id){
+    if(typeof ultimoValProdutosAdmin==='undefined'||!ultimoValProdutosAdmin ||
+       typeof ultimoValProdutosAdmin!=='object'||Array.isArray(ultimoValProdutosAdmin))return null;
+    const p=ultimoValProdutosAdmin[id];
+    return p&&typeof p==='object'?{...p,id}:null;
+  }
+  function minutos(h){return /^([01]\d|2[0-3]):[0-5]\d$/.test(String(h||''))?
+    Number(h.slice(0,2))*60+Number(h.slice(3)):null;}
+  function dentroHorario(p){
+    const agenda=p.agendaDisponibilidade;
+    if(!agenda||agenda.ativa!==true)return true;
+    if(!agenda.dias||typeof agenda.dias!=='object')return true; // mesmo critério do cardápio
+    const partes={};new Intl.DateTimeFormat('en-US',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).forEach(a=>{if(a.type!=='literal')partes[a.type]=a.value;});
+    const iso=partes.year+'-'+partes.month+'-'+partes.day;
+    const dia=new Date(iso+'T12:00:00Z').getUTCDay(),atual=Number(partes.hour)*60+Number(partes.minute);
+    function regra(r,anterior){
+      if(!r||r.ativo!==true)return false;
+      const a=minutos(r.inicio),b=minutos(r.fim);
+      if(a===null||b===null||a===b)return false;
+      return a<b?!anterior&&atual>=a&&atual<b:(anterior?atual<b:atual>=a);
+    }
+    return regra(agenda.dias[dia]||agenda.dias[String(dia)],false)||
+      regra(agenda.dias[(dia+6)%7]||agenda.dias[String((dia+6)%7)],true);
+  }
+  function avaliarProduto(p){
+    if(!p||!p.id)return {ok:false,motivo:'Aguardando o catálogo oficial.'};
+    if(p.escondido===true||p.disponivel===false)return {ok:false,motivo:'Produto não disponível no cardápio.'};
+    if(p.controlarEstoque===true && (!Number.isFinite(Number(p.estoqueProduto))||Number(p.estoqueProduto)<=0))
+      return {ok:false,motivo:'Produto sem estoque disponível.'};
+    if(!dentroHorario(p))return {ok:false,motivo:'Produto fora do horário programado.'};
+    if(p.disponivelParaEncomenda===true)return {ok:false,motivo:'Encomenda com data/hora: use o modo clássico.'};
+    const bruto=p.preco,valor=Number(bruto);
+    if(bruto==null||bruto===''||!Number.isFinite(valor)||valor<=0||
+       !Number.isSafeInteger(Math.round(valor*100))||Math.abs(valor*100-Math.round(valor*100))>0.001)
+      return {ok:false,motivo:'Preço de venda inválido no cardápio.'};
+    // Ainda não há coleta de sabores/adicionais neste módulo. Nunca cobrar preço-base
+    // fingindo que uma escolha obrigatória foi realizada.
+    if(Array.isArray(p.variantes)&&p.variantes.length ||
+       (Array.isArray(p.grupoAdicionais)&&p.grupoAdicionais.some(g=>g&&Array.isArray(g.opcoes)&&g.opcoes.length)))
+      return {ok:false,motivo:'Produto com personalização: use o cardápio até integrar as escolhas ao balcão.'};
+    const ft=p.fichaTecnicaId!=null?String(p.fichaTecnicaId):'';
+    const fichaId=(ft&&typeof fichaTecnica!=='undefined'&&Array.isArray(fichaTecnica)&&
+      fichaTecnica.some(x=>String(x.id)===ft))?ft:null;
+    return {ok:true,produtoId:p.id,preco:Math.round(valor*100)/100,fichaTecnicaId:fichaId};
+  }
+  const precosPorItem=new WeakMap();
+  function filtros(){
+    const cats=['Todos',...new Set(catalogo().map(p=>p.categoria).filter(Boolean))];
+    if(!cats.includes(categoria))categoria='Todos';$('bpvCategorias').replaceChildren();
+    cats.forEach(c=>{const b=element('button','bpv-chip'+(categoria===c?' ativo':''),c);b.type='button';b.addEventListener('click',()=>{categoria=c;filtros();produtos();});$('bpvCategorias').append(b);});
+  }
+  function produtos(){
+    const l=$('bpvProdutos');l.replaceChildren();
+    if(typeof ultimoValProdutosAdmin==='undefined'||ultimoValProdutosAdmin===null){l.append(element('p','bpv-vazio','Aguardando carregar o cardápio...'));return;}
+    const encontrados=catalogo().filter(p=>
+      (categoria==='Todos'||p.categoria===categoria)&&norm(p.nome).includes(norm(termo)));
+    if(!encontrados.length){l.append(element('p','bpv-vazio','Nenhum produto encontrado no cardápio.'));return;}
+    encontrados.forEach(p=>{
+      const b=element('button','bpv-produto');b.type='button';b.dataset.produtoId=p.id;
+      const a=element('span','',p.nome),avaliado=avaliarProduto(p),v=element('strong','',avaliado.ok?moeda(avaliado.preco):'Não disponível');
+      b.append(a,v);
+      if(!avaliado.ok){b.disabled=true;b.title=avaliado.motivo;b.setAttribute('aria-label',(p.nome||'Produto')+': '+avaliado.motivo);}
+      else b.addEventListener('click',()=>adicionar(p.id));
+      l.append(b);
+    });
+  }
   $('bpvBuscaProduto').addEventListener('input',e=>{termo=e.target.value;produtos();});
   $('bpvBuscaProduto').addEventListener('focus',produtos);
-  function adicionar(p){
+  function quantidadeNoCarrinho(produtoId){
+    if(typeof tempItensPedidoManual==='undefined')return 0;
+    return tempItensPedidoManual.reduce((s,item)=>{const o=precosPorItem.get(item);return s+((o&&o.produtoId===produtoId)?Number(item.quantidade)||0:0);},0);
+  }
+  function adicionar(produtoId){
     if(trava)return;
-    if(typeof adicionarItemPedidoManual!=='function' || typeof tempItensPedidoManual==='undefined'){
-      titulo.textContent='Módulo de lançamento indisponível.';return;
+    if(typeof tempItensPedidoManual==='undefined'||!Array.isArray(tempItensPedidoManual)||typeof renderItensPedidoManual!=='function'){
+      titulo.textContent='Módulo de lançamento original indisponível.';return;
     }
-    const preco=resolverPrecoCardapio(p); // revalidação no instante do clique
-    if(!preco.ok){titulo.textContent=preco.motivo;produtos();return;}
-    const sel=$('pmSelectProduto'),qtd=$('pmQtdItem');if(!sel||!qtd)return;
-    sel.value=String(p.id);
-    if(sel.value!==String(p.id)){if(typeof popularSelectProdutoPedidoManual==='function')popularSelectProdutoPedidoManual();sel.value=String(p.id);}
-    if(sel.value!==String(p.id)){titulo.textContent='Produto não disponível no seletor original.';return;}
-    qtd.value='1';
-    const quantidadeAnterior=tempItensPedidoManual.length;
-    try{adicionarItemPedidoManual();}catch(e){titulo.textContent='Não foi possível adicionar o produto.';return;}
-    if(tempItensPedidoManual.length!==quantidadeAnterior+1){titulo.textContent='Inclusão não confirmada pelo lançamento original.';return;}
-    const item=tempItensPedidoManual[quantidadeAnterior];
-    const atualizado=resolverPrecoCardapio(p);
-    if(String(item.fichaTecnicaId)!==String(p.id) || !atualizado.ok || atualizado.produtoId!==preco.produtoId || atualizado.preco!==preco.preco){
-      tempItensPedidoManual.splice(quantidadeAnterior,1);
-      if(typeof renderItensPedidoManual==='function')renderItensPedidoManual();
-      titulo.textContent='Preço/vínculo alterado durante a inclusão. Selecione o produto novamente.';
-      produtos();atualizarItens();return;
+    if(typeof editingPedidoManualId!=='undefined'&&editingPedidoManualId){mostrarClassico();titulo.textContent='Conclua a edição antes de abrir outro atendimento.';return;}
+    if(tempItensPedidoManual.length&&tempItensPedidoManual.some(item=>!precosPorItem.has(item))){titulo.textContent='Existem itens do modo clássico; conclua naquele modo.';return;}
+    const p=produtoAtual(produtoId),a=avaliarProduto(p);
+    if(!a.ok){titulo.textContent=a.motivo;produtos();return;}
+    if(p.controlarEstoque===true&&quantidadeNoCarrinho(produtoId)+1>Number(p.estoqueProduto)){
+      titulo.textContent='Quantidade superior ao estoque disponível.';return;
     }
-    item.preco=atualizado.preco;
-    precosPorItem.set(item,{fichaId:String(p.id),produtoId:atualizado.produtoId});
-    if(typeof renderItensPedidoManual==='function')renderItensPedidoManual();
-    titulo.textContent='';atualizarItens();
+    // O lançamento original usa /pedidos e faz o mapeamento final. O vínculo de ficha
+    // é apenas metadado de custos; sem ficha, a venda funciona e não inventa CMV.
+    const item={nome:p.nome,preco:a.preco,quantidade:1,fichaTecnicaId:a.fichaTecnicaId};
+    tempItensPedidoManual.push(item);
+    precosPorItem.set(item,{produtoId,preco:a.preco,fichaId:a.fichaTecnicaId,nome:p.nome});
+    renderItensPedidoManual();titulo.textContent='';atualizarItens();
   }
   function validarPrecosAntesDeSalvar(){
-    if(typeof tempItensPedidoManual==='undefined' || !Array.isArray(tempItensPedidoManual))return 'Carrinho indisponível.';
+    if(typeof tempItensPedidoManual==='undefined'||!Array.isArray(tempItensPedidoManual))return 'Carrinho indisponível.';
+    const qtds=new Map();
     for(const item of tempItensPedidoManual){
       const origem=precosPorItem.get(item);
-      if(!origem)return 'Há itens incluídos pelo modo clássico. Confira e conclua no modo clássico, ou refaça a inclusão no PDV.';
-      const ft=catalogo().find(p=>String(p.id)===origem.fichaId);
-      const atual=resolverPrecoCardapio(ft);
-      if(!atual.ok||atual.produtoId!==origem.produtoId||atual.preco!==Number(item.preco))
-        return 'Preço ou vínculo do cardápio mudou. Remova e adicione novamente o item: '+(item.nome||'produto')+'.';
-      if(!Number.isFinite(Number(item.quantidade))||Number(item.quantidade)<=0)
-        return 'Quantidade inválida no pedido. Confira antes de registrar.';
+      if(!origem)return 'Há itens do modo clássico no carrinho. Conclua naquele modo.';
+      const atual=produtoAtual(origem.produtoId),a=avaliarProduto(atual);
+      if(!a.ok||a.preco!==origem.preco||Number(item.preco)!==origem.preco||
+         item.nome!==origem.nome||String(item.fichaTecnicaId??'')!==String(origem.fichaId??''))
+        return 'Produto ou preço alterado no cardápio: remova e adicione novamente '+origem.nome+'.';
+      const qtd=Number(item.quantidade);
+      if(!Number.isInteger(qtd)||qtd<=0||qtd>999)return 'Quantidade inválida. Confira os itens.';
+      qtds.set(origem.produtoId,(qtds.get(origem.produtoId)||0)+qtd);
+      if(atual.controlarEstoque===true&&qtds.get(origem.produtoId)>Number(atual.estoqueProduto))
+        return 'Quantidade superior ao estoque disponível: '+origem.nome+'.';
     }
     return null;
   }
   function atualizarItens(){ const lista=$('bpvItens');lista.replaceChildren();const itens=typeof tempItensPedidoManual!=='undefined'?tempItensPedidoManual:[];if(!itens.length)lista.append(element('p','bpv-vazio','🛒 Escolha um produto para começar.'));itens.forEach((it,i)=>{const row=element('div','bpv-item');const label=element('span','',it.nome);const val=element('strong','',moeda(Number(it.preco)*Number(it.quantidade)));const controles=element('div','bpv-controles');const menos=element('button','','−'),qt=element('b','',String(it.quantidade)),mais=element('button','','+'),rem=element('button','bpv-remover','Remover');[menos,mais,rem].forEach(x=>x.type='button');menos.addEventListener('click',()=>alterarQtd(i,-1));mais.addEventListener('click',()=>alterarQtd(i,1));rem.addEventListener('click',()=>alterarQtd(i,-Infinity));controles.append(menos,qt,mais,rem);row.append(label,val,controles);lista.append(row)});const total=somar();$('bpvSubtotal').textContent=moeda(total);$('bpvTotal').textContent=moeda(total);$('bpvItensNum').textContent=itens.length+' '+(itens.length===1?'item':'itens');troco();}
-  function alterarQtd(i,delta){if(trava)return;const it=typeof tempItensPedidoManual!=='undefined'?tempItensPedidoManual[i]:null;if(!it)return;const q=Number(it.quantidade)+delta;if(q<=0){if(typeof removerItemPedidoManual==='function')removerItemPedidoManual(i);else tempItensPedidoManual.splice(i,1);}else if(Number.isFinite(q)&&q<=999){it.quantidade=q;}if(typeof renderItensPedidoManual==='function')renderItensPedidoManual();atualizarItens();}
+  function alterarQtd(i,delta){if(trava)return;const it=typeof tempItensPedidoManual!=='undefined'?tempItensPedidoManual[i]:null;if(!it)return;const origem=precosPorItem.get(it);if(!origem){titulo.textContent='Item do modo clássico. Edite naquele modo.';return;}const q=Number(it.quantidade)+delta;if(q>0&&Number.isFinite(delta)&&delta>0){const p=produtoAtual(origem.produtoId);if(!avaliarProduto(p).ok||(p.controlarEstoque===true&&quantidadeNoCarrinho(origem.produtoId)+delta>Number(p.estoqueProduto))){titulo.textContent='Quantidade ou disponibilidade alterada. Confira o produto.';return;}}if(q<=0){if(typeof removerItemPedidoManual==='function')removerItemPedidoManual(i);else tempItensPedidoManual.splice(i,1);}else if(Number.isFinite(q)&&q<=999){it.quantidade=q;}if(typeof renderItensPedidoManual==='function')renderItensPedidoManual();atualizarItens();}
   function troco(){const dinheiro=$('bpvPagamento').value==='Dinheiro';$('bpvDinheiro').hidden=!dinheiro;const total=Math.round(somar()*100),recebido=centavos($('bpvRecebido').value),falta=dinheiro&&(recebido===null||recebido<total);if(dinheiro){$('bpvTroco').textContent=recebido===null?'Informe quanto o cliente entregou.':recebido<total?'Faltam '+moeda((total-recebido)/100):'Troco a devolver: '+moeda((recebido-total)/100);$('bpvTroco').dataset.state=falta?'incompleto':'ok';} $('bpvSalvar').disabled=trava||!(typeof tempItensPedidoManual!=='undefined'&&tempItensPedidoManual.length)||falta;return {dinheiro,total,recebido,falta};}
   $('bpvPagamento').addEventListener('change',troco);$('bpvRecebido').addEventListener('input',troco);$('bpvExato').addEventListener('click',()=>{$('bpvRecebido').value=Number(somar()).toFixed(2).replace('.',',');troco()});
   function mostrarClassico(){sec.classList.remove('bpv-ativo');$('bpvClassico').textContent='Voltar ao PDV Premium';}
@@ -181,9 +221,9 @@
     });obsMudanca.observe(estado,{childList:true,subtree:true,characterData:true});
     try{salvarPedidoManual();}catch(err){obsMudanca.disconnect();trava=false;titulo.textContent='Não foi possível registrar: '+err.message;troco();}
   });
-  // A escuta de ficha técnica original alimenta o PDV assim que o painel é aberto.
+  // Os produtos já são lidos por escutarProdutos() do admin original (read-only aqui).
   sec.addEventListener('click',e=>{if(e.target.closest('[data-subtab]')){filtros();produtos();}},true);
   document.addEventListener('click',e=>{if(e.target.closest('[data-subtab="sub-pedidos-manuais"], [data-subtab-target="sub-pedidos-manuais"]'))queueMicrotask(()=>{filtros();produtos();atualizarItens();});},true);
   atualizarCliente();filtros();produtos();atualizarItens();
-  window.BritsPDVPremium = Object.freeze({versao:'BALCAO-R1',atualizarCatalogo(){filtros();produtos();atualizarItens();}});
+  window.BritsPDVPremium = Object.freeze({versao:'BALCAO-R3-CARDAPIO',atualizarCatalogo(){filtros();produtos();atualizarItens();}});
 })();
