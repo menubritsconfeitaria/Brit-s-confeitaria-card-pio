@@ -8617,6 +8617,8 @@ async function corrigirStatusPedidosImportados() {
 // lançamento oficial, quando não existe NENHUM pedido real de cliente ainda. Depois
 // que a loja estiver no ar recebendo pedidos de verdade, nunca mais usar isso.
 async function limparTodosOsPedidosDeTeste() {
+    // BLINDAGEM-P0-R1: chamada mantida para compatibilidade, sem escrita destrutiva.
+    return;
     const confirmacao1 = confirm('🚨 ATENÇÃO MÁXIMA: isso apaga TODOS os pedidos do sistema, SEM EXCEÇÃO — inclusive pedidos feitos direto pelo cardápio de verdade (não só os da Gestão). Só use isso se TODOS os pedidos que existem hoje forem de teste, sem nenhum cliente real ainda. Depois que a loja estiver no ar de verdade, NUNCA use isso. Tem certeza que quer continuar?');
     if (!confirmacao1) return;
     const digitado = prompt('Pra confirmar, digita LIMPAR TESTES (exatamente assim, maiúsculas):');
@@ -8643,6 +8645,8 @@ async function limparTodosOsPedidosDeTeste() {
 }
 
 async function zerarSistemaGestao() {
+    // BLINDAGEM-P0-R1: chamada mantida para compatibilidade, sem escrita destrutiva.
+    return;
     if (!crmGestaoCompleta) { alert('Recurso de gestão completa não autorizado.'); return; }
     const confirmacao1 = confirm('⚠️ Isso vai APAGAR PRA SEMPRE: todos os ingredientes, bases, fichas técnicas, clientes do CRM, e TODOS os pedidos que não vieram do cardápio (importados OU lançados na mão por você) — os pedidos reais do cardápio nunca são tocados. Não tem como desfazer. Tem certeza?');
     if (!confirmacao1) return;
