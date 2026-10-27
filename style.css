@@ -6918,3 +6918,35 @@ body.modo-demo-personalizado .checkout-resumo-icone {
     .brits-confirmacao-premium-card {padding:22px 17px 19px;border-radius:20px;max-height:calc(100dvh - 24px);}
 }
 @media (prefers-reduced-motion:reduce) {.brits-confirmacao-premium *,#carrinho .checkout-pagamento-claro {transition:none!important;animation:none!important;}}
+
+/* BRIT’S / R1 — Carrinho: botão “Remover” visível; somente apresentação. */
+#carrinho.checkout-premium .btn-remover-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 68px;
+    min-height: 40px;
+    padding: 8px 6px;
+    border: 0;
+    background: transparent;
+    color: #925033;
+    font-size: .77rem;
+    font-weight: 750;
+    line-height: 1.25;
+    white-space: nowrap;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    opacity: 1;
+    filter: none;
+    cursor: pointer;
+}
+#carrinho.checkout-premium .btn-remover-item:hover {
+    color: #74371e;
+    opacity: 1;
+    filter: none;
+}
+#carrinho.checkout-premium .btn-remover-item:focus-visible {
+    outline: 2px solid #a0522d;
+    outline-offset: 2px;
+    border-radius: 5px;
+}

@@ -4295,7 +4295,7 @@ function atualizarCarrinhoHTML() {
                 </div>
                 <div class="carrinho-item-direita">
                     <span>R$ ${(item.preco * item.quantidade).toFixed(2).replace('.', ',')}</span>
-                    <button type="button" class="btn-remover-item" data-index="${index}" title="Remover">🗑️</button>
+                    <button type="button" class="btn-remover-item" data-index="${index}" title="Remover">Remover</button>
                 </div>
             `;
                 carrinhoItensDiv.appendChild(itemDiv);
