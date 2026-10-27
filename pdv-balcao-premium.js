@@ -146,7 +146,7 @@
     const vIndex=config?.variante;
     if(variantes.length && (!Number.isInteger(vIndex)||vIndex<0||vIndex>=variantes.length))
       return {ok:false,motivo:'Escolha um sabor ou variante.'};
-    let extras=0;const partes=[];
+    let extras=0;const partes=[];const indicesCanonicos=[];
     if(variantes.length)partes.push('Sabor: '+String(variantes[vIndex]));
     for(let i=0;i<grupos.length;i++){
       const g=grupos[i], opcoes=Array.isArray(g?.opcoes)?g.opcoes:[];
@@ -155,13 +155,14 @@
       if(!Array.isArray(indices)||indices.some(v=>!Number.isInteger(v)||v<0||v>=opcoes.length)||new Set(indices).size!==indices.length)
         return {ok:false,motivo:'Opções inválidas. Escolha novamente.'};
       if(g.obrigatorio&&indices.length!==1)return {ok:false,motivo:'Escolha uma opção em '+String(g.nome||'grupo')+'.'};
+      indicesCanonicos.push([i,...indices.slice().sort((a,b)=>a-b)]);
       const nomes=[];
       for(const j of indices){const opc=opcoes[j],c=Number(opc.preco||0);if(!Number.isFinite(c)||c<0||Math.abs(c*100-Math.round(c*100))>.001)return {ok:false,motivo:'Preço de adicional inválido.'};extras+=c;nomes.push(String(opc.nome||'Opção'));}
       if(nomes.length)partes.push(String(g.nome||'Opções')+': '+nomes.join(', '));
     }
     const total=Math.round((Number(p.preco)+extras)*100)/100;
     if(!Number.isSafeInteger(Math.round(total*100))||total<=0)return {ok:false,motivo:'Preço inválido.'};
-    return {ok:true,preco:total,texto:partes.join(' | ')};
+    return {ok:true,preco:total,texto:partes.join(' | '),chaveOpcoes:JSON.stringify({variante:variantes.length?vIndex:null,grupos:indicesCanonicos})};
   }
   function abrirEscolhas(p){
     if(trava)return;
@@ -234,12 +235,34 @@
     if(p.controlarEstoque===true&&quantidadeNoCarrinho(produtoId)+1>Number(p.estoqueProduto)){
       titulo.textContent='Quantidade superior ao estoque disponível.';return;
     }
-    // O lançamento original usa /pedidos e faz o mapeamento final. O vínculo de ficha
-    // é apenas metadado de custos; sem ficha, a venda funciona e não inventa CMV.
-    const item={nome:p.nome,preco:selecionado.preco,quantidade:1,fichaTecnicaId:a.fichaTecnicaId};
-    tempItensPedidoManual.push(item);
-    precosPorItem.set(item,{produtoId,preco:selecionado.preco,fichaId:a.fichaTecnicaId,nome:p.nome,
-      detalhes:selecionado.texto||'',assinatura:assinaturaEscolhas(p),precoBase:a.preco});
+    // Agrupamento R6: unifica somente itens com o MESMO produto, configuracao,
+    // preco unitario, vinculo de ficha e anotacoes. Diferencas ficam em linhas
+    // separadas; o carrinho legado recebe quantidade real, nao clones visuais.
+    const detalhes=selecionado.texto||'';
+    const chaveOpcoes=selecionado.chaveOpcoes||'';
+    const assinatura=assinaturaEscolhas(p);
+    const existente=tempItensPedidoManual.find(item=>{
+      const origem=precosPorItem.get(item);
+      return origem && origem.produtoId===produtoId && origem.preco===selecionado.preco &&
+        origem.precoBase===a.preco && origem.fichaId===a.fichaTecnicaId &&
+        origem.nome===p.nome && origem.detalhes===detalhes &&
+        origem.chaveOpcoes===chaveOpcoes && origem.assinatura===assinatura &&
+        item.nome===p.nome && Number(item.preco)===selecionado.preco &&
+        String(item.fichaTecnicaId??'')===String(a.fichaTecnicaId??'') &&
+        !item.observacao && !item.adicionaisTexto && !item.adicionaisEscolhidos;
+    });
+    if(existente){
+      if(!Number.isSafeInteger(existente.quantidade)||existente.quantidade>=999){
+        titulo.textContent='Limite de 999 unidades por linha. Confira a quantidade.';return;
+      }
+      existente.quantidade+=1;
+    }else{
+      // O lancamento original usa /pedidos; ficha e apenas metadado de custo.
+      const item={nome:p.nome,preco:selecionado.preco,quantidade:1,fichaTecnicaId:a.fichaTecnicaId};
+      tempItensPedidoManual.push(item);
+      precosPorItem.set(item,{produtoId,preco:selecionado.preco,fichaId:a.fichaTecnicaId,nome:p.nome,
+        detalhes,chaveOpcoes,assinatura,precoBase:a.preco});
+    }
     renderItensPedidoManual();titulo.textContent='';atualizarItens();
   }
   function validarPrecosAntesDeSalvar(){
@@ -260,7 +283,7 @@
     }
     return null;
   }
-  function atualizarItens(){ const lista=$('bpvItens');lista.replaceChildren();const itens=typeof tempItensPedidoManual!=='undefined'?tempItensPedidoManual:[];if(!itens.length)lista.append(element('p','bpv-vazio','🛒 Escolha um produto para começar.'));itens.forEach((it,i)=>{const row=element('div','bpv-item');const label=element('span','',it.nome);const val=element('strong','',moeda(Number(it.preco)*Number(it.quantidade)));const info=precosPorItem.get(it);if(info?.detalhes)label.append(element('small','', ' · '+info.detalhes));const controles=element('div','bpv-controles');const menos=element('button','','−'),qt=element('b','',String(it.quantidade)),mais=element('button','','+'),rem=element('button','bpv-remover','Remover');[menos,mais,rem].forEach(x=>x.type='button');menos.addEventListener('click',()=>alterarQtd(i,-1));mais.addEventListener('click',()=>alterarQtd(i,1));rem.addEventListener('click',()=>alterarQtd(i,-Infinity));controles.append(menos,qt,mais,rem);row.append(label,val,controles);lista.append(row)});const total=somar();$('bpvSubtotal').textContent=moeda(total);$('bpvTotal').textContent=moeda(total);$('bpvItensNum').textContent=itens.length+' '+(itens.length===1?'item':'itens');troco();}
+  function atualizarItens(){ const lista=$('bpvItens');lista.replaceChildren();const itens=typeof tempItensPedidoManual!=='undefined'?tempItensPedidoManual:[];if(!itens.length)lista.append(element('p','bpv-vazio','🛒 Escolha um produto para começar.'));itens.forEach((it,i)=>{const row=element('div','bpv-item');const label=element('span','',it.nome);const val=element('strong','',moeda(Number(it.preco)*Number(it.quantidade)));const info=precosPorItem.get(it);if(info?.detalhes)label.append(element('small','', ' · '+info.detalhes));const controles=element('div','bpv-controles');const menos=element('button','','−'),qt=element('b','',String(it.quantidade)),mais=element('button','','+'),rem=element('button','bpv-remover','Remover');[menos,mais,rem].forEach(x=>x.type='button');menos.addEventListener('click',()=>alterarQtd(i,-1));mais.addEventListener('click',()=>alterarQtd(i,1));rem.addEventListener('click',()=>alterarQtd(i,-Infinity));controles.append(menos,qt,mais,rem);row.append(label,val,controles);lista.append(row)});const total=somar();$('bpvSubtotal').textContent=moeda(total);$('bpvTotal').textContent=moeda(total);const unidades=itens.reduce((s,it)=>s+Number(it.quantidade||0),0);$('bpvItensNum').textContent=unidades+' '+(unidades===1?'item':'itens');troco();}
   function alterarQtd(i,delta){if(trava)return;const it=typeof tempItensPedidoManual!=='undefined'?tempItensPedidoManual[i]:null;if(!it)return;const origem=precosPorItem.get(it);if(!origem){titulo.textContent='Item do modo clássico. Edite naquele modo.';return;}const q=Number(it.quantidade)+delta;if(q>0&&Number.isFinite(delta)&&delta>0){const p=produtoAtual(origem.produtoId);if(!avaliarProduto(p).ok||(p.controlarEstoque===true&&quantidadeNoCarrinho(origem.produtoId)+delta>Number(p.estoqueProduto))){titulo.textContent='Quantidade ou disponibilidade alterada. Confira o produto.';return;}}if(q<=0){if(typeof removerItemPedidoManual==='function')removerItemPedidoManual(i);else tempItensPedidoManual.splice(i,1);}else if(Number.isFinite(q)&&q<=999){it.quantidade=q;}if(typeof renderItensPedidoManual==='function')renderItensPedidoManual();atualizarItens();}
   function troco(){const dinheiro=$('bpvPagamento').value==='Dinheiro';$('bpvDinheiro').hidden=!dinheiro;const total=Math.round(somar()*100),recebido=centavos($('bpvRecebido').value),falta=dinheiro&&(recebido===null||recebido<total);if(dinheiro){$('bpvTroco').textContent=recebido===null?'Informe quanto o cliente entregou.':recebido<total?'Faltam '+moeda((total-recebido)/100):'Troco a devolver: '+moeda((recebido-total)/100);$('bpvTroco').dataset.state=falta?'incompleto':'ok';} $('bpvSalvar').disabled=trava||!(typeof tempItensPedidoManual!=='undefined'&&tempItensPedidoManual.length)||falta;return {dinheiro,total,recebido,falta};}
   $('bpvPagamento').addEventListener('change',troco);$('bpvRecebido').addEventListener('input',troco);$('bpvExato').addEventListener('click',()=>{$('bpvRecebido').value=Number(somar()).toFixed(2).replace('.',',');troco()});
