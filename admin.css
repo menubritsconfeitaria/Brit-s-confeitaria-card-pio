@@ -16839,3 +16839,40 @@ section[data-tab="agenda"] .agenda-bloqueio-box input[type="date"] {
         flex: 1 1 145px;
     }
 }
+
+/* BRIT'S - KANBAN R4 - FULL WIDTH ORIGINAL + ALTURA ALINHADA
+   Apenas CSS da Central de Pedidos; sem edicao em pedidos/status/carrinho.
+   Respeita a LARGURA ORIGINAL do painel: .painel-main > section[data-tab="pedidos"].
+   Desktop: quatro colunas com a MESMA altura da coluna mais alta.
+   Um pedido: conteudo completo, inclusive observacoes e todos os botoes.
+   Dois ou mais: rolagem interna permanece na lista de cada coluna.
+   Mobile: coluna unica cresce pela propria altura, sem espacos gigantes. */
+.pedidos-operacao-premium .kanban-pedidos {
+    align-items: stretch;
+}
+.pedidos-operacao-premium .kanban-coluna {
+    height: auto;
+    min-height: 205px;
+    max-height: none;
+    align-self: stretch;
+}
+.pedidos-operacao-premium .kanban-coluna > .kanban-lista {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+}
+.pedidos-operacao-premium .kanban-coluna:has(> .kanban-lista > .pedido-card ~ .pedido-card) > .kanban-lista {
+    height: clamp(450px, 63vh, 670px);
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+@media (max-width: 760px) {
+    .pedidos-operacao-premium .kanban-coluna {
+        min-height: 190px;
+    }
+    .pedidos-operacao-premium .kanban-coluna:has(> .kanban-lista > .pedido-card ~ .pedido-card) > .kanban-lista {
+        height: clamp(390px, 59vh, 610px);
+    }
+}
