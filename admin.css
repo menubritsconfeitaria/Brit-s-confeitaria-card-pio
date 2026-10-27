@@ -16876,3 +16876,15 @@ section[data-tab="agenda"] .agenda-bloqueio-box input[type="date"] {
         height: clamp(390px, 59vh, 610px);
     }
 }
+
+/* BRIT'S / KANBAN R5 — primeiro pedido completo mesmo com 2+ na coluna.
+   Complemento da R4, sem alterar largura, cards, impressão ou relatórios.
+   Sem o JS R5, var() assume zero e preserva exatamente o limite da R4. */
+.pedidos-operacao-premium .kanban-coluna:has(> .kanban-lista > .pedido-card ~ .pedido-card) > .kanban-lista {
+    height: max(clamp(450px, 63vh, 670px), var(--brits-kanban-r5-primeiro-px, 0px));
+}
+@media (max-width: 760px) {
+    .pedidos-operacao-premium .kanban-coluna:has(> .kanban-lista > .pedido-card ~ .pedido-card) > .kanban-lista {
+        height: max(clamp(390px, 59vh, 610px), var(--brits-kanban-r5-primeiro-px, 0px));
+    }
+}
