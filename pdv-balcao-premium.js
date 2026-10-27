@@ -118,10 +118,18 @@
       fichaTecnica.some(x=>String(x.id)===ft))?ft:null;
     return {ok:true,produtoId:p.id,preco:Math.round(valor*100)/100,fichaTecnicaId:fichaId};
   }
+  // A loja liga/desliga adicionais no mesmo interruptor do cardapio.
+  // Os grupos antigos continuam armazenados; OFF significa que nao serao oferecidos nem cobrados.
+  // As variantes (sabor) sao independentes deste recurso.
+  const adicionaisHabilitados = () => typeof adicionaisAtivo !== 'undefined' && adicionaisAtivo === true;
+  const gruposAtivos = p => adicionaisHabilitados() && p && Array.isArray(p.grupoAdicionais)
+    ? p.grupoAdicionais : [];
+  const temAdicionaisAtivos = p => gruposAtivos(p).some(g=>g&&Array.isArray(g.opcoes)&&g.opcoes.length>0);
   // Escolhas da vitrine: jamais registrar um produto com personalizacao obrigatoria vazia.
-  const personalizado = p => !!(p && ((Array.isArray(p.variantes) && p.variantes.length) ||
-    (Array.isArray(p.grupoAdicionais) && p.grupoAdicionais.some(g=>g&&Array.isArray(g.opcoes)&&g.opcoes.length))));
-  const assinaturaEscolhas = p => JSON.stringify({variantes:p.variantes||[],grupoAdicionais:p.grupoAdicionais||[]});
+  const personalizado = p => !!(p && ((Array.isArray(p.variantes) && p.variantes.length) || temAdicionaisAtivos(p)));
+  // Inclui estado do interruptor para invalidar selecoes feitas antes de ligá-lo/desligá-lo.
+  const assinaturaEscolhas = p => JSON.stringify({variantes:p?.variantes||[],
+    grupoAdicionais:gruposAtivos(p),adicionaisAtivo:adicionaisHabilitados()});
   const modal = element('div','bpv-overlay');modal.id='bpvEscolhas';modal.hidden=true;
   modal.innerHTML='<section class="bpv-modal" role="dialog" aria-modal="true" aria-label="Personalizar produto"><header><strong id="bpvEscolhaTitulo">Escolher opções</strong><button type="button" id="bpvEscolhaFechar">×</button></header><div id="bpvEscolhaGrupos"></div><p id="bpvEscolhaMsg" role="status"></p><footer><strong id="bpvEscolhaTotal"></strong><button class="bpv-main" type="button" id="bpvEscolhaConfirmar">Adicionar ao pedido</button></footer></section>';
   raiz.appendChild(modal);
@@ -134,7 +142,7 @@
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!modal.hidden)fecharEscolhas();});
   function extrairEscolhas(p,config){
     const variantes=Array.isArray(p.variantes)?p.variantes:[];
-    const grupos=Array.isArray(p.grupoAdicionais)?p.grupoAdicionais:[];
+    const grupos=gruposAtivos(p);
     const vIndex=config?.variante;
     if(variantes.length && (!Number.isInteger(vIndex)||vIndex<0||vIndex>=variantes.length))
       return {ok:false,motivo:'Escolha um sabor ou variante.'};
@@ -162,7 +170,7 @@
     $('bpvEscolhaTitulo').textContent=p.nome;$('bpvEscolhaMsg').textContent='';
     const area=$('bpvEscolhaGrupos');area.replaceChildren();
     const variantes=Array.isArray(p.variantes)?p.variantes:[];
-    const grupos=Array.isArray(p.grupoAdicionais)?p.grupoAdicionais:[];
+    const grupos=gruposAtivos(p);
     if(variantes.length){
       const set=element('fieldset');set.append(element('legend','','Sabor / variante · obrigatório'));
       variantes.forEach((v,i)=>{const label=element('label');const input=element('input');input.type='radio';input.name='bpvVariante';input.value=String(i);label.append(input,document.createTextNode(String(v)));set.append(label)});area.append(set);
@@ -198,7 +206,7 @@
     encontrados.forEach(p=>{
       const b=element('button','bpv-produto');b.type='button';b.dataset.produtoId=p.id;
       const a=element('span','',p.nome),avaliado=avaliarProduto(p);
-      const v=element('strong','',avaliado.ok?(Array.isArray(p.grupoAdicionais)&&p.grupoAdicionais.some(g=>g&&Array.isArray(g.opcoes)&&g.opcoes.length)?'A partir de '+moeda(avaliado.preco):moeda(avaliado.preco)):'Consulte o atendimento');
+      const v=element('strong','',avaliado.ok?(temAdicionaisAtivos(p)?'A partir de '+moeda(avaliado.preco):moeda(avaliado.preco)):'Consulte o atendimento');
       b.append(a,v);
       if(!avaliado.ok){b.disabled=true;b.title=avaliado.motivo;b.setAttribute('aria-label',(p.nome||'Produto')+': '+avaliado.motivo);}
       else b.addEventListener('click',()=>personalizado(p)?abrirEscolhas(p):adicionar(p.id));
@@ -292,5 +300,5 @@
   sec.addEventListener('click',e=>{if(e.target.closest('[data-subtab]')){filtros();produtos();}},true);
   document.addEventListener('click',e=>{if(e.target.closest('[data-subtab="sub-pedidos-manuais"], [data-subtab-target="sub-pedidos-manuais"]'))queueMicrotask(()=>{filtros();produtos();atualizarItens();});},true);
   atualizarCliente();filtros();produtos();atualizarItens();
-  window.BritsPDVPremium = Object.freeze({versao:'BALCAO-R4-VITRINE',atualizarCatalogo(){filtros();produtos();atualizarItens();}});
+  window.BritsPDVPremium = Object.freeze({versao:'BALCAO-R5-ADICIONAIS',atualizarCatalogo(){filtros();produtos();atualizarItens();}});
 })();
