@@ -27,7 +27,7 @@
    <div class="bpv-campos"><label>Cliente cadastrado (opcional)<input id="bpvBuscaCliente" type="search" autocomplete="off" placeholder="🔍 Nome ou telefone" aria-controls="bpvResultadosCliente" aria-expanded="false"><div id="bpvResultadosCliente" class="bpv-menu" hidden></div></label><label>Forma de pagamento<select id="bpvPagamento"><option value="">Selecionar</option><option>Dinheiro</option><option>Pix</option><option>Cartão de Crédito</option><option>Cartão de Débito</option><option>Transferência Bancária</option><option>Outros</option></select></label></div>
    <div class="bpv-clientes-acao"><button type="button" class="bpv-outline" id="bpvCadAbrir">+ Cadastrar cliente na hora</button><span id="bpvClienteSelecionado">Cliente balcão · sem cadastro</span></div>
    <div class="bpv-cadastro" id="bpvCadastro" hidden><div class="bpv-campos"><label>Nome *<input id="bpvCadNome" maxlength="100" autocomplete="off"></label><label>Telefone com DDD *<input id="bpvCadTel" inputmode="tel" maxlength="20" placeholder="(27) 99999-9999"></label></div><label>Endereço (opcional para balcão)<input id="bpvCadEnd" maxlength="240" placeholder="Rua, número, bairro"></label><div class="bpv-clientes-acao"><button type="button" class="bpv-main" id="bpvCadSalvar">Cadastrar e selecionar</button><button type="button" class="bpv-outline" id="bpvCadFechar">Cancelar</button></div><p id="bpvCadMsg" role="status"></p></div>
-   <div class="bpv-separador"></div><div class="bpv-titulo"><span>02</span><div><strong>Adicionar produtos</strong><small>Utiliza os preços das fichas técnicas cadastradas.</small></div></div>
+   <div class="bpv-separador"></div><div class="bpv-titulo"><span>02</span><div><strong>Adicionar produtos</strong><small>Preço de venda oficial do cardápio; Ficha Técnica preservada para custos.</small></div></div>
    <input id="bpvBuscaProduto" class="bpv-pesquisa" type="search" placeholder="🔎 Buscar produto..."><div class="bpv-categorias" id="bpvCategorias"></div><div class="bpv-produtos" id="bpvProdutos"></div>
    <div class="bpv-separador"></div><div class="bpv-titulo"><span>03</span><div><strong>Observação geral</strong><small>Preferências, retirada ou orientações da venda.</small></div></div><textarea id="bpvObs" rows="3" placeholder="Observações (opcional)"></textarea>
    <p class="bpv-nota">Encomendas com sinal e edição de pedidos existentes permanecem disponíveis no modo clássico.</p>
@@ -70,11 +70,82 @@
     finally{trava=false;$('bpvCadSalvar').disabled=false;}
   });
   function catalogo(){return typeof fichaTecnica!=='undefined'&&Array.isArray(fichaTecnica)?fichaTecnica:[];}
+  // Preço do CARDÁPIO (produtos), nunca preço sugerido pela Ficha Técnica.
+  // O vínculo explícito tem prioridade; o nome serve apenas como fallback EXATO e único.
+  function resolverPrecoCardapio(ficha) {
+    if (!ficha || ficha.id == null || typeof ultimoValProdutosAdmin === 'undefined' || ultimoValProdutosAdmin == null ||
+        typeof ultimoValProdutosAdmin !== 'object' || Array.isArray(ultimoValProdutosAdmin))
+      return {ok:false,motivo:'Aguardando os produtos do cardápio.'};
+    const todos=Object.entries(ultimoValProdutosAdmin).filter(([id,p])=>id && p && typeof p==='object');
+    const vinculados=todos.filter(([,p])=>p.fichaTecnicaId != null && String(p.fichaTecnicaId)===String(ficha.id));
+    if (vinculados.length>1) return {ok:false,motivo:'Mais de um produto do cardápio usa esta Ficha Técnica. Confira o vínculo.'};
+    let candidatos=vinculados;
+    if (!candidatos.length) {
+      const nome=norm(ficha.nome);
+      if (!nome) return {ok:false,motivo:'Ficha Técnica sem nome válido.'};
+      // Jamais assumir outra ficha por coincidência de nome.
+      candidatos=todos.filter(([,p])=>!p.fichaTecnicaId && norm(p.nome)===nome);
+      if(candidatos.length>1) return {ok:false,motivo:'Nome duplicado no cardápio. Vincule a Ficha Técnica ao produto correto.'};
+    }
+    if(candidatos.length!==1) return {ok:false,motivo:'Sem vínculo único com o cardápio. Ajuste a Ficha Técnica no cadastro do produto.'};
+    const [produtoId,produto]=candidatos[0];
+    if (produto.escondido===true || produto.disponivel===false)
+      return {ok:false,motivo:'Produto indisponível no cardápio. Confira antes de vender.'};
+    const preco=Number(produto.preco);
+    if(produto.preco==null || produto.preco==='' || !Number.isFinite(preco) || preco<=0 ||
+       !Number.isSafeInteger(Math.round(preco*100)) || Math.abs(preco*100-Math.round(preco*100))>0.001)
+      return {ok:false,motivo:'Preço de venda inválido no cardápio. Confira o produto.'};
+    return {ok:true,produtoId,preco:Math.round(preco*100)/100};
+  }
+  // Identifica cada item recém-adicionado sem alterar o formato legado gravado em /pedidos.
+  const precosPorItem = new WeakMap();
   function filtros(){const cats=['Todos',...new Set(catalogo().map(p=>p.categoria).filter(Boolean))].slice(0,12);if(!cats.includes(categoria))categoria='Todos';$('bpvCategorias').replaceChildren();cats.forEach(c=>{const b=element('button','bpv-chip'+(categoria===c?' ativo':''),c);b.type='button';b.addEventListener('click',()=>{categoria=c;filtros();produtos();});$('bpvCategorias').append(b)});}
-  function produtos(){const l=$('bpvProdutos');l.replaceChildren();const found=catalogo().filter(p=>(categoria==='Todos'||p.categoria===categoria)&&norm(p.nome).includes(norm(termo))).slice(0,80);if(!found.length){l.append(element('p','bpv-vazio','Nenhum produto disponível na ficha técnica.'));return;}found.forEach(p=>{const b=element('button','bpv-produto');b.type='button';const a=element('span','',p.nome);const preco = typeof calcularCustoFichaTecnica==='function' ? calcularCustoFichaTecnica(p).precoVenda : null;
-  const v=element('strong','',Number.isFinite(Number(preco))?moeda(preco):'A conferir');b.append(a,v);b.addEventListener('click',()=>adicionar(p));l.append(b);});}
+  function produtos(){const l=$('bpvProdutos');l.replaceChildren();const found=catalogo().filter(p=>(categoria==='Todos'||p.categoria===categoria)&&norm(p.nome).includes(norm(termo))).slice(0,80);if(!found.length){l.append(element('p','bpv-vazio','Nenhuma Ficha Técnica encontrada.'));return;}found.forEach(p=>{const b=element('button','bpv-produto');b.type='button';const a=element('span','',p.nome);const r=resolverPrecoCardapio(p);
+  const v=element('strong','',r.ok?moeda(r.preco):'Preço não vinculado');b.append(a,v);if(!r.ok){b.disabled=true;b.title=r.motivo;b.setAttribute('aria-label',(p.nome||'Produto')+': '+r.motivo);}else{b.addEventListener('click',()=>adicionar(p));}l.append(b);});}
   $('bpvBuscaProduto').addEventListener('input',e=>{termo=e.target.value;produtos();});
-  function adicionar(p){if(trava)return;if(typeof adicionarItemPedidoManual!=='function'){titulo.textContent='Módulo de lançamento indisponível.';return;}const sel=$('pmSelectProduto'),qtd=$('pmQtdItem');if(!sel||!qtd)return;sel.value=String(p.id);if(sel.value!==String(p.id)){if(typeof popularSelectProdutoPedidoManual==='function')popularSelectProdutoPedidoManual();sel.value=String(p.id);}if(sel.value!==String(p.id)){titulo.textContent='Produto não disponível no seletor original.';return;}qtd.value='1';adicionarItemPedidoManual();atualizarItens();}
+  $('bpvBuscaProduto').addEventListener('focus',produtos);
+  function adicionar(p){
+    if(trava)return;
+    if(typeof adicionarItemPedidoManual!=='function' || typeof tempItensPedidoManual==='undefined'){
+      titulo.textContent='Módulo de lançamento indisponível.';return;
+    }
+    const preco=resolverPrecoCardapio(p); // revalidação no instante do clique
+    if(!preco.ok){titulo.textContent=preco.motivo;produtos();return;}
+    const sel=$('pmSelectProduto'),qtd=$('pmQtdItem');if(!sel||!qtd)return;
+    sel.value=String(p.id);
+    if(sel.value!==String(p.id)){if(typeof popularSelectProdutoPedidoManual==='function')popularSelectProdutoPedidoManual();sel.value=String(p.id);}
+    if(sel.value!==String(p.id)){titulo.textContent='Produto não disponível no seletor original.';return;}
+    qtd.value='1';
+    const quantidadeAnterior=tempItensPedidoManual.length;
+    try{adicionarItemPedidoManual();}catch(e){titulo.textContent='Não foi possível adicionar o produto.';return;}
+    if(tempItensPedidoManual.length!==quantidadeAnterior+1){titulo.textContent='Inclusão não confirmada pelo lançamento original.';return;}
+    const item=tempItensPedidoManual[quantidadeAnterior];
+    const atualizado=resolverPrecoCardapio(p);
+    if(String(item.fichaTecnicaId)!==String(p.id) || !atualizado.ok || atualizado.produtoId!==preco.produtoId || atualizado.preco!==preco.preco){
+      tempItensPedidoManual.splice(quantidadeAnterior,1);
+      if(typeof renderItensPedidoManual==='function')renderItensPedidoManual();
+      titulo.textContent='Preço/vínculo alterado durante a inclusão. Selecione o produto novamente.';
+      produtos();atualizarItens();return;
+    }
+    item.preco=atualizado.preco;
+    precosPorItem.set(item,{fichaId:String(p.id),produtoId:atualizado.produtoId});
+    if(typeof renderItensPedidoManual==='function')renderItensPedidoManual();
+    titulo.textContent='';atualizarItens();
+  }
+  function validarPrecosAntesDeSalvar(){
+    if(typeof tempItensPedidoManual==='undefined' || !Array.isArray(tempItensPedidoManual))return 'Carrinho indisponível.';
+    for(const item of tempItensPedidoManual){
+      const origem=precosPorItem.get(item);
+      if(!origem)return 'Há itens incluídos pelo modo clássico. Confira e conclua no modo clássico, ou refaça a inclusão no PDV.';
+      const ft=catalogo().find(p=>String(p.id)===origem.fichaId);
+      const atual=resolverPrecoCardapio(ft);
+      if(!atual.ok||atual.produtoId!==origem.produtoId||atual.preco!==Number(item.preco))
+        return 'Preço ou vínculo do cardápio mudou. Remova e adicione novamente o item: '+(item.nome||'produto')+'.';
+      if(!Number.isFinite(Number(item.quantidade))||Number(item.quantidade)<=0)
+        return 'Quantidade inválida no pedido. Confira antes de registrar.';
+    }
+    return null;
+  }
   function atualizarItens(){ const lista=$('bpvItens');lista.replaceChildren();const itens=typeof tempItensPedidoManual!=='undefined'?tempItensPedidoManual:[];if(!itens.length)lista.append(element('p','bpv-vazio','🛒 Escolha um produto para começar.'));itens.forEach((it,i)=>{const row=element('div','bpv-item');const label=element('span','',it.nome);const val=element('strong','',moeda(Number(it.preco)*Number(it.quantidade)));const controles=element('div','bpv-controles');const menos=element('button','','−'),qt=element('b','',String(it.quantidade)),mais=element('button','','+'),rem=element('button','bpv-remover','Remover');[menos,mais,rem].forEach(x=>x.type='button');menos.addEventListener('click',()=>alterarQtd(i,-1));mais.addEventListener('click',()=>alterarQtd(i,1));rem.addEventListener('click',()=>alterarQtd(i,-Infinity));controles.append(menos,qt,mais,rem);row.append(label,val,controles);lista.append(row)});const total=somar();$('bpvSubtotal').textContent=moeda(total);$('bpvTotal').textContent=moeda(total);$('bpvItensNum').textContent=itens.length+' '+(itens.length===1?'item':'itens');troco();}
   function alterarQtd(i,delta){if(trava)return;const it=typeof tempItensPedidoManual!=='undefined'?tempItensPedidoManual[i]:null;if(!it)return;const q=Number(it.quantidade)+delta;if(q<=0){if(typeof removerItemPedidoManual==='function')removerItemPedidoManual(i);else tempItensPedidoManual.splice(i,1);}else if(Number.isFinite(q)&&q<=999){it.quantidade=q;}if(typeof renderItensPedidoManual==='function')renderItensPedidoManual();atualizarItens();}
   function troco(){const dinheiro=$('bpvPagamento').value==='Dinheiro';$('bpvDinheiro').hidden=!dinheiro;const total=Math.round(somar()*100),recebido=centavos($('bpvRecebido').value),falta=dinheiro&&(recebido===null||recebido<total);if(dinheiro){$('bpvTroco').textContent=recebido===null?'Informe quanto o cliente entregou.':recebido<total?'Faltam '+moeda((total-recebido)/100):'Troco a devolver: '+moeda((recebido-total)/100);$('bpvTroco').dataset.state=falta?'incompleto':'ok';} $('bpvSalvar').disabled=trava||!(typeof tempItensPedidoManual!=='undefined'&&tempItensPedidoManual.length)||falta;return {dinheiro,total,recebido,falta};}
@@ -88,6 +159,8 @@
     if(trava||typeof salvarPedidoManual!=='function')return;
     if(typeof editingPedidoManualId!=='undefined' && editingPedidoManualId){mostrarClassico();titulo.textContent='Há um pedido em edição. Conclua ou cancele essa edição no modo clássico antes de abrir outra venda.';return;}
     const m=troco();if(!tempItensPedidoManual.length||m.falta)return;
+    const problemaPreco=validarPrecosAntesDeSalvar();
+    if(problemaPreco){titulo.textContent=problemaPreco;produtos();return;}
     if(!escolhido&&$('bpvBuscaCliente').value.trim()){titulo.textContent='Selecione um cadastro da lista ou apague a busca para cliente balcão.';return;}
     const nome=escolhido?.nome||'';
     const homonimos=clientes().filter(c=>norm(c.nome)===norm(nome));
